@@ -1,0 +1,100 @@
+export type OverlaySourceId =
+  | "hud"
+  | "scorebug"
+  | "versus"
+  | "slate"
+  | "casters"
+  | "lower-third"
+  | "winner"
+  | "timer"
+  | "resource"
+  | "upcoming"
+  | "bracket";
+
+export type OverlaySource = {
+  id: OverlaySourceId;
+  path: string;
+  name: string;
+  size: string;
+  note: string;
+};
+
+export const OVERLAY_SOURCES: OverlaySource[] = [
+  {
+    id: "hud",
+    path: "/overlay/hud",
+    name: "HUD pack",
+    size: "1920 × 1080",
+    note: "Scorebug, clock, resources, casters, lower third, winner — arrange them together.",
+  },
+  {
+    id: "scorebug",
+    path: "/overlay/scorebug",
+    name: "Scorebug",
+    size: "1920 × 1080",
+    note: "Always-on names, score, resources. Drag in Arrange to park it.",
+  },
+  {
+    id: "versus",
+    path: "/overlay/versus",
+    name: "Versus",
+    size: "1920 × 1080",
+    note: "Full-frame match intro. Cut to this between games.",
+  },
+  {
+    id: "slate",
+    path: "/overlay/slate",
+    name: "Hold slate",
+    size: "1920 × 1080",
+    note: "Starting soon / BRB / thanks / tech. Hidden = fully transparent.",
+  },
+  {
+    id: "casters",
+    path: "/overlay/casters",
+    name: "Casters",
+    size: "1920 × 1080",
+    note: "Dual caster plates. Drag each name independently.",
+  },
+  {
+    id: "lower-third",
+    path: "/overlay/lower-third",
+    name: "Lower third",
+    size: "1920 × 1080",
+    note: "Toggle from Show control. Player, caster, or custom sting.",
+  },
+  {
+    id: "winner",
+    path: "/overlay/winner",
+    name: "Winner",
+    size: "1920 × 1080",
+    note: "Fires when a player reaches first-to or you punch P1/P2 wins.",
+  },
+  {
+    id: "timer",
+    path: "/overlay/timer",
+    name: "Round clock",
+    size: "1920 × 1080",
+    note: "Corner clock. Drag to any safe area.",
+  },
+  {
+    id: "resource",
+    path: "/overlay/resource",
+    name: "Resource plates",
+    size: "1920 × 1080",
+    note: "Big prizes / life / remaining Pokemon. Each side moves on its own.",
+  },
+  {
+    id: "upcoming",
+    path: "/overlay/upcoming",
+    name: "Up next",
+    size: "1920 × 1080",
+    note: "Reads the queue. Park it on the intermission camera.",
+  },
+  {
+    id: "bracket",
+    path: "/overlay/bracket",
+    name: "Bracket",
+    size: "1920 × 1080",
+    note: "TO bracket. Switch Full / Winners / Losers / Top 16 / Top 8 / Top 4 / Finals from Production.",
+  },
+];
