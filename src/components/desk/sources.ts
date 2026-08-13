@@ -9,7 +9,8 @@ export type OverlaySourceId =
   | "timer"
   | "resource"
   | "upcoming"
-  | "bracket";
+  | "bracket"
+  | "roster";
 
 export type OverlaySource = {
   id: OverlaySourceId;
@@ -96,5 +97,12 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     name: "Bracket",
     size: "1920 × 1080",
     note: "TO bracket. Switch Full / Winners / Losers / Top 16 / Top 8 / Top 4 / Finals from Production.",
+  },
+  {
+    id: "roster",
+    path: "/overlay/roster",
+    name: "VGC roster",
+    size: "1920 × 1080",
+    note: "Team preview. P1 sits on the right, P2 on the left. Punch P1 / P2 / Both from Show control.",
   },
 ];

@@ -13,6 +13,7 @@ import {
   type TableSize,
 } from "@/lib/desk-types";
 import { gameOf, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
+import { sampleTeamA, sampleTeamB, teamHasMons } from "@/lib/pokemon-vgc";
 import {
   CANVAS_H,
   DEFAULT_LAYOUT,
@@ -285,6 +286,21 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       secondary: format?.secondaryStart ?? game.secondary?.start ?? 0,
       cmdDamage: 0,
     };
+    const seats = withSeats(prev, { ...resources, score: 0 });
+    if (gameId === "pokemon-vgc") {
+      seats.p1 = {
+        ...prev.p1,
+        ...resources,
+        score: 0,
+        team: teamHasMons(prev.p1.team) ? prev.p1.team : sampleTeamA(),
+      };
+      seats.p2 = {
+        ...prev.p2,
+        ...resources,
+        score: 0,
+        team: teamHasMons(prev.p2.team) ? prev.p2.team : sampleTeamB(),
+      };
+    }
     const desk = nextVersion(prev, {
       gameId,
       formatName: format?.label ?? game.name,
@@ -292,7 +308,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       scorebugStyle: game.defaultScorebug,
       tableSize: format?.seats ?? 2,
       layout: layoutForTable(prev.layout, format?.seats ?? 2),
-      ...withSeats(prev, { ...resources, score: 0 }),
+      ...seats,
       winnerSide: null,
     });
     persist(desk);

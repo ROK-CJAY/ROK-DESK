@@ -32,6 +32,39 @@
   --color-ov-bg: #101215;
   --color-ov-panel: #16191e;
 
+  --color-roster-plate: #f3eee3;
+  --color-roster-ink: #2a1418;
+  --color-roster-body: #7a2436;
+  --color-roster-body-2: #611c2c;
+  --color-roster-line: rgb(255 255 255 / 0.14);
+  --color-roster-soft: rgb(255 255 255 / 0.86);
+
+  --size-roster-board: 880px;
+  --size-roster-card: 9.35rem;
+  --text-roster-name: 1.85rem;
+  --text-roster-species: 1.22rem;
+  --text-roster-move: 0.95rem;
+  --text-roster-meta: 0.78rem;
+
+  --color-type-normal: #919aa2;
+  --color-type-fire: #ff9d55;
+  --color-type-water: #5090d6;
+  --color-type-electric: #f4d23c;
+  --color-type-grass: #63bc5a;
+  --color-type-ice: #73cec0;
+  --color-type-fighting: #ce416b;
+  --color-type-poison: #aa6bc8;
+  --color-type-ground: #d97845;
+  --color-type-flying: #89aae3;
+  --color-type-psychic: #fa7179;
+  --color-type-bug: #91c12f;
+  --color-type-rock: #c5b78c;
+  --color-type-ghost: #5269ad;
+  --color-type-dragon: #0b6dc3;
+  --color-type-dark: #5a5465;
+  --color-type-steel: #5a8ea2;
+  --color-type-fairy: #ec8fe6;
+
   --font-sans: "DM Sans", "Segoe UI", system-ui, sans-serif;
   --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;

@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { GripVertical, Plus, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
+import { ClipboardList, GripVertical, Plus, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
 import { GAME_LIST, gameOf, isCommanderPodFormat } from "@/lib/games";
+import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
 import { groupByRound, readyMatches, computeStandings, currentSwissRound, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
+import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import {
   DRAW_ID,
   championOf,
@@ -16,6 +18,7 @@ import {
   isPodMatch,
   matchEntrantIds,
   matchSlots,
+  teamSheetLabel,
   viewsFor,
   type BracketSize,
   type BracketType,
@@ -29,6 +32,7 @@ export function TournamentApp() {
   const ready = useTournamentStore((s) => s.ready);
   const hydrate = useTournamentStore((s) => s.hydrate);
   const t = useTournamentStore((s) => s.tournament);
+  const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     void hydrate();
@@ -76,7 +80,14 @@ export function TournamentApp() {
           ) : null}
         </div>
         <div className="flex min-w-0 flex-col gap-4">
-          <RosterPanel />
+          <RosterPanel
+            sheetPlayerId={sheetPlayerId}
+            onOpenSheet={(id) => {
+              setSheetPlayerId(id);
+              document.getElementById("team-sheet")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
+          />
+          <TeamSheetPanel playerId={sheetPlayerId} onSelectPlayer={setSheetPlayerId} />
           <BracketBoard />
         </div>
       </main>
@@ -222,6 +233,7 @@ function sendMatchToStream(matchId: string) {
   if (!match) return;
   const seat = (id: string | null | undefined) => {
     const e = entrantById(t, id ?? null);
+    const vgc = t.gameId === "pokemon-vgc";
     return {
       name: e?.name ?? "TBD",
       tag: e?.tag ?? "",
@@ -229,6 +241,7 @@ function sendMatchToStream(matchId: string) {
       pronouns: e?.pronouns ?? "",
       archetype: e?.deck ?? "",
       extra: e?.extra ?? "",
+      team: vgc ? (teamHasMons(e?.team) ? e!.team : emptyTeam()) : undefined,
     };
   };
   const pod = isPodMatch(match);
@@ -309,7 +322,13 @@ function StreamPanel() {
   );
 }
 
-function RosterPanel() {
+function RosterPanel({
+  sheetPlayerId,
+  onOpenSheet,
+}: {
+  sheetPlayerId: string | null;
+  onOpenSheet: (id: string) => void;
+}) {
   const t = useTournamentStore((s) => s.tournament);
   const addEntrant = useTournamentStore((s) => s.addEntrant);
   const updateEntrant = useTournamentStore((s) => s.updateEntrant);
@@ -337,7 +356,10 @@ function RosterPanel() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Roster</p>
-          <p className="text-sm text-muted">{t.entrants.length} players · drag a row to change seed</p>
+          <p className="text-sm text-muted">
+            {t.entrants.length} players · drag a row to change seed
+            {t.gameId === "pokemon-vgc" ? " · open a team sheet below" : ""}
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={reseed}>
           <Shuffle className="size-3.5" />
@@ -413,6 +435,9 @@ function RosterPanel() {
                     setDragId(null);
                     setOverId(null);
                   }}
+                  showTeam={t.gameId === "pokemon-vgc"}
+                  sheetActive={sheetPlayerId === e.id}
+                  onOpenSheet={onOpenSheet}
                 />
               ))}
           </tbody>
@@ -432,6 +457,9 @@ function EntrantRow({
   onDragOver,
   onDrop,
   onDragEnd,
+  showTeam,
+  sheetActive,
+  onOpenSheet,
 }: {
   entrant: Entrant;
   dragging: boolean;
@@ -442,7 +470,11 @@ function EntrantRow({
   onDragOver: () => void;
   onDrop: () => void;
   onDragEnd: () => void;
+  showTeam: boolean;
+  sheetActive: boolean;
+  onOpenSheet: (id: string) => void;
 }) {
+  const filled = countFilledMons(entrant.team);
   return (
     <tr
       onDragOver={(event) => {
@@ -517,9 +549,25 @@ function EntrantRow({
         </NativeSelect>
       </td>
       <td className="py-2">
-        <Button variant="ghost" size="icon" className="size-8" onClick={() => onRemove(entrant.id)} aria-label="Remove">
-          <Trash2 className="size-3.5" />
-        </Button>
+        <div className="flex justify-end gap-1">
+          {showTeam ? (
+            <Button
+              variant={sheetActive ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onOpenSheet(entrant.id)}
+              aria-label="Open team sheet"
+              title={filled ? teamSheetLabel(entrant.team) : "Open team sheet"}
+              data-qa={`open-sheet-${entrant.id}`}
+            >
+              <ClipboardList className={cn("size-3.5", filled === 6 && "text-ok")} />
+              <span className="font-mono text-[0.65rem] tabular-nums">{filled}/6</span>
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="icon" className="size-8" onClick={() => onRemove(entrant.id)} aria-label="Remove">
+            <Trash2 className="size-3.5" />
+          </Button>
+        </div>
       </td>
     </tr>
   );

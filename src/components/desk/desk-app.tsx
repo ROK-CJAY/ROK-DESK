@@ -11,6 +11,7 @@ import {
   QueuePanel,
   ShowPanel,
 } from "@/components/desk/side-panels";
+import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
 import { gameOf } from "@/lib/games";
@@ -69,6 +70,7 @@ export function DeskApp() {
 
           <div className="order-1 flex flex-col gap-4 lg:order-2">
             <MatchControl />
+            <TeamPanel />
             <div className="xl:hidden">
               <OverlayPreview />
             </div>

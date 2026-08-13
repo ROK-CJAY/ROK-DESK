@@ -22,6 +22,7 @@ import { Route as OverlayCastersRouteImport } from './routes/overlay/casters'
 import { Route as OverlayHudRouteImport } from './routes/overlay/hud'
 import { Route as OverlayLowerThirdRouteImport } from './routes/overlay/lower-third'
 import { Route as OverlayResourceRouteImport } from './routes/overlay/resource'
+import { Route as OverlayRosterRouteImport } from './routes/overlay/roster'
 import { Route as OverlayScorebugRouteImport } from './routes/overlay/scorebug'
 import { Route as OverlaySlateRouteImport } from './routes/overlay/slate'
 import { Route as OverlayTimerRouteImport } from './routes/overlay/timer'
@@ -95,6 +96,11 @@ const OverlayResourceRoute = OverlayResourceRouteImport.update({
   path: '/resource',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const OverlayRosterRoute = OverlayRosterRouteImport.update({
+  id: '/roster',
+  path: '/roster',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
 const OverlayScorebugRoute = OverlayScorebugRouteImport.update({
   id: '/scorebug',
   path: '/scorebug',
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
+  '/overlay/roster': typeof OverlayRosterRoute
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
   '/overlay/timer': typeof OverlayTimerRoute
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
+  '/overlay/roster': typeof OverlayRosterRoute
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
   '/overlay/timer': typeof OverlayTimerRoute
@@ -188,6 +196,7 @@ export interface FileRoutesById {
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
+  '/overlay/roster': typeof OverlayRosterRoute
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
   '/overlay/timer': typeof OverlayTimerRoute
@@ -212,6 +221,7 @@ export interface FileRouteTypes {
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
+    | '/overlay/roster'
     | '/overlay/scorebug'
     | '/overlay/slate'
     | '/overlay/timer'
@@ -233,6 +243,7 @@ export interface FileRouteTypes {
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
+    | '/overlay/roster'
     | '/overlay/scorebug'
     | '/overlay/slate'
     | '/overlay/timer'
@@ -255,6 +266,7 @@ export interface FileRouteTypes {
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
+    | '/overlay/roster'
     | '/overlay/scorebug'
     | '/overlay/slate'
     | '/overlay/timer'
@@ -369,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayResourceRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/overlay/roster': {
+      id: '/overlay/roster'
+      path: '/roster'
+      fullPath: '/overlay/roster'
+      preLoaderRoute: typeof OverlayRosterRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
     '/overlay/scorebug': {
       id: '/overlay/scorebug'
       path: '/scorebug'
@@ -427,6 +446,7 @@ interface OverlayRouteRouteChildren {
   OverlayHudRoute: typeof OverlayHudRoute
   OverlayLowerThirdRoute: typeof OverlayLowerThirdRoute
   OverlayResourceRoute: typeof OverlayResourceRoute
+  OverlayRosterRoute: typeof OverlayRosterRoute
   OverlayScorebugRoute: typeof OverlayScorebugRoute
   OverlaySlateRoute: typeof OverlaySlateRoute
   OverlayTimerRoute: typeof OverlayTimerRoute
@@ -442,6 +462,7 @@ const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayHudRoute: OverlayHudRoute,
   OverlayLowerThirdRoute: OverlayLowerThirdRoute,
   OverlayResourceRoute: OverlayResourceRoute,
+  OverlayRosterRoute: OverlayRosterRoute,
   OverlayScorebugRoute: OverlayScorebugRoute,
   OverlaySlateRoute: OverlaySlateRoute,
   OverlayTimerRoute: OverlayTimerRoute,

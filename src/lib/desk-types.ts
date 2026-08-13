@@ -1,10 +1,18 @@
 import { z } from "zod";
 import { type BestOf, type GameId, type ScorebugStyle, gameOf } from "@/lib/games";
 import { DEFAULT_LAYOUT, mergeLayout, type LayoutMap } from "@/lib/layout";
+import {
+  emptyTeam,
+  mergeTeam,
+  sampleTeamA,
+  sampleTeamB,
+  type TeamMon,
+} from "@/lib/pokemon-vgc";
 
 export type SeatId = "p1" | "p2" | "p3" | "p4";
 export type SideId = SeatId;
 export type TableSize = 2 | 3 | 4;
+export type RosterSide = "hidden" | "p1" | "p2" | "both";
 export type CmdFrom = Record<SeatId, number>;
 
 export const SEAT_IDS: SeatId[] = ["p1", "p2", "p3", "p4"];
@@ -36,6 +44,7 @@ export type PlayerSide = {
   photoUrl: string;
   cmdDamage: number;
   cmdFrom: CmdFrom;
+  team: TeamMon[];
 };
 
 export type Caster = {
@@ -88,6 +97,7 @@ export type DeskState = {
   scorebugStyle: ScorebugStyle;
   scorebugPosition: "top" | "bottom";
   tableSize: TableSize;
+  rosterSide: RosterSide;
   layout: LayoutMap;
 };
 
@@ -109,6 +119,20 @@ const playerSchema: z.ZodType<PlayerSide> = z.object({
     p3: z.number(),
     p4: z.number(),
   }),
+  team: z
+    .array(
+      z.object({
+        species: z.string(),
+        dex: z.number(),
+        types: z.array(z.string()).optional(),
+        tera: z.string(),
+        ability: z.string(),
+        item: z.string(),
+        moves: z.array(z.object({ name: z.string(), type: z.string() })),
+      }),
+    )
+    .optional()
+    .transform((rows) => mergeTeam(rows)),
 });
 
 const casterSchema: z.ZodType<Caster> = z.object({
@@ -167,6 +191,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   scorebugStyle: z.enum(["bar", "split"]),
   scorebugPosition: z.enum(["top", "bottom"]),
   tableSize: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+  rosterSide: z.enum(["hidden", "p1", "p2", "both"]),
   layout: z.object({
     scorebugBar: z.object({ x: z.number(), y: z.number() }),
     scorebugP1: z.object({ x: z.number(), y: z.number() }),
@@ -182,6 +207,8 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     resourceP2: z.object({ x: z.number(), y: z.number() }),
     winner: z.object({ x: z.number(), y: z.number() }),
     upcoming: z.object({ x: z.number(), y: z.number() }),
+    rosterP1: z.object({ x: z.number(), y: z.number() }),
+    rosterP2: z.object({ x: z.number(), y: z.number() }),
   }),
 });
 
@@ -200,6 +227,7 @@ export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
     cmdDamage: 0,
     ...overrides,
     cmdFrom: { ...emptyCmdFrom(), ...overrides.cmdFrom },
+    team: mergeTeam(overrides.team ?? emptyTeam()),
   };
 }
 
@@ -221,6 +249,7 @@ export function defaultDesk(): DeskState {
       score: 1,
       resource: 4,
       archetype: "Charizard ex",
+      team: sampleTeamA(),
     }),
     p2: blankPlayer({
       name: "Luis Ortega",
@@ -230,6 +259,7 @@ export function defaultDesk(): DeskState {
       score: 0,
       resource: 5,
       archetype: "Dragapult",
+      team: sampleTeamB(),
     }),
     p3: blankPlayer({
       name: "Jordan Hale",
@@ -272,6 +302,7 @@ export function defaultDesk(): DeskState {
     scorebugStyle: "bar",
     scorebugPosition: "bottom",
     tableSize: 2,
+    rosterSide: "hidden",
     layout: { ...DEFAULT_LAYOUT },
   };
 }
@@ -332,6 +363,13 @@ export function parseDesk(raw: unknown): DeskState | null {
       ...(isRecord(incoming.lowerThird) ? incoming.lowerThird : {}),
     },
     layout: mergeLayout(incoming.layout),
+    rosterSide:
+      incoming.rosterSide === "p1" ||
+      incoming.rosterSide === "p2" ||
+      incoming.rosterSide === "both" ||
+      incoming.rosterSide === "hidden"
+        ? incoming.rosterSide
+        : base.rosterSide,
   };
   const parsed = deskSchema.safeParse(merged);
   return parsed.success ? (parsed.data as DeskState) : null;
@@ -351,6 +389,7 @@ function mergePlayer(base: PlayerSide, raw: unknown): PlayerSide {
       p3: typeof cmdFromRaw.p3 === "number" ? cmdFromRaw.p3 : 0,
       p4: typeof cmdFromRaw.p4 === "number" ? cmdFromRaw.p4 : 0,
     },
+    team: mergeTeam(incoming.team ?? base.team),
   };
 }
 

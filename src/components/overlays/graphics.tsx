@@ -11,6 +11,7 @@ import { OverlayEditProvider, Placed, useOverlayEdit } from "@/components/overla
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { ScorebugView } from "@/components/overlays/scorebug";
 import { CommanderScorebug, CommanderVersus, useCommanderOverlay } from "@/components/overlays/commander";
+import { RosterView } from "@/components/overlays/roster";
 
 const SLATE_COPY: Record<Exclude<SlateKind, "hidden">, { kicker: string; title: string; image: string }> = {
   starting: { kicker: "Live shortly", title: "Starting Soon", image: "/slates/starting.jpg" },
@@ -397,6 +398,7 @@ export function HudView({
       {commander ? null : <CastersView desk={desk} edit={edit} />}
       <LowerThirdView desk={desk} edit={edit} />
       <WinnerView desk={desk} edit={edit} />
+      <RosterView desk={desk} edit={edit} />
     </div>
   );
 }

@@ -17,6 +17,8 @@ export const WIDGET_IDS = [
   "resourceP2",
   "winner",
   "upcoming",
+  "rosterP1",
+  "rosterP2",
 ] as const;
 
 export type WidgetId = (typeof WIDGET_IDS)[number];
@@ -38,6 +40,8 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
   resourceP2: "P2 resource",
   winner: "Winner",
   upcoming: "Up next",
+  rosterP1: "P1 roster",
+  rosterP2: "P2 roster",
 };
 
 export const DEFAULT_LAYOUT: LayoutMap = {
@@ -55,6 +59,8 @@ export const DEFAULT_LAYOUT: LayoutMap = {
   resourceP2: { x: 1512, y: 828 },
   winner: { x: 0, y: 390 },
   upcoming: { x: 48, y: 220 },
+  rosterP1: { x: 1012, y: 132 },
+  rosterP2: { x: 28, y: 132 },
 };
 
 export function clampPos(pos: WidgetPos, fullWidth = false): WidgetPos {

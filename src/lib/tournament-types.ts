@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type BestOf, type GameId, gameOf } from "@/lib/games";
+import { mergeTeam, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
 
 export type BracketType = "single" | "double" | "swiss";
 export type BracketSize = 4 | 8 | 16 | 32;
@@ -43,6 +44,7 @@ export type Entrant = {
   extra: string;
   seed: number;
   dropped: boolean;
+  team: TeamMon[];
 };
 
 export type MatchSlot = {
@@ -98,6 +100,7 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
   extra: z.string(),
   seed: z.number(),
   dropped: z.boolean(),
+  team: z.unknown().optional().transform((rows) => mergeTeam(rows)),
 });
 
 const matchSchema: z.ZodType<BracketMatch> = z.object({
@@ -156,7 +159,15 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     seed: 0,
     dropped: false,
     ...overrides,
+    team: mergeTeam(overrides.team),
   };
+}
+
+export function teamSheetLabel(team: TeamMon[] | undefined): string {
+  if (!teamHasMons(team)) return "";
+  const names = (team ?? []).map((mon) => mon.species.trim()).filter(Boolean);
+  if (names.length === 0) return "";
+  return names.length === 1 ? names[0]! : `${names[0]} +${names.length - 1}`;
 }
 
 function demoEntrants(): Entrant[] {

@@ -12,6 +12,7 @@ import {
   formatClock,
   remainingSeconds,
   type LowerThirdMode,
+  type RosterSide,
   type SlateKind,
   type TableSize,
   seatsFor,
@@ -393,6 +394,19 @@ export function ShowPanel() {
             onCheckedChange={(showResources) => patch({ showResources })}
           />
         </div>
+        {desk.gameId === "pokemon-vgc" ? (
+          <Field label="Team preview">
+            <NativeSelect
+              value={desk.rosterSide}
+              onChange={(e) => patch({ rosterSide: e.target.value as RosterSide })}
+            >
+              <option value="hidden">Hidden</option>
+              <option value="p1">Player 1 (right)</option>
+              <option value="p2">Player 2 (left)</option>
+              <option value="both">Both</option>
+            </NativeSelect>
+          </Field>
+        ) : null}
         {isCommanderTable(desk) ? null : (
         <div className="grid grid-cols-2 gap-2">
           <NativeSelect

@@ -26,7 +26,7 @@ export function NativeSelect({
   return (
     <select
       className={cn(
-        "h-10 w-full rounded-md border border-border bg-surface px-3 text-sm text-fg",
+        "h-10 w-full min-w-0 rounded-md border border-border bg-surface px-3 text-sm text-fg",
         "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
         className,
       )}

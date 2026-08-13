@@ -20,6 +20,7 @@ import { OVERLAY_SOURCES, type OverlaySourceId } from "@/components/desk/sources
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { BracketOverlay } from "@/components/overlays/bracket";
+import { RosterView } from "@/components/overlays/roster";
 import {
   cloneLayout,
   isDefaultLayout,
@@ -222,6 +223,7 @@ export function OverlayPreview() {
           {source === "resource" ? <ResourceView desk={desk} /> : null}
           {source === "upcoming" ? <UpcomingView desk={desk} /> : null}
           {source === "bracket" && tourneyReady ? <BracketOverlay tournament={tournament} /> : null}
+          {source === "roster" ? <RosterView desk={desk} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} /> : null}
         </ScaleFrame>
       </div>
 
