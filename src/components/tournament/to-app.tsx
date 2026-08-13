@@ -5,7 +5,7 @@ import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
-import { GAME_LIST, gameOf } from "@/lib/games";
+import { GAME_LIST, gameOf, isCommanderPodFormat } from "@/lib/games";
 import { useDeskStore } from "@/lib/desk-store";
 import { groupByRound, readyMatches, computeStandings, currentSwissRound, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
@@ -13,11 +13,15 @@ import {
   DRAW_ID,
   championOf,
   entrantById,
+  isPodMatch,
+  matchEntrantIds,
+  matchSlots,
   viewsFor,
   type BracketSize,
   type BracketType,
   type BracketViewId,
   type Entrant,
+  type SlotId,
 } from "@/lib/tournament-types";
 import { cn } from "@/lib/cn";
 
@@ -168,6 +172,9 @@ function SetupPanel() {
             </NativeSelect>
           </Field>
         ) : null}
+        {t.bracketType === "swiss" && isCommanderPodFormat(t.gameId, t.formatName) ? (
+          <p className="text-xs text-muted">Commander Swiss pairs tables of 4.</p>
+        ) : null}
         <Field label="Best of">
           <NativeSelect
             value={String(t.bestOf)}
@@ -213,8 +220,18 @@ function sendMatchToStream(matchId: string) {
   const t = useTournamentStore.getState().tournament;
   const match = t.matches.find((m) => m.id === matchId);
   if (!match) return;
-  const p1 = entrantById(t, match.p1.entrantId);
-  const p2 = entrantById(t, match.p2.entrantId);
+  const seat = (id: string | null | undefined) => {
+    const e = entrantById(t, id ?? null);
+    return {
+      name: e?.name ?? "TBD",
+      tag: e?.tag ?? "",
+      country: e?.country ?? "US",
+      pronouns: e?.pronouns ?? "",
+      archetype: e?.deck ?? "",
+      extra: e?.extra ?? "",
+    };
+  };
+  const pod = isPodMatch(match);
   useTournamentStore.getState().setStreamMatch(matchId);
   useDeskStore.getState().loadStreamMatch({
     eventName: t.name,
@@ -223,28 +240,26 @@ function sendMatchToStream(matchId: string) {
       t.bracketType === "double"
         ? "Double elimination"
         : t.bracketType === "swiss"
-          ? "Swiss"
+          ? pod
+            ? "Swiss pods"
+            : "Swiss"
           : "Single elimination",
     bestOf: t.bestOf,
     gameId: t.gameId,
     formatName: t.formatName,
-    p1: {
-      name: p1?.name ?? "TBD",
-      tag: p1?.tag ?? "",
-      country: p1?.country ?? "US",
-      pronouns: p1?.pronouns ?? "",
-      archetype: p1?.deck ?? "",
-      extra: p1?.extra ?? "",
-    },
-    p2: {
-      name: p2?.name ?? "TBD",
-      tag: p2?.tag ?? "",
-      country: p2?.country ?? "US",
-      pronouns: p2?.pronouns ?? "",
-      archetype: p2?.deck ?? "",
-      extra: p2?.extra ?? "",
-    },
+    tableSize: pod ? 4 : 2,
+    p1: seat(match.p1.entrantId),
+    p2: seat(match.p2.entrantId),
+    p3: pod ? seat(match.p3?.entrantId) : undefined,
+    p4: pod ? seat(match.p4?.entrantId) : undefined,
   });
+}
+
+function namesForMatch(t: import("@/lib/tournament-types").TournamentState, match: import("@/lib/tournament-types").BracketMatch) {
+  const names = matchEntrantIds(match).map((id) => entrantById(t, id)?.name ?? "TBD");
+  if (names.length > 2) return names.join(" · ");
+  if (names.length === 2) return `${names[0]} vs ${names[1]}`;
+  return names[0] ?? "TBD";
 }
 
 function StreamPanel() {
@@ -258,9 +273,7 @@ function StreamPanel() {
       {live ? (
         <div className="mt-3 rounded-lg border border-live/40 bg-live/10 px-3 py-2">
           <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">On air</p>
-          <p className="text-sm text-fg">
-            {entrantById(t, live.p1.entrantId)?.name ?? "TBD"} vs {entrantById(t, live.p2.entrantId)?.name ?? "TBD"}
-          </p>
+          <p className="text-sm text-fg">{namesForMatch(t, live)}</p>
           <p className="text-xs text-muted">{live.label}</p>
         </div>
       ) : (
@@ -284,7 +297,7 @@ function StreamPanel() {
               >
                 <span>
                   <span className="block text-xs text-muted">{match.label}</span>
-                  {entrantById(t, match.p1.entrantId)?.name} vs {entrantById(t, match.p2.entrantId)?.name}
+                  {namesForMatch(t, match)}
                 </span>
                 <Radio className="size-3.5 shrink-0" />
               </button>
@@ -565,15 +578,17 @@ function BracketBoard() {
             </p>
             <div className="flex gap-3 overflow-x-auto pb-2">
               {group.rounds.map((col) => (
-                <div key={`${group.side}-${col.round}`} className="w-[240px] shrink-0">
+                <div key={`${group.side}-${col.round}`} className="w-[260px] shrink-0">
                   <p className="mb-2 truncate text-xs text-subtle">{col.label}</p>
                   <div className="flex flex-col gap-2">
                     {col.matches.map((match) => {
-                      const p1 = entrantById(t, match.p1.entrantId);
-                      const p2 = entrantById(t, match.p2.entrantId);
                       const live = t.streamMatchId === match.id;
                       const skip = match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId;
                       if (skip) return null;
+                      const seats = matchSlots(match).filter(
+                        (row) => row.slot.entrantId || !isPodMatch(match) && (row.id === "p1" || row.id === "p2"),
+                      );
+                      const canReport = matchEntrantIds(match).length >= 2;
                       return (
                         <div
                           key={match.id}
@@ -582,31 +597,25 @@ function BracketBoard() {
                             live ? "border-live" : "border-border",
                           )}
                         >
-                          <MatchSeat
-                            name={p1?.name ?? (match.p1.entrantId ? "—" : "TBD")}
-                            seed={p1?.seed}
-                            score={match.p1.score}
-                            won={match.winnerId === match.p1.entrantId}
-                            onScore={(n) => setScore(match.id, "p1", n)}
-                            onWin={
-                              match.p1.entrantId && match.p2.entrantId
-                                ? () => report(match.id, match.p1.entrantId!)
-                                : undefined
-                            }
-                          />
-                          <MatchSeat
-                            name={p2?.name ?? (match.p2.entrantId ? "—" : "TBD")}
-                            seed={p2?.seed}
-                            score={match.p2.score}
-                            won={match.winnerId === match.p2.entrantId}
-                            onScore={(n) => setScore(match.id, "p2", n)}
-                            onWin={
-                              match.p1.entrantId && match.p2.entrantId
-                                ? () => report(match.id, match.p2.entrantId!)
-                                : undefined
-                            }
-                          />
-                          {match.p1.entrantId && match.p2.entrantId ? (
+                          {seats.map((row) => {
+                            const player = entrantById(t, row.slot.entrantId);
+                            return (
+                              <MatchSeat
+                                key={row.id}
+                                name={player?.name ?? (row.slot.entrantId ? "—" : "TBD")}
+                                seed={player?.seed}
+                                score={row.slot.score}
+                                won={match.winnerId === row.slot.entrantId}
+                                onScore={(n) => setScore(match.id, row.id, n)}
+                                onWin={
+                                  canReport && row.slot.entrantId
+                                    ? () => report(match.id, row.slot.entrantId!)
+                                    : undefined
+                                }
+                              />
+                            );
+                          })}
+                          {canReport ? (
                             <div className="mt-1.5 flex gap-1">
                               {t.bracketType === "swiss" ? (
                                 <button

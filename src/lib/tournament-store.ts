@@ -4,6 +4,7 @@ import {
   defaultTournament,
   parseTournament,
   type Entrant,
+  type SlotId,
   type TournamentState,
 } from "@/lib/tournament-types";
 import {
@@ -13,7 +14,7 @@ import {
   setMatchScore,
   defaultSwissRounds,
 } from "@/lib/tournament-bracket";
-import type { SlotId } from "@/lib/tournament-types";
+import { isCommanderPodFormat } from "@/lib/games";
 
 type TournamentStore = {
   tournament: TournamentState;
@@ -164,7 +165,13 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       entrants: [...capped, ...prev.entrants.slice(prev.size)],
       swissRounds,
       overlayView: prev.bracketType === "swiss" ? "standings" : prev.overlayView === "standings" ? "full" : prev.overlayView,
-      matches: generateBracket(prev.bracketType, prev.size, capped, swissRounds),
+      matches: generateBracket(
+        prev.bracketType,
+        prev.size,
+        capped,
+        swissRounds,
+        isCommanderPodFormat(prev.gameId, prev.formatName),
+      ),
       phase: "running",
       streamMatchId: null,
     });

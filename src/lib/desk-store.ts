@@ -48,8 +48,11 @@ type DeskStore = {
     bestOf: 1 | 3 | 5 | 7;
     gameId: GameId;
     formatName: string;
+    tableSize?: TableSize;
     p1: Partial<PlayerSide>;
     p2: Partial<PlayerSide>;
+    p3?: Partial<PlayerSide>;
+    p4?: Partial<PlayerSide>;
   }) => void;
   setTableSize: (size: TableSize) => void;
   setFocusedSeat: (seat: SeatId) => void;
@@ -333,14 +336,19 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     }
     const prev = get().desk;
     const resources = resetResources({ ...prev, formatName: payload.formatName });
+    const tableSize = payload.tableSize ?? (payload.p3 || payload.p4 ? 4 : prev.tableSize);
     const desk = nextVersion(prev, {
       eventName: payload.eventName,
       roundName: payload.roundName,
       eventPhase: payload.eventPhase,
       bestOf: payload.bestOf,
       formatName: payload.formatName,
+      tableSize,
+      layout: layoutForTable(prev.layout, tableSize),
       p1: { ...prev.p1, ...resources, score: 0, ...payload.p1 },
       p2: { ...prev.p2, ...resources, score: 0, ...payload.p2 },
+      p3: payload.p3 ? { ...prev.p3, ...resources, score: 0, ...payload.p3 } : prev.p3,
+      p4: payload.p4 ? { ...prev.p4, ...resources, score: 0, ...payload.p4 } : prev.p4,
       winnerSide: null,
     });
     persist(desk);

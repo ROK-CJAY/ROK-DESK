@@ -4,7 +4,7 @@ import { type BestOf, type GameId, gameOf } from "@/lib/games";
 export type BracketType = "single" | "double" | "swiss";
 export type BracketSize = 4 | 8 | 16 | 32;
 export type BracketSide = "winners" | "losers" | "grand" | "swiss";
-export type SlotId = "p1" | "p2";
+export type SlotId = "p1" | "p2" | "p3" | "p4";
 export type TournamentPhase = "setup" | "running" | "complete";
 export type BracketViewId =
   | "full"
@@ -57,11 +57,13 @@ export type BracketMatch = {
   side: BracketSide;
   p1: MatchSlot;
   p2: MatchSlot;
+  p3: MatchSlot;
+  p4: MatchSlot;
   winnerId: string | null;
   nextWinnerMatchId: string | null;
-  nextWinnerSlot: SlotId | null;
+  nextWinnerSlot: "p1" | "p2" | null;
   nextLoserMatchId: string | null;
-  nextLoserSlot: SlotId | null;
+  nextLoserSlot: "p1" | "p2" | null;
   label: string;
 };
 
@@ -105,6 +107,8 @@ const matchSchema: z.ZodType<BracketMatch> = z.object({
   side: z.enum(["winners", "losers", "grand", "swiss"]),
   p1: slotSchema,
   p2: slotSchema,
+  p3: slotSchema.default({ entrantId: null, score: 0 }),
+  p4: slotSchema.default({ entrantId: null, score: 0 }),
   winnerId: z.string().nullable(),
   nextWinnerMatchId: z.string().nullable(),
   nextWinnerSlot: z.enum(["p1", "p2"]).nullable(),
@@ -232,6 +236,31 @@ export function entrantById(t: TournamentState, id: string | null): Entrant | nu
 export function matchById(t: TournamentState, id: string | null): BracketMatch | null {
   if (!id) return null;
   return t.matches.find((m) => m.id === id) ?? null;
+}
+
+export function emptySlot(): MatchSlot {
+  return { entrantId: null, score: 0 };
+}
+
+export function matchSlots(match: BracketMatch): { id: SlotId; slot: MatchSlot }[] {
+  return (
+    [
+      ["p1", match.p1],
+      ["p2", match.p2],
+      ["p3", match.p3 ?? emptySlot()],
+      ["p4", match.p4 ?? emptySlot()],
+    ] as const
+  ).map(([id, slot]) => ({ id, slot }));
+}
+
+export function matchEntrantIds(match: BracketMatch): string[] {
+  return matchSlots(match)
+    .map((row) => row.slot.entrantId)
+    .filter((id): id is string => Boolean(id));
+}
+
+export function isPodMatch(match: BracketMatch): boolean {
+  return Boolean(match.p3?.entrantId || match.p4?.entrantId);
 }
 
 export function championOf(t: TournamentState): Entrant | null {

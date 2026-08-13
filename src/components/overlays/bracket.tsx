@@ -4,6 +4,7 @@ import {
   DRAW_ID,
   championOf,
   entrantById,
+  matchSlots,
   type BracketMatch,
   type TournamentState,
 } from "@/lib/tournament-types";
@@ -187,6 +188,7 @@ function OverlayMatch({
 }) {
   if (match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId) return null;
   const live = tournament.streamMatchId === match.id;
+  const seats = matchSlots(match).filter((row) => row.slot.entrantId);
   return (
     <div
       className={cn(
@@ -194,9 +196,12 @@ function OverlayMatch({
         live ? "border-game" : "border-ov-fg/10",
       )}
     >
-      <OverlaySeat tournament={tournament} match={match} slot="p1" />
-      <div className="h-px bg-ov-fg/10" />
-      <OverlaySeat tournament={tournament} match={match} slot="p2" />
+      {(seats.length ? seats : matchSlots(match).slice(0, 2)).map((row, i) => (
+        <div key={row.id}>
+          {i > 0 ? <div className="h-px bg-ov-fg/10" /> : null}
+          <OverlaySeat tournament={tournament} match={match} slot={row.id} />
+        </div>
+      ))}
     </div>
   );
 }
@@ -208,9 +213,9 @@ function OverlaySeat({
 }: {
   tournament: TournamentState;
   match: BracketMatch;
-  slot: "p1" | "p2";
+  slot: "p1" | "p2" | "p3" | "p4";
 }) {
-  const side = match[slot];
+  const side = match[slot] ?? { entrantId: null, score: 0 };
   const player = entrantById(tournament, side.entrantId);
   const won = match.winnerId === side.entrantId;
   return (

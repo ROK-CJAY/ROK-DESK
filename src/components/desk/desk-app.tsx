@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { Keyboard } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { MatchControl } from "@/components/desk/match-control";
 import { OverlayPreview } from "@/components/desk/overlay-preview";
@@ -12,18 +11,15 @@ import {
   QueuePanel,
   ShowPanel,
 } from "@/components/desk/side-panels";
-import { useDeskHotkeys } from "@/components/desk/hotkeys";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
-import { GAME_LIST, gameOf, isCommanderLane } from "@/lib/games";
+import { gameOf } from "@/lib/games";
 
 export function DeskApp() {
   const ready = useDeskStore((s) => s.ready);
   const hydrate = useDeskStore((s) => s.hydrate);
   const desk = useDeskStore((s) => s.desk);
   const applyGame = useDeskStore((s) => s.applyGame);
-
-  useDeskHotkeys();
 
   useEffect(() => {
     void hydrate();
@@ -73,7 +69,6 @@ export function DeskApp() {
 
           <div className="order-1 flex flex-col gap-4 lg:order-2">
             <MatchControl />
-            <HotkeyCard />
             <div className="xl:hidden">
               <OverlayPreview />
             </div>
@@ -87,28 +82,5 @@ export function DeskApp() {
         </main>
       </div>
     </TooltipProvider>
-  );
-}
-
-function HotkeyCard() {
-  const tableSize = useDeskStore((s) => s.desk.tableSize);
-  const commander = useDeskStore((s) => isCommanderLane(s.desk));
-  return (
-    <section className="rounded-xl border border-border bg-surface px-4 py-3">
-      <div className="flex items-center gap-2 text-sm text-muted">
-        <Keyboard className="size-4" />
-        <span>
-          {tableSize > 2
-            ? "1–4 focus seat · W/S life · Shift+W/S ±5 · E/D cmd dmg · I/K poison · F rotate · R reset · Space timer"
-            : commander
-              ? "Q/A P1 games · O/L P2 games · W/S P1 life · I/K P2 life · F swap · R reset · Space timer"
-              : "Q/A P1 games · O/L P2 games · W/S P1 resource · I/K P2 resource · F swap · R reset game · Space timer"}
-        </span>
-      </div>
-      <p className="mt-1 hidden text-xs text-subtle sm:block">
-        {GAME_LIST.map((g) => g.short).join(" · ")} — switch the strip to retarget every
-        overlay. MTG has Constructed and Commander tabs.
-      </p>
-    </section>
   );
 }

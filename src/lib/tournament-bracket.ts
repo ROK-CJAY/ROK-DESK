@@ -1,5 +1,7 @@
 import {
   DRAW_ID,
+  emptySlot,
+  matchEntrantIds,
   type BracketMatch,
   type BracketSize,
   type BracketType,
@@ -9,15 +11,14 @@ import {
   type SlotId,
   type TournamentState,
 } from "@/lib/tournament-types";
+import { isCommanderPodFormat } from "@/lib/games";
 
-function emptySlot(): MatchSlot {
-  return { entrantId: null, score: 0 };
-}
-
-function makeMatch(partial: Omit<BracketMatch, "p1" | "p2" | "winnerId"> & Partial<BracketMatch>): BracketMatch {
+function makeMatch(partial: Omit<BracketMatch, "p1" | "p2" | "p3" | "p4" | "winnerId"> & Partial<BracketMatch>): BracketMatch {
   return {
     p1: emptySlot(),
     p2: emptySlot(),
+    p3: emptySlot(),
+    p4: emptySlot(),
     winnerId: null,
     ...partial,
   };
@@ -70,9 +71,10 @@ export function generateBracket(
   size: BracketSize,
   entrants: Entrant[],
   swissRounds = defaultSwissRounds(size),
+  pod = false,
 ): BracketMatch[] {
   if (type === "swiss") {
-    return pairSwissFirstRound(entrants, size);
+    return pairSwissFirstRound(entrants, size, pod);
   }
   const bySeed = new Map(entrants.filter((e) => !e.dropped).map((e) => [e.seed, e]));
   const order = generateSeeding(size);
@@ -123,8 +125,14 @@ function swissPool(entrants: Entrant[], size: number): Entrant[] {
     .slice(0, size);
 }
 
-function pairSwissFirstRound(entrants: Entrant[], size: number): BracketMatch[] {
+function pairSwissFirstRound(entrants: Entrant[], size: number, pod = false): BracketMatch[] {
   const pool = swissPool(entrants, size);
+  if (pod) {
+    const matches = makePodMatches(1, dealPods(pool.map((e) => e.id)));
+    autoAdvanceByes(matches);
+    return matches;
+  }
+
   const half = Math.ceil(pool.length / 2);
   const matches: BracketMatch[] = [];
   for (let i = 0; i < half; i += 1) {
@@ -150,19 +158,126 @@ function pairSwissFirstRound(entrants: Entrant[], size: number): BracketMatch[] 
   return matches;
 }
 
+function podSizes(count: number): number[] {
+  if (count <= 0) return [];
+  if (count === 1) return [1];
+  if (count === 2) return [2];
+  if (count === 5) return [4, 1];
+  const sizes: number[] = [];
+  let remaining = count;
+  while (remaining >= 4) {
+    sizes.push(4);
+    remaining -= 4;
+  }
+  if (remaining === 3) sizes.push(3);
+  else if (remaining === 2) {
+    if (sizes.length) {
+      sizes.pop();
+      sizes.push(3, 3);
+    } else sizes.push(2);
+  } else if (remaining === 1) {
+    if (sizes.length >= 2) {
+      sizes.pop();
+      sizes.pop();
+      sizes.push(3, 3, 3);
+    } else if (sizes.length === 1) {
+      sizes.pop();
+      sizes.push(4, 1);
+    } else sizes.push(1);
+  }
+  return sizes;
+}
+
+function dealPods(ids: string[]): string[][] {
+  const sizes = podSizes(ids.length);
+  const pods = sizes.map(() => [] as string[]);
+  if (pods.length === 0) return [];
+  let index = 0;
+  let dir = 1;
+  const bounce = () => {
+    if (index >= pods.length) {
+      index = pods.length - 1;
+      dir = -1;
+    }
+    if (index < 0) {
+      index = 0;
+      dir = 1;
+    }
+  };
+  for (const id of ids) {
+    let hops = 0;
+    while (pods[index]!.length >= (sizes[index] ?? 4) && hops < pods.length) {
+      index += dir;
+      bounce();
+      hops += 1;
+    }
+    pods[index]!.push(id);
+    index += dir;
+    bounce();
+  }
+  return pods.filter((p) => p.length > 0);
+}
+
+function pairSwissPods(standings: Standing[], played: BracketMatch[]): string[][] {
+  const sizes = podSizes(standings.length);
+  const open = standings.map((s) => s.entrantId);
+  const pods: string[][] = [];
+  for (const size of sizes) {
+    if (open.length === 0) break;
+    if (size === 1) {
+      const bye = [...open].reverse().find((id) => !hadBye(played, id)) ?? open[open.length - 1];
+      const at = open.indexOf(bye);
+      if (at >= 0) open.splice(at, 1);
+      pods.push([bye]);
+      continue;
+    }
+    const seed = open.shift();
+    if (!seed) break;
+    const pod = [seed];
+    while (pod.length < size && open.length > 0) {
+      let idx = open.findIndex((id) => pod.every((other) => !playedTogether(played, other, id)));
+      if (idx < 0) idx = 0;
+      pod.push(open.splice(idx, 1)[0]!);
+    }
+    pods.push(pod);
+  }
+  if (open.length) pods.push([...open]);
+  return pods;
+}
+
+function makePodMatches(round: number, pods: string[][]): BracketMatch[] {
+  return pods.map((pod, i) => {
+    const [a, b, c, d] = pod;
+    return makeMatch({
+      id: `s-${round}-${i}`,
+      round,
+      position: i,
+      side: "swiss",
+      nextWinnerMatchId: null,
+      nextWinnerSlot: null,
+      nextLoserMatchId: null,
+      nextLoserSlot: null,
+      label: `Swiss Round ${round} · Pod ${i + 1}`,
+      p1: { entrantId: a ?? null, score: 0 },
+      p2: { entrantId: b ?? null, score: 0 },
+      p3: { entrantId: c ?? null, score: 0 },
+      p4: { entrantId: d ?? null, score: 0 },
+    });
+  });
+}
+
 function playedTogether(matches: BracketMatch[], a: string, b: string): boolean {
   return matches.some((m) => {
-    const ids = [m.p1.entrantId, m.p2.entrantId];
+    const ids = matchEntrantIds(m);
     return ids.includes(a) && ids.includes(b);
   });
 }
 
 function hadBye(matches: BracketMatch[], id: string): boolean {
-  return matches.some(
-    (m) =>
-      m.winnerId === id &&
-      ((m.p1.entrantId === id && !m.p2.entrantId) || (m.p2.entrantId === id && !m.p1.entrantId)),
-  );
+  return matches.some((m) => {
+    const ids = matchEntrantIds(m);
+    return m.winnerId === id && ids.length === 1 && ids[0] === id;
+  });
 }
 
 export function computeStandings(t: TournamentState): Standing[] {
@@ -182,48 +297,28 @@ export function computeStandings(t: TournamentState): Standing[] {
   }
   const opponents = new Map<string, string[]>();
   for (const match of t.matches.filter((m) => m.side === "swiss")) {
-    const a = match.p1.entrantId;
-    const b = match.p2.entrantId;
-    if (a && b) {
-      opponents.set(a, [...(opponents.get(a) ?? []), b]);
-      opponents.set(b, [...(opponents.get(b) ?? []), a]);
+    const ids = matchEntrantIds(match);
+    for (const id of ids) {
+      opponents.set(id, [...(opponents.get(id) ?? []), ...ids.filter((other) => other !== id)]);
     }
     if (!match.winnerId) continue;
-    const sa = a ? rows.get(a) : undefined;
-    const sb = b ? rows.get(b) : undefined;
     if (match.winnerId === DRAW_ID) {
-      if (sa) {
-        sa.draws += 1;
-        sa.matchPoints += 1;
-        sa.gamesFor += match.p1.score;
-        sa.gamesAgainst += match.p2.score;
-      }
-      if (sb) {
-        sb.draws += 1;
-        sb.matchPoints += 1;
-        sb.gamesFor += match.p2.score;
-        sb.gamesAgainst += match.p1.score;
+      for (const id of ids) {
+        const row = rows.get(id);
+        if (!row) continue;
+        row.draws += 1;
+        row.matchPoints += 1;
       }
       continue;
     }
-    if (sa) {
-      sa.gamesFor += match.p1.score;
-      sa.gamesAgainst += match.p2.score;
-      if (match.winnerId === a) {
-        sa.wins += 1;
-        sa.matchPoints += 3;
-      } else if (b) {
-        sa.losses += 1;
-      }
-    }
-    if (sb) {
-      sb.gamesFor += match.p2.score;
-      sb.gamesAgainst += match.p1.score;
-      if (match.winnerId === b) {
-        sb.wins += 1;
-        sb.matchPoints += 3;
-      } else if (a) {
-        sb.losses += 1;
+    for (const id of ids) {
+      const row = rows.get(id);
+      if (!row) continue;
+      if (match.winnerId === id) {
+        row.wins += 1;
+        row.matchPoints += 3;
+      } else {
+        row.losses += 1;
       }
     }
   }
@@ -265,9 +360,10 @@ export function swissRoundComplete(t: TournamentState, round: number): boolean {
 
 export function pairNextSwissRound(t: TournamentState): TournamentState {
   if (t.bracketType !== "swiss") return t;
+  const pod = isCommanderPodFormat(t.gameId, t.formatName);
   const round = currentSwissRound(t);
   if (round === 0) {
-    return { ...t, matches: pairSwissFirstRound(t.entrants, t.size), phase: "running" };
+    return { ...t, matches: pairSwissFirstRound(t.entrants, t.size, pod), phase: "running" };
   }
   if (!swissRoundComplete(t, round)) return t;
   if (round >= t.swissRounds) {
@@ -277,6 +373,15 @@ export function pairNextSwissRound(t: TournamentState): TournamentState {
   if (t.matches.some((m) => m.side === "swiss" && m.round === nextRound)) return t;
 
   const standings = computeStandings(t);
+  if (pod) {
+    const extra = makePodMatches(nextRound, pairSwissPods(standings, t.matches));
+    extra.filter((m) => matchEntrantIds(m).length === 1).forEach((m) => {
+      const id = matchEntrantIds(m)[0];
+      if (id) m.winnerId = id;
+    });
+    return { ...t, matches: [...t.matches, ...extra], phase: "running" };
+  }
+
   const used = new Set<string>();
   const pairs: Array<[string, string | null]> = [];
 
@@ -484,13 +589,9 @@ function autoAdvanceByes(matches: BracketMatch[]) {
     changed = false;
     for (const match of matches) {
       if (match.winnerId) continue;
-      const a = match.p1.entrantId;
-      const b = match.p2.entrantId;
-      if (a && !b) {
-        applyAdvance(matches, match, a);
-        changed = true;
-      } else if (b && !a) {
-        applyAdvance(matches, match, b);
+      const ids = matchEntrantIds(match);
+      if (ids.length === 1 && ids[0]) {
+        applyAdvance(matches, match, ids[0]);
         changed = true;
       }
     }
@@ -547,7 +648,7 @@ export function reportWinner(t: TournamentState, matchId: string, winnerId: stri
   }));
   const match = matches.find((m) => m.id === matchId);
   if (!match) return t;
-  const ids = [match.p1.entrantId, match.p2.entrantId];
+  const ids = matchEntrantIds(match);
   if (winnerId !== DRAW_ID && !ids.includes(winnerId)) return t;
 
   if (t.bracketType === "swiss") {
@@ -670,7 +771,10 @@ export function groupByRound(matches: BracketMatch[]) {
 }
 
 export function readyMatches(t: TournamentState): BracketMatch[] {
-  return t.matches.filter(
-    (m) => m.p1.entrantId && m.p2.entrantId && !m.winnerId && m.id !== "gf-2",
-  );
+  return t.matches.filter((m) => {
+    if (m.winnerId || m.id === "gf-2") return false;
+    const ids = matchEntrantIds(m);
+    if (isCommanderPodFormat(t.gameId, t.formatName) || ids.length > 2) return ids.length >= 3;
+    return ids.length === 2;
+  });
 }

@@ -383,3 +383,9 @@ export function formatsInFamily(game: GameDef, family: FormatFamily): FormatPres
 export function isCommanderLane(desk: { gameId: GameId; formatName: string }): boolean {
   return desk.gameId === "mtg" && currentFamily(desk) === "commander";
 }
+
+export function isCommanderPodFormat(gameId: GameId, formatName: string): boolean {
+  if (gameId !== "mtg") return false;
+  const preset = gameOf(gameId).formats.find((f) => f.label === formatName);
+  return preset?.family === "commander" && (preset.seats ?? 2) >= 4;
+}
