@@ -1,24 +1,23 @@
 import { Field, NativeSelect } from "@/components/desk/field";
+import { CatalogSelect } from "@/components/desk/catalog-select";
 import { Input } from "@/components/ui/input";
 import {
+  ITEM_OPTIONS,
+  MOVE_OPTIONS,
   POKE_TYPES,
-  SPECIES,
-  TERA_LABEL,
-  TERA_OPTIONS,
+  SPECIES_OPTIONS,
   TYPE_LABEL,
   VGC_ABILITIES,
-  VGC_ITEMS,
-  VGC_MOVES,
+  applyMoveChoice,
+  applySpeciesChoice,
   emptyTeam,
-  findMove,
   findSpecies,
-  speciesArtDex,
+  spriteFallbackUrl,
   spriteUrl,
   typesFromSpecies,
   type MonTypes,
   type PokeType,
   type TeamMon,
-  type TeraType,
 } from "@/lib/pokemon-vgc";
 
 export function TeamSixEditor({
@@ -39,24 +38,9 @@ export function TeamSixEditor({
 
   return (
     <div>
-      <datalist id={`${listId}-species`}>
-        {SPECIES.map((s) => (
-          <option key={s.name} value={s.name} />
-        ))}
-      </datalist>
-      <datalist id={`${listId}-items`}>
-        {VGC_ITEMS.map((item) => (
-          <option key={item} value={item} />
-        ))}
-      </datalist>
       <datalist id={`${listId}-abilities`}>
         {VGC_ABILITIES.map((ability) => (
           <option key={ability} value={ability} />
-        ))}
-      </datalist>
-      <datalist id={`${listId}-moves`}>
-        {VGC_MOVES.map((move) => (
-          <option key={move.name} value={move.name} />
         ))}
       </datalist>
       <div className="grid gap-3 @min-[42rem]:grid-cols-2">
@@ -87,7 +71,7 @@ function MonEditor({
 }) {
   const species = findSpecies(mon.species);
   const abilities = species?.abilities ?? [];
-  const art = spriteUrl(mon.dex);
+  const art = spriteUrl(mon);
   const types: MonTypes = mon.types ?? typesFromSpecies(mon.species);
 
   return (
@@ -95,27 +79,26 @@ function MonEditor({
       <div className="flex gap-3">
         <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-md bg-surface">
           {art ? (
-            <img src={art} alt="" className="size-14 object-contain" />
+            <img
+              src={art}
+              alt=""
+              className="size-14 object-contain"
+              onError={(event) => {
+                const fallback = spriteFallbackUrl(mon);
+                if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback;
+              }}
+            />
           ) : (
             <span className="font-mono text-sm text-subtle">{index + 1}</span>
           )}
         </div>
         <Field label="Pokémon" className="min-w-0 flex-1">
-          <Input
-            list={`${listId}-species`}
+          <CatalogSelect
             value={mon.species}
-            placeholder="Species"
-            onChange={(e) => {
-              const name = e.target.value;
-              const found = findSpecies(name);
-              onChange({
-                ...mon,
-                species: name,
-                dex: found ? speciesArtDex(found) : mon.dex,
-                types: found ? typesFromSpecies(name) : mon.types,
-                ability: found && !found.abilities.includes(mon.ability) ? found.abilities[0] ?? "" : mon.ability,
-              });
-            }}
+            placeholder="Select Pokémon"
+            searchPlaceholder="Search 1,045 Pokémon…"
+            options={SPECIES_OPTIONS}
+            onChange={(name) => onChange(applySpeciesChoice(mon, name))}
           />
         </Field>
       </div>
@@ -134,20 +117,7 @@ function MonEditor({
         />
       </div>
 
-      <div className="mt-3 grid gap-2 @min-[24rem]:grid-cols-3">
-        <Field label="Tera">
-          <NativeSelect
-            value={mon.tera}
-            onChange={(e) => onChange({ ...mon, tera: e.target.value as TeraType | "" })}
-          >
-            <option value="">—</option>
-            {TERA_OPTIONS.map((type) => (
-              <option key={type} value={type}>
-                {TERA_LABEL[type]}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
+      <div className="mt-3 grid gap-2 @min-[24rem]:grid-cols-2">
         <Field label="Ability">
           {abilities.length ? (
             <NativeSelect value={mon.ability} onChange={(e) => onChange({ ...mon, ability: e.target.value })}>
@@ -170,11 +140,13 @@ function MonEditor({
           )}
         </Field>
         <Field label="Item">
-          <Input
-            list={`${listId}-items`}
+          <CatalogSelect
             value={mon.item}
-            placeholder="Held item"
-            onChange={(e) => onChange({ ...mon, item: e.target.value })}
+            placeholder="Select item"
+            searchPlaceholder="Search items…"
+            options={ITEM_OPTIONS}
+            limit={200}
+            onChange={(item) => onChange({ ...mon, item })}
           />
         </Field>
       </div>
@@ -182,17 +154,13 @@ function MonEditor({
       <div className="mt-3 grid gap-2">
         {mon.moves.map((move, i) => (
           <div key={i} className="grid grid-cols-[minmax(0,1fr)_8.5rem] gap-2">
-            <Input
-              list={`${listId}-moves`}
-              placeholder={`Move ${i + 1}`}
+            <CatalogSelect
               value={move.name}
-              onChange={(e) => {
-                const name = e.target.value;
-                const found = findMove(name);
-                const moves = [...mon.moves] as TeamMon["moves"];
-                moves[i] = { name, type: found?.type ?? move.type };
-                onChange({ ...mon, moves });
-              }}
+              placeholder={`Move ${i + 1}`}
+              searchPlaceholder="Search moves…"
+              options={MOVE_OPTIONS}
+              limit={300}
+              onChange={(name) => onChange(applyMoveChoice(mon, i, name))}
             />
             <NativeSelect
               value={move.type}

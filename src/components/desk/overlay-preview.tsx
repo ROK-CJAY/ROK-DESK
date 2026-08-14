@@ -11,6 +11,7 @@ import {
   UpcomingView,
   VersusView,
   WinnerView,
+  GameWinView,
 } from "@/components/overlays/graphics";
 import { ScorebugView } from "@/components/overlays/scorebug";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
@@ -20,6 +21,7 @@ import { OVERLAY_SOURCES, type OverlaySourceId } from "@/components/desk/sources
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { BracketOverlay } from "@/components/overlays/bracket";
+import { FloorClockOverlay } from "@/components/overlays/floor-clock";
 import { RosterView } from "@/components/overlays/roster";
 import {
   cloneLayout,
@@ -130,7 +132,7 @@ export function OverlayPreview() {
 
   const current = OVERLAY_SOURCES.find((s) => s.id === source)!;
   const url = origin ? `${origin}${current.path}` : current.path;
-  const canArrange = source !== "versus" && source !== "slate" && source !== "bracket";
+  const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock";
   const atDefault = isDefaultLayout(desk.layout);
 
   const edit = useMemo<OverlayEdit | null>(() => {
@@ -204,6 +206,7 @@ export function OverlayPreview() {
         </div>
       </div>
 
+      <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,52rem)_minmax(18rem,1fr)]">
       <div className="checker relative aspect-video overflow-hidden rounded-lg border border-border">
         <img
           src="/slates/starting.jpg"
@@ -219,15 +222,18 @@ export function OverlayPreview() {
           {source === "casters" ? <CastersView desk={desk} /> : null}
           {source === "lower-third" ? <LowerThirdView desk={desk} /> : null}
           {source === "winner" ? <WinnerView desk={desk} /> : null}
+          {source === "game-win" ? <GameWinView desk={desk} /> : null}
           {source === "timer" ? <TimerView desk={desk} now={now} /> : null}
           {source === "resource" ? <ResourceView desk={desk} /> : null}
           {source === "upcoming" ? <UpcomingView desk={desk} /> : null}
           {source === "bracket" && tourneyReady ? <BracketOverlay tournament={tournament} /> : null}
+          {source === "floor-clock" && tourneyReady ? <FloorClockOverlay tournament={tournament} /> : null}
           {source === "roster" ? <RosterView desk={desk} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} /> : null}
         </ScaleFrame>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <div>
+      <div className="mt-0 flex flex-wrap gap-1.5">
         {OVERLAY_SOURCES.map((item) => (
           <button
             key={item.id}
@@ -274,6 +280,8 @@ export function OverlayPreview() {
           ))}
         </ul>
       </details>
+      </div>
+      </div>
 
       {arranging
         ? createPortal(

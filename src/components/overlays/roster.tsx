@@ -1,7 +1,7 @@
 import { OverlayEditProvider, Placed, type OverlayEdit } from "@/components/overlays/placed";
 import { TeraBadge, TypeIcon } from "@/components/overlays/type-icon";
 import type { DeskState, PlayerSide, RosterSide } from "@/lib/desk-types";
-import { spriteUrl, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
+import { spriteFallbackUrl, spriteUrl, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
 import { cn } from "@/lib/cn";
 
 export function RosterView({
@@ -67,7 +67,7 @@ function RosterBoard({ player }: { player: PlayerSide }) {
 }
 
 function MonCard({ mon }: { mon: TeamMon }) {
-  const art = spriteUrl(mon.dex);
+  const art = spriteUrl(mon);
   return (
     <article className="overflow-hidden rounded-md bg-roster-body shadow-[0_8px_20px_rgb(0_0_0/0.38)]">
       <header className="flex items-center justify-between gap-2 bg-roster-plate px-2.5 py-0.5">
@@ -99,6 +99,10 @@ function MonCard({ mon }: { mon: TeamMon }) {
               "pointer-events-none absolute right-0 bottom-0 z-0 h-32 w-32 object-contain object-bottom",
               "drop-shadow-[0_4px_8px_rgb(0_0_0/0.45)]",
             )}
+            onError={(event) => {
+              const fallback = spriteFallbackUrl(mon);
+              if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback;
+            }}
           />
         ) : null}
       </div>

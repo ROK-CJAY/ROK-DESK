@@ -1,32 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardCopy, Eraser, Radio } from "lucide-react";
+import { ClipboardCopy, Eraser, Printer, Radio } from "lucide-react";
 import { Field, NativeSelect } from "@/components/desk/field";
+import { CatalogSelect } from "@/components/desk/catalog-select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
-import { teamSheetLabel, type Entrant } from "@/lib/tournament-types";
+import { teamSheetLabel, type AgeDivision, type Entrant } from "@/lib/tournament-types";
 import {
+  ITEM_OPTIONS,
+  MOVE_OPTIONS,
   POKE_TYPES,
-  SPECIES,
-  TERA_LABEL,
-  TERA_OPTIONS,
+  SPECIES_OPTIONS,
   TYPE_LABEL,
   VGC_ABILITIES,
-  VGC_ITEMS,
-  VGC_MOVES,
+  applyMoveChoice,
+  applySpeciesChoice,
   countFilledMons,
   emptyTeam,
-  findMove,
   findSpecies,
-  speciesArtDex,
+  spriteFallbackUrl,
   spriteUrl,
   teamHasMons,
   typesFromSpecies,
+  NATURES,
   type MonTypes,
   type PokeType,
   type TeamMon,
-  type TeraType,
 } from "@/lib/pokemon-vgc";
 import { cn } from "@/lib/cn";
 
@@ -121,6 +121,7 @@ export function TeamSheetPanel({
                 onSendP1={() => sendSeat("p1")}
                 onSendP2={() => sendSeat("p2")}
               />
+              <IdentityFields player={selected} onChange={(partial) => updateEntrant(selected.id, partial)} />
               <TeamSheetFields
                 key={selected.id}
                 listId={`sheet-${selected.id}`}
@@ -238,7 +239,56 @@ function SheetHeader({
           <ClipboardCopy className="size-3.5" />
           {sent === "p2" ? "Sent P2" : "Send as P2"}
         </Button>
+        <Button type="button" variant="outline" size="sm" asChild>
+          <a href={`/print/team-list?id=${player.id}`} target="_blank" rel="noreferrer">
+            <Printer className="size-3.5" />
+            Official list
+          </a>
+        </Button>
       </div>
+    </div>
+  );
+}
+
+function IdentityFields({
+  player,
+  onChange,
+}: {
+  player: Entrant;
+  onChange: (partial: Partial<Entrant>) => void;
+}) {
+  return (
+    <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <Field label="Player ID">
+        <Input value={player.playerId} onChange={(e) => onChange({ playerId: e.target.value })} />
+      </Field>
+      <Field label="Trainer name in game">
+        <Input
+          value={player.trainerName}
+          placeholder={player.tag || player.name}
+          onChange={(e) => onChange({ trainerName: e.target.value })}
+        />
+      </Field>
+      <Field label="Switch profile">
+        <Input value={player.switchProfile} onChange={(e) => onChange({ switchProfile: e.target.value })} />
+      </Field>
+      <Field label="Date of birth">
+        <Input value={player.birthDate} placeholder="YYYY-MM-DD" onChange={(e) => onChange({ birthDate: e.target.value })} />
+      </Field>
+      <Field label="Age division">
+        <NativeSelect
+          value={player.ageDivision}
+          onChange={(e) => onChange({ ageDivision: e.target.value as AgeDivision })}
+        >
+          <option value="">Not set</option>
+          <option value="juniors">Juniors</option>
+          <option value="seniors">Seniors</option>
+          <option value="masters">Masters</option>
+        </NativeSelect>
+      </Field>
+      <Field label="Battle team">
+        <Input value={player.deck} onChange={(e) => onChange({ deck: e.target.value })} />
+      </Field>
     </div>
   );
 }
@@ -261,24 +311,9 @@ function TeamSheetFields({
 
   return (
     <div>
-      <datalist id={`${listId}-species`}>
-        {SPECIES.map((s) => (
-          <option key={s.name} value={s.name} />
-        ))}
-      </datalist>
-      <datalist id={`${listId}-items`}>
-        {VGC_ITEMS.map((item) => (
-          <option key={item} value={item} />
-        ))}
-      </datalist>
       <datalist id={`${listId}-abilities`}>
         {VGC_ABILITIES.map((ability) => (
           <option key={ability} value={ability} />
-        ))}
-      </datalist>
-      <datalist id={`${listId}-moves`}>
-        {VGC_MOVES.map((move) => (
-          <option key={move.name} value={move.name} />
         ))}
       </datalist>
       <ol className="grid gap-3">
@@ -310,7 +345,7 @@ function MonSheetRow({
 }) {
   const species = findSpecies(mon.species);
   const abilities = species?.abilities ?? [];
-  const art = spriteUrl(mon.dex);
+  const art = spriteUrl(mon);
   const types: MonTypes = mon.types ?? typesFromSpecies(mon.species);
 
   return (
@@ -329,29 +364,27 @@ function MonSheetRow({
       <div className="flex flex-col gap-3 sm:flex-row">
         <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-md bg-surface">
           {art ? (
-            <img src={art} alt="" className="size-16 object-contain" />
+            <img
+              src={art}
+              alt=""
+              className="size-16 object-contain"
+              onError={(event) => {
+                const fallback = spriteFallbackUrl(mon);
+                if (fallback && event.currentTarget.src !== fallback) event.currentTarget.src = fallback;
+              }}
+            />
           ) : (
             <span className="font-mono text-lg text-subtle">{index + 1}</span>
           )}
         </div>
         <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Field label="Pokémon" className="sm:col-span-2 xl:col-span-2">
-            <Input
-              list={`${listId}-species`}
+            <CatalogSelect
               value={mon.species}
-              placeholder="Species"
-              autoComplete="off"
-              onChange={(e) => {
-                const name = e.target.value;
-                const found = findSpecies(name);
-                onChange({
-                  ...mon,
-                  species: name,
-                  dex: found ? speciesArtDex(found) : mon.dex,
-                  types: found ? typesFromSpecies(name) : mon.types,
-                  ability: found && !found.abilities.includes(mon.ability) ? found.abilities[0] ?? "" : mon.ability,
-                });
-              }}
+              placeholder="Select Pokémon"
+              searchPlaceholder="Search 1,045 Pokémon…"
+              options={SPECIES_OPTIONS}
+              onChange={(name) => onChange(applySpeciesChoice(mon, name))}
             />
           </Field>
           <TypeField
@@ -368,20 +401,7 @@ function MonSheetRow({
         </div>
       </div>
 
-      <div className="mt-3 grid gap-3 sm:grid-cols-3">
-        <Field label="Tera">
-          <NativeSelect
-            value={mon.tera}
-            onChange={(e) => onChange({ ...mon, tera: e.target.value as TeraType | "" })}
-          >
-            <option value="">—</option>
-            {TERA_OPTIONS.map((type) => (
-              <option key={type} value={type}>
-                {TERA_LABEL[type]}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Field label="Ability">
           {abilities.length ? (
             <NativeSelect value={mon.ability} onChange={(e) => onChange({ ...mon, ability: e.target.value })}>
@@ -405,32 +425,61 @@ function MonSheetRow({
           )}
         </Field>
         <Field label="Held item">
-          <Input
-            list={`${listId}-items`}
+          <CatalogSelect
             value={mon.item}
-            placeholder="Item"
-            autoComplete="off"
-            onChange={(e) => onChange({ ...mon, item: e.target.value })}
+            placeholder="Select item"
+            searchPlaceholder="Search items…"
+            options={ITEM_OPTIONS}
+            limit={200}
+            onChange={(item) => onChange({ ...mon, item })}
           />
         </Field>
+      </div>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <Field label="Level">
+          <Input value={mon.level} onChange={(e) => onChange({ ...mon, level: e.target.value })} />
+        </Field>
+        <Field label="Stat Alignment">
+          <NativeSelect value={mon.nature} onChange={(e) => onChange({ ...mon, nature: e.target.value })}>
+            <option value="">—</option>
+            {NATURES.map((nature) => (
+              <option key={nature} value={nature}>
+                {nature}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+      </div>
+      <p className="font-mono mt-3 text-[0.58rem] tracking-[0.16em] text-muted uppercase">Stats</p>
+      <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-6">
+        {(
+          [
+            ["hp", "HP"],
+            ["atk", "Atk"],
+            ["def", "Def"],
+            ["spa", "SpA"],
+            ["spd", "SpD"],
+            ["spe", "Spe"],
+          ] as const
+        ).map(([key, label]) => (
+          <Field key={key} label={label}>
+            <Input value={mon[key]} onChange={(e) => onChange({ ...mon, [key]: e.target.value })} />
+          </Field>
+        ))}
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         {mon.moves.map((move, i) => (
           <div key={i} className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2">
             <Field label={`Move ${i + 1}`}>
-              <Input
-                list={`${listId}-moves`}
-                placeholder={`Move ${i + 1}`}
+              <CatalogSelect
                 value={move.name}
-                autoComplete="off"
-                onChange={(e) => {
-                  const name = e.target.value;
-                  const found = findMove(name);
-                  const moves = [...mon.moves] as TeamMon["moves"];
-                  moves[i] = { name, type: found?.type ?? move.type };
-                  onChange({ ...mon, moves });
-                }}
+                placeholder={`Move ${i + 1}`}
+                searchPlaceholder="Search moves…"
+                options={MOVE_OPTIONS}
+                limit={300}
+                onChange={(name) => onChange(applyMoveChoice(mon, i, name))}
               />
             </Field>
             <Field label="Type">

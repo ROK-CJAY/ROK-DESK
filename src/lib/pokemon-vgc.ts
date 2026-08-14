@@ -1,3 +1,6 @@
+import { SPECIES as NATIONAL_SPECIES } from "./pokedex-national";
+import { ALL_MOVES } from "./pokedex-moves";
+
 export const POKE_TYPES = [
   "normal",
   "fire",
@@ -65,11 +68,48 @@ export type TeamMon = {
   ability: string;
   item: string;
   moves: [MoveSlot, MoveSlot, MoveSlot, MoveSlot];
+  level: string;
+  nature: string;
+  hp: string;
+  atk: string;
+  def: string;
+  spa: string;
+  spd: string;
+  spe: string;
 };
+
+export const NATURES = [
+  "Adamant",
+  "Bashful",
+  "Bold",
+  "Brave",
+  "Calm",
+  "Careful",
+  "Docile",
+  "Gentle",
+  "Hardy",
+  "Hasty",
+  "Impish",
+  "Jolly",
+  "Lax",
+  "Lonely",
+  "Mild",
+  "Modest",
+  "Naive",
+  "Naughty",
+  "Quiet",
+  "Quirky",
+  "Rash",
+  "Relaxed",
+  "Sassy",
+  "Serious",
+  "Timid",
+] as const;
 
 export type SpeciesDef = {
   name: string;
   dex: number;
+  slug: string;
   spriteDex?: number;
   types: PokeType[];
   abilities: string[];
@@ -113,6 +153,14 @@ export function emptyMon(): TeamMon {
     ability: "",
     item: "",
     moves: [emptyMove(), emptyMove(), emptyMove(), emptyMove()],
+    level: "50",
+    nature: "",
+    hp: "",
+    atk: "",
+    def: "",
+    spa: "",
+    spd: "",
+    spe: "",
   };
 }
 
@@ -120,135 +168,38 @@ export function emptyTeam(): TeamMon[] {
   return [emptyMon(), emptyMon(), emptyMon(), emptyMon(), emptyMon(), emptyMon()];
 }
 
-export function spriteUrl(dex: number): string {
-  if (!dex) return "";
+export function spriteUrl(input: number | { dex?: number; species?: string } | string): string {
+  if (typeof input === "string") {
+    const found = findSpecies(input);
+    if (found?.slug) return pokemondbSprite(found.slug);
+    return "";
+  }
+  if (typeof input === "number") {
+    if (!input) return "";
+    const found = SPECIES.find((s) => s.dex === input && !s.spriteDex);
+    if (found?.slug) return pokemondbSprite(found.slug);
+    return pokeapiArt(input);
+  }
+  const found = input.species ? findSpecies(input.species) : undefined;
+  if (found?.slug) return pokemondbSprite(found.slug);
+  if (input.dex) return pokeapiArt(input.dex);
+  return "";
+}
+
+export function spriteFallbackUrl(input: { dex?: number; species?: string }): string {
+  const dex = input.dex || findSpecies(input.species ?? "")?.dex || 0;
+  return dex ? pokeapiArt(dex) : "";
+}
+
+function pokemondbSprite(slug: string): string {
+  return `https://img.pokemondb.net/sprites/home/normal/2x/${slug}.jpg`;
+}
+
+function pokeapiArt(dex: number): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${dex}.png`;
 }
 
-export const SPECIES: SpeciesDef[] = [
-  { name: "Incineroar", dex: 727, types: ["fire", "dark"], abilities: ["Blaze", "Intimidate"] },
-  { name: "Archaludon", dex: 1018, types: ["steel", "dragon"], abilities: ["Stamina", "Sturdy", "Stalwart"] },
-  { name: "Scovillain", dex: 952, types: ["grass", "fire"], abilities: ["Chlorophyll", "Insomnia", "Moody"] },
-  { name: "Espathra", dex: 956, types: ["psychic"], abilities: ["Opportunist", "Frisk", "Speed Boost"] },
-  { name: "Politoed", dex: 186, types: ["water"], abilities: ["Water Absorb", "Damp", "Drizzle"] },
-  { name: "Sylveon", dex: 700, types: ["fairy"], abilities: ["Cute Charm", "Pixilate"] },
-  { name: "Flutter Mane", dex: 987, types: ["ghost", "fairy"], abilities: ["Protosynthesis"] },
-  { name: "Amoonguss", dex: 591, types: ["grass", "poison"], abilities: ["Effect Spore", "Regenerator"] },
-  { name: "Rillaboom", dex: 812, types: ["grass"], abilities: ["Overgrow", "Grassy Surge"] },
-  { name: "Urshifu", dex: 892, types: ["fighting", "dark"], abilities: ["Unseen Fist"] },
-  { name: "Urshifu Rapid", dex: 892, spriteDex: 10191, types: ["fighting", "water"], abilities: ["Unseen Fist"] },
-  { name: "Ogerpon", dex: 1017, types: ["grass"], abilities: ["Defiant"] },
-  { name: "Ogerpon Wellspring", dex: 1017, spriteDex: 10273, types: ["grass", "water"], abilities: ["Water Absorb"] },
-  { name: "Ogerpon Hearthflame", dex: 1017, spriteDex: 10274, types: ["grass", "fire"], abilities: ["Mold Breaker"] },
-  { name: "Ogerpon Cornerstone", dex: 1017, spriteDex: 10275, types: ["grass", "rock"], abilities: ["Sturdy"] },
-  { name: "Farigiraf", dex: 981, types: ["normal", "psychic"], abilities: ["Cud Chew", "Armor Tail", "Sap Sipper"] },
-  { name: "Indeedee F", dex: 876, spriteDex: 10186, types: ["psychic", "normal"], abilities: ["Own Tempo", "Synchronize", "Psychic Surge"] },
-  { name: "Indeedee M", dex: 876, types: ["psychic", "normal"], abilities: ["Inner Focus", "Synchronize", "Psychic Surge"] },
-  { name: "Gholdengo", dex: 1000, types: ["steel", "ghost"], abilities: ["Good as Gold"] },
-  { name: "Kingambit", dex: 983, types: ["dark", "steel"], abilities: ["Defiant", "Supreme Overlord", "Pressure"] },
-  { name: "Dragonite", dex: 149, types: ["dragon", "flying"], abilities: ["Inner Focus", "Multiscale"] },
-  { name: "Garchomp", dex: 445, types: ["dragon", "ground"], abilities: ["Sand Veil", "Rough Skin"] },
-  { name: "Torkoal", dex: 324, types: ["fire"], abilities: ["White Smoke", "Drought", "Shell Armor"] },
-  { name: "Pelipper", dex: 279, types: ["water", "flying"], abilities: ["Keen Eye", "Drizzle", "Rain Dish"] },
-  { name: "Whimsicott", dex: 547, types: ["grass", "fairy"], abilities: ["Prankster", "Infiltrator", "Chlorophyll"] },
-  { name: "Tornadus", dex: 641, types: ["flying"], abilities: ["Prankster", "Defiant"] },
-  { name: "Landorus", dex: 645, types: ["ground", "flying"], abilities: ["Sand Force", "Sheer Force"] },
-  { name: "Landorus Therian", dex: 645, spriteDex: 10021, types: ["ground", "flying"], abilities: ["Intimidate"] },
-  { name: "Thundurus", dex: 642, types: ["electric", "flying"], abilities: ["Prankster", "Defiant"] },
-  { name: "Chi-Yu", dex: 1004, types: ["dark", "fire"], abilities: ["Beads of Ruin"] },
-  { name: "Chien-Pao", dex: 1002, types: ["dark", "ice"], abilities: ["Sword of Ruin"] },
-  { name: "Ting-Lu", dex: 1003, types: ["dark", "ground"], abilities: ["Vessel of Ruin"] },
-  { name: "Wo-Chien", dex: 1001, types: ["dark", "grass"], abilities: ["Tablets of Ruin"] },
-  { name: "Iron Hands", dex: 992, types: ["fighting", "electric"], abilities: ["Quark Drive"] },
-  { name: "Iron Bundle", dex: 991, types: ["ice", "water"], abilities: ["Quark Drive"] },
-  { name: "Iron Valiant", dex: 1006, types: ["fairy", "fighting"], abilities: ["Quark Drive"] },
-  { name: "Iron Crown", dex: 1023, types: ["steel", "psychic"], abilities: ["Quark Drive"] },
-  { name: "Iron Treads", dex: 990, types: ["ground", "steel"], abilities: ["Quark Drive"] },
-  { name: "Iron Moth", dex: 994, types: ["fire", "poison"], abilities: ["Quark Drive"] },
-  { name: "Roaring Moon", dex: 1005, types: ["dragon", "dark"], abilities: ["Protosynthesis"] },
-  { name: "Scream Tail", dex: 985, types: ["fairy", "psychic"], abilities: ["Protosynthesis"] },
-  { name: "Great Tusk", dex: 984, types: ["ground", "fighting"], abilities: ["Protosynthesis"] },
-  { name: "Raging Bolt", dex: 1021, types: ["electric", "dragon"], abilities: ["Protosynthesis"] },
-  { name: "Gouging Fire", dex: 1020, types: ["fire", "dragon"], abilities: ["Protosynthesis"] },
-  { name: "Walking Wake", dex: 1009, types: ["water", "dragon"], abilities: ["Protosynthesis"] },
-  { name: "Calyrex Ice", dex: 898, spriteDex: 10193, types: ["psychic", "ice"], abilities: ["As One"] },
-  { name: "Calyrex Shadow", dex: 898, spriteDex: 10194, types: ["psychic", "ghost"], abilities: ["As One"] },
-  { name: "Miraidon", dex: 1008, types: ["electric", "dragon"], abilities: ["Hadron Engine"] },
-  { name: "Koraidon", dex: 1007, types: ["fighting", "dragon"], abilities: ["Orichalcum Pulse"] },
-  { name: "Zamazenta", dex: 889, types: ["fighting"], abilities: ["Dauntless Shield"] },
-  { name: "Zacian", dex: 888, types: ["fairy"], abilities: ["Intrepid Sword"] },
-  { name: "Kyogre", dex: 382, types: ["water"], abilities: ["Drizzle"] },
-  { name: "Groudon", dex: 383, types: ["ground"], abilities: ["Drought"] },
-  { name: "Lunala", dex: 792, types: ["psychic", "ghost"], abilities: ["Shadow Shield"] },
-  { name: "Solgaleo", dex: 791, types: ["psychic", "steel"], abilities: ["Full Metal Body"] },
-  { name: "Eternatus", dex: 890, types: ["poison", "dragon"], abilities: ["Pressure"] },
-  { name: "Terapagos", dex: 1024, types: ["normal"], abilities: ["Tera Shift"] },
-  { name: "Annihilape", dex: 979, types: ["fighting", "ghost"], abilities: ["Vital Spirit", "Inner Focus", "Defiant"] },
-  { name: "Dragapult", dex: 887, types: ["dragon", "ghost"], abilities: ["Clear Body", "Infiltrator", "Cursed Body"] },
-  { name: "Glimmora", dex: 970, types: ["rock", "poison"], abilities: ["Toxic Debris", "Corrosion"] },
-  { name: "Maushold", dex: 925, types: ["normal"], abilities: ["Friend Guard", "Cheek Pouch", "Technician"] },
-  { name: "Dondozo", dex: 977, types: ["water"], abilities: ["Unaware", "Oblivious", "Water Veil"] },
-  { name: "Tatsugiri", dex: 978, types: ["dragon", "water"], abilities: ["Commander", "Storm Drain"] },
-  { name: "Palafin", dex: 964, types: ["water"], abilities: ["Zero to Hero"] },
-  { name: "Baxcalibur", dex: 998, types: ["dragon", "ice"], abilities: ["Thermal Exchange", "Ice Body"] },
-  { name: "Garganacl", dex: 934, types: ["rock"], abilities: ["Purifying Salt", "Sturdy", "Clear Body"] },
-  { name: "Armarouge", dex: 936, types: ["fire", "psychic"], abilities: ["Flash Fire", "Weak Armor"] },
-  { name: "Ceruledge", dex: 937, types: ["fire", "ghost"], abilities: ["Flash Fire", "Weak Armor"] },
-  { name: "Kilowattrel", dex: 941, types: ["electric", "flying"], abilities: ["Wind Power", "Volt Absorb", "Competitive"] },
-  { name: "Bombirdier", dex: 962, types: ["flying", "dark"], abilities: ["Big Pecks", "Keen Eye", "Rocky Payload"] },
-  { name: "Orthworm", dex: 968, types: ["steel"], abilities: ["Earth Eater", "Sand Veil"] },
-  { name: "Hatterene", dex: 858, types: ["psychic", "fairy"], abilities: ["Healer", "Anticipation", "Magic Bounce"] },
-  { name: "Grimmsnarl", dex: 861, types: ["dark", "fairy"], abilities: ["Prankster", "Frisk", "Pickpocket"] },
-  { name: "Tinkaton", dex: 959, types: ["fairy", "steel"], abilities: ["Mold Breaker", "Own Tempo", "Pickpocket"] },
-  { name: "Ninetales-A", dex: 38, spriteDex: 10104, types: ["ice", "fairy"], abilities: ["Snow Cloak", "Snow Warning"] },
-  { name: "Arcanine-H", dex: 59, spriteDex: 10230, types: ["fire", "rock"], abilities: ["Intimidate", "Flash Fire", "Rock Head"] },
-  { name: "Typhlosion-H", dex: 157, spriteDex: 10233, types: ["fire", "ghost"], abilities: ["Blaze", "Frisk"] },
-  { name: "Samurott-H", dex: 503, spriteDex: 10236, types: ["water", "dark"], abilities: ["Torrent", "Sharpness"] },
-  { name: "Decidueye-H", dex: 724, spriteDex: 10244, types: ["grass", "fighting"], abilities: ["Overgrow", "Scrappy"] },
-  { name: "Lilligant-H", dex: 549, spriteDex: 10237, types: ["grass", "fighting"], abilities: ["Chlorophyll", "Hustle", "Leaf Guard"] },
-  { name: "Electrode-H", dex: 101, spriteDex: 10232, types: ["electric", "grass"], abilities: ["Soundproof", "Static", "Aftermath"] },
-  { name: "Goodra-H", dex: 706, spriteDex: 10242, types: ["steel", "dragon"], abilities: ["Sap Sipper", "Shell Armor", "Gooey"] },
-  { name: "Sneasler", dex: 903, types: ["fighting", "poison"], abilities: ["Pressure", "Unburden", "Poison Touch"] },
-  { name: "Overqwil", dex: 904, types: ["dark", "poison"], abilities: ["Poison Point", "Swift Swim", "Intimidate"] },
-  { name: "Basculegion", dex: 902, types: ["water", "ghost"], abilities: ["Swift Swim", "Adaptability", "Mold Breaker"] },
-  { name: "Ursaluna", dex: 901, types: ["ground", "normal"], abilities: ["Guts", "Bulletproof", "Unnerve"] },
-  { name: "Ursaluna Bloodmoon", dex: 901, spriteDex: 10272, types: ["ground", "normal"], abilities: ["Mind's Eye"] },
-  { name: "Enamorus", dex: 905, types: ["fairy", "flying"], abilities: ["Cute Charm", "Contrary"] },
-  { name: "Heatran", dex: 485, types: ["fire", "steel"], abilities: ["Flash Fire", "Flame Body"] },
-  { name: "Cresselia", dex: 488, types: ["psychic"], abilities: ["Levitate"] },
-  { name: "Regieleki", dex: 894, types: ["electric"], abilities: ["Transistor"] },
-  { name: "Regidrago", dex: 895, types: ["dragon"], abilities: ["Dragon's Maw"] },
-  { name: "Spectrier", dex: 897, types: ["ghost"], abilities: ["Grim Neigh"] },
-  { name: "Glastrier", dex: 896, types: ["ice"], abilities: ["Chilling Neigh"] },
-  { name: "Chandelure", dex: 609, types: ["ghost", "fire"], abilities: ["Flash Fire", "Flame Body", "Infiltrator"] },
-  { name: "Metagross", dex: 376, types: ["steel", "psychic"], abilities: ["Clear Body", "Light Metal"] },
-  { name: "Tyranitar", dex: 248, types: ["rock", "dark"], abilities: ["Sand Stream", "Unnerve"] },
-  { name: "Excadrill", dex: 530, types: ["ground", "steel"], abilities: ["Sand Rush", "Sand Force", "Mold Breaker"] },
-  { name: "Gastrodon", dex: 423, types: ["water", "ground"], abilities: ["Sticky Hold", "Storm Drain", "Sand Force"] },
-  { name: "Porygon2", dex: 233, types: ["normal"], abilities: ["Trace", "Download", "Analytic"] },
-  { name: "Porygon-Z", dex: 474, types: ["normal"], abilities: ["Adaptability", "Download", "Analytic"] },
-  { name: "Charizard", dex: 6, types: ["fire", "flying"], abilities: ["Blaze", "Solar Power"] },
-  { name: "Venusaur", dex: 3, types: ["grass", "poison"], abilities: ["Overgrow", "Chlorophyll"] },
-  { name: "Blastoise", dex: 9, types: ["water"], abilities: ["Torrent", "Rain Dish"] },
-  { name: "Gengar", dex: 94, types: ["ghost", "poison"], abilities: ["Cursed Body"] },
-  { name: "Gyarados", dex: 130, types: ["water", "flying"], abilities: ["Intimidate", "Moxie"] },
-  { name: "Lucario", dex: 448, types: ["fighting", "steel"], abilities: ["Steadfast", "Inner Focus", "Justified"] },
-  { name: "Gardevoir", dex: 282, types: ["psychic", "fairy"], abilities: ["Synchronize", "Trace", "Telepathy"] },
-  { name: "Gallade", dex: 475, types: ["psychic", "fighting"], abilities: ["Steadfast", "Sharpness", "Justified"] },
-  { name: "Hydreigon", dex: 635, types: ["dark", "dragon"], abilities: ["Levitate"] },
-  { name: "Volcarona", dex: 637, types: ["bug", "fire"], abilities: ["Flame Body", "Swarm"] },
-  { name: "Aegislash", dex: 681, types: ["steel", "ghost"], abilities: ["Stance Change"] },
-  { name: "Kommo-o", dex: 784, types: ["dragon", "fighting"], abilities: ["Bulletproof", "Soundproof", "Overcoat"] },
-  { name: "Primarina", dex: 730, types: ["water", "fairy"], abilities: ["Torrent", "Liquid Voice"] },
-  { name: "Corviknight", dex: 823, types: ["flying", "steel"], abilities: ["Pressure", "Unnerve", "Mirror Armor"] },
-  { name: "Toxtricity", dex: 849, types: ["electric", "poison"], abilities: ["Punk Rock", "Plus", "Technician"] },
-  { name: "Dragalge", dex: 691, types: ["poison", "dragon"], abilities: ["Poison Point", "Poison Touch", "Adaptability"] },
-  { name: "Sinistcha", dex: 1013, types: ["grass", "ghost"], abilities: ["Hospitality", "Heatproof"] },
-  { name: "Okidogi", dex: 1014, types: ["poison", "fighting"], abilities: ["Toxic Chain", "Guard Dog"] },
-  { name: "Munkidori", dex: 1015, types: ["poison", "psychic"], abilities: ["Toxic Chain", "Frisk"] },
-  { name: "Fezandipiti", dex: 1016, types: ["poison", "fairy"], abilities: ["Toxic Chain", "Technician"] },
-  { name: "Pecharunt", dex: 1025, types: ["poison", "ghost"], abilities: ["Poison Puppeteer"] },
-];
+export const SPECIES: SpeciesDef[] = NATIONAL_SPECIES as unknown as SpeciesDef[];
 
 export const VGC_ITEMS_RAW = [
   "Ability Shield",
@@ -445,264 +396,16 @@ export const VGC_ITEMS = [...new Set(VGC_ITEMS_RAW)].sort((a, b) => a.localeComp
 
 export type MoveDef = { name: string; type: PokeType };
 
-export const VGC_MOVES: MoveDef[] = [
-  ["Acrobatics", "flying"],
-  ["Aerial Ace", "flying"],
-  ["Air Slash", "flying"],
-  ["Alluring Voice", "fairy"],
-  ["Ancient Power", "rock"],
-  ["Aqua Jet", "water"],
-  ["Aqua Tail", "water"],
-  ["Armor Cannon", "fire"],
-  ["Astonish", "ghost"],
-  ["Astral Barrage", "ghost"],
-  ["Aura Sphere", "fighting"],
-  ["Aurora Veil", "ice"],
-  ["Axe Kick", "fighting"],
-  ["Baton Pass", "normal"],
-  ["Behemoth Bash", "steel"],
-  ["Behemoth Blade", "steel"],
-  ["Bitter Blade", "fire"],
-  ["Blizzard", "ice"],
-  ["Body Press", "fighting"],
-  ["Body Slam", "normal"],
-  ["Brave Bird", "flying"],
-  ["Breaking Swipe", "dragon"],
-  ["Brick Break", "fighting"],
-  ["Bug Buzz", "bug"],
-  ["Bulk Up", "fighting"],
-  ["Bulldoze", "ground"],
-  ["Bullet Punch", "steel"],
-  ["Calm Mind", "psychic"],
-  ["Ceaseless Edge", "dark"],
-  ["Chilling Water", "water"],
-  ["Chilly Reception", "ice"],
-  ["Chloroblast", "grass"],
-  ["Clear Smog", "poison"],
-  ["Close Combat", "fighting"],
-  ["Coaching", "fighting"],
-  ["Coil", "poison"],
-  ["Collision Course", "fighting"],
-  ["Comeuppance", "dark"],
-  ["Court Change", "normal"],
-  ["Crunch", "dark"],
-  ["Dark Pulse", "dark"],
-  ["Dazzling Gleam", "fairy"],
-  ["Decorate", "fairy"],
-  ["Destiny Bond", "ghost"],
-  ["Disable", "normal"],
-  ["Discharge", "electric"],
-  ["Double Shock", "electric"],
-  ["Draco Meteor", "dragon"],
-  ["Dragon Claw", "dragon"],
-  ["Dragon Dance", "dragon"],
-  ["Dragon Darts", "dragon"],
-  ["Dragon Pulse", "dragon"],
-  ["Dragon Tail", "dragon"],
-  ["Drain Punch", "fighting"],
-  ["Draining Kiss", "fairy"],
-  ["Earth Power", "ground"],
-  ["Earthquake", "ground"],
-  ["Electro Drift", "electric"],
-  ["Electro Shot", "electric"],
-  ["Electroweb", "electric"],
-  ["Encore", "normal"],
-  ["Endeavor", "normal"],
-  ["Energy Ball", "grass"],
-  ["Expanding Force", "psychic"],
-  ["Extreme Speed", "normal"],
-  ["Facade", "normal"],
-  ["Fake Out", "normal"],
-  ["Fake Tears", "dark"],
-  ["Feint", "normal"],
-  ["Fiery Dance", "fire"],
-  ["Fiery Wrath", "dark"],
-  ["Fire Blast", "fire"],
-  ["Fire Punch", "fire"],
-  ["Flamethrower", "fire"],
-  ["Flare Blitz", "fire"],
-  ["Flash Cannon", "steel"],
-  ["Fling", "dark"],
-  ["Flip Turn", "water"],
-  ["Flower Trick", "grass"],
-  ["Focus Blast", "fighting"],
-  ["Follow Me", "normal"],
-  ["Foul Play", "dark"],
-  ["Freeze-Dry", "ice"],
-  ["Giga Drain", "grass"],
-  ["Glacial Lance", "ice"],
-  ["Glaive Rush", "dragon"],
-  ["Grass Knot", "grass"],
-  ["Grassy Glide", "grass"],
-  ["Gravity", "psychic"],
-  ["Gunk Shot", "poison"],
-  ["Gyro Ball", "steel"],
-  ["Hard Press", "steel"],
-  ["Haze", "ice"],
-  ["Headlong Rush", "ground"],
-  ["Heat Wave", "fire"],
-  ["Heavy Slam", "steel"],
-  ["Helping Hand", "normal"],
-  ["High Horsepower", "ground"],
-  ["High Jump Kick", "fighting"],
-  ["Hurricane", "flying"],
-  ["Hydro Pump", "water"],
-  ["Hyper Voice", "normal"],
-  ["Ice Beam", "ice"],
-  ["Ice Punch", "ice"],
-  ["Ice Shard", "ice"],
-  ["Ice Spinner", "ice"],
-  ["Icicle Crash", "ice"],
-  ["Icy Wind", "ice"],
-  ["Imprison", "psychic"],
-  ["Incinerate", "fire"],
-  ["Iron Defense", "steel"],
-  ["Iron Head", "steel"],
-  ["Ivy Cudgel", "grass"],
-  ["Jet Punch", "water"],
-  ["Knock Off", "dark"],
-  ["Kowtow Cleave", "dark"],
-  ["Last Respects", "ghost"],
-  ["Leaf Blade", "grass"],
-  ["Leaf Storm", "grass"],
-  ["Leech Life", "bug"],
-  ["Light Screen", "psychic"],
-  ["Liquidation", "water"],
-  ["Low Kick", "fighting"],
-  ["Lumina Crash", "psychic"],
-  ["Lunar Blessing", "psychic"],
-  ["Mach Punch", "fighting"],
-  ["Make It Rain", "steel"],
-  ["Matcha Gotcha", "grass"],
-  ["Metal Sound", "steel"],
-  ["Meteor Mash", "steel"],
-  ["Mighty Cleave", "rock"],
-  ["Moonblast", "fairy"],
-  ["Moongeist Beam", "ghost"],
-  ["Moonlight", "fairy"],
-  ["Morning Sun", "normal"],
-  ["Mortal Spin", "poison"],
-  ["Muddy Water", "water"],
-  ["Mystical Fire", "fire"],
-  ["Nasty Plot", "dark"],
-  ["Night Shade", "ghost"],
-  ["Night Slash", "dark"],
-  ["Nuzzle", "electric"],
-  ["Order Up", "dragon"],
-  ["Outrage", "dragon"],
-  ["Overheat", "fire"],
-  ["Pain Split", "normal"],
-  ["Parting Shot", "dark"],
-  ["Perish Song", "normal"],
-  ["Play Rough", "fairy"],
-  ["Poison Jab", "poison"],
-  ["Pollen Puff", "bug"],
-  ["Population Bomb", "normal"],
-  ["Pounce", "bug"],
-  ["Power Gem", "rock"],
-  ["Power Whip", "grass"],
-  ["Protect", "normal"],
-  ["Psychic", "psychic"],
-  ["Psychic Fangs", "psychic"],
-  ["Psychic Noise", "psychic"],
-  ["Psycho Cut", "psychic"],
-  ["Psyshock", "psychic"],
-  ["Rage Fist", "ghost"],
-  ["Rage Powder", "bug"],
-  ["Rain Dance", "water"],
-  ["Rapid Spin", "normal"],
-  ["Recover", "normal"],
-  ["Reflect", "psychic"],
-  ["Rest", "psychic"],
-  ["Roar", "normal"],
-  ["Rock Slide", "rock"],
-  ["Rock Tomb", "rock"],
-  ["Sacred Sword", "fighting"],
-  ["Salt Cure", "rock"],
-  ["Scald", "water"],
-  ["Scale Shot", "dragon"],
-  ["Scary Face", "normal"],
-  ["Screech", "normal"],
-  ["Seed Bomb", "grass"],
-  ["Shadow Ball", "ghost"],
-  ["Shadow Claw", "ghost"],
-  ["Shadow Sneak", "ghost"],
-  ["Shed Tail", "normal"],
-  ["Shock Wave", "electric"],
-  ["Silk Trap", "bug"],
-  ["Slack Off", "normal"],
-  ["Sleep Powder", "grass"],
-  ["Sleep Talk", "normal"],
-  ["Sludge Bomb", "poison"],
-  ["Sludge Wave", "poison"],
-  ["Smart Strike", "steel"],
-  ["Snarl", "dark"],
-  ["Solar Beam", "grass"],
-  ["Spicy Extract", "grass"],
-  ["Spikes", "ground"],
-  ["Spore", "grass"],
-  ["Stealth Rock", "rock"],
-  ["Stone Axe", "rock"],
-  ["Stone Edge", "rock"],
-  ["Stored Power", "psychic"],
-  ["Struggle Bug", "bug"],
-  ["Substitute", "normal"],
-  ["Sucker Punch", "dark"],
-  ["Sunny Day", "fire"],
-  ["Super Fang", "normal"],
-  ["Supercell Slam", "electric"],
-  ["Surf", "water"],
-  ["Surging Strikes", "water"],
-  ["Swagger", "normal"],
-  ["Sweet Kiss", "fairy"],
-  ["Swords Dance", "normal"],
-  ["Synthesis", "grass"],
-  ["Tachyon Cutter", "steel"],
-  ["Tailwind", "flying"],
-  ["Take Heart", "psychic"],
-  ["Taunt", "dark"],
-  ["Tera Blast", "normal"],
-  ["Tera Starstorm", "normal"],
-  ["Thunder", "electric"],
-  ["Thunder Punch", "electric"],
-  ["Thunder Wave", "electric"],
-  ["Thunderbolt", "electric"],
-  ["Thunderclap", "electric"],
-  ["Tickle", "normal"],
-  ["Torch Song", "fire"],
-  ["Toxic", "poison"],
-  ["Toxic Spikes", "poison"],
-  ["Trailblaze", "grass"],
-  ["Transform", "normal"],
-  ["Trick", "psychic"],
-  ["Trick Room", "psychic"],
-  ["Triple Arrows", "fighting"],
-  ["Triple Axel", "ice"],
-  ["Twin Beam", "psychic"],
-  ["U-turn", "bug"],
-  ["Upper Hand", "fighting"],
-  ["Vacuum Wave", "fighting"],
-  ["Volt Switch", "electric"],
-  ["Water Pulse", "water"],
-  ["Water Shuriken", "water"],
-  ["Water Spout", "water"],
-  ["Wave Crash", "water"],
-  ["Weather Ball", "normal"],
-  ["Whirlwind", "normal"],
-  ["Wicked Blow", "dark"],
-  ["Wide Guard", "rock"],
-  ["Wild Charge", "electric"],
-  ["Will-O-Wisp", "fire"],
-  ["Wood Hammer", "grass"],
-  ["X-Scissor", "bug"],
-  ["Yawn", "normal"],
-  ["Zen Headbutt", "psychic"],
-].map(([name, type]) => ({ name, type: type as PokeType }));
+export const VGC_MOVES: MoveDef[] = ALL_MOVES as MoveDef[];
 
 export function findMove(name: string): MoveDef | undefined {
   const key = name.trim().toLowerCase();
   if (!key) return undefined;
-  return VGC_MOVES.find((m) => m.name.toLowerCase() === key) ?? VGC_MOVES.find((m) => m.name.toLowerCase().startsWith(key));
+  const exact = VGC_MOVES.find((m) => m.name.toLowerCase() === key);
+  if (exact) return exact;
+  const starts = VGC_MOVES.filter((m) => m.name.toLowerCase().startsWith(key));
+  if (starts.length === 1 && key.length >= 4) return starts[0];
+  return undefined;
 }
 
 export const VGC_ABILITIES = [...new Set(SPECIES.flatMap((s) => s.abilities))].sort((a, b) => a.localeCompare(b));
@@ -710,7 +413,47 @@ export const VGC_ABILITIES = [...new Set(SPECIES.flatMap((s) => s.abilities))].s
 export function findSpecies(name: string): SpeciesDef | undefined {
   const key = name.trim().toLowerCase();
   if (!key) return undefined;
-  return SPECIES.find((s) => s.name.toLowerCase() === key) ?? SPECIES.find((s) => s.name.toLowerCase().includes(key));
+  const exact = SPECIES.find((s) => s.name.toLowerCase() === key);
+  if (exact) return exact;
+  const starts = SPECIES.filter((s) => s.name.toLowerCase().startsWith(key));
+  if (starts.length === 1 && key.length >= 4) return starts[0];
+  return undefined;
+}
+
+export const SPECIES_OPTIONS = SPECIES.map((species) => ({
+  value: species.name,
+  label: species.name,
+  hint: `#${String(species.dex).padStart(4, "0")}`,
+}));
+
+export const ITEM_OPTIONS = VGC_ITEMS.map((item) => ({
+  value: item,
+  label: item,
+}));
+
+export const MOVE_OPTIONS = VGC_MOVES.map((move) => ({
+  value: move.name,
+  label: move.name,
+  hint: TYPE_LABEL[move.type],
+}));
+
+export function applySpeciesChoice(mon: TeamMon, name: string): TeamMon {
+  const found = findSpecies(name);
+  return {
+    ...mon,
+    species: found?.name ?? name,
+    dex: found ? speciesArtDex(found) : mon.dex,
+    types: found ? typesFromSpecies(found.name) : mon.types,
+    ability: found && !found.abilities.includes(mon.ability) ? found.abilities[0] ?? "" : mon.ability,
+  };
+}
+
+export function applyMoveChoice(mon: TeamMon, index: number, name: string): TeamMon {
+  const found = findMove(name);
+  const moves = [...mon.moves] as TeamMon["moves"];
+  const current = moves[index] ?? { name: "", type: "" as const };
+  moves[index] = { name: found?.name ?? name, type: found?.type ?? current.type };
+  return { ...mon, moves };
 }
 
 export function mergeTeam(raw: unknown): TeamMon[] {
@@ -728,6 +471,14 @@ export function mergeTeam(raw: unknown): TeamMon[] {
       tera: TERA_OPTIONS.includes(incoming.tera as TeraType) ? (incoming.tera as TeraType) : "",
       ability: typeof incoming.ability === "string" ? incoming.ability : "",
       item: typeof incoming.item === "string" ? incoming.item : "",
+      level: typeof incoming.level === "string" ? incoming.level : incoming.level != null ? String(incoming.level) : "",
+      nature: typeof incoming.nature === "string" ? incoming.nature : "",
+      hp: typeof incoming.hp === "string" ? incoming.hp : incoming.hp != null ? String(incoming.hp) : "",
+      atk: typeof incoming.atk === "string" ? incoming.atk : incoming.atk != null ? String(incoming.atk) : "",
+      def: typeof incoming.def === "string" ? incoming.def : incoming.def != null ? String(incoming.def) : "",
+      spa: typeof incoming.spa === "string" ? incoming.spa : incoming.spa != null ? String(incoming.spa) : "",
+      spd: typeof incoming.spd === "string" ? incoming.spd : incoming.spd != null ? String(incoming.spd) : "",
+      spe: typeof incoming.spe === "string" ? incoming.spe : incoming.spe != null ? String(incoming.spe) : "",
       moves: [0, 1, 2, 3].map((idx) => {
         const move = moves[idx];
         if (!move || typeof move !== "object") return emptyMove();
@@ -837,6 +588,14 @@ function mon(
     tera,
     ability,
     item,
+    level: "50",
+    nature: "",
+    hp: "",
+    atk: "",
+    def: "",
+    spa: "",
+    spd: "",
+    spe: "",
     moves: [0, 1, 2, 3].map((i) => ({
       name: moves[i]?.[0] ?? "",
       type: moves[i]?.[1] ?? "",

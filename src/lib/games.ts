@@ -43,7 +43,7 @@ export type GameDef = {
     /** True when 0 means that player has won (prizes, remaining Pokemon). */
     invertWin: boolean;
     pips: boolean;
-    pipStyle?: "dot" | "pokeball";
+    pipStyle?: "dot" | "pokeball" | "team";
   };
   secondary?: {
     label: string;
@@ -76,6 +76,7 @@ export const GAME_LIST: GameDef[] = [
       step: 1,
       invertWin: true,
       pips: true,
+      pipStyle: "team",
     },
     extraLabel: "Team",
     extraPlaceholder: "Sun · Balance · Rain",

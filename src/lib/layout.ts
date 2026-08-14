@@ -16,6 +16,7 @@ export const WIDGET_IDS = [
   "resourceP1",
   "resourceP2",
   "winner",
+  "gameWin",
   "upcoming",
   "rosterP1",
   "rosterP2",
@@ -38,7 +39,8 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
   timer: "Clock",
   resourceP1: "P1 resource",
   resourceP2: "P2 resource",
-  winner: "Winner",
+  winner: "Match win",
+  gameWin: "Game win",
   upcoming: "Up next",
   rosterP1: "P1 roster",
   rosterP2: "P2 roster",
@@ -46,11 +48,11 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
 
 export const DEFAULT_LAYOUT: LayoutMap = {
   scorebugBar: { x: 0, y: CANVAS_H - SCOREBUG_BAR_H },
-  scorebugP1: { x: 48, y: 40 },
-  scorebugP2: { x: 1352, y: 40 },
-  scorebugP3: { x: 1352, y: 800 },
-  scorebugP4: { x: 48, y: 800 },
-  scorebugCenter: { x: 780, y: 48 },
+  scorebugP1: { x: 24, y: 22 },
+  scorebugP2: { x: 1496, y: 22 },
+  scorebugP3: { x: 1496, y: 820 },
+  scorebugP4: { x: 24, y: 820 },
+  scorebugCenter: { x: 836, y: 24 },
   caster1: { x: 48, y: 668 },
   caster2: { x: 1472, y: 668 },
   lowerThird: { x: 672, y: 828 },
@@ -58,6 +60,7 @@ export const DEFAULT_LAYOUT: LayoutMap = {
   resourceP1: { x: 48, y: 828 },
   resourceP2: { x: 1512, y: 828 },
   winner: { x: 0, y: 390 },
+  gameWin: { x: 0, y: 300 },
   upcoming: { x: 48, y: 220 },
   rosterP1: { x: 1012, y: 132 },
   rosterP2: { x: 28, y: 132 },
@@ -75,6 +78,14 @@ export function barPosFor(edge: "top" | "bottom"): WidgetPos {
   return { x: 0, y: edge === "top" ? 0 : CANVAS_H - SCOREBUG_BAR_H };
 }
 
+const LEGACY_SPLIT = {
+  scorebugP1: { x: 48, y: 40 },
+  scorebugP2: { x: 1352, y: 40 },
+  scorebugP3: { x: 1352, y: 800 },
+  scorebugP4: { x: 48, y: 800 },
+  scorebugCenter: { x: 780, y: 48 },
+} as const;
+
 export function mergeLayout(raw: unknown): LayoutMap {
   const incoming =
     raw && typeof raw === "object" ? (raw as Partial<Record<WidgetId, Partial<WidgetPos>>>) : {};
@@ -82,6 +93,11 @@ export function mergeLayout(raw: unknown): LayoutMap {
   for (const id of WIDGET_IDS) {
     const pos = incoming[id];
     if (pos && typeof pos.x === "number" && typeof pos.y === "number") {
+      const legacy = LEGACY_SPLIT[id as keyof typeof LEGACY_SPLIT];
+      if (legacy && pos.x === legacy.x && pos.y === legacy.y) {
+        next[id] = DEFAULT_LAYOUT[id];
+        continue;
+      }
       next[id] = clampPos({ x: pos.x, y: pos.y }, id === "scorebugBar");
     }
   }

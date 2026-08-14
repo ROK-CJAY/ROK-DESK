@@ -14,7 +14,7 @@ import {
 import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
-import { gameOf } from "@/lib/games";
+import { gameOf, isCommanderLane } from "@/lib/games";
 
 export function DeskApp() {
   const ready = useDeskStore((s) => s.ready);
@@ -31,10 +31,11 @@ export function DeskApp() {
       <div className="min-h-dvh bg-bg text-fg">
         <div className="mx-auto max-w-[1600px] px-4 py-6">
           <div className="h-12 w-48 animate-pulse rounded-lg bg-surface" />
-          <div className="mt-6 grid gap-4 lg:grid-cols-[280px_1fr_380px]">
-            <div className="h-96 animate-pulse rounded-xl bg-surface" />
-            <div className="h-96 animate-pulse rounded-xl bg-surface" />
-            <div className="h-96 animate-pulse rounded-xl bg-surface" />
+          <div className="mt-6 grid gap-4 lg:grid-cols-[260px_1fr_260px]">
+            <div className="h-80 animate-pulse rounded-xl bg-surface" />
+            <div className="h-80 animate-pulse rounded-xl bg-surface" />
+            <div className="h-80 animate-pulse rounded-xl bg-surface" />
+            <div className="h-56 animate-pulse rounded-xl bg-surface lg:col-span-3" />
           </div>
         </div>
       </div>
@@ -42,6 +43,10 @@ export function DeskApp() {
   }
 
   const game = gameOf(desk.gameId);
+  const showTablet =
+    desk.gameId === "pokemon-vgc" ||
+    desk.gameId === "pokemon-tcg" ||
+    isCommanderLane(desk);
 
   return (
     <TooltipProvider delayDuration={250}>
@@ -58,28 +63,35 @@ export function DeskApp() {
           <GameStrip onPick={applyGame} />
         </AppChrome>
 
-        <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[300px_minmax(0,1fr)_400px]">
+        <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[280px_minmax(0,1fr)_280px]">
           <div className="order-2 flex flex-col gap-4 lg:order-1">
             <EventPanel />
             <ShowPanel />
-            <BracketPanel />
-            <PodPanel />
-            <CasterPanel />
-            <QueuePanel />
+            {showTablet ? (
+              <div className="lg:hidden">
+                <PodPanel />
+              </div>
+            ) : null}
           </div>
 
           <div className="order-1 flex flex-col gap-4 lg:order-2">
             <MatchControl />
             <TeamPanel />
-            <div className="xl:hidden">
-              <OverlayPreview />
-            </div>
           </div>
 
-          <div className="order-3 hidden xl:block">
-            <div className="sticky top-4">
-              <OverlayPreview />
-            </div>
+          <div className="order-3 flex flex-col gap-4">
+            <BracketPanel />
+            {showTablet ? (
+              <div className="max-lg:hidden">
+                <PodPanel />
+              </div>
+            ) : null}
+            <CasterPanel />
+            <QueuePanel />
+          </div>
+
+          <div className="order-4 lg:col-span-3">
+            <OverlayPreview />
           </div>
         </main>
       </div>

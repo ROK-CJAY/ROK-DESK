@@ -1,8 +1,11 @@
 import { create } from "zustand";
+import { type GameId } from "@/lib/games";
 import {
   blankEntrant,
   defaultTournament,
   parseTournament,
+  snapshotDesk,
+  switchGame,
   type Entrant,
   type SlotId,
   type TournamentState,
@@ -15,6 +18,7 @@ import {
   defaultSwissRounds,
 } from "@/lib/tournament-bracket";
 import { isCommanderPodFormat } from "@/lib/games";
+import { remainingSeconds } from "@/lib/desk-types";
 
 type TournamentStore = {
   tournament: TournamentState;
@@ -22,6 +26,7 @@ type TournamentStore = {
   hydrate: () => Promise<void>;
   setTournament: (t: TournamentState) => void;
   patch: (partial: Partial<TournamentState>) => void;
+  setGame: (gameId: GameId) => void;
   addEntrant: (partial?: Partial<Entrant>) => void;
   updateEntrant: (id: string, partial: Partial<Entrant>) => void;
   removeEntrant: (id: string) => void;
@@ -33,9 +38,34 @@ type TournamentStore = {
   report: (matchId: string, winnerId: string) => void;
   setScore: (matchId: string, slot: SlotId, score: number) => void;
   setStreamMatch: (matchId: string | null) => void;
+  toggleFloorTimer: () => void;
+  setFloorClock: (seconds: number) => void;
+  addFloorSeconds: (delta: number) => void;
+  resetFloorTimer: () => void;
 };
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pollTimer: number | null = null;
+
+function startTournamentPoll() {
+  if (pollTimer || typeof window === "undefined") return;
+  pollTimer = window.setInterval(() => {
+    void (async () => {
+      try {
+        const res = await fetch("/api/tournament", { cache: "no-store" });
+        if (!res.ok) return;
+        const parsed = parseTournament(await res.json());
+        if (!parsed) return;
+        const local = useTournamentStore.getState().tournament;
+        if (parsed.version >= local.version) {
+          useTournamentStore.setState({ tournament: parsed });
+        }
+      } catch {
+        /* keep local */
+      }
+    })();
+  }, 500);
+}
 
 function persist(t: TournamentState) {
   if (typeof window !== "undefined") {
@@ -58,7 +88,14 @@ function persist(t: TournamentState) {
 }
 
 function nextVersion(t: TournamentState, patch: Partial<TournamentState>): TournamentState {
-  return { ...t, ...patch, version: t.version + 1 };
+  const merged = { ...t, ...patch, version: t.version + 1 };
+  return {
+    ...merged,
+    desks: {
+      ...merged.desks,
+      [merged.gameId]: snapshotDesk(merged),
+    },
+  };
 }
 
 export const useTournamentStore = create<TournamentStore>((set, get) => ({
@@ -81,6 +118,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       }
     }
     set({ tournament: next, ready: true });
+    if (typeof window !== "undefined") startTournamentPoll();
   },
 
   setTournament: (tournament) => {
@@ -90,6 +128,14 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
 
   patch: (partial) => {
     const tournament = nextVersion(get().tournament, partial);
+    persist(tournament);
+    set({ tournament });
+  },
+
+  setGame: (gameId) => {
+    const prev = get().tournament;
+    if (prev.gameId === gameId) return;
+    const tournament = { ...switchGame(prev, gameId), version: prev.version + 1 };
     persist(tournament);
     set({ tournament });
   },
@@ -213,6 +259,64 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
 
   setStreamMatch: (matchId) => {
     const tournament = nextVersion(get().tournament, { streamMatchId: matchId });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  toggleFloorTimer: () => {
+    const prev = get().tournament;
+    if (prev.timerRunning) {
+      const left = remainingSeconds(prev);
+      const tournament = nextVersion(prev, {
+        timerRunning: false,
+        timerEndsAt: null,
+        timerSeconds: left,
+      });
+      persist(tournament);
+      set({ tournament });
+      return;
+    }
+    const left = remainingSeconds(prev);
+    const tournament = nextVersion(prev, {
+      timerRunning: true,
+      timerEndsAt: Date.now() + left * 1000,
+      timerSeconds: left,
+    });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  setFloorClock: (seconds) => {
+    const next = Math.max(0, Math.round(seconds));
+    const tournament = nextVersion(get().tournament, {
+      timerSeconds: next,
+      timerPresetSeconds: next,
+      timerRunning: false,
+      timerEndsAt: null,
+    });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  addFloorSeconds: (delta) => {
+    const prev = get().tournament;
+    const left = Math.max(0, remainingSeconds(prev) + delta);
+    const tournament = nextVersion(prev, {
+      timerSeconds: left,
+      timerEndsAt: prev.timerRunning ? Date.now() + left * 1000 : null,
+    });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  resetFloorTimer: () => {
+    const prev = get().tournament;
+    const seconds = Math.max(0, prev.timerPresetSeconds || 0);
+    const tournament = nextVersion(prev, {
+      timerSeconds: seconds,
+      timerRunning: false,
+      timerEndsAt: null,
+    });
     persist(tournament);
     set({ tournament });
   },

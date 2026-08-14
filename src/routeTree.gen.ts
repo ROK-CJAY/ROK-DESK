@@ -13,12 +13,16 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OverlayRouteRouteImport } from './routes/overlay/route'
 import { Route as PodRouteImport } from './routes/pod'
+import { Route as SignupRouteImport } from './routes/signup'
+import { Route as TabletRouteImport } from './routes/tablet'
 import { Route as TournamentRouteImport } from './routes/tournament'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
 import { Route as OverlayIndexRouteImport } from './routes/overlay/index'
 import { Route as OverlayBracketRouteImport } from './routes/overlay/bracket'
 import { Route as OverlayCastersRouteImport } from './routes/overlay/casters'
+import { Route as OverlayFloorClockRouteImport } from './routes/overlay/floor-clock'
+import { Route as OverlayGameWinRouteImport } from './routes/overlay/game-win'
 import { Route as OverlayHudRouteImport } from './routes/overlay/hud'
 import { Route as OverlayLowerThirdRouteImport } from './routes/overlay/lower-third'
 import { Route as OverlayResourceRouteImport } from './routes/overlay/resource'
@@ -29,7 +33,9 @@ import { Route as OverlayTimerRouteImport } from './routes/overlay/timer'
 import { Route as OverlayUpcomingRouteImport } from './routes/overlay/upcoming'
 import { Route as OverlayVersusRouteImport } from './routes/overlay/versus'
 import { Route as OverlayWinnerRouteImport } from './routes/overlay/winner'
+import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -49,6 +55,16 @@ const OverlayRouteRoute = OverlayRouteRouteImport.update({
 const PodRoute = PodRouteImport.update({
   id: '/pod',
   path: '/pod',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TabletRoute = TabletRouteImport.update({
+  id: '/tablet',
+  path: '/tablet',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TournamentRoute = TournamentRouteImport.update({
@@ -79,6 +95,16 @@ const OverlayBracketRoute = OverlayBracketRouteImport.update({
 const OverlayCastersRoute = OverlayCastersRouteImport.update({
   id: '/casters',
   path: '/casters',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
+const OverlayFloorClockRoute = OverlayFloorClockRouteImport.update({
+  id: '/floor-clock',
+  path: '/floor-clock',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
+const OverlayGameWinRoute = OverlayGameWinRouteImport.update({
+  id: '/game-win',
+  path: '/game-win',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
 const OverlayHudRoute = OverlayHudRouteImport.update({
@@ -131,10 +157,20 @@ const OverlayWinnerRoute = OverlayWinnerRouteImport.update({
   path: '/winner',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const PrintTeamListRoute = PrintTeamListRouteImport.update({
+  id: '/print/team-list',
+  path: '/print/team-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTournamentSignupRoute = ApiTournamentSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => ApiTournamentRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -142,11 +178,15 @@ export interface FileRoutesByFullPath {
   '/overlay': typeof OverlayRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
+  '/signup': typeof SignupRoute
+  '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
   '/api/desk': typeof ApiDeskRoute
-  '/api/tournament': typeof ApiTournamentRoute
+  '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/casters': typeof OverlayCastersRoute
+  '/overlay/floor-clock': typeof OverlayFloorClockRoute
+  '/overlay/game-win': typeof OverlayGameWinRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -157,18 +197,24 @@ export interface FileRoutesByFullPath {
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
+  '/print/team-list': typeof PrintTeamListRoute
   '/overlay/': typeof OverlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/tournament/signup': typeof ApiTournamentSignupRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
+  '/signup': typeof SignupRoute
+  '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
   '/api/desk': typeof ApiDeskRoute
-  '/api/tournament': typeof ApiTournamentRoute
+  '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/casters': typeof OverlayCastersRoute
+  '/overlay/floor-clock': typeof OverlayFloorClockRoute
+  '/overlay/game-win': typeof OverlayGameWinRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -179,8 +225,10 @@ export interface FileRoutesByTo {
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
+  '/print/team-list': typeof PrintTeamListRoute
   '/overlay': typeof OverlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/tournament/signup': typeof ApiTournamentSignupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -188,11 +236,15 @@ export interface FileRoutesById {
   '/overlay': typeof OverlayRouteRouteWithChildren
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
+  '/signup': typeof SignupRoute
+  '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
   '/api/desk': typeof ApiDeskRoute
-  '/api/tournament': typeof ApiTournamentRoute
+  '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/casters': typeof OverlayCastersRoute
+  '/overlay/floor-clock': typeof OverlayFloorClockRoute
+  '/overlay/game-win': typeof OverlayGameWinRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -203,8 +255,10 @@ export interface FileRoutesById {
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
+  '/print/team-list': typeof PrintTeamListRoute
   '/overlay/': typeof OverlayIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/tournament/signup': typeof ApiTournamentSignupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -213,11 +267,15 @@ export interface FileRouteTypes {
     | '/overlay'
     | '/login'
     | '/pod'
+    | '/signup'
+    | '/tablet'
     | '/tournament'
     | '/api/desk'
     | '/api/tournament'
     | '/overlay/bracket'
     | '/overlay/casters'
+    | '/overlay/floor-clock'
+    | '/overlay/game-win'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -228,18 +286,24 @@ export interface FileRouteTypes {
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
+    | '/print/team-list'
     | '/overlay/'
     | '/api/auth/$'
+    | '/api/tournament/signup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/pod'
+    | '/signup'
+    | '/tablet'
     | '/tournament'
     | '/api/desk'
     | '/api/tournament'
     | '/overlay/bracket'
     | '/overlay/casters'
+    | '/overlay/floor-clock'
+    | '/overlay/game-win'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -250,19 +314,25 @@ export interface FileRouteTypes {
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
+    | '/print/team-list'
     | '/overlay'
     | '/api/auth/$'
+    | '/api/tournament/signup'
   id:
     | '__root__'
     | '/'
     | '/overlay'
     | '/login'
     | '/pod'
+    | '/signup'
+    | '/tablet'
     | '/tournament'
     | '/api/desk'
     | '/api/tournament'
     | '/overlay/bracket'
     | '/overlay/casters'
+    | '/overlay/floor-clock'
+    | '/overlay/game-win'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -273,8 +343,10 @@ export interface FileRouteTypes {
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
+    | '/print/team-list'
     | '/overlay/'
     | '/api/auth/$'
+    | '/api/tournament/signup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -282,9 +354,12 @@ export interface RootRouteChildren {
   OverlayRouteRoute: typeof OverlayRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   PodRoute: typeof PodRoute
+  SignupRoute: typeof SignupRoute
+  TabletRoute: typeof TabletRoute
   TournamentRoute: typeof TournamentRoute
   ApiDeskRoute: typeof ApiDeskRoute
-  ApiTournamentRoute: typeof ApiTournamentRoute
+  ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
+  PrintTeamListRoute: typeof PrintTeamListRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -316,6 +391,20 @@ declare module '@tanstack/react-router' {
       path: '/pod'
       fullPath: '/pod'
       preLoaderRoute: typeof PodRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tablet': {
+      id: '/tablet'
+      path: '/tablet'
+      fullPath: '/tablet'
+      preLoaderRoute: typeof TabletRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tournament': {
@@ -358,6 +447,20 @@ declare module '@tanstack/react-router' {
       path: '/casters'
       fullPath: '/overlay/casters'
       preLoaderRoute: typeof OverlayCastersRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
+    '/overlay/floor-clock': {
+      id: '/overlay/floor-clock'
+      path: '/floor-clock'
+      fullPath: '/overlay/floor-clock'
+      preLoaderRoute: typeof OverlayFloorClockRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
+    '/overlay/game-win': {
+      id: '/overlay/game-win'
+      path: '/game-win'
+      fullPath: '/overlay/game-win'
+      preLoaderRoute: typeof OverlayGameWinRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
     '/overlay/hud': {
@@ -430,6 +533,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayWinnerRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/print/team-list': {
+      id: '/print/team-list'
+      path: '/print/team-list'
+      fullPath: '/print/team-list'
+      preLoaderRoute: typeof PrintTeamListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -437,12 +547,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/tournament/signup': {
+      id: '/api/tournament/signup'
+      path: '/signup'
+      fullPath: '/api/tournament/signup'
+      preLoaderRoute: typeof ApiTournamentSignupRouteImport
+      parentRoute: typeof ApiTournamentRoute
+    }
   }
 }
 
 interface OverlayRouteRouteChildren {
   OverlayBracketRoute: typeof OverlayBracketRoute
   OverlayCastersRoute: typeof OverlayCastersRoute
+  OverlayFloorClockRoute: typeof OverlayFloorClockRoute
+  OverlayGameWinRoute: typeof OverlayGameWinRoute
   OverlayHudRoute: typeof OverlayHudRoute
   OverlayLowerThirdRoute: typeof OverlayLowerThirdRoute
   OverlayResourceRoute: typeof OverlayResourceRoute
@@ -459,6 +578,8 @@ interface OverlayRouteRouteChildren {
 const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayBracketRoute: OverlayBracketRoute,
   OverlayCastersRoute: OverlayCastersRoute,
+  OverlayFloorClockRoute: OverlayFloorClockRoute,
+  OverlayGameWinRoute: OverlayGameWinRoute,
   OverlayHudRoute: OverlayHudRoute,
   OverlayLowerThirdRoute: OverlayLowerThirdRoute,
   OverlayResourceRoute: OverlayResourceRoute,
@@ -476,14 +597,29 @@ const OverlayRouteRouteWithChildren = OverlayRouteRoute._addFileChildren(
   OverlayRouteRouteChildren,
 )
 
+interface ApiTournamentRouteChildren {
+  ApiTournamentSignupRoute: typeof ApiTournamentSignupRoute
+}
+
+const ApiTournamentRouteChildren: ApiTournamentRouteChildren = {
+  ApiTournamentSignupRoute: ApiTournamentSignupRoute,
+}
+
+const ApiTournamentRouteWithChildren = ApiTournamentRoute._addFileChildren(
+  ApiTournamentRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OverlayRouteRoute: OverlayRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   PodRoute: PodRoute,
+  SignupRoute: SignupRoute,
+  TabletRoute: TabletRoute,
   TournamentRoute: TournamentRoute,
   ApiDeskRoute: ApiDeskRoute,
-  ApiTournamentRoute: ApiTournamentRoute,
+  ApiTournamentRoute: ApiTournamentRouteWithChildren,
+  PrintTeamListRoute: PrintTeamListRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

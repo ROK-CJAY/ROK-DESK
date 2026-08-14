@@ -6,6 +6,9 @@ import {
   seatsFor,
   emptyCmdFrom,
   incomingCmd,
+  normalizeDown,
+  remainingFromDown,
+  downForRemaining,
   type DeskState,
   type PlayerSide,
   type SeatId,
@@ -50,6 +53,7 @@ type DeskStore = {
     gameId: GameId;
     formatName: string;
     tableSize?: TableSize;
+    matchId?: string | null;
     p1: Partial<PlayerSide>;
     p2: Partial<PlayerSide>;
     p3?: Partial<PlayerSide>;
@@ -62,8 +66,13 @@ type DeskStore = {
   resetGame: () => void;
   resetMatch: () => void;
   gameWin: (side: SideId) => void;
+  matchWin: (side: SideId) => void;
+  clearWinners: () => void;
   toggleTimer: () => void;
   setTimerMinutes: (minutes: number) => void;
+  setTimerClock: (seconds: number) => void;
+  addTimerSeconds: (delta: number) => void;
+  resetTimer: () => void;
   moveWidget: (id: WidgetId, pos: WidgetPos, commit: boolean) => void;
   applyLayout: (layout: LayoutMap) => void;
   resetLayout: () => void;
@@ -83,7 +92,7 @@ function startDeskPoll() {
         const parsed = parseDesk(await res.json());
         if (!parsed) return;
         const local = useDeskStore.getState().desk;
-        if (parsed.version > local.version) {
+        if (parsed.version >= local.version) {
           useDeskStore.setState({ desk: parsed });
         }
       } catch {
@@ -121,14 +130,16 @@ function nextVersion(desk: DeskState, patch: Partial<DeskState>): DeskState {
   return { ...desk, ...patch, version: desk.version + 1 };
 }
 
-function resetResources(desk: DeskState): Pick<PlayerSide, "resource" | "secondary" | "cmdDamage" | "cmdFrom"> {
+function resetResources(desk: DeskState): Pick<PlayerSide, "resource" | "secondary" | "cmdDamage" | "cmdFrom" | "down"> {
   const game = gameOf(desk.gameId);
   const format = game.formats.find((f) => f.label === desk.formatName);
+  const resource = format?.resourceStart ?? game.resource.start;
   return {
-    resource: format?.resourceStart ?? game.resource.start,
+    resource,
     secondary: format?.secondaryStart ?? game.secondary?.start ?? 0,
     cmdDamage: 0,
     cmdFrom: emptyCmdFrom(),
+    down: normalizeDown([]),
   };
 }
 
@@ -175,6 +186,13 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         if (parsed) next = parsed;
       }
     }
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem("rok-desk", JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+    }
     set({ desk: next, ready: true });
     if (typeof window !== "undefined") startDeskPoll();
   },
@@ -204,7 +222,6 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const score = clamp(prev[side].score + delta, 0, 9);
     const desk = nextVersion(prev, {
       [side]: { ...prev[side], score },
-      winnerSide: score >= Math.ceil(prev.bestOf / 2) ? side : prev.winnerSide,
     });
     persist(desk);
     set({ desk });
@@ -217,7 +234,11 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const max = format?.resourceMax ?? game.resource.max;
     const resource = clamp(prev[side].resource + delta, game.resource.min, max);
     const desk = nextVersion(prev, {
-      [side]: { ...prev[side], resource },
+      [side]: {
+        ...prev[side],
+        resource,
+        down: game.resource.pipStyle === "team" ? downForRemaining(resource, max) : prev[side].down,
+      },
     });
     persist(desk);
     set({ desk });
@@ -228,8 +249,13 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const game = gameOf(prev.gameId);
     const format = game.formats.find((f) => f.label === prev.formatName);
     const max = format?.resourceMax ?? game.resource.max;
+    const resource = clamp(value, game.resource.min, max);
     const desk = nextVersion(prev, {
-      [side]: { ...prev[side], resource: clamp(value, game.resource.min, max) },
+      [side]: {
+        ...prev[side],
+        resource,
+        down: game.resource.pipStyle === "team" ? downForRemaining(resource, max) : prev[side].down,
+      },
     });
     persist(desk);
     set({ desk });
@@ -285,6 +311,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       resource: format?.resourceStart ?? game.resource.start,
       secondary: format?.secondaryStart ?? game.secondary?.start ?? 0,
       cmdDamage: 0,
+      down: normalizeDown([]),
     };
     const seats = withSeats(prev, { ...resources, score: 0 });
     if (gameId === "pokemon-vgc") {
@@ -301,6 +328,12 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         team: teamHasMons(prev.p2.team) ? prev.p2.team : sampleTeamB(),
       };
     }
+    const saved = {
+      remaining: remainingSeconds(prev),
+      preset: prev.timerPresetSeconds,
+    };
+    const clocks = { ...prev.gameClocks, [prev.gameId]: saved };
+    const nextClock = clocks[gameId] ?? { remaining: 0, preset: 0 };
     const desk = nextVersion(prev, {
       gameId,
       formatName: format?.label ?? game.name,
@@ -310,6 +343,12 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       layout: layoutForTable(prev.layout, format?.seats ?? 2),
       ...seats,
       winnerSide: null,
+      gameWinnerSide: null,
+      timerSeconds: nextClock.remaining,
+      timerPresetSeconds: nextClock.preset,
+      timerRunning: false,
+      timerEndsAt: null,
+      gameClocks: clocks,
     });
     persist(desk);
     set({ desk, focusedSeat: "p1" });
@@ -322,6 +361,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       resource: preset.resourceStart ?? game.resource.start,
       secondary: preset.secondaryStart ?? game.secondary?.start ?? 0,
       cmdDamage: 0,
+      down: normalizeDown([]),
     };
     const tableSize = preset.seats ?? 2;
     const desk = nextVersion(prev, {
@@ -366,6 +406,8 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       p3: payload.p3 ? { ...prev.p3, ...resources, score: 0, ...payload.p3 } : prev.p3,
       p4: payload.p4 ? { ...prev.p4, ...resources, score: 0, ...payload.p4 } : prev.p4,
       winnerSide: null,
+      gameWinnerSide: null,
+      streamMatchId: payload.matchId ?? null,
     });
     persist(desk);
     set({ desk });
@@ -389,6 +431,8 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         p2: prev.p1,
         winnerSide:
           prev.winnerSide === "p1" ? "p2" : prev.winnerSide === "p2" ? "p1" : prev.winnerSide,
+        gameWinnerSide:
+          prev.gameWinnerSide === "p1" ? "p2" : prev.gameWinnerSide === "p2" ? "p1" : prev.gameWinnerSide,
       });
       persist(desk);
       set({ desk });
@@ -401,6 +445,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       p3: prev.p2,
       p4: prev.p3,
       winnerSide: prev.winnerSide ? rotated[prev.winnerSide] : null,
+      gameWinnerSide: prev.gameWinnerSide ? rotated[prev.gameWinnerSide] : null,
     });
     persist(desk);
     set({ desk });
@@ -412,6 +457,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const desk = nextVersion(prev, {
       ...withSeats(prev, resources),
       winnerSide: null,
+      gameWinnerSide: null,
     });
     persist(desk);
     set({ desk });
@@ -423,6 +469,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const desk = nextVersion(prev, {
       ...withSeats(prev, { ...resources, score: 0 }),
       winnerSide: null,
+      gameWinnerSide: null,
     });
     persist(desk);
     set({ desk });
@@ -432,11 +479,31 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const prev = get().desk;
     const resources = resetResources(prev);
     const score = clamp(prev[side].score + 1, 0, 9);
-    const won = score >= Math.ceil(prev.bestOf / 2);
     const desk = nextVersion(prev, {
       ...withSeats(prev, resources),
       [side]: { ...prev[side], ...resources, score },
-      winnerSide: won ? side : null,
+      gameWinnerSide: side,
+      winnerSide: null,
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  matchWin: (side) => {
+    const prev = get().desk;
+    const desk = nextVersion(prev, {
+      winnerSide: side,
+      gameWinnerSide: null,
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  clearWinners: () => {
+    const prev = get().desk;
+    const desk = nextVersion(prev, {
+      winnerSide: null,
+      gameWinnerSide: null,
     });
     persist(desk);
     set({ desk });
@@ -466,12 +533,52 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   },
 
   setTimerMinutes: (minutes) => {
+    get().setTimerClock(Math.max(0, Math.round(minutes * 60)));
+  },
+
+  setTimerClock: (seconds) => {
     const prev = get().desk;
-    const seconds = Math.max(0, Math.round(minutes * 60));
+    const next = Math.max(0, Math.round(seconds));
+    const desk = nextVersion(prev, {
+      timerSeconds: next,
+      timerPresetSeconds: next,
+      timerRunning: false,
+      timerEndsAt: null,
+      gameClocks: {
+        ...prev.gameClocks,
+        [prev.gameId]: { remaining: next, preset: next },
+      },
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  addTimerSeconds: (delta) => {
+    const prev = get().desk;
+    const left = Math.max(0, remainingSeconds(prev) + delta);
+    const desk = nextVersion(prev, {
+      timerSeconds: left,
+      timerEndsAt: prev.timerRunning ? Date.now() + left * 1000 : null,
+      gameClocks: {
+        ...prev.gameClocks,
+        [prev.gameId]: { remaining: left, preset: prev.timerPresetSeconds },
+      },
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  resetTimer: () => {
+    const prev = get().desk;
+    const seconds = Math.max(0, prev.timerPresetSeconds || 0);
     const desk = nextVersion(prev, {
       timerSeconds: seconds,
       timerRunning: false,
       timerEndsAt: null,
+      gameClocks: {
+        ...prev.gameClocks,
+        [prev.gameId]: { remaining: seconds, preset: seconds },
+      },
     });
     persist(desk);
     set({ desk });

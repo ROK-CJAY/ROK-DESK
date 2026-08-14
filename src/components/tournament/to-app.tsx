@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, GripVertical, Plus, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
+import { ClipboardList, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
+import { FloorClock } from "@/components/tournament/floor-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
@@ -31,12 +32,14 @@ import { cn } from "@/lib/cn";
 export function TournamentApp() {
   const ready = useTournamentStore((s) => s.ready);
   const hydrate = useTournamentStore((s) => s.hydrate);
+  const hydrateDesk = useDeskStore((s) => s.hydrate);
   const t = useTournamentStore((s) => s.tournament);
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
     void hydrate();
-  }, [hydrate]);
+    void hydrateDesk();
+  }, [hydrate, hydrateDesk]);
 
   if (!ready) {
     return (
@@ -98,10 +101,16 @@ export function TournamentApp() {
 function SetupPanel() {
   const t = useTournamentStore((s) => s.tournament);
   const patch = useTournamentStore((s) => s.patch);
+  const setGame = useTournamentStore((s) => s.setGame);
   const generate = useTournamentStore((s) => s.generate);
   const resetBracket = useTournamentStore((s) => s.resetBracket);
   const game = gameOf(t.gameId);
-  const locked = t.phase !== "setup" && t.matches.length > 0;
+  const setShape = (partial: Partial<typeof t>) => {
+    patch({
+      ...partial,
+      ...(t.matches.length ? { matches: [], phase: "setup" as const } : {}),
+    });
+  };
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
@@ -113,12 +122,7 @@ function SetupPanel() {
         <Field label="Game">
           <NativeSelect
             value={t.gameId}
-            disabled={locked}
-            onChange={(e) => {
-              const id = e.target.value as typeof t.gameId;
-              const next = gameOf(id);
-              patch({ gameId: id, formatName: next.formats[0]?.label ?? next.name });
-            }}
+            onChange={(e) => setGame(e.target.value as typeof t.gameId)}
           >
             {GAME_LIST.map((g) => (
               <option key={g.id} value={g.id}>
@@ -140,10 +144,9 @@ function SetupPanel() {
           <Field label="Bracket">
             <NativeSelect
               value={t.bracketType}
-              disabled={locked}
               onChange={(e) => {
                 const bracketType = e.target.value as BracketType;
-                patch({
+                setShape({
                   bracketType,
                   swissRounds: defaultSwissRounds(t.size),
                   overlayView: bracketType === "swiss" ? "standings" : t.overlayView === "standings" ? "full" : t.overlayView,
@@ -158,8 +161,7 @@ function SetupPanel() {
           <Field label="Size">
             <NativeSelect
               value={String(t.size)}
-              disabled={locked}
-              onChange={(e) => patch({ size: Number(e.target.value) as BracketSize })}
+              onChange={(e) => setShape({ size: Number(e.target.value) as BracketSize })}
             >
               {[4, 8, 16, 32].map((n) => (
                 <option key={n} value={n}>
@@ -169,6 +171,7 @@ function SetupPanel() {
             </NativeSelect>
           </Field>
         </div>
+        <p className="text-xs text-subtle">Changing bracket or size clears the current pairings so you can generate again.</p>
         {t.bracketType === "swiss" ? (
           <Field label="Swiss rounds">
             <NativeSelect
@@ -210,6 +213,24 @@ function SetupPanel() {
             ))}
           </NativeSelect>
         </Field>
+        <FloorClock />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" className="flex-1" asChild>
+            <a href="/overlay/floor-clock" target="_blank" rel="noreferrer">
+              Open floor clock
+            </a>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => {
+              void navigator.clipboard.writeText(`${window.location.origin}/overlay/floor-clock`);
+            }}
+          >
+            Copy floor clock URL
+          </Button>
+        </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={generate} className="flex-1">
             <Trophy className="size-3.5" />
@@ -261,6 +282,7 @@ function sendMatchToStream(matchId: string) {
     gameId: t.gameId,
     formatName: t.formatName,
     tableSize: pod ? 4 : 2,
+    matchId: match.id,
     p1: seat(match.p1.entrantId),
     p2: seat(match.p2.entrantId),
     p3: pod ? seat(match.p3?.entrantId) : undefined,
@@ -355,16 +377,32 @@ function RosterPanel({
     <section className="rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Roster</p>
+          <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
+            {game.short} roster
+          </p>
           <p className="text-sm text-muted">
             {t.entrants.length} players · drag a row to change seed
             {t.gameId === "pokemon-vgc" ? " · open a team sheet below" : ""}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={reseed}>
-          <Shuffle className="size-3.5" />
-          Reseed 1–n
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href="/signup" target="_blank" rel="noreferrer">
+              Open sign-up
+            </a>
+          </Button>
+          {t.gameId === "pokemon-vgc" ? (
+            <Button variant="outline" size="sm" asChild>
+              <a href="/print/team-list?all=1" target="_blank" rel="noreferrer">
+                Print all lists
+              </a>
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={reseed}>
+            <Shuffle className="size-3.5" />
+            Reseed 1–n
+          </Button>
+        </div>
       </div>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_1fr_6rem_auto]">
@@ -562,6 +600,13 @@ function EntrantRow({
             >
               <ClipboardList className={cn("size-3.5", filled === 6 && "text-ok")} />
               <span className="font-mono text-[0.65rem] tabular-nums">{filled}/6</span>
+            </Button>
+          ) : null}
+          {showTeam ? (
+            <Button variant="ghost" size="icon" className="size-8" asChild>
+              <a href={`/print/team-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print team list">
+                <Printer className="size-3.5" />
+              </a>
             </Button>
           ) : null}
           <Button variant="ghost" size="icon" className="size-8" onClick={() => onRemove(entrant.id)} aria-label="Remove">

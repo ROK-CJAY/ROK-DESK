@@ -1,8 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { Clapperboard, Trophy } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { cn } from "@/lib/cn";
 
 export function AppChrome({
@@ -16,8 +13,6 @@ export function AppChrome({
   children?: React.ReactNode;
   trailing?: React.ReactNode;
 }) {
-  const { isPending } = useCurrentUserState();
-
   return (
     <header className="border-b border-border bg-surface/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3">
@@ -59,23 +54,7 @@ export function AppChrome({
               </span>
             ) : null}
           </div>
-          <div className="flex items-center gap-3">
-            {trailing}
-            {isPending ? (
-              <div className="h-8 w-24 animate-pulse rounded-full bg-surface-2" />
-            ) : (
-              <>
-                <SignedOut>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/login">Sign in</Link>
-                  </Button>
-                </SignedOut>
-                <SignedIn>
-                  <UserButton />
-                </SignedIn>
-              </>
-            )}
-          </div>
+          {trailing ? <div className="flex items-center gap-3">{trailing}</div> : null}
         </div>
         {children}
       </div>

@@ -244,24 +244,36 @@ function LowerThirdBody({ desk }: { desk: DeskState }) {
 export function WinnerView({ desk, edit = null }: { desk: DeskState; edit?: OverlayEdit | null }) {
   return (
     <Shell desk={desk} edit={edit}>
-      <WinnerBody desk={desk} />
+      <WinnerBody desk={desk} kind="match" />
     </Shell>
   );
 }
 
-function WinnerBody({ desk }: { desk: DeskState }) {
-  const edit = useOverlayEdit();
-  if (!desk.winnerSide && !edit) return null;
-  const player = desk[desk.winnerSide ?? "p1"];
+export function GameWinView({ desk, edit = null }: { desk: DeskState; edit?: OverlayEdit | null }) {
   return (
-    <Placed id="winner">
-      <div className={`w-[1920px] px-16 text-center ${desk.winnerSide ? "" : "opacity-60"}`}>
-        <p className="font-mono text-sm tracking-[0.34em] text-game uppercase">Match winner</p>
+    <Shell desk={desk} edit={edit}>
+      <WinnerBody desk={desk} kind="game" />
+    </Shell>
+  );
+}
+
+function WinnerBody({ desk, kind }: { desk: DeskState; kind: "game" | "match" }) {
+  const edit = useOverlayEdit();
+  const side = kind === "match" ? desk.winnerSide : desk.gameWinnerSide;
+  if (!side && !edit) return null;
+  const player = desk[side ?? "p1"];
+  return (
+    <Placed id={kind === "match" ? "winner" : "gameWin"}>
+      <div className={`w-[1920px] px-16 text-center ${side ? "" : "opacity-60"}`}>
+        <p className="font-mono text-sm tracking-[0.34em] text-game uppercase">
+          {kind === "match" ? "Match winner" : "Game"}
+        </p>
         <h1 className="font-display mt-2 text-8xl font-semibold tracking-tight text-ov-fg uppercase">
           {player.name}
         </h1>
         <p className="mt-3 text-2xl text-ov-muted">
-          {player.archetype || player.extra} · {desk.p1.score}–{desk.p2.score}
+          {player.archetype || player.extra || player.tag || desk.roundName}
+          {kind === "match" ? ` · ${desk.p1.score}–${desk.p2.score}` : ""}
         </p>
       </div>
     </Placed>
@@ -322,6 +334,8 @@ export function ResourceView({ desk, edit = null }: { desk: DeskState; edit?: Ov
                     max={max}
                     size="lg"
                     pipStyle={game.resource.pipStyle}
+                    team={p.team}
+                    down={p.down}
                   />
                 </div>
               ) : (
@@ -398,6 +412,7 @@ export function HudView({
       {commander ? null : <CastersView desk={desk} edit={edit} />}
       <LowerThirdView desk={desk} edit={edit} />
       <WinnerView desk={desk} edit={edit} />
+      <GameWinView desk={desk} edit={edit} />
       <RosterView desk={desk} edit={edit} />
     </div>
   );

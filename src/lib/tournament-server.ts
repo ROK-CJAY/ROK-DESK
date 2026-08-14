@@ -1,17 +1,7 @@
 import { defaultTournament, parseTournament, type TournamentState } from "@/lib/tournament-types";
-import { generateBracket } from "@/lib/tournament-bracket";
 import { getSql } from "@/lib/db";
 
 const TOURNAMENT_ID = "live";
-
-function seedTournament(): TournamentState {
-  const base = defaultTournament();
-  return {
-    ...base,
-    phase: "running",
-    matches: generateBracket(base.bracketType, base.size, base.entrants),
-  };
-}
 
 export async function loadTournament(): Promise<TournamentState> {
   const sql = await getSql();
@@ -28,7 +18,7 @@ export async function loadTournament(): Promise<TournamentState> {
   const existing = rows[0] ? parseTournament(rows[0].payload) : null;
   if (existing) return existing;
 
-  const seed = seedTournament();
+  const seed = defaultTournament();
   await sql`
     insert into tournament_state (id, payload, updated_at)
     values (${TOURNAMENT_ID}, ${JSON.stringify(seed)}, CURRENT_TIMESTAMP)

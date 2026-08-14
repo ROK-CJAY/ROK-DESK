@@ -6,10 +6,12 @@ export type OverlaySourceId =
   | "casters"
   | "lower-third"
   | "winner"
+  | "game-win"
   | "timer"
   | "resource"
   | "upcoming"
   | "bracket"
+  | "floor-clock"
   | "roster";
 
 export type OverlaySource = {
@@ -26,7 +28,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/hud",
     name: "HUD pack",
     size: "1920 × 1080",
-    note: "Scorebug, clock, resources, casters, lower third, winner — arrange them together.",
+    note: "Scorebug, clock, resources, casters, lower third, game / match win — arrange them together.",
   },
   {
     id: "scorebug",
@@ -66,9 +68,16 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
   {
     id: "winner",
     path: "/overlay/winner",
-    name: "Winner",
+    name: "Match win",
     size: "1920 × 1080",
-    note: "Fires when a player reaches first-to or you punch P1/P2 wins.",
+    note: "Punch Match P1 / P2 in Production. Also reports the result to the live bracket.",
+  },
+  {
+    id: "game-win",
+    path: "/overlay/game-win",
+    name: "Game win",
+    size: "1920 × 1080",
+    note: "Punch Game P1 / P2 in Production. Resets remaining Pokemon / prizes for the next game.",
   },
   {
     id: "timer",
@@ -97,6 +106,13 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     name: "Bracket",
     size: "1920 × 1080",
     note: "TO bracket. Switch Full / Winners / Losers / Top 16 / Top 8 / Top 4 / Finals from Production.",
+  },
+  {
+    id: "floor-clock",
+    path: "/overlay/floor-clock",
+    name: "Floor clock",
+    size: "1920 × 1080",
+    note: "Full-screen round clock for the rest of the room. Driven from Tournament, not the stream match.",
   },
   {
     id: "roster",

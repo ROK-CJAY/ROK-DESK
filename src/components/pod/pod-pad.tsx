@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { RotateCcw, RotateCw, Skull } from "lucide-react";
 import { useDeskStore } from "@/lib/desk-store";
 import { SEAT_LABELS, seatsFor, type SeatId } from "@/lib/desk-types";
+import { VgcJudgeTablet } from "@/components/tablet/vgc-judge";
+import { TcgJudgeTablet } from "@/components/tablet/tcg-judge";
+import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { cn } from "@/lib/cn";
 
 const TABLE_ORDER: SeatId[] = ["p3", "p4", "p2", "p1"];
@@ -15,6 +18,7 @@ export function PodPad() {
   const bumpCmdDamage = useDeskStore((s) => s.bumpCmdDamage);
   const resetGame = useDeskStore((s) => s.resetGame);
   const [faceOut, setFaceOut] = useState(true);
+  const guide = useTabletGuide("table");
 
   useEffect(() => {
     void hydrate();
@@ -42,8 +46,16 @@ export function PodPad() {
 
   if (!ready) {
     return (
-      <div className="grid h-dvh place-items-center bg-bg text-muted">Loading pod…</div>
+      <div className="grid h-dvh place-items-center bg-bg text-muted">Loading tablet…</div>
     );
+  }
+
+  if (desk.gameId === "pokemon-vgc") {
+    return <VgcJudgeTablet />;
+  }
+
+  if (desk.gameId === "pokemon-tcg") {
+    return <TcgJudgeTablet />;
   }
 
   const seats = desk.tableSize === 4 ? TABLE_ORDER : seatsFor(Math.max(desk.tableSize, 2) as 2 | 3 | 4);
@@ -52,7 +64,7 @@ export function PodPad() {
     <div className="pod-shell flex h-dvh flex-col bg-bg text-fg" data-game={desk.gameId}>
       <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <div className="min-w-0">
-          <p className="font-mono text-[0.6rem] tracking-[0.2em] text-muted uppercase">ROK · Pod pad</p>
+          <p className="font-mono text-[0.6rem] tracking-[0.2em] text-muted uppercase">ROK · Tablet</p>
           <p className="truncate text-sm text-fg">
             {desk.eventName}
             <span className="text-muted"> · {desk.roundName}</span>
@@ -75,6 +87,7 @@ export function PodPad() {
             <RotateCcw className="mr-1 inline size-3.5" />
             Reset
           </button>
+          <GuideButton onClick={guide.openGuide} />
         </div>
       </header>
 
@@ -95,6 +108,7 @@ export function PodPad() {
           />
         ))}
       </div>
+      <TabletGuide kind="table" open={guide.open} onClose={guide.close} />
     </div>
   );
 }

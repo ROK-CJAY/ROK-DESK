@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type BestOf, type GameId, gameOf } from "@/lib/games";
+import { type BestOf, type GameId, GAME_LIST, gameOf } from "@/lib/games";
 import { mergeTeam, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
 
 export type BracketType = "single" | "double" | "swiss";
@@ -45,7 +45,14 @@ export type Entrant = {
   seed: number;
   dropped: boolean;
   team: TeamMon[];
+  playerId: string;
+  trainerName: string;
+  switchProfile: string;
+  ageDivision: AgeDivision;
+  birthDate: string;
 };
+
+export type AgeDivision = "" | "juniors" | "seniors" | "masters";
 
 export type MatchSlot = {
   entrantId: string | null;
@@ -69,6 +76,23 @@ export type BracketMatch = {
   label: string;
 };
 
+export type GameDesk = {
+  formatName: string;
+  bracketType: BracketType;
+  size: BracketSize;
+  bestOf: BestOf;
+  phase: TournamentPhase;
+  overlayView: BracketViewId;
+  streamMatchId: string | null;
+  swissRounds: number;
+  entrants: Entrant[];
+  matches: BracketMatch[];
+  timerSeconds: number;
+  timerPresetSeconds: number;
+  timerRunning: boolean;
+  timerEndsAt: number | null;
+};
+
 export type TournamentState = {
   version: number;
   name: string;
@@ -83,6 +107,11 @@ export type TournamentState = {
   swissRounds: number;
   entrants: Entrant[];
   matches: BracketMatch[];
+  desks: Partial<Record<GameId, GameDesk>>;
+  timerSeconds: number;
+  timerPresetSeconds: number;
+  timerRunning: boolean;
+  timerEndsAt: number | null;
 };
 
 const slotSchema = z.object({
@@ -101,6 +130,14 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
   seed: z.number(),
   dropped: z.boolean(),
   team: z.unknown().optional().transform((rows) => mergeTeam(rows)),
+  playerId: z.string().optional().transform((v) => v ?? ""),
+  trainerName: z.string().optional().transform((v) => v ?? ""),
+  switchProfile: z.string().optional().transform((v) => v ?? ""),
+  ageDivision: z
+    .string()
+    .optional()
+    .transform((v): AgeDivision => (v === "juniors" || v === "seniors" || v === "masters" ? v : "")),
+  birthDate: z.string().optional().transform((v) => v ?? ""),
 });
 
 const matchSchema: z.ZodType<BracketMatch> = z.object({
@@ -118,6 +155,23 @@ const matchSchema: z.ZodType<BracketMatch> = z.object({
   nextLoserMatchId: z.string().nullable(),
   nextLoserSlot: z.enum(["p1", "p2"]).nullable(),
   label: z.string(),
+});
+
+const gameDeskSchema: z.ZodType<GameDesk> = z.object({
+  formatName: z.string(),
+  bracketType: z.enum(["single", "double", "swiss"]),
+  size: z.union([z.literal(4), z.literal(8), z.literal(16), z.literal(32)]),
+  bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
+  phase: z.enum(["setup", "running", "complete"]),
+  overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
+  streamMatchId: z.string().nullable(),
+  swissRounds: z.number(),
+  entrants: z.array(entrantSchema),
+  matches: z.array(matchSchema),
+  timerSeconds: z.number().optional().transform((v) => v ?? 0),
+  timerPresetSeconds: z.number().optional().transform((v) => v ?? 0),
+  timerRunning: z.boolean().optional().transform((v) => v ?? false),
+  timerEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
 });
 
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
@@ -145,6 +199,11 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   swissRounds: z.number(),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
+  desks: z.record(z.string(), gameDeskSchema).optional().transform((value) => (value ?? {}) as Partial<Record<GameId, GameDesk>>),
+  timerSeconds: z.number().optional().transform((v) => v ?? 0),
+  timerPresetSeconds: z.number().optional().transform((v) => v ?? 0),
+  timerRunning: z.boolean().optional().transform((v) => v ?? false),
+  timerEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -158,6 +217,11 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     extra: "",
     seed: 0,
     dropped: false,
+    playerId: "",
+    trainerName: "",
+    switchProfile: "",
+    ageDivision: "",
+    birthDate: "",
     ...overrides,
     team: mergeTeam(overrides.team),
   };
@@ -186,12 +250,76 @@ function demoEntrants(): Entrant[] {
   );
 }
 
+export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk {
+  return {
+    formatName: t.formatName,
+    bracketType: t.bracketType,
+    size: t.size,
+    bestOf: t.bestOf,
+    phase: t.phase,
+    overlayView: t.overlayView,
+    streamMatchId: t.streamMatchId,
+    swissRounds: t.swissRounds,
+    entrants: t.entrants,
+    matches: t.matches,
+    timerSeconds: t.timerSeconds,
+    timerPresetSeconds: t.timerPresetSeconds,
+    timerRunning: t.timerRunning,
+    timerEndsAt: t.timerEndsAt,
+  };
+}
+
+export function deskForGame(t: TournamentState, gameId: GameId): GameDesk {
+  if (t.gameId === gameId) return snapshotDesk(t);
+  return t.desks[gameId] ?? emptyDesk(gameId);
+}
+
+export function emptyDesk(gameId: GameId): GameDesk {
+  const game = gameOf(gameId);
+  return {
+    formatName: game.formats[0]?.label ?? game.name,
+    bracketType: "single",
+    size: 8,
+    bestOf: game.defaultBestOf,
+    phase: "setup",
+    overlayView: "full",
+    streamMatchId: null,
+    swissRounds: 3,
+    entrants: [],
+    matches: [],
+    timerSeconds: 0,
+    timerPresetSeconds: 0,
+    timerRunning: false,
+    timerEndsAt: null,
+  };
+}
+
+export function applyDesk(t: TournamentState, desk: GameDesk): TournamentState {
+  return {
+    ...t,
+    ...desk,
+    desks: { ...t.desks, [t.gameId]: desk },
+  };
+}
+
+export function switchGame(t: TournamentState, gameId: GameId): TournamentState {
+  if (t.gameId === gameId) return t;
+  const desks: Partial<Record<GameId, GameDesk>> = {
+    ...t.desks,
+    [t.gameId]: snapshotDesk(t),
+  };
+  const next = desks[gameId] ?? emptyDesk(gameId);
+  return {
+    ...t,
+    gameId,
+    ...next,
+    desks: { ...desks, [gameId]: next },
+  };
+}
+
 export function defaultTournament(): TournamentState {
   const game = gameOf("pokemon-tcg");
-  return {
-    version: 1,
-    name: "ROK League Cup",
-    gameId: "pokemon-tcg",
+  const desk: GameDesk = {
     formatName: game.formats[0]?.label ?? "Standard",
     bracketType: "double",
     size: 8,
@@ -202,6 +330,17 @@ export function defaultTournament(): TournamentState {
     swissRounds: 3,
     entrants: demoEntrants(),
     matches: [],
+    timerSeconds: 0,
+    timerPresetSeconds: 0,
+    timerRunning: false,
+    timerEndsAt: null,
+  };
+  return {
+    version: 1,
+    name: "ROK League Cup",
+    gameId: "pokemon-tcg",
+    ...desk,
+    desks: { "pokemon-tcg": desk },
   };
 }
 
@@ -234,9 +373,27 @@ export function parseTournament(raw: unknown): TournamentState | null {
         : base.bracketType,
     entrants: Array.isArray(incoming.entrants) ? incoming.entrants : base.entrants,
     matches: Array.isArray(incoming.matches) ? incoming.matches : base.matches,
+    desks: incoming.desks && typeof incoming.desks === "object" ? incoming.desks : {},
   };
   const parsed = tournamentSchema.safeParse(merged);
-  return parsed.success ? parsed.data : null;
+  if (!parsed.success) return null;
+  const t = parsed.data;
+  return {
+    ...t,
+    desks: {
+      ...t.desks,
+      [t.gameId]: snapshotDesk(t),
+    },
+  };
+}
+
+export function rosterCount(t: TournamentState, gameId: GameId): number {
+  if (t.gameId === gameId) return t.entrants.length;
+  return t.desks[gameId]?.entrants.length ?? 0;
+}
+
+export function gameIds(): GameId[] {
+  return GAME_LIST.map((g) => g.id);
 }
 
 export function entrantById(t: TournamentState, id: string | null): Entrant | null {

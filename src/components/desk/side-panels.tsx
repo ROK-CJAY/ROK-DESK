@@ -1,16 +1,15 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Field, NativeSelect } from "@/components/desk/field";
+import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, type GameId } from "@/lib/games";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
-import { viewsFor, type BracketViewId } from "@/lib/tournament-types";
+import { viewsFor, deskForGame, emptyDesk, type BracketViewId } from "@/lib/tournament-types";
 import {
-  formatClock,
-  remainingSeconds,
   type LowerThirdMode,
   type RosterSide,
   type SlateKind,
@@ -25,18 +24,10 @@ export function EventPanel() {
   const patch = useDeskStore((s) => s.patch);
   const applyFormat = useDeskStore((s) => s.applyFormat);
   const setTableSize = useDeskStore((s) => s.setTableSize);
-  const toggleTimer = useDeskStore((s) => s.toggleTimer);
-  const setTimerMinutes = useDeskStore((s) => s.setTimerMinutes);
   const game = gameOf(desk.gameId);
   const family = currentFamily(desk);
   const formatOptions = desk.gameId === "mtg" ? formatsInFamily(game, family) : game.formats;
   const commander = isCommanderLane(desk);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
@@ -62,76 +53,56 @@ export function EventPanel() {
             />
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Format">
+        <Field label="Format">
+          <NativeSelect
+            value={desk.formatName}
+            onChange={(e) => {
+              const preset = game.formats.find((f) => f.label === e.target.value);
+              if (preset) applyFormat(preset);
+              else patch({ formatName: e.target.value });
+            }}
+          >
+            {formatOptions.map((f) => (
+              <option key={f.id} value={f.label}>
+                {f.label}
+              </option>
+            ))}
+          </NativeSelect>
+        </Field>
+        {commander ? (
+          <Field label="Pod">
             <NativeSelect
-              value={desk.formatName}
-              onChange={(e) => {
-                const preset = game.formats.find((f) => f.label === e.target.value);
-                if (preset) applyFormat(preset);
-                else patch({ formatName: e.target.value });
-              }}
+              value={String(desk.tableSize)}
+              onChange={(e) => setTableSize(Number(e.target.value) as TableSize)}
             >
-              {formatOptions.map((f) => (
-                <option key={f.id} value={f.label}>
-                  {f.label}
+              <option value="2">Duel · 2</option>
+              <option value="3">3 players</option>
+              <option value="4">4 players</option>
+            </NativeSelect>
+          </Field>
+        ) : (
+          <Field label="Best of">
+            <NativeSelect
+              value={String(desk.bestOf)}
+              onChange={(e) =>
+                patch({ bestOf: Number(e.target.value) as 1 | 3 | 5 | 7 })
+              }
+            >
+              {[1, 3, 5, 7].map((n) => (
+                <option key={n} value={n}>
+                  Bo{n}
                 </option>
               ))}
             </NativeSelect>
           </Field>
-          {commander ? (
-            <Field label="Pod">
-              <NativeSelect
-                value={String(desk.tableSize)}
-                onChange={(e) => setTableSize(Number(e.target.value) as TableSize)}
-              >
-                <option value="2">Duel · 2</option>
-                <option value="3">3 players</option>
-                <option value="4">4 players</option>
-              </NativeSelect>
-            </Field>
-          ) : (
-            <Field label="Best of">
-              <NativeSelect
-                value={String(desk.bestOf)}
-                onChange={(e) =>
-                  patch({ bestOf: Number(e.target.value) as 1 | 3 | 5 | 7 })
-                }
-              >
-                {[1, 3, 5, 7].map((n) => (
-                  <option key={n} value={n}>
-                    Bo{n}
-                  </option>
-                ))}
-              </NativeSelect>
-            </Field>
-          )}
-        </div>
+        )}
         <Field label="Sponsor line">
           <Input
             value={desk.sponsorLine}
             onChange={(e) => patch({ sponsorLine: e.target.value })}
           />
         </Field>
-        <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
-          <div>
-            <p className="text-xs text-muted">Round clock</p>
-            <p className="font-display text-2xl font-semibold tabular-nums">
-              {formatClock(remainingSeconds(desk, now))}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setTimerMinutes(50)}>
-              50m
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setTimerMinutes(25)}>
-              25m
-            </Button>
-            <Button variant={desk.timerRunning ? "live" : "secondary"} size="sm" onClick={toggleTimer}>
-              {desk.timerRunning ? "Pause" : "Start"}
-            </Button>
-          </div>
-        </div>
+        <RoundClock />
       </div>
     </section>
   );
@@ -429,15 +400,29 @@ export function ShowPanel() {
           </NativeSelect>
         </div>
         )}
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {seatsFor(desk.tableSize).map((seat) => (
             <Button
-              key={seat}
-              variant={desk.winnerSide === seat ? "live" : "secondary"}
-              className="flex-1"
-              onClick={() => patch({ winnerSide: desk.winnerSide === seat ? null : seat })}
+              key={`game-${seat}`}
+              variant={desk.gameWinnerSide === seat ? "live" : "secondary"}
+              onClick={() =>
+                patch({ gameWinnerSide: desk.gameWinnerSide === seat ? null : seat, winnerSide: null })
+              }
             >
-              {seat.toUpperCase()} wins
+              Game {seat.toUpperCase()}
+            </Button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {seatsFor(desk.tableSize).map((seat) => (
+            <Button
+              key={`match-${seat}`}
+              variant={desk.winnerSide === seat ? "live" : "secondary"}
+              onClick={() =>
+                patch({ winnerSide: desk.winnerSide === seat ? null : seat, gameWinnerSide: null })
+              }
+            >
+              Match {seat.toUpperCase()}
             </Button>
           ))}
         </div>
@@ -508,6 +493,7 @@ export function BracketPanel() {
   const ready = useTournamentStore((s) => s.ready);
   const t = useTournamentStore((s) => s.tournament);
   const patch = useTournamentStore((s) => s.patch);
+  const deskGame = useDeskStore((s) => s.desk.gameId);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -524,29 +510,48 @@ export function BracketPanel() {
     }
   };
 
-  const live = t.matches.find((m) => m.id === t.streamMatchId);
-  const p1 = live ? t.entrants.find((e) => e.id === live.p1.entrantId) : null;
-  const p2 = live ? t.entrants.find((e) => e.id === live.p2.entrantId) : null;
+  const lane = deskForGame(t, deskGame);
+  const game = gameOf(deskGame);
+  const live = lane.matches.find((m) => m.id === lane.streamMatchId);
+  const p1 = live ? lane.entrants.find((e) => e.id === live.p1.entrantId) : null;
+  const p2 = live ? lane.entrants.find((e) => e.id === live.p2.entrantId) : null;
+  const shape =
+    lane.bracketType === "double" ? "Double elim" : lane.bracketType === "swiss" ? "Swiss" : "Single elim";
+
+  const setOverlayView = (overlayView: BracketViewId) => {
+    if (t.gameId === deskGame) {
+      patch({ overlayView });
+      return;
+    }
+    const current = t.desks[deskGame] ?? emptyDesk(deskGame);
+    patch({ desks: { ...t.desks, [deskGame]: { ...current, overlayView } } });
+  };
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Bracket widget</p>
       <p className="mt-1 text-sm text-muted">
-        {t.name} · {t.bracketType === "double" ? "DE" : t.bracketType === "swiss" ? "Swiss" : "SE"} {t.size}
+        {t.name} · {game.short} · {shape} {lane.size}
       </p>
       {live && p1 && p2 ? (
         <p className="mt-2 text-xs text-live">
           On air · {p1.name} vs {p2.name}
         </p>
+      ) : lane.matches.length ? (
+        <p className="mt-2 text-xs text-subtle">
+          Full-screen bracket overlay for {game.short}. Pick a view and copy the URL into the stream.
+        </p>
       ) : (
-        <p className="mt-2 text-xs text-subtle">Assign a stream match from Tournament.</p>
+        <p className="mt-2 text-xs text-subtle">
+          No bracket yet for {game.short}. Open Tournament to start one for this game.
+        </p>
       )}
       <div className="mt-3 grid gap-2">
         <NativeSelect
-          value={t.overlayView}
-          onChange={(e) => patch({ overlayView: e.target.value as BracketViewId })}
+          value={lane.overlayView}
+          onChange={(e) => setOverlayView(e.target.value as BracketViewId)}
         >
-          {viewsFor(t.bracketType).map((v) => (
+          {viewsFor(lane.bracketType).map((v) => (
             <option key={v.id} value={v.id}>
               {v.label}
             </option>
@@ -560,6 +565,11 @@ export function BracketPanel() {
             <Link to="/tournament">Open TO</Link>
           </Button>
         </div>
+        <Button variant="secondary" size="sm" className="w-full" asChild>
+          <a href="/signup" target="_blank" rel="noreferrer">
+            Open walk-up sign-up
+          </a>
+        </Button>
       </div>
     </section>
   );
@@ -569,10 +579,13 @@ export function PodPanel() {
   const desk = useDeskStore((s) => s.desk);
   const [copied, setCopied] = useState(false);
   const commander = isCommanderTable(desk) || isCommanderLane(desk);
+  const vgc = desk.gameId === "pokemon-vgc";
+  const tcg = desk.gameId === "pokemon-tcg";
+  const path = "/tablet";
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/pod`);
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
@@ -582,22 +595,30 @@ export function PodPanel() {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Pod tablet</p>
+      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Tablet</p>
       <p className="mt-1 text-sm text-muted">
-        Life, poison, and commander damage on a phone or tablet. Players tap their own seat.
+        {vgc
+          ? "Judge tablet — team sheets, remaining Pokémon, score, and the round clock."
+          : tcg
+            ? "Judge tablet — prizes, score, clock, and a card lookup for the floor."
+            : "Player tablet for the live table. Each game uses its own layout."}
       </p>
-      {!commander ? (
+      {tcg ? (
+        <p className="mt-2 text-xs text-ok">Card lookup uses Pokémon TCG Live (TCGdex) data.</p>
+      ) : vgc ? (
+        <p className="mt-2 text-xs text-ok">Tap a Pokémon to mark it KO. Game / Match report to the desk.</p>
+      ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Switch MTG to Commander so all four seats are live.</p>
       ) : (
-        <p className="mt-2 text-xs text-ok">{desk.tableSize}-seat pod · updates the stream bugs live.</p>
+        <p className="mt-2 text-xs text-ok">{desk.tableSize}-seat table · updates the stream bugs live.</p>
       )}
       <div className="mt-3 flex gap-2">
         <Button variant="secondary" size="sm" className="flex-1" onClick={() => void copy()}>
           {copied ? "Copied" : "Copy URL"}
         </Button>
         <Button variant="outline" size="sm" asChild>
-          <a href="/pod" target="_blank" rel="noreferrer">
-            Open pad
+          <a href={path} target="_blank" rel="noreferrer">
+            Open tablet
           </a>
         </Button>
       </div>

@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { PodPad } from "@/components/pod/pod-pad";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/pod")({
   ssr: false,
-  component: PodPad,
+  beforeLoad: () => {
+    throw redirect({ to: "/tablet" });
+  },
 });

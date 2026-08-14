@@ -5,13 +5,54 @@ import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { CommanderScorebug, useCommanderOverlay } from "@/components/overlays/commander";
 import { isCommanderLane } from "@/lib/games";
+import { cn } from "@/lib/cn";
 
 function Flag({ code }: { code: string }) {
   if (!code) return null;
   return (
-    <span className="inline-flex h-5 min-w-7 items-center justify-center rounded-xs bg-ov-fg/10 px-1 font-mono text-[0.65rem] tracking-wider text-ov-muted">
+    <span className="inline-flex h-5 min-w-7 items-center justify-center rounded-xs bg-ov-fg/10 px-1 font-mono text-[0.62rem] tracking-wider text-ov-muted">
       {code}
     </span>
+  );
+}
+
+function TeamRow({
+  desk,
+  side,
+  align,
+  size = "sm",
+}: {
+  desk: DeskState;
+  side: "p1" | "p2";
+  align: "left" | "right";
+  size?: "sm" | "md";
+}) {
+  const game = gameOf(desk.gameId);
+  if (!desk.showResources) return null;
+  const player = desk[side];
+  const format = game.formats.find((f) => f.label === desk.formatName);
+  const max = format?.resourceMax ?? game.resource.max;
+  if (game.resource.pips) {
+    return (
+      <div className={cn("mt-1 flex", align === "right" && "justify-end")}>
+        <ResourcePips
+          value={player.resource}
+          max={max}
+          invert={game.resource.invertWin}
+          pipStyle={game.resource.pipStyle}
+          team={player.team}
+          down={player.down}
+          size={size}
+        />
+      </div>
+    );
+  }
+  return (
+    <p className={cn("mt-0.5 font-mono text-[0.7rem] tabular-nums text-ov-fg", align === "right" && "text-right")}>
+      {game.resource.shortLabel} {player.resource}
+      {game.secondary ? ` · ${game.secondary.label} ${player.secondary}` : ""}
+      {isCommanderLane(desk) ? ` · CMD ${player.cmdDamage}` : ""}
+    </p>
   );
 }
 
@@ -24,42 +65,44 @@ function SideMeta({
   side: "p1" | "p2";
   align: "left" | "right";
 }) {
-  const game = gameOf(desk.gameId);
   const player = desk[side];
-  const format = game.formats.find((f) => f.label === desk.formatName);
-  const max = format?.resourceMax ?? game.resource.max;
-
   return (
     <div className={align === "right" ? "text-right" : "text-left"}>
-      <div className="flex items-baseline gap-2" style={{ flexDirection: align === "right" ? "row-reverse" : "row" }}>
-        <span className="font-display text-ov-name leading-none font-semibold tracking-tight text-ov-fg uppercase">
+      <div className="flex items-baseline gap-1.5" style={{ flexDirection: align === "right" ? "row-reverse" : "row" }}>
+        <span className="font-display text-xl leading-none font-semibold tracking-tight text-ov-fg uppercase">
           {player.name || "TBD"}
         </span>
         <Flag code={player.country} />
       </div>
+      <p className="mt-0.5 truncate text-[0.72rem] text-ov-muted">
+        {player.archetype || player.extra || player.tag || "—"}
+      </p>
+      <TeamRow desk={desk} side={side} align={align} size="sm" />
+    </div>
+  );
+}
+
+function SplitPlate({ desk, side }: { desk: DeskState; side: "p1" | "p2" }) {
+  const align = side === "p2" ? "right" : "left";
+  const player = desk[side];
+  return (
+    <div className="w-[400px] rounded-md border border-ov-fg/12 bg-ov-bg/92 px-3.5 py-2.5">
       <div
-        className="mt-1 flex items-center gap-2 text-ov-meta text-ov-muted"
+        className="flex items-center gap-2"
         style={{ flexDirection: align === "right" ? "row-reverse" : "row" }}
       >
-        <span className="truncate">
-          {player.archetype || player.extra || player.tag || "—"}
+        <span className="font-display min-w-0 truncate text-[1.7rem] leading-none font-semibold tracking-tight text-ov-fg uppercase">
+          {player.name || "TBD"}
         </span>
-        {desk.showResources && game.resource.pips ? (
-          <ResourcePips
-            value={player.resource}
-            max={max}
-            invert={game.resource.invertWin}
-            pipStyle={game.resource.pipStyle}
-          />
-        ) : null}
-        {desk.showResources && !game.resource.pips ? (
-          <span className="font-mono tabular-nums text-ov-fg">
-            {game.resource.shortLabel} {player.resource}
-            {game.secondary ? ` · ${game.secondary.label} ${player.secondary}` : ""}
-            {isCommanderLane(desk) ? ` · CMD ${player.cmdDamage}` : ""}
-          </span>
-        ) : null}
+        <Flag code={player.country} />
+        <span className="font-display ml-auto text-3xl leading-none font-semibold tabular-nums text-ov-fg">
+          {player.score}
+        </span>
       </div>
+      <TeamRow desk={desk} side={side} align={align} size="md" />
+      <p className={cn("mt-1 truncate text-[0.8rem] leading-tight text-ov-muted", align === "right" && "text-right")}>
+        {player.archetype || player.extra || player.tag || ""}
+      </p>
     </div>
   );
 }
@@ -79,13 +122,13 @@ export function ScorebugView({
   }
   const clock = formatClock(remainingSeconds(desk, now));
   const center = (
-    <div className="flex flex-col items-center justify-center px-5">
-      <div className="font-display flex items-center gap-3 text-ov-score leading-none font-semibold tabular-nums">
-        <span className="min-w-12 text-center">{desk.p1.score}</span>
-        <span className="text-ov-muted text-3xl">–</span>
-        <span className="min-w-12 text-center">{desk.p2.score}</span>
+    <div className="flex flex-col items-center justify-center px-3">
+      <div className="font-display flex items-center gap-2 text-3xl leading-none font-semibold tabular-nums">
+        <span className="min-w-8 text-center">{desk.p1.score}</span>
+        <span className="text-ov-muted text-xl">–</span>
+        <span className="min-w-8 text-center">{desk.p2.score}</span>
       </div>
-      <div className="mt-0.5 flex items-center gap-2 font-mono text-ov-kicker tracking-[0.18em] text-ov-muted uppercase">
+      <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[0.65rem] tracking-[0.16em] text-ov-muted uppercase">
         <span>{desk.roundName}</span>
         <span className="text-ov-fg/25">·</span>
         <span>Bo{desk.bestOf}</span>
@@ -99,32 +142,18 @@ export function ScorebugView({
     desk.scorebugStyle === "split" ? (
       <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
         <Placed id="scorebugP1">
-          <div className="w-[520px] rounded-lg border border-ov-fg/10 bg-ov-bg/90 px-5 py-3">
-            <div className="mb-1 h-0.5 w-16 bg-game" />
-            <SideMeta desk={desk} side="p1" align="left" />
-            <div className="font-display mt-2 text-4xl font-semibold tabular-nums text-ov-fg">
-              {desk.p1.score}
-            </div>
-          </div>
+          <SplitPlate desk={desk} side="p1" />
         </Placed>
         <Placed id="scorebugP2">
-          <div className="w-[520px] rounded-lg border border-ov-fg/10 bg-ov-bg/90 px-5 py-3">
-            <div className="mb-1 ml-auto h-0.5 w-16 bg-game" />
-            <SideMeta desk={desk} side="p2" align="right" />
-            <div className="font-display mt-2 text-right text-4xl font-semibold tabular-nums text-ov-fg">
-              {desk.p2.score}
-            </div>
-          </div>
+          <SplitPlate desk={desk} side="p2" />
         </Placed>
         <Placed id="scorebugCenter">
-          <div className="w-[360px] rounded-md border border-ov-fg/10 bg-ov-bg/90 px-4 py-2 text-center">
-            <div className="font-mono text-ov-kicker tracking-[0.2em] text-game uppercase">
-              {game.short}
-            </div>
+          <div className="w-[280px] rounded-md border border-ov-fg/12 bg-ov-bg/92 px-4 py-2.5 text-center">
+            <div className="font-mono text-[0.78rem] tracking-[0.18em] text-game uppercase">{game.short}</div>
             <div className="font-display text-lg font-semibold tracking-wide text-ov-fg uppercase">
               {desk.roundName}
             </div>
-            <div className="font-mono text-ov-kicker text-ov-muted uppercase">
+            <div className="font-mono text-[0.78rem] text-ov-muted uppercase">
               {desk.eventName} · Bo{desk.bestOf} · {clock}
             </div>
           </div>
@@ -135,11 +164,11 @@ export function ScorebugView({
         <Placed id="scorebugBar" fullWidth axis="y">
           <div className="flex items-stretch border-t border-ov-fg/20 bg-ov-panel shadow-[0_-8px_32px_rgb(0_0_0_/_0.45)]">
             <div className="w-1.5 bg-game" />
-            <div className="flex min-w-0 flex-1 items-center px-6 py-3">
+            <div className="flex min-w-0 flex-1 items-center px-4 py-2">
               <SideMeta desk={desk} side="p1" align="left" />
             </div>
             {center}
-            <div className="flex min-w-0 flex-1 items-center justify-end px-6 py-3">
+            <div className="flex min-w-0 flex-1 items-center justify-end px-4 py-2">
               <SideMeta desk={desk} side="p2" align="right" />
             </div>
             <div className="w-1.5 bg-game" />

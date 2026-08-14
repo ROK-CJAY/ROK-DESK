@@ -4,10 +4,13 @@ import { DEFAULT_LAYOUT, mergeLayout, type LayoutMap } from "@/lib/layout";
 import {
   emptyTeam,
   mergeTeam,
-  sampleTeamA,
-  sampleTeamB,
   type TeamMon,
 } from "@/lib/pokemon-vgc";
+
+export type GameClock = {
+  remaining: number;
+  preset: number;
+};
 
 export type SeatId = "p1" | "p2" | "p3" | "p4";
 export type SideId = SeatId;
@@ -31,6 +34,26 @@ export function seatsFor(size: TableSize): SeatId[] {
   return SEAT_IDS.slice(0, size);
 }
 
+export function normalizeDown(down: boolean[] | undefined, max = 6): boolean[] {
+  return Array.from({ length: max }, (_, i) => Boolean(down?.[i]));
+}
+
+export function remainingFromDown(down: boolean[] | undefined, max = 6): number {
+  return normalizeDown(down, max).filter((flag) => !flag).length;
+}
+
+export function toggleMonDown(down: boolean[] | undefined, index: number, max = 6): boolean[] {
+  const next = normalizeDown(down, max);
+  if (index < 0 || index >= max) return next;
+  next[index] = !next[index];
+  return next;
+}
+
+export function downForRemaining(value: number, max = 6): boolean[] {
+  const remaining = Math.min(max, Math.max(0, value));
+  return Array.from({ length: max }, (_, i) => i >= remaining);
+}
+
 export type PlayerSide = {
   name: string;
   tag: string;
@@ -45,6 +68,7 @@ export type PlayerSide = {
   cmdDamage: number;
   cmdFrom: CmdFrom;
   team: TeamMon[];
+  down: boolean[];
 };
 
 export type Caster = {
@@ -86,11 +110,15 @@ export type DeskState = {
   p4: PlayerSide;
   casters: [Caster, Caster];
   timerSeconds: number;
+  timerPresetSeconds: number;
   timerRunning: boolean;
   timerEndsAt: number | null;
+  gameClocks: Partial<Record<GameId, GameClock>>;
   slate: SlateKind;
   lowerThird: LowerThirdState;
   winnerSide: SeatId | null;
+  gameWinnerSide: SeatId | null;
+  streamMatchId: string | null;
   queue: QueueMatch[];
   sponsorLine: string;
   showResources: boolean;
@@ -133,6 +161,10 @@ const playerSchema: z.ZodType<PlayerSide> = z.object({
     )
     .optional()
     .transform((rows) => mergeTeam(rows)),
+  down: z
+    .array(z.boolean())
+    .optional()
+    .transform((rows) => normalizeDown(rows)),
 });
 
 const casterSchema: z.ZodType<Caster> = z.object({
@@ -166,8 +198,13 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   p4: playerSchema,
   casters: z.tuple([casterSchema, casterSchema]),
   timerSeconds: z.number(),
+  timerPresetSeconds: z.number().optional().transform((v) => v ?? 0),
   timerRunning: z.boolean(),
   timerEndsAt: z.number().nullable(),
+  gameClocks: z
+    .record(z.string(), z.object({ remaining: z.number(), preset: z.number() }))
+    .optional()
+    .transform((v) => (v ?? {}) as Partial<Record<GameId, GameClock>>),
   slate: z.enum(["hidden", "starting", "brb", "thanks", "tech"]),
   lowerThird: z.object({
     visible: z.boolean(),
@@ -177,6 +214,8 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     side: z.enum(["p1", "p2", "p3", "p4", "c1", "c2"]),
   }),
   winnerSide: z.enum(["p1", "p2", "p3", "p4"]).nullable(),
+  gameWinnerSide: z.enum(["p1", "p2", "p3", "p4"]).nullable().optional().transform((v) => v ?? null),
+  streamMatchId: z.string().nullable().optional().transform((v) => v ?? null),
   queue: z.array(
     z.object({
       id: z.string(),
@@ -206,6 +245,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     resourceP1: z.object({ x: z.number(), y: z.number() }),
     resourceP2: z.object({ x: z.number(), y: z.number() }),
     winner: z.object({ x: z.number(), y: z.number() }),
+    gameWin: z.object({ x: z.number(), y: z.number() }),
     upcoming: z.object({ x: z.number(), y: z.number() }),
     rosterP1: z.object({ x: z.number(), y: z.number() }),
     rosterP2: z.object({ x: z.number(), y: z.number() }),
@@ -228,6 +268,7 @@ export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
     ...overrides,
     cmdFrom: { ...emptyCmdFrom(), ...overrides.cmdFrom },
     team: mergeTeam(overrides.team ?? emptyTeam()),
+    down: normalizeDown(overrides.down),
   };
 }
 
@@ -246,10 +287,9 @@ export function defaultDesk(): DeskState {
       tag: "pocketstorm",
       pronouns: "she/her",
       country: "US",
-      score: 1,
-      resource: 4,
+      score: 0,
+      resource: game.resource.start,
       archetype: "Charizard ex",
-      team: sampleTeamA(),
     }),
     p2: blankPlayer({
       name: "Luis Ortega",
@@ -257,9 +297,8 @@ export function defaultDesk(): DeskState {
       pronouns: "he/him",
       country: "US",
       score: 0,
-      resource: 5,
+      resource: game.resource.start,
       archetype: "Dragapult",
-      team: sampleTeamB(),
     }),
     p3: blankPlayer({
       name: "Jordan Hale",
@@ -281,9 +320,11 @@ export function defaultDesk(): DeskState {
       { name: "Rook", handle: "rookcasts", role: "Play-by-play" },
       { name: "Marisol Vega", handle: "mariplays", role: "Color" },
     ],
-    timerSeconds: 50 * 60,
+    timerSeconds: 0,
+    timerPresetSeconds: 0,
     timerRunning: false,
     timerEndsAt: null,
+    gameClocks: {},
     slate: "hidden",
     lowerThird: {
       visible: false,
@@ -293,6 +334,8 @@ export function defaultDesk(): DeskState {
       side: "p1",
     },
     winnerSide: null,
+    gameWinnerSide: null,
+    streamMatchId: null,
     queue: [
       { id: "q1", p1: "Kenji Mori", p2: "Ana Delgado", round: "Winners Semis", note: "Feature" },
       { id: "q2", p1: "Chris Bell", p2: "Priya Shah", round: "Losers Quarters", note: "" },
@@ -307,11 +350,14 @@ export function defaultDesk(): DeskState {
   };
 }
 
-export function remainingSeconds(desk: DeskState, now = Date.now()): number {
-  if (desk.timerRunning && desk.timerEndsAt) {
-    return Math.max(0, Math.ceil((desk.timerEndsAt - now) / 1000));
+export function remainingSeconds(
+  clock: { timerRunning: boolean; timerEndsAt: number | null; timerSeconds: number },
+  now = Date.now(),
+): number {
+  if (clock.timerRunning && clock.timerEndsAt) {
+    return Math.max(0, Math.ceil((clock.timerEndsAt - now) / 1000));
   }
-  return Math.max(0, desk.timerSeconds);
+  return Math.max(0, clock.timerSeconds);
 }
 
 export function formatClock(total: number): string {
@@ -324,6 +370,18 @@ export function formatClock(total: number): string {
     return `${sign}${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
   return `${sign}${m}:${String(s).padStart(2, "0")}`;
+}
+
+export function parseClockInput(raw: string): number | null {
+  const text = raw.trim();
+  if (!text) return 0;
+  if (!/^[\d:]+$/.test(text)) return null;
+  const parts = text.split(":").map((part) => Number(part));
+  if (parts.some((n) => !Number.isFinite(n) || n < 0)) return null;
+  if (parts.length === 1) return Math.round(parts[0]! * 60);
+  if (parts.length === 2) return Math.round(parts[0]! * 60 + parts[1]!);
+  if (parts.length === 3) return Math.round(parts[0]! * 3600 + parts[1]! * 60 + parts[2]!);
+  return null;
 }
 
 export function gamesToWin(bestOf: BestOf): number {
@@ -390,6 +448,7 @@ function mergePlayer(base: PlayerSide, raw: unknown): PlayerSide {
       p4: typeof cmdFromRaw.p4 === "number" ? cmdFromRaw.p4 : 0,
     },
     team: mergeTeam(incoming.team ?? base.team),
+    down: normalizeDown(Array.isArray(incoming.down) ? incoming.down : base.down),
   };
 }
 
