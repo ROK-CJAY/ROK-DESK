@@ -1,8 +1,9 @@
 import { defaultTournament, parseTournament, type TournamentState } from "@/lib/tournament-types";
-import { clearLegacyTournament } from "@/lib/test-fixtures";
+import { clearLegacyTournament, stripTestFromTournament } from "@/lib/test-fixtures";
 import { getSql } from "@/lib/db";
 
 const TOURNAMENT_ID = "live";
+let tournamentBootstrapped = false;
 
 export async function loadTournament(): Promise<TournamentState> {
   const sql = await getSql();
@@ -18,12 +19,17 @@ export async function loadTournament(): Promise<TournamentState> {
   `;
   const existing = rows[0] ? parseTournament(rows[0].payload) : null;
   if (existing) {
-    const cleaned = clearLegacyTournament(existing);
+    let cleaned = clearLegacyTournament(existing);
+    if (!tournamentBootstrapped) {
+      cleaned = stripTestFromTournament(cleaned);
+      tournamentBootstrapped = true;
+    }
     if (cleaned !== existing) await saveTournament(cleaned);
     return cleaned;
   }
 
   const seed = defaultTournament();
+  tournamentBootstrapped = true;
   await sql`
     insert into tournament_state (id, payload, updated_at)
     values (${TOURNAMENT_ID}, ${JSON.stringify(seed)}, CURRENT_TIMESTAMP)

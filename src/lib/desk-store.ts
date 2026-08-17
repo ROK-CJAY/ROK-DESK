@@ -19,7 +19,7 @@ import {
   type TableSize,
 } from "@/lib/desk-types";
 import { gameOf, slugOf, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
-import { clearLegacyDesk, deskLooksLikeTest, stripTestFromDesk, toggleTestDesk } from "@/lib/test-fixtures";
+import { clearLegacyDesk, deskLooksLikeTest, toggleTestDesk } from "@/lib/test-fixtures";
 import {
   CANVAS_H,
   DEFAULT_LAYOUT,
@@ -343,7 +343,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const lanes = { ...prev.lanes, [prev.gameId]: stripLane(prev) };
     const saved = lanes[gameId] ? parseDesk(lanes[gameId]) : null;
     if (saved && saved.gameId === gameId) {
-      const desk = stripTestFromDesk({ ...saved, lanes, version: prev.version + 1 });
+      const desk = { ...saved, lanes, version: prev.version + 1 };
       persist(desk);
       set({ desk, focusedSeat: "p1" });
       return;

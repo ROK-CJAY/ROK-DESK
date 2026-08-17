@@ -220,44 +220,38 @@ export function isLegacyDemoTournament(t: TournamentState): boolean {
 }
 
 export function clearLegacyDesk(desk: DeskState): DeskState {
-  let next = desk;
-  if (isLegacyDemoDesk(desk)) {
-    next = {
-      ...desk,
-      eventName: "",
-      eventPhase: "",
-      roundName: "",
-      sponsorLine: "",
-      p1: blankPlayer({ resource: desk.p1.resource }),
-      p2: blankPlayer({ resource: desk.p2.resource }),
-      p3: blankPlayer({ resource: desk.p3.resource }),
-      p4: blankPlayer({ resource: desk.p4.resource }),
-      casters: emptyCasters(),
-      queue: [],
-      winnerSide: null,
-      gameWinnerSide: null,
-      testMode: false,
-      testSnapshot: null,
-    };
-  }
-  return stripTestFromDesk(next);
+  if (!isLegacyDemoDesk(desk)) return desk;
+  return {
+    ...desk,
+    eventName: "",
+    eventPhase: "",
+    roundName: "",
+    sponsorLine: "",
+    p1: blankPlayer({ resource: desk.p1.resource }),
+    p2: blankPlayer({ resource: desk.p2.resource }),
+    p3: blankPlayer({ resource: desk.p3.resource }),
+    p4: blankPlayer({ resource: desk.p4.resource }),
+    casters: emptyCasters(),
+    queue: [],
+    winnerSide: null,
+    gameWinnerSide: null,
+    testMode: false,
+    testSnapshot: null,
+  };
 }
 
 export function clearLegacyTournament(t: TournamentState): TournamentState {
-  let next = t;
-  if (isLegacyDemoTournament(t)) {
-    next = {
-      ...t,
-      name: "",
-      phase: "setup",
-      matches: [],
-      streamMatchId: null,
-      entrants: [],
-      testMode: false,
-      testSnapshot: null,
-    };
-  }
-  return stripTestFromTournament(next);
+  if (!isLegacyDemoTournament(t)) return t;
+  return {
+    ...t,
+    name: "",
+    phase: "setup",
+    matches: [],
+    streamMatchId: null,
+    entrants: [],
+    testMode: false,
+    testSnapshot: null,
+  };
 }
 
 export function deskLooksLikeTest(desk: DeskState): boolean {

@@ -19,7 +19,7 @@ import {
   setMatchScore,
   defaultSwissRounds,
 } from "@/lib/tournament-bracket";
-import { clearLegacyTournament, stripTestFromTournament, tournamentLooksLikeTest, toggleTestTournament } from "@/lib/test-fixtures";
+import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } from "@/lib/test-fixtures";
 import { remainingSeconds } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 
@@ -146,7 +146,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   setGame: (gameId) => {
     const prev = get().tournament;
     if (prev.gameId === gameId) return;
-    const tournament = stripTestFromTournament({ ...switchGame(prev, gameId), version: prev.version + 1 });
+    const tournament = { ...switchGame(prev, gameId), version: prev.version + 1 };
     persist(tournament);
     set({ tournament });
   },
