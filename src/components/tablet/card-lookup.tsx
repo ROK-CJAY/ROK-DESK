@@ -5,9 +5,16 @@ import {
   cardImageUrl,
   fetchLookupCard,
   fetchScryfallCard,
+  fetchSwuCard,
+  fetchYgoCard,
+  fetchOpCard,
   scryfallLegalFor,
   searchLookupCards,
   searchScryfallCards,
+  searchSwuCards,
+  searchYgoCards,
+  searchOpCards,
+  ygoFormatFor,
   type LookupCard,
 } from "@/lib/card-lookup";
 import { emptySpotlight } from "@/lib/desk-types";
@@ -22,7 +29,7 @@ export function CardLookup({
   formatName = "",
 }: {
   compact?: boolean;
-  catalog?: "ptcg" | "mtg";
+  catalog?: "ptcg" | "mtg" | "swu" | "ygo" | "op";
   formatName?: string;
 }) {
   const patch = useDeskStore((s) => s.patch);
@@ -34,9 +41,24 @@ export function CardLookup({
   const [results, setResults] = useState<LookupCard[]>([]);
   const [selected, setSelected] = useState<LookupCard | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const guide = useTabletGuide(catalog === "mtg" ? "mtg-cards" : "cards", false);
+  const guide = useTabletGuide(
+    catalog === "mtg"
+      ? "mtg-cards"
+      : catalog === "swu"
+        ? "swu-cards"
+        : catalog === "ygo"
+          ? "ygo-cards"
+          : catalog === "op"
+            ? "op-cards"
+            : "cards",
+    false,
+  );
   const legal = catalog === "mtg" ? scryfallLegalFor(formatName) : null;
+  const ygoFormat = catalog === "ygo" ? ygoFormatFor(formatName) : null;
   const mtg = catalog === "mtg";
+  const swu = catalog === "swu";
+  const ygo = catalog === "ygo";
+  const op = catalog === "op";
 
   useEffect(() => {
     if (!ready) void hydrate();
@@ -54,7 +76,13 @@ export function CardLookup({
     const timer = window.setTimeout(() => {
       const run = mtg
         ? searchScryfallCards(q, legal, !liveOnly)
-        : searchLookupCards(q, liveOnly);
+        : swu
+          ? searchSwuCards(q)
+          : ygo
+            ? searchYgoCards(q, liveOnly ? ygoFormat : null)
+            : op
+              ? searchOpCards(q)
+              : searchLookupCards(q, liveOnly);
       void run
         .then((rows) => {
           if (cancelled) return;
@@ -70,7 +98,7 @@ export function CardLookup({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, liveOnly, mtg, legal]);
+  }, [query, liveOnly, mtg, swu, ygo, op, legal, ygoFormat]);
 
   const pushToStream = (card: LookupCard) => {
     patch({
@@ -93,7 +121,15 @@ export function CardLookup({
   const openCard = async (card: LookupCard) => {
     setSelected(card);
     try {
-      const detail = mtg ? await fetchScryfallCard(card.id) : await fetchLookupCard(card.id);
+      const detail = mtg
+        ? await fetchScryfallCard(card.id)
+        : swu
+          ? await fetchSwuCard(card.id)
+          : ygo
+            ? await fetchYgoCard(card.id)
+            : op
+              ? await fetchOpCard(card.id)
+              : await fetchLookupCard(card.id);
       if (detail) setSelected(detail);
     } catch {
       /* keep list row */
@@ -108,19 +144,27 @@ export function CardLookup({
           <p className="text-sm text-muted">
             {mtg
               ? "Scryfall search. Read the oracle text, then Show on stream if you want the art on air."
-              : "Search a card to read it. Show on stream when you want the art on air."}
+              : swu
+                ? "SWU-DB search. Read the printed text, then Show on stream if you want the art on air."
+                : ygo
+                  ? "YGOPRODeck search. Read the card text, then Show on stream if you want the art on air."
+                  : op
+                    ? "Official OP card data. Read the text, then Show on stream if you want the art on air."
+                    : "Search a card to read it. Show on stream when you want the art on air."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <GuideButton onClick={guide.openGuide} />
+          {swu || op ? null : (
           <div className="flex rounded-md bg-surface-2 p-0.5">
             <FilterChip active={liveOnly} onClick={() => setLiveOnly(true)}>
-              {mtg && legal ? formatName : "Live"}
+              {mtg && legal ? formatName : ygo && ygoFormat ? formatName : "Live"}
             </FilterChip>
             <FilterChip active={!liveOnly} onClick={() => setLiveOnly(false)}>
               All printings
             </FilterChip>
           </div>
+          )}
         </div>
       </div>
       <div className="relative">
@@ -128,10 +172,28 @@ export function CardLookup({
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={mtg ? "Search Sol Ring, Swords to Plowshares…" : "Search Pikachu, Iono, Boss’s Orders…"}
+          placeholder={
+            mtg
+              ? "Search Sol Ring, Swords to Plowshares…"
+              : swu
+                ? "Search Vader, Force Throw, Superlaser…"
+                : ygo
+                  ? "Search Ash Blossom, Infinite Impermanence…"
+                  : op
+                    ? "Search Nami, Luffy, Zoro…"
+                    : "Search Pikachu, Iono, Boss’s Orders…"
+          }
           className="pl-9"
         />
       </div>
+      {selected ? (
+        <CardDetail
+          card={selected}
+          onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
+          onShow={() => pushToStream(selected)}
+          onClear={clearStream}
+        />
+      ) : null}
       {status === "loading" ? (
         <p className="mt-4 text-sm text-muted">Searching…</p>
       ) : status === "error" ? (
@@ -158,7 +220,7 @@ export function CardLookup({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{card.name}</span>
                   <span className="block truncate text-xs text-muted">
-                    {[card.mana, card.set, card.number].filter(Boolean).join(" · ")}
+                    {[card.type, card.mana ? `Cost ${card.mana}` : "", card.number].filter(Boolean).join(" · ")}
                   </span>
                 </span>
               </button>
@@ -171,19 +233,31 @@ export function CardLookup({
         <p className="mt-4 text-sm text-muted">
           {mtg
             ? `Type at least two letters. ${legal ? `${formatName} filters to cards legal in this event.` : "All printings searches the full Scryfall catalog."}`
-            : "Type at least two letters. Live is Standard-legal TCG Live cards."}
+            : swu
+              ? "Type at least two letters. Search hits SWU-DB for Premier printings."
+              : ygo
+                ? `Type at least two letters. ${ygoFormat ? `${formatName} filters to that banlist when available.` : "All printings searches the full YGOPRODeck catalog."}`
+                : op
+                  ? "Type at least two letters. Search uses official English OP card data."
+                  : "Type at least two letters. Live is Standard-legal TCG Live cards."}
         </p>
       )}
 
-      {selected ? (
-        <CardDetail
-          card={selected}
-          onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
-          onShow={() => pushToStream(selected)}
-          onClear={clearStream}
-        />
-      ) : null}
-      <TabletGuide kind={catalog === "mtg" ? "mtg-cards" : "cards"} open={guide.open} onClose={guide.close} />
+      <TabletGuide
+        kind={
+          catalog === "mtg"
+            ? "mtg-cards"
+            : catalog === "swu"
+              ? "swu-cards"
+              : catalog === "ygo"
+                ? "ygo-cards"
+                : catalog === "op"
+                  ? "op-cards"
+                  : "cards"
+        }
+        open={guide.open}
+        onClose={guide.close}
+      />
     </section>
   );
 }

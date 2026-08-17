@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Clapperboard, Trophy } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { APP_VERSION_LABEL } from "@/lib/version";
 
 export function AppChrome({
   view,
@@ -22,6 +23,9 @@ export function AppChrome({
             <div>
               <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
                 ROK Desk
+                <span className="ml-2 align-middle font-mono text-[0.62rem] font-medium tracking-[0.14em] text-muted normal-case">
+                  {APP_VERSION_LABEL}
+                </span>
               </p>
               <p className="text-xs text-muted">{eyebrow ?? (view === "production" ? "Production control" : "Tournament organizer")}</p>
             </div>

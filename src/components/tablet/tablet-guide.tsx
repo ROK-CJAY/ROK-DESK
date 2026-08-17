@@ -2,7 +2,19 @@ import { useEffect, useState } from "react";
 import { CircleHelp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type TabletGuideKind = "vgc" | "tcg" | "mtg" | "table" | "cards" | "mtg-cards";
+export type TabletGuideKind =
+  | "vgc"
+  | "tcg"
+  | "mtg"
+  | "swu"
+  | "ygo"
+  | "op"
+  | "table"
+  | "cards"
+  | "mtg-cards"
+  | "swu-cards"
+  | "ygo-cards"
+  | "op-cards";
 
 const STORAGE_KEY = "rok-tablet-guide";
 
@@ -83,6 +95,79 @@ const COPY: Record<
       },
     ],
   },
+  swu: {
+    kicker: "Judge tablet",
+    title: "How this SWU pad works",
+    lead: "This is the floor judge view of the featured Star Wars Unlimited match. Base HP, games, and the clock stay in sync with production.",
+    steps: [
+      {
+        title: "Type damage, then + or −",
+        body: "Base HP takes a number. Type 5 and hit − to deal 5. Leave it at 1 for single ticks. Reset HP restores the starting base.",
+      },
+      {
+        title: "Initiative is on stream",
+        body: "Tap a player under Initiative to put INIT on their scorebug plate. Tap them again or Clear to take it off. It follows Swap on Production.",
+      },
+      {
+        title: "Game vs Match",
+        body: "Game awards the game and resets HP for the next one. Match is the match winner — it reports into the bracket when the pair is linked from Tournament.",
+      },
+      {
+        title: "Clock is the streamed match",
+        body: "Type a time like 50:00 and Set, then Start / Pause. +1m / +3m / −1m adjust it. The rest of the room uses the Floor clock on Tournament.",
+      },
+      {
+        title: "Card lookup is SWU-DB",
+        body: "Search at the bottom. Tap a result to read the printed text. Show on stream puts the art on the Card overlay. Clear takes it off.",
+      },
+    ],
+  },
+  ygo: {
+    kicker: "Judge tablet",
+    title: "How this YGO pad works",
+    lead: "This is the floor judge view of the featured Yu-Gi-Oh! match. Life points, games, and the clock stay in sync with production.",
+    steps: [
+      {
+        title: "Type an amount, then + or −",
+        body: "Life points start at 8000. The pad defaults to 100. Type 800 or 2000 and hit − to apply that damage. Reset LP restores 8000.",
+      },
+      {
+        title: "Game vs Match",
+        body: "Game awards the game and resets LP for the next one. Match is the match winner — it reports into the bracket when the pair is linked from Tournament.",
+      },
+      {
+        title: "Clock is the streamed match",
+        body: "Type a time like 40:00 and Set, then Start / Pause. +1m / +3m / −1m adjust it. The rest of the room uses the Floor clock on Tournament.",
+      },
+      {
+        title: "Card lookup is YGOPRODeck",
+        body: "Search at the bottom. Tap a result to read the card text. Show on stream puts the art on the Card overlay. Clear takes it off.",
+      },
+    ],
+  },
+  op: {
+    kicker: "Judge tablet",
+    title: "How this OP pad works",
+    lead: "This is the floor judge view of the featured One Piece TCG match. Life, DON!!, games, and the clock stay in sync with production.",
+    steps: [
+      {
+        title: "Life is the circles",
+        body: "Tap a circle to set life remaining. 5 is the Premier default. 4-life leaders drop to four circles. Reset life restores the starting count.",
+      },
+      {
+        title: "DON!! is the number pad",
+        body: "Type an amount and hit + or −. Most tables start at 1 and climb to 10.",
+      },
+      {
+        title: "Game vs Match",
+        body: "Game awards the game and resets life / DON!! for the next one. Match is the match winner — it reports into the bracket when the pair is linked from Tournament.",
+      },
+      {
+        title: "Card lookup is official English data",
+        body: "Search at the bottom. Tap a result to read the printed text. Show on stream puts the art on the Card overlay. Clear takes it off.",
+      },
+    ],
+  },
   cards: {
     kicker: "Card lookup",
     title: "How to pull a card",
@@ -118,6 +203,63 @@ const COPY: Record<
       {
         title: "Show on stream when you need it",
         body: "The tablet keeps the oracle text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  "swu-cards": {
+    kicker: "Card lookup",
+    title: "How to pull an SWU card",
+    lead: "This search hits SWU-DB so you can read the printed card at the table and send the art to the stream.",
+    steps: [
+      {
+        title: "Type at least two letters",
+        body: "Name is enough — Darth Vader, Force Throw, Superlaser Blast. Results appear as you type.",
+      },
+      {
+        title: "Leaders and bases included",
+        body: "Units, events, upgrades, leaders, and bases all come back from SWU-DB. Double-sided leaders show front text and art.",
+      },
+      {
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  "ygo-cards": {
+    kicker: "Card lookup",
+    title: "How to pull a YGO card",
+    lead: "This search hits YGOPRODeck so you can read the card at the table and send the art to the stream.",
+    steps: [
+      {
+        title: "Type at least two letters",
+        body: "Name is enough — Ash Blossom, Infinite Impermanence, Snake-Eye Ash. Results appear as you type.",
+      },
+      {
+        title: "This format vs All printings",
+        body: "The first chip filters to TCG / Goat when that format is known. All printings searches the full YGOPRODeck catalog.",
+      },
+      {
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the card text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  "op-cards": {
+    kicker: "Card lookup",
+    title: "How to pull an OP card",
+    lead: "This search uses official English One Piece TCG card data so you can read the printed card and send the art to the stream.",
+    steps: [
+      {
+        title: "Type at least two letters",
+        body: "Name is enough — Nami, Monkey D. Luffy, Roronoa Zoro. Results appear as you type.",
+      },
+      {
+        title: "Leaders, characters, events, stages",
+        body: "Parallels are hidden so you get one printing of each card. Art comes from the official card list.",
+      },
+      {
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
       },
     ],
   },

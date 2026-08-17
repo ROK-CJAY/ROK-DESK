@@ -5,6 +5,9 @@ import { SEAT_LABELS, seatsFor, type SeatId } from "@/lib/desk-types";
 import { VgcJudgeTablet } from "@/components/tablet/vgc-judge";
 import { TcgJudgeTablet } from "@/components/tablet/tcg-judge";
 import { MtgJudgeTablet } from "@/components/tablet/mtg-judge";
+import { SwuJudgeTablet } from "@/components/tablet/swu-judge";
+import { YgoJudgeTablet } from "@/components/tablet/ygo-judge";
+import { OpJudgeTablet } from "@/components/tablet/op-judge";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { cn } from "@/lib/cn";
@@ -62,6 +65,18 @@ export function PodPad() {
 
   if (desk.gameId === "mtg") {
     return <MtgJudgeTablet />;
+  }
+
+  if (desk.gameId === "swu") {
+    return <SwuJudgeTablet />;
+  }
+
+  if (desk.gameId === "yugioh") {
+    return <YgoJudgeTablet />;
+  }
+
+  if (desk.gameId === "one-piece") {
+    return <OpJudgeTablet />;
   }
 
   const seats = desk.tableSize === 4 ? TABLE_ORDER : seatsFor(Math.max(desk.tableSize, 2) as 2 | 3 | 4);

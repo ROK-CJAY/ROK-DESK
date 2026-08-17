@@ -1,6 +1,6 @@
 export const CANVAS_W = 1920;
 export const CANVAS_H = 1080;
-export const SCOREBUG_BAR_H = 108;
+export const SCOREBUG_BAR_H = 132;
 
 export const WIDGET_IDS = [
   "scorebugBar",
@@ -77,9 +77,10 @@ export const DEFAULT_LAYOUT: LayoutMap = {
 
 export function clampPos(pos: WidgetPos, fullWidth = false): WidgetPos {
   const maxX = fullWidth ? 0 : CANVAS_W - 80;
+  const maxY = fullWidth ? CANVAS_H - SCOREBUG_BAR_H : CANVAS_H - 40;
   return {
     x: Math.round(Math.min(maxX, Math.max(0, pos.x))),
-    y: Math.round(Math.min(CANVAS_H - 40, Math.max(0, pos.y))),
+    y: Math.round(Math.min(maxY, Math.max(0, pos.y))),
   };
 }
 

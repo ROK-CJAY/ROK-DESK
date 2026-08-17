@@ -18,7 +18,11 @@ import { Route as TabletRouteImport } from './routes/tablet'
 import { Route as TournamentRouteImport } from './routes/tournament'
 import { Route as GameSignupRouteImport } from './routes/$game/signup'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
+import { Route as ApiOpArtRouteImport } from './routes/api/op-art'
+import { Route as ApiOpCardsRouteImport } from './routes/api/op-cards'
+import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
+import { Route as ApiYgoCardsRouteImport } from './routes/api/ygo-cards'
 import { Route as OverlayIndexRouteImport } from './routes/overlay/index'
 import { Route as OverlayBracketRouteImport } from './routes/overlay/bracket'
 import { Route as OverlayCardRouteImport } from './routes/overlay/card'
@@ -87,9 +91,29 @@ const ApiDeskRoute = ApiDeskRouteImport.update({
   path: '/api/desk',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOpArtRoute = ApiOpArtRouteImport.update({
+  id: '/api/op-art',
+  path: '/api/op-art',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOpCardsRoute = ApiOpCardsRouteImport.update({
+  id: '/api/op-cards',
+  path: '/api/op-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSwuCardsRoute = ApiSwuCardsRouteImport.update({
+  id: '/api/swu-cards',
+  path: '/api/swu-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTournamentRoute = ApiTournamentRouteImport.update({
   id: '/api/tournament',
   path: '/api/tournament',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiYgoCardsRoute = ApiYgoCardsRouteImport.update({
+  id: '/api/ygo-cards',
+  path: '/api/ygo-cards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OverlayIndexRoute = OverlayIndexRouteImport.update({
@@ -213,7 +237,11 @@ export interface FileRoutesByFullPath {
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/op-art': typeof ApiOpArtRoute
+  '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
+  '/api/ygo-cards': typeof ApiYgoCardsRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
   '/overlay/casters': typeof OverlayCastersRoute
@@ -246,7 +274,11 @@ export interface FileRoutesByTo {
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/op-art': typeof ApiOpArtRoute
+  '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
+  '/api/ygo-cards': typeof ApiYgoCardsRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
   '/overlay/casters': typeof OverlayCastersRoute
@@ -281,7 +313,11 @@ export interface FileRoutesById {
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/api/desk': typeof ApiDeskRoute
+  '/api/op-art': typeof ApiOpArtRoute
+  '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
+  '/api/ygo-cards': typeof ApiYgoCardsRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
   '/overlay/casters': typeof OverlayCastersRoute
@@ -317,7 +353,11 @@ export interface FileRouteTypes {
     | '/tournament'
     | '/$game/signup'
     | '/api/desk'
+    | '/api/op-art'
+    | '/api/op-cards'
+    | '/api/swu-cards'
     | '/api/tournament'
+    | '/api/ygo-cards'
     | '/overlay/bracket'
     | '/overlay/card'
     | '/overlay/casters'
@@ -350,7 +390,11 @@ export interface FileRouteTypes {
     | '/tournament'
     | '/$game/signup'
     | '/api/desk'
+    | '/api/op-art'
+    | '/api/op-cards'
+    | '/api/swu-cards'
     | '/api/tournament'
+    | '/api/ygo-cards'
     | '/overlay/bracket'
     | '/overlay/card'
     | '/overlay/casters'
@@ -384,7 +428,11 @@ export interface FileRouteTypes {
     | '/tournament'
     | '/$game/signup'
     | '/api/desk'
+    | '/api/op-art'
+    | '/api/op-cards'
+    | '/api/swu-cards'
     | '/api/tournament'
+    | '/api/ygo-cards'
     | '/overlay/bracket'
     | '/overlay/card'
     | '/overlay/casters'
@@ -419,7 +467,11 @@ export interface RootRouteChildren {
   TournamentRoute: typeof TournamentRoute
   GameSignupRoute: typeof GameSignupRoute
   ApiDeskRoute: typeof ApiDeskRoute
+  ApiOpArtRoute: typeof ApiOpArtRoute
+  ApiOpCardsRoute: typeof ApiOpCardsRoute
+  ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
+  ApiYgoCardsRoute: typeof ApiYgoCardsRoute
   PrintTeamListRoute: typeof PrintTeamListRoute
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -490,11 +542,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiDeskRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/op-art': {
+      id: '/api/op-art'
+      path: '/api/op-art'
+      fullPath: '/api/op-art'
+      preLoaderRoute: typeof ApiOpArtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/op-cards': {
+      id: '/api/op-cards'
+      path: '/api/op-cards'
+      fullPath: '/api/op-cards'
+      preLoaderRoute: typeof ApiOpCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/swu-cards': {
+      id: '/api/swu-cards'
+      path: '/api/swu-cards'
+      fullPath: '/api/swu-cards'
+      preLoaderRoute: typeof ApiSwuCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tournament': {
       id: '/api/tournament'
       path: '/api/tournament'
       fullPath: '/api/tournament'
       preLoaderRoute: typeof ApiTournamentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ygo-cards': {
+      id: '/api/ygo-cards'
+      path: '/api/ygo-cards'
+      fullPath: '/api/ygo-cards'
+      preLoaderRoute: typeof ApiYgoCardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/overlay/': {
@@ -722,7 +802,11 @@ const rootRouteChildren: RootRouteChildren = {
   TournamentRoute: TournamentRoute,
   GameSignupRoute: GameSignupRoute,
   ApiDeskRoute: ApiDeskRoute,
+  ApiOpArtRoute: ApiOpArtRoute,
+  ApiOpCardsRoute: ApiOpCardsRoute,
+  ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,
+  ApiYgoCardsRoute: ApiYgoCardsRoute,
   PrintTeamListRoute: PrintTeamListRoute,
   GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

@@ -1,8 +1,49 @@
 # ROK Desk
 
-Broadcast production desk for ROK Esports. One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Flesh and Blood, Star Wars Unlimited, Union Arena, and generic tabletop.
+**v0.1.0 beta** — first versioned release. Broadcast production desk for ROK Esports.
+
+One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Flesh and Blood, Star Wars Unlimited, Union Arena, and generic tabletop.
+
+Versioning while the desk is in beta: **v0.MAJOR.PATCH**  
+`MAJOR` is a development milestone. `PATCH` is a fix or small follow-up inside that milestone.
 
 Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/overlay/scorebug` and `/vgc/overlay/scorebug`) so two streams on the same host do not mix bugs.
+
+---
+
+## Updates
+
+### v0.1.0 — 17 Aug 2026 · first beta
+
+First tagged beta. This is the desk as it stands for venue use: Production, Tournament, judge tablets, walk-up signup, and per-game overlays.
+
+#### Added
+- Judge tablets for **Star Wars Unlimited**, **Yu-Gi-Oh!**, and **One Piece TCG**, in addition to VGC, PTCG, and MTG
+- **SWU initiative** — Production and the SWU tablet set who has initiative; the scorebug shows a gold Init token, name tint, side wash, and edge stripe
+- Card lookup on stream for SWU (SWU-DB), YGO (YGOPRODeck), and OP (official English art + printed text)
+- Per-game walk-up signup, including VGC team sheets and commander fields
+- Official Play! Pokémon VGC team-list print (2 pages per player)
+- Independent **stream clock** vs **floor clock**, plus a full-screen floor clock
+- Per-overlay look (colors, fonts, scale) and Arrange
+- Sponsors (rotating logos) and event logo on HUD, Versus, slates, and floor clock
+- Test mode (8 demo players, toggle off restores the real field)
+- Custom tournament size (2–128) and PTCG prize count
+- Tournament feedback button (Google Form)
+- OBS and vMix setup notes on overlay preview
+
+#### Changed
+- Bar scorebug type, contrast, and clock placement so names, score, and time read on 1080p
+- Tablet card detail sits above the search list so art and text are visible when a card is selected
+- Overlay paths are game-scoped (`/swu/overlay/scorebug`, `/yugioh/signup`, …)
+
+#### Fixed
+- OP card thumbnails and text (art is proxied; query-string image URLs no longer get a broken `.webp` suffix)
+- VGC remaining icons follow the submitted team, not a left-to-right count
+- Default desk starts as a reset match (0–0, no prizes taken)
+- Test mode reaches the judge tablet
+- Each game keeps its own roster
+
+---
 
 ## Surfaces
 
@@ -17,11 +58,12 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 
 ## Production
 
-- Featured match: names, score, resources (prizes / remaining Pokémon / life), casters, queue
+- Featured match: names, score, resources (prizes / remaining Pokémon / life / base HP), casters, queue
 - **Game win** and **Match win** — match win also reports into the live bracket when the pair is linked
 - Independent **stream clock** (Production) vs **floor clock** (Tournament). Judge tablets follow the stream clock
 - **PTCG prizes** — 6 / 4 / 3 / 2 / 1 per match (Pocket format still defaults to 3)
 - **VGC team** on the scorebug uses the player's submitted team
+- **SWU initiative** on the scorebug when a player is marked
 - **Test mode** toggle — 8 demo players. Off restores the last real field. Production and Tournament stay in sync with the judge tablet
 - **Sponsors** — upload marks; they rotate on the Sponsors overlay, HUD pack, and floor clock
 - **Event logo** — tournament mark on Versus, slates, HUD, Event logo overlay, and the floor clock
@@ -44,6 +86,9 @@ Open `/tablet` on a floor device. It follows the Production game.
 - **VGC** — remaining Pokémon from the player's team, game / match report, clock
 - **PTCG** — prize balls, game / match report, clock, **TCGdex card search** with Show on stream / Clear (On Stream is red; empty card overlay stays transparent)
 - **MTG** (all formats) — life, poison, commander damage with typed deltas, clock, **Scryfall card search** with the same Show / Clear flow
+- **SWU** — base HP, initiative, game / match report, clock, **SWU-DB card search**
+- **YGO** — 8000 LP with typed ticks, game / match report, clock, **YGOPRODeck card search**
+- **OP** — life circles, DON!!, game / match report, clock, official English card search
 - How-to guide on open, plus a card-search how-to next to lookup
 - Start / pause / add or remove time / reset clock (stream clock)
 
@@ -98,3 +143,5 @@ One host PC is one event. Two titles at once means two hosts (or two accounts on
 ## Notes
 
 Overlay pages are chromeless and transparent so OBS / vMix can key them. Production and Tournament stay opaque. The tablet writes the same live desk the stream bugs read. The floor clock is the rest of the room — it does not follow the featured-match timer.
+
+This build is **beta**. Expect layout and game coverage to move under `v0.x.x` until a 1.0 cut.

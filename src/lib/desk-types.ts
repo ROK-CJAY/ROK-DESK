@@ -130,6 +130,7 @@ export type DeskState = {
   lowerThird: LowerThirdState;
   winnerSide: SeatId | null;
   gameWinnerSide: SeatId | null;
+  initiativeSide: SeatId | null;
   streamMatchId: string | null;
   queue: QueueMatch[];
   sponsorLine: string;
@@ -236,6 +237,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   }),
   winnerSide: z.enum(["p1", "p2", "p3", "p4"]).nullable(),
   gameWinnerSide: z.enum(["p1", "p2", "p3", "p4"]).nullable().optional().transform((v) => v ?? null),
+  initiativeSide: z.enum(["p1", "p2", "p3", "p4"]).nullable().optional().transform((v) => v ?? null),
   streamMatchId: z.string().nullable().optional().transform((v) => v ?? null),
   queue: z.array(
     z.object({
@@ -362,6 +364,7 @@ export function defaultDesk(): DeskState {
     },
     winnerSide: null,
     gameWinnerSide: null,
+    initiativeSide: null,
     streamMatchId: null,
     queue: [],
     sponsorLine: "",

@@ -72,6 +72,7 @@ type DeskStore = {
   gameWin: (side: SideId) => void;
   matchWin: (side: SideId) => void;
   clearWinners: () => void;
+  setInitiative: (side: SideId | null) => void;
   toggleTimer: () => void;
   setTimerMinutes: (minutes: number) => void;
   setTimerClock: (seconds: number) => void;
@@ -467,6 +468,8 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
           prev.winnerSide === "p1" ? "p2" : prev.winnerSide === "p2" ? "p1" : prev.winnerSide,
         gameWinnerSide:
           prev.gameWinnerSide === "p1" ? "p2" : prev.gameWinnerSide === "p2" ? "p1" : prev.gameWinnerSide,
+        initiativeSide:
+          prev.initiativeSide === "p1" ? "p2" : prev.initiativeSide === "p2" ? "p1" : prev.initiativeSide,
       });
       persist(desk);
       set({ desk });
@@ -480,6 +483,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       p4: prev.p3,
       winnerSide: prev.winnerSide ? rotated[prev.winnerSide] : null,
       gameWinnerSide: prev.gameWinnerSide ? rotated[prev.gameWinnerSide] : null,
+      initiativeSide: prev.initiativeSide ? rotated[prev.initiativeSide] : null,
     });
     persist(desk);
     set({ desk });
@@ -504,6 +508,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       ...withSeats(prev, { ...resources, score: 0 }),
       winnerSide: null,
       gameWinnerSide: null,
+      initiativeSide: null,
     });
     persist(desk);
     set({ desk });
@@ -538,6 +543,15 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const desk = nextVersion(prev, {
       winnerSide: null,
       gameWinnerSide: null,
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  setInitiative: (side) => {
+    const prev = get().desk;
+    const desk = nextVersion(prev, {
+      initiativeSide: prev.initiativeSide === side ? null : side,
     });
     persist(desk);
     set({ desk });

@@ -20,6 +20,7 @@ import {
 import { cn } from "@/lib/cn";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { PokeballIcon, TeamPips } from "@/components/overlays/pips";
+import { InitiativeToggle } from "@/components/desk/initiative";
 
 const LIFE_STEPS = [-1000, -100, -10, 10, 100, 1000];
 const MTG_STEPS = [-10, -5, -1, 1, 5, 10];
@@ -99,6 +100,7 @@ export function MatchControl() {
               {game.scoreLabel} · first to {Math.ceil(desk.bestOf / 2)}
             </p>
           </div>
+          {desk.gameId === "swu" ? <InitiativeToggle /> : null}
           <div className="grid min-w-0 gap-4 md:grid-cols-2">
           <PlayerColumn
             side="p1"

@@ -31,6 +31,9 @@ export type LookupCard = {
 
 export const TCGDEX_BASE = "https://api.tcgdex.net/v2/en";
 export const SCRYFALL_BASE = "https://api.scryfall.com";
+export const SWU_PROXY = "/api/swu-cards";
+export const YGO_PROXY = "/api/ygo-cards";
+export const OP_PROXY = "/api/op-cards";
 
 export function cardLookupReady(): boolean {
   return true;
@@ -38,7 +41,8 @@ export function cardLookupReady(): boolean {
 
 export function cardImageUrl(image?: string, size: "low" | "high" = "high"): string {
   if (!image) return "";
-  if (image.endsWith(".webp") || image.endsWith(".png") || image.endsWith(".jpg") || image.endsWith(".jpeg")) return image;
+  if (/\.(webp|png|jpe?g)(\?|#|$)/i.test(image)) return image;
+  if (image.startsWith("/api/")) return image;
   return `${image}/${size}.webp`;
 }
 
@@ -102,6 +106,102 @@ export async function fetchScryfallCard(id: string): Promise<LookupCard | null> 
   const data = (await res.json()) as unknown;
   if (!isRecord(data)) return null;
   return normalizeScryfall(data);
+}
+
+export async function searchSwuCards(query: string): Promise<LookupCard[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const url = new URL(SWU_PROXY, window.location.origin);
+  url.searchParams.set("q", q);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`SWU lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  const rows = isRecord(data) && Array.isArray(data.data) ? data.data : Array.isArray(data) ? data : [];
+  return rows.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeSwu(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function fetchSwuCard(id: string): Promise<LookupCard | null> {
+  const [set, number] = id.split("-");
+  if (!set || !number) return null;
+  const url = new URL(SWU_PROXY, window.location.origin);
+  url.searchParams.set("set", set);
+  url.searchParams.set("number", number);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as unknown;
+  if (!isRecord(data)) return null;
+  return normalizeSwu(data);
+}
+
+export function ygoFormatFor(formatName: string): string | null {
+  const name = formatName.toLowerCase();
+  if (name.includes("goat")) return "goat";
+  if (name.includes("edison")) return "tcg";
+  if (name.includes("master")) return "tcg";
+  if (name.includes("advanced") || name.includes("tcg")) return "tcg";
+  return null;
+}
+
+export async function searchYgoCards(query: string, format: string | null = null): Promise<LookupCard[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const url = new URL(YGO_PROXY, window.location.origin);
+  url.searchParams.set("q", q);
+  if (format) url.searchParams.set("format", format);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (res.status === 400 || res.status === 404) return [];
+  if (!res.ok) throw new Error(`YGO lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  const rows = isRecord(data) && Array.isArray(data.data) ? data.data : [];
+  return rows.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeYgo(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function fetchYgoCard(id: string): Promise<LookupCard | null> {
+  if (!id) return null;
+  const url = new URL(YGO_PROXY, window.location.origin);
+  url.searchParams.set("id", id);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as unknown;
+  const row = isRecord(data) && Array.isArray(data.data) ? data.data[0] : data;
+  if (!isRecord(row)) return null;
+  return normalizeYgo(row);
+}
+
+export async function searchOpCards(query: string): Promise<LookupCard[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const url = new URL(OP_PROXY, window.location.origin);
+  url.searchParams.set("q", q);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) throw new Error(`OP lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  const rows = isRecord(data) && Array.isArray(data.data) ? data.data : [];
+  return rows.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeOp(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function fetchOpCard(id: string): Promise<LookupCard | null> {
+  if (!id) return null;
+  const url = new URL(OP_PROXY, window.location.origin);
+  url.searchParams.set("id", id);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as unknown;
+  const row = isRecord(data) && isRecord(data.data) ? data.data : isRecord(data) ? data : null;
+  return row ? normalizeOp(row) : null;
 }
 
 function normalizeList(data: unknown): LookupCard[] {
@@ -183,6 +283,76 @@ function normalizeScryfall(item: Record<string, unknown>): LookupCard {
     text: textParts,
     mana: item.mana_cost ? String(item.mana_cost) : face?.mana_cost ? String(face.mana_cost) : undefined,
     rarity: item.rarity ? String(item.rarity) : undefined,
+  };
+}
+
+function normalizeSwu(item: Record<string, unknown>): LookupCard {
+  const set = item.Set != null ? String(item.Set) : undefined;
+  const number = item.Number != null ? String(item.Number) : undefined;
+  const fronts = item.FrontText ? String(item.FrontText) : "";
+  const backs = item.BackText ? String(item.BackText) : "";
+  const aspects = Array.isArray(item.Aspects) ? item.Aspects.map(String).join(" / ") : item.Aspects ? String(item.Aspects) : "";
+  return {
+    id: set && number ? `${set}-${number}` : String(item.cid ?? item.Name ?? ""),
+    name: String(item.Name ?? "").trim(),
+    set,
+    number,
+    image: item.FrontArt ? String(item.FrontArt) : undefined,
+    type: [item.Type, aspects].filter(Boolean).map(String).join(" · ") || undefined,
+    text: [fronts, backs].filter(Boolean).join("\n\n") || undefined,
+    hp: item.HP != null && String(item.HP) ? String(item.HP) : undefined,
+    mana: item.Cost != null && String(item.Cost) ? String(item.Cost) : undefined,
+    rarity: item.Rarity ? String(item.Rarity) : undefined,
+    category: item.Type ? String(item.Type) : undefined,
+  };
+}
+
+function normalizeYgo(item: Record<string, unknown>): LookupCard {
+  const images = Array.isArray(item.card_images) ? item.card_images.filter(isRecord) : [];
+  const art = images[0];
+  const image = art?.image_url ? String(art.image_url) : art?.image_url_small ? String(art.image_url_small) : undefined;
+  const atk = item.atk != null ? String(item.atk) : "";
+  const def = item.def != null ? String(item.def) : "";
+  const level = item.level != null ? `Lv ${item.level}` : item.linkval != null ? `Link ${item.linkval}` : "";
+  const stats = [item.attribute, item.race, level, atk || def ? `${atk}/${def}` : ""].filter(Boolean).join(" · ");
+  return {
+    id: String(item.id ?? item.name ?? ""),
+    name: String(item.name ?? "").trim(),
+    set: item.archetype ? String(item.archetype) : undefined,
+    image,
+    type: item.type ? String(item.type) : undefined,
+    text: item.desc ? String(item.desc) : undefined,
+    rarity: stats || undefined,
+    category: item.type ? String(item.type) : undefined,
+  };
+}
+
+function normalizeOp(item: Record<string, unknown>): LookupCard {
+  const id = String(item.id ?? item.card_id ?? "");
+  const colors = Array.isArray(item.colors) ? item.colors.map(String).join(" / ") : "";
+  const types = Array.isArray(item.types) ? item.types.map(String).join(" / ") : "";
+  const rawImage = item.img_full_url
+    ? String(item.img_full_url)
+    : item.img_url && String(item.img_url).startsWith("http")
+      ? String(item.img_url)
+      : "";
+  const image = id ? `/api/op-art?id=${encodeURIComponent(id)}` : rawImage.split("?")[0] || undefined;
+  const text = [item.effect ? String(item.effect) : "", item.trigger ? `Trigger: ${item.trigger}` : ""].filter(Boolean).join("\n\n") || undefined;
+  const cost = item.cost != null ? String(item.cost) : "";
+  const power = item.power != null ? String(item.power) : "";
+  const counter = item.counter != null ? String(item.counter) : "";
+  return {
+    id,
+    name: String(item.name ?? "").trim(),
+    set: id.split("-")[0],
+    number: id,
+    image,
+    type: [item.category, colors, types].filter(Boolean).map(String).join(" · ") || undefined,
+    text,
+    mana: cost || undefined,
+    hp: power || undefined,
+    rarity: [item.rarity, power ? `${power} power` : "", counter ? `${counter} counter` : ""].filter(Boolean).map(String).join(" · ") || undefined,
+    category: item.category ? String(item.category) : undefined,
   };
 }
 

@@ -748,6 +748,9 @@ export function PodPanel() {
   const vgc = desk.gameId === "pokemon-vgc";
   const tcg = desk.gameId === "pokemon-tcg";
   const mtg = desk.gameId === "mtg";
+  const swu = desk.gameId === "swu";
+  const ygo = desk.gameId === "yugioh";
+  const op = desk.gameId === "one-piece";
   const path = "/tablet";
 
   const copy = async () => {
@@ -770,7 +773,13 @@ export function PodPanel() {
             ? "Judge tablet — prizes, score, clock, and a card lookup for the floor."
             : mtg
               ? "Judge tablet — life, poison, commander damage, score, clock, and Scryfall card lookup."
-              : "Player tablet for the live table. Each game uses its own layout."}
+              : swu
+                ? "Judge tablet — base HP, score, clock, and SWU-DB card lookup."
+                : ygo
+                  ? "Judge tablet — life points, score, clock, and YGOPRODeck card lookup."
+                  : op
+                    ? "Judge tablet — life, DON!!, score, clock, and official OP card lookup."
+                    : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
         <p className="mt-2 text-xs text-ok">Card lookup uses Pokémon TCG Live (TCGdex) data.</p>
@@ -782,6 +791,12 @@ export function PodPanel() {
             ? `${desk.formatName} · type an amount then + / − · Game / Match or Wins report to the desk.`
             : "Type an amount then + / −. Game and Match report to the desk and bracket."}
         </p>
+      ) : swu ? (
+        <p className="mt-2 text-xs text-ok">Type damage then + / −. Game and Match report to the desk and bracket.</p>
+      ) : ygo ? (
+        <p className="mt-2 text-xs text-ok">Life points default to 100 ticks. Game and Match report to the desk and bracket.</p>
+      ) : op ? (
+        <p className="mt-2 text-xs text-ok">Tap life. Type DON!! then + / −. Game and Match report to the desk and bracket.</p>
       ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>
       ) : (

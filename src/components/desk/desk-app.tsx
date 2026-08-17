@@ -47,7 +47,10 @@ export function DeskApp() {
   const showTablet =
     desk.gameId === "pokemon-vgc" ||
     desk.gameId === "pokemon-tcg" ||
-    desk.gameId === "mtg";
+    desk.gameId === "mtg" ||
+    desk.gameId === "swu" ||
+    desk.gameId === "yugioh" ||
+    desk.gameId === "one-piece";
 
   return (
     <TooltipProvider delayDuration={250}>

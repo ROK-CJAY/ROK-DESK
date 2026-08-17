@@ -131,7 +131,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/card",
     name: "Card",
     size: "1920 × 1080",
-    note: "Judge card from the PTCG or MTG tablet. Search, then Show on stream. Clear from the tablet or Show control.",
+    note: "Judge card from the PTCG, MTG, SWU, YGO, or OP tablet. Search, then Show on stream. Clear from the tablet or Show control.",
   },
   {
     id: "sponsors",
