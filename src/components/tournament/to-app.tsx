@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, GripVertical, MessageSquarePlus, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
+import { ClipboardList, Flag, GripVertical, MessageSquarePlus, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { FloorClock } from "@/components/tournament/floor-clock";
@@ -12,7 +12,7 @@ import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, 
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
-import { groupByRound, readyMatches, computeStandings, currentSwissRound, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
+import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventChampion, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
@@ -22,7 +22,6 @@ import {
   DRAW_ID,
   PRESET_SIZES,
   bracketSlots,
-  championOf,
   clampBracketSize,
   entrantById,
   isPodMatch,
@@ -63,7 +62,9 @@ export function TournamentApp() {
   }
 
   const game = gameOf(t.gameId);
-  const champ = championOf(t);
+  const champ = eventChampion(t);
+  const standings = t.bracketType === "swiss" ? computeStandings(t) : [];
+  const leader = standings[0] ? entrantById(t, standings[0].entrantId) : null;
 
   return (
     <div className="min-h-dvh bg-bg text-fg" data-game={t.gameId}>
@@ -98,19 +99,7 @@ export function TournamentApp() {
           <SetupPanel />
           <StaffPanel />
           <StreamPanel />
-          {champ ? (
-            <section className="rounded-xl border border-border bg-surface p-4">
-              <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Champion</p>
-              <p className="font-display mt-2 text-3xl font-semibold tracking-tight uppercase">{champ.name}</p>
-              <p className="text-sm text-muted">{champ.deck || champ.tag}</p>
-              <div className="mt-3">
-                <ExportTournamentButton variant="secondary" full />
-              </div>
-              <p className="mt-2 text-[0.65rem] leading-relaxed text-subtle">
-                JSON plus CSVs of players, matches, and standings. Includes player IDs — keep it with event staff.
-              </p>
-            </section>
-          ) : null}
+          <EventResultCard champ={champ} leader={leader} standings={standings} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
           <RosterPanel
@@ -128,12 +117,74 @@ export function TournamentApp() {
   );
 }
 
+function EventResultCard({
+  champ,
+  leader,
+  standings,
+}: {
+  champ: Entrant | null;
+  leader: Entrant | null;
+  standings: ReturnType<typeof computeStandings>;
+}) {
+  const t = useTournamentStore((s) => s.tournament);
+  const completeTournament = useTournamentStore((s) => s.completeTournament);
+  const swiss = t.bracketType === "swiss";
+  if (t.phase === "complete") {
+    const podium = swiss ? standings.slice(0, 3) : [];
+    return (
+      <section className="rounded-xl border border-border bg-surface p-4">
+        <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
+          {swiss ? "Final standings" : "Champion"}
+        </p>
+        <p className="font-display mt-2 text-3xl font-semibold tracking-tight uppercase">{champ?.name ?? "—"}</p>
+        <p className="text-sm text-muted">{champ?.deck || champ?.tag || (swiss ? "1st on points / OMW%" : "")}</p>
+        {podium.length > 1 ? (
+          <ol className="mt-3 grid gap-1 text-sm">
+            {podium.map((row, i) => {
+              const player = entrantById(t, row.entrantId);
+              return (
+                <li key={row.entrantId} className="flex justify-between gap-2">
+                  <span>
+                    {i + 1}. {player?.name ?? "—"}
+                  </span>
+                  <span className="font-mono text-muted tabular-nums">
+                    {row.wins}–{row.losses}–{row.draws} · {row.matchPoints} pts
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        ) : null}
+        <div className="mt-3">
+          <ExportTournamentButton variant="secondary" full />
+        </div>
+      </section>
+    );
+  }
+  if (swiss && t.matches.length > 0) {
+    return (
+      <section className="rounded-xl border border-border bg-surface p-4">
+        <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Swiss leader</p>
+        <p className="font-display mt-2 text-2xl font-semibold tracking-tight uppercase">{leader?.name ?? "—"}</p>
+        <p className="text-sm text-muted">No grand final. Complete the event to lock 1st from the table.</p>
+        <Button className="mt-3 w-full" variant="secondary" onClick={completeTournament}>
+          <Flag className="size-3.5" />
+          Complete tournament
+        </Button>
+      </section>
+    );
+  }
+  return null;
+}
+
 function SetupPanel() {
   const t = useTournamentStore((s) => s.tournament);
   const patch = useTournamentStore((s) => s.patch);
   const setGame = useTournamentStore((s) => s.setGame);
   const generate = useTournamentStore((s) => s.generate);
   const resetBracket = useTournamentStore((s) => s.resetBracket);
+  const completeTournament = useTournamentStore((s) => s.completeTournament);
+  const reopenTournament = useTournamentStore((s) => s.reopenTournament);
   const loadTestMode = useTournamentStore((s) => s.loadTestMode);
   const game = gameOf(t.gameId);
   const [sizeDraft, setSizeDraft] = useState(String(t.size));
@@ -168,7 +219,14 @@ function SetupPanel() {
           </NativeSelect>
         </Field>
         <Field label="Format">
-          <NativeSelect value={t.formatName} onChange={(e) => patch({ formatName: e.target.value })}>
+          <NativeSelect
+            value={t.formatName}
+            onChange={(e) => {
+              const formatName = e.target.value;
+              const preset = game.formats.find((f) => f.label === formatName);
+              patch({ formatName, ...(preset?.bestOf ? { bestOf: preset.bestOf } : {}) });
+            }}
+          >
             {game.formats.map((f) => (
               <option key={f.id} value={f.label}>
                 {f.label}
@@ -312,15 +370,18 @@ function SetupPanel() {
             </Button>
           ) : null}
         </div>
-        {t.phase === "complete" || t.matches.some((m) => m.winnerId) ? (
-          <div className="grid gap-2">
-            <ExportTournamentButton variant={t.phase === "complete" ? "default" : "outline"} full />
-            <p className="text-[0.65rem] leading-relaxed text-subtle">
-              Downloads a full JSON archive plus CSVs (players, matches, standings, staff
-              {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}). Includes player IDs — keep it with event staff.
-            </p>
-          </div>
+        {t.matches.length > 0 && t.phase !== "complete" ? (
+          <Button variant="secondary" onClick={completeTournament}>
+            <Flag className="size-3.5" />
+            Complete tournament
+          </Button>
         ) : null}
+        {t.phase === "complete" ? (
+          <Button variant="outline" onClick={reopenTournament}>
+            Reopen tournament
+          </Button>
+        ) : null}
+        <ExportTournamentButton variant={t.phase === "complete" ? "default" : "outline"} full />
         <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
           <div>
             <p className="text-sm font-medium">Test mode</p>
@@ -765,6 +826,12 @@ function BracketBoard() {
         {canPair ? (
           <Button size="sm" onClick={pairNext}>
             Pair round {round + 1}
+          </Button>
+        ) : null}
+        {t.bracketType === "swiss" && t.phase !== "complete" && round > 0 ? (
+          <Button size="sm" variant="secondary" onClick={() => useTournamentStore.getState().completeTournament()}>
+            <Flag className="size-3.5" />
+            Complete tournament
           </Button>
         ) : null}
       </div>

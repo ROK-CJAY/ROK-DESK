@@ -58,7 +58,9 @@ function SwissOverlay({ tournament }: { tournament: TournamentState }) {
         <div className="text-right">
           <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">{viewTitle(tournament)}</p>
           <p className="font-display text-2xl font-semibold text-ov-fg uppercase">
-            {leader ? `Leader · ${leader.name}` : `Bo${tournament.bestOf}`}
+            {leader
+              ? `${tournament.phase === "complete" ? "Champion" : "Leader"} · ${leader.name}`
+              : `Bo${tournament.bestOf}`}
           </p>
         </div>
       </header>

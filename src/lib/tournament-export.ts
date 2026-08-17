@@ -1,9 +1,8 @@
 import { extraFieldFor, gameOf, playerIdField } from "@/lib/games";
 import { APP_VERSION } from "@/lib/version";
-import { computeStandings, type Standing } from "@/lib/tournament-bracket";
+import { computeStandings, eventChampion, type Standing } from "@/lib/tournament-bracket";
 import {
   DRAW_ID,
-  championOf,
   matchEntrantIds,
   matchSlots,
   staffRoleLabel,
@@ -12,10 +11,13 @@ import {
   type TournamentState,
 } from "@/lib/tournament-types";
 import { countFilledMons } from "@/lib/pokemon-vgc";
+import { zipStore } from "@/lib/zip-store";
+import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 
 export type TournamentExport = {
   exportedAt: string;
   version: string;
+  testMode: boolean;
   event: {
     name: string;
     gameId: TournamentState["gameId"];
@@ -80,6 +82,12 @@ function nameOf(t: TournamentState, id: string | null): string {
   return t.entrants.find((e) => e.id === id)?.name ?? "";
 }
 
+function moveName(mon: { moves?: Array<string | { name?: string } | undefined> }, index: number): string {
+  const slot = mon.moves?.[index];
+  if (!slot) return "";
+  return typeof slot === "string" ? slot : (slot.name ?? "");
+}
+
 export function recordsFor(t: TournamentState): Standing[] {
   if (t.bracketType === "swiss") return computeStandings(t);
   const rows = new Map<string, Standing>();
@@ -132,10 +140,11 @@ export function recordsFor(t: TournamentState): Standing[] {
 export function buildTournamentExport(t: TournamentState): TournamentExport {
   const records = recordsFor(t);
   const byId = new Map(records.map((row) => [row.entrantId, row]));
-  const champ = championOf(t);
+  const champ = eventChampion(t);
   return {
     exportedAt: new Date().toISOString(),
     version: APP_VERSION,
+    testMode: tournamentLooksLikeTest(t),
     event: {
       name: t.name,
       gameId: t.gameId,
@@ -199,119 +208,97 @@ function serializeMatch(t: TournamentState, match: BracketMatch) {
   };
 }
 
-function download(filename: string, body: string, type: string) {
-  const blob = new Blob([body], { type });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.append(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+export function exportFileBase(t: TournamentState): string {
+  const game = gameOf(t.gameId);
+  const stamp = new Date().toISOString().slice(0, 10);
+  const tag = tournamentLooksLikeTest(t) ? "test-" : "";
+  return `rok-desk-${slug(game.short)}-${tag}${slug(t.name || "tournament")}-${stamp}`;
 }
 
-export function exportTournamentFiles(t: TournamentState) {
+export function tournamentExportFiles(t: TournamentState): Array<{ name: string; body: string }> {
   const data = buildTournamentExport(t);
-  const game = gameOf(t.gameId);
   const extra = extraFieldFor(t.gameId, t.formatName);
   const idField = playerIdField(t.gameId);
-  const stamp = new Date().toISOString().slice(0, 10);
-  const base = `rok-desk-${slug(game.short)}-${slug(t.name || "tournament")}-${stamp}`;
-
-  download(`${base}.json`, JSON.stringify(data, null, 2), "application/json");
-
-  if (data.staff.length) {
-    download(
-      `${base}-staff.csv`,
-      csv(
-        data.staff.map((row) => ({
-          role: row.role,
-          name: row.name,
-          note: row.note,
+  const files: Array<{ name: string; body: string }> = [
+    { name: "tournament.json", body: JSON.stringify(data, null, 2) },
+    {
+      name: "players.csv",
+      body: csv(
+        data.players.map((p) => ({
+          seed: p.seed,
+          name: p.name,
+          handle: p.tag,
+          player_id: p.playerId,
+          player_id_type: idField.label,
+          deck: p.deck,
+          extra: p.extra,
+          extra_label: extra.label,
+          country: p.country,
+          pronouns: p.pronouns,
+          dropped: p.dropped ? "yes" : "",
+          record: p.record,
+          match_points: p.matchPoints,
+          games_for: p.gamesFor,
+          games_against: p.gamesAgainst,
+          trainer_name: p.trainerName,
+          switch_profile: p.switchProfile,
+          age_division: p.ageDivision,
+          birth_date: p.birthDate,
+          team_size: p.teamSize,
         })),
       ),
-      "text/csv",
-    );
+    },
+    {
+      name: "matches.csv",
+      body: csv(
+        data.matches.map((m) => ({
+          match: m.label,
+          side: m.side,
+          round: m.round,
+          status: m.status,
+          winner: m.winner,
+          p1: m.players[0]?.name ?? "",
+          p1_id: m.players[0]?.playerId ?? "",
+          p1_score: m.players[0]?.score ?? "",
+          p2: m.players[1]?.name ?? "",
+          p2_id: m.players[1]?.playerId ?? "",
+          p2_score: m.players[1]?.score ?? "",
+          p3: m.players[2]?.name ?? "",
+          p3_score: m.players[2]?.score ?? "",
+          p4: m.players[3]?.name ?? "",
+          p4_score: m.players[3]?.score ?? "",
+        })),
+      ),
+    },
+    {
+      name: "standings.csv",
+      body: csv(
+        data.standings.map((row, i) => ({
+          place: i + 1,
+          name: row.name,
+          player_id: row.playerId,
+          seed: row.seed,
+          deck: row.deck,
+          wins: row.wins,
+          losses: row.losses,
+          draws: row.draws,
+          match_points: row.matchPoints,
+          omw: row.oppMatchWin,
+          games_for: row.gamesFor,
+          games_against: row.gamesAgainst,
+        })),
+      ),
+    },
+  ];
+  if (data.staff.length) {
+    files.push({
+      name: "staff.csv",
+      body: csv(data.staff.map((row) => ({ role: row.role, name: row.name, note: row.note }))),
+    });
   }
-
-  download(
-    `${base}-players.csv`,
-    csv(
-      data.players.map((p) => ({
-        seed: p.seed,
-        name: p.name,
-        handle: p.tag,
-        player_id: p.playerId,
-        player_id_type: idField.label,
-        deck: p.deck,
-        extra: p.extra,
-        extra_label: extra.label,
-        country: p.country,
-        pronouns: p.pronouns,
-        dropped: p.dropped ? "yes" : "",
-        record: p.record,
-        match_points: p.matchPoints,
-        games_for: p.gamesFor,
-        games_against: p.gamesAgainst,
-        trainer_name: p.trainerName,
-        switch_profile: p.switchProfile,
-        age_division: p.ageDivision,
-        birth_date: p.birthDate,
-        team_size: p.teamSize,
-      })),
-    ),
-    "text/csv",
-  );
-
-  download(
-    `${base}-matches.csv`,
-    csv(
-      data.matches.map((m) => ({
-        match: m.label,
-        side: m.side,
-        round: m.round,
-        status: m.status,
-        winner: m.winner,
-        p1: m.players[0]?.name ?? "",
-        p1_id: m.players[0]?.playerId ?? "",
-        p1_score: m.players[0]?.score ?? "",
-        p2: m.players[1]?.name ?? "",
-        p2_id: m.players[1]?.playerId ?? "",
-        p2_score: m.players[1]?.score ?? "",
-        p3: m.players[2]?.name ?? "",
-        p3_score: m.players[2]?.score ?? "",
-        p4: m.players[3]?.name ?? "",
-        p4_score: m.players[3]?.score ?? "",
-      })),
-    ),
-    "text/csv",
-  );
-
-  download(
-    `${base}-standings.csv`,
-    csv(
-      data.standings.map((row, i) => ({
-        place: i + 1,
-        name: row.name,
-        player_id: row.playerId,
-        seed: row.seed,
-        deck: row.deck,
-        wins: row.wins,
-        losses: row.losses,
-        draws: row.draws,
-        match_points: row.matchPoints,
-        omw: row.oppMatchWin,
-        games_for: row.gamesFor,
-        games_against: row.gamesAgainst,
-      })),
-    ),
-    "text/csv",
-  );
-
   if (t.gameId === "pokemon-vgc") {
     const teamRows = data.players.flatMap((p) =>
-      p.team.map((mon, i) => ({
+      (p.team ?? []).map((mon, i) => ({
         player: p.name,
         player_id: p.playerId,
         slot: i + 1,
@@ -319,14 +306,34 @@ export function exportTournamentFiles(t: TournamentState) {
         tera: mon.tera,
         ability: mon.ability,
         item: mon.item,
-        move_1: mon.moves[0]?.name ?? "",
-        move_2: mon.moves[1]?.name ?? "",
-        move_3: mon.moves[2]?.name ?? "",
-        move_4: mon.moves[3]?.name ?? "",
+        move_1: moveName(mon, 0),
+        move_2: moveName(mon, 1),
+        move_3: moveName(mon, 2),
+        move_4: moveName(mon, 3),
       })),
     );
     if (teamRows.some((row) => row.species)) {
-      download(`${base}-teams.csv`, csv(teamRows), "text/csv");
+      files.push({ name: "teams.csv", body: csv(teamRows) });
     }
   }
+  return files;
+}
+
+export function tournamentExportZip(t: TournamentState): { filename: string; blob: Blob } {
+  const base = exportFileBase(t);
+  return { filename: `${base}.zip`, blob: zipStore(tournamentExportFiles(t)) };
+}
+
+export async function exportTournamentFiles(t: TournamentState): Promise<string> {
+  const { filename, blob } = tournamentExportZip(t);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  document.body.append(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+  return filename;
 }

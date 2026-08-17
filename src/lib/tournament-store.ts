@@ -40,6 +40,8 @@ type TournamentStore = {
   reorderEntrants: (fromId: string, toId: string) => void;
   generate: () => void;
   pairNext: () => void;
+  completeTournament: () => void;
+  reopenTournament: () => void;
   resetBracket: () => void;
   report: (matchId: string, winnerId: string) => void;
   setScore: (matchId: string, slot: SlotId, score: number) => void;
@@ -266,6 +268,22 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
     const next = pairNextSwissRound(prev);
     if (next === prev) return;
     const tournament = nextVersion(next, {});
+    persist(tournament);
+    set({ tournament });
+  },
+
+  completeTournament: () => {
+    const prev = get().tournament;
+    if (prev.phase === "complete") return;
+    const tournament = nextVersion(prev, { phase: "complete" });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  reopenTournament: () => {
+    const prev = get().tournament;
+    if (prev.phase !== "complete") return;
+    const tournament = nextVersion(prev, { phase: prev.matches.length ? "running" : "setup" });
     persist(tournament);
     set({ tournament });
   },

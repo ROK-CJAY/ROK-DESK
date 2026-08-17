@@ -39,7 +39,7 @@ function Login() {
           )}
         </div>
         <Button variant="ghost" className="mt-4 w-full" asChild>
-          <Link to="/">Back to desk</Link>
+          <Link to="/">Back to home</Link>
         </Button>
       </div>
     </main>

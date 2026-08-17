@@ -1,5 +1,6 @@
 import {
   DRAW_ID,
+  championOf,
   emptySlot,
   matchEntrantIds,
   bracketSlots,
@@ -780,3 +781,18 @@ export function readyMatches(t: TournamentState): BracketMatch[] {
     return ids.length === 2;
   });
 }
+
+export function standingChampion(t: TournamentState): Entrant | null {
+  const top = computeStandings(t)[0];
+  if (!top) return null;
+  return t.entrants.find((e) => e.id === top.entrantId) ?? null;
+}
+
+export function eventChampion(t: TournamentState): Entrant | null {
+  if (t.bracketType === "swiss") {
+    if (t.phase !== "complete") return null;
+    return standingChampion(t);
+  }
+  return championOf(t);
+}
+

@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.2.1 beta** — tournament ops. Broadcast production desk for ROK Esports.
+**v0.3.0 beta** — landing and Swiss close. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Flesh and Blood, Star Wars Unlimited, Union Arena, and generic tabletop.
 
@@ -12,6 +12,22 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### v0.3.0 — 17 Aug 2026 · landing & Swiss close
+
+Home screen, a real Swiss finish, and format cleanup so a TO can open the desk and close a Swiss event.
+
+#### Added
+- **Home / Get Started** landing at `/` — what the desk is, how a show runs, doors into Tournament and Production
+- **Complete tournament** — lock Swiss (and any event) without a grand final; 1st is standings (points / OMW%). Top 3 on the result card. **Reopen** if you still need to fix a result
+- **Pre-release** format on every title (OP keeps Pre-release / Sealed). PTCG 4 prizes, FaB 20 life, MTG sealed Bo1
+- Tournament export as a **single zip** (JSON + CSVs), including in test mode
+
+#### Changed
+- Production Control lives at `/production`. Header: Home · Production · Tournament
+- One Piece defaults to **Bo1**. Formats: Standard, Extra (all cards), Pre-release / Sealed, Championship top cut (Bo3)
+- Swiss overlay says Champion after the event is complete (Leader while it is running)
+- Export button is always available, not only after a match winner
 
 ### v0.2.1 — 17 Aug 2026 · patch
 
@@ -69,7 +85,8 @@ First tagged beta. This is the desk as it stands for venue use: Production, Tour
 
 | Surface | Path | Role |
 | --- | --- | --- |
-| Production | `/` | Featured match, scorebug, casters, overlays, look, arrange |
+| Home | `/` | Landing, Get Started, doors into Production and Tournament |
+| Production | `/production` | Featured match, scorebug, casters, overlays, look, arrange |
 | Tournament | `/tournament` | Roster, bracket, floor clock, team sheets, signup links |
 | Judge tablet | `/tablet` | Floor device for the featured match |
 | Walk-up signup | `/{game}/signup` | In-person player check-in for that game |

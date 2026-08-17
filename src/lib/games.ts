@@ -87,6 +87,7 @@ export const GAME_LIST: GameDef[] = [
       { id: "reg-i", label: "VGC 2026 Regulation I" },
       { id: "reg-h", label: "VGC 2026 Regulation H" },
       { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
     ],
   },
   {
@@ -115,6 +116,7 @@ export const GAME_LIST: GameDef[] = [
       { id: "standard", label: "Standard" },
       { id: "expanded", label: "Expanded" },
       { id: "pocket", label: "Pocket", resourceStart: 3, resourceMax: 3 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1, resourceStart: 4, resourceMax: 4 },
     ],
   },
   {
@@ -137,11 +139,13 @@ export const GAME_LIST: GameDef[] = [
     extraLabel: "Leader",
     extraPlaceholder: "Saka · Luffy · Yamato",
     scoreLabel: "Games",
-    defaultBestOf: 3,
+    defaultBestOf: 1,
     defaultScorebug: "bar",
     formats: [
-      { id: "official", label: "Official" },
-      { id: "life4", label: "4-life Leader", resourceStart: 4, resourceMax: 5 },
+      { id: "standard", label: "Standard", bestOf: 1 },
+      { id: "extra", label: "Extra (all cards)", bestOf: 1 },
+      { id: "sealed", label: "Pre-release / Sealed", bestOf: 1 },
+      { id: "championship", label: "Championship top cut", bestOf: 3 },
     ],
   },
   {
@@ -170,6 +174,7 @@ export const GAME_LIST: GameDef[] = [
       { id: "md", label: "Master Duel" },
       { id: "edison", label: "Edison" },
       { id: "goat", label: "Goat" },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
     ],
   },
   {
@@ -200,6 +205,7 @@ export const GAME_LIST: GameDef[] = [
       { id: "pioneer", label: "Pioneer", family: "constructed" },
       { id: "legacy", label: "Legacy", family: "constructed" },
       { id: "pauper", label: "Pauper", family: "constructed" },
+      { id: "prerelease", label: "Pre-release (Sealed)", family: "constructed", bestOf: 1 },
       {
         id: "commander",
         label: "Commander",
@@ -250,7 +256,10 @@ export const GAME_LIST: GameDef[] = [
     scoreLabel: "Games",
     defaultBestOf: 3,
     defaultScorebug: "bar",
-    formats: [{ id: "core", label: "Core Constructed" }],
+    formats: [
+      { id: "core", label: "Core Constructed" },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
+    ],
   },
   {
     id: "fab",
@@ -276,6 +285,7 @@ export const GAME_LIST: GameDef[] = [
     formats: [
       { id: "cc", label: "Classic Constructed", resourceStart: 40, resourceMax: 40 },
       { id: "blitz", label: "Blitz", resourceStart: 20, resourceMax: 20 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1, resourceStart: 20, resourceMax: 20 },
     ],
   },
   {
@@ -299,7 +309,10 @@ export const GAME_LIST: GameDef[] = [
     scoreLabel: "Games",
     defaultBestOf: 3,
     defaultScorebug: "bar",
-    formats: [{ id: "premier", label: "Premier" }],
+    formats: [
+      { id: "premier", label: "Premier" },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
+    ],
   },
   {
     id: "union-arena",
@@ -322,7 +335,10 @@ export const GAME_LIST: GameDef[] = [
     scoreLabel: "Games",
     defaultBestOf: 3,
     defaultScorebug: "bar",
-    formats: [{ id: "official", label: "Official" }],
+    formats: [
+      { id: "official", label: "Official" },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
+    ],
   },
   {
     id: "generic",
@@ -348,6 +364,7 @@ export const GAME_LIST: GameDef[] = [
     formats: [
       { id: "casual", label: "Casual" },
       { id: "tournament", label: "Tournament", bestOf: 3 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
     ],
   },
 ];
