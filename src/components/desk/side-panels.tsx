@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, signupPath, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, playerTabletPath, signupPath, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -754,10 +754,12 @@ export function PodPanel() {
   const rift = desk.gameId === "riftbound";
   const lorcana = desk.gameId === "lorcana";
   const path = tabletPath(desk.gameId);
+  const playerPath = playerTabletPath(desk.gameId);
+  const copyPath = mtg && commander ? playerPath : path;
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+      await navigator.clipboard.writeText(`${window.location.origin}${copyPath}`);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
@@ -774,7 +776,9 @@ export function PodPanel() {
           : tcg
             ? "Judge tablet — prizes, score, clock, and a card lookup for the floor."
             : mtg
-              ? "Judge tablet — life, poison, commander damage, score, clock, and Scryfall card lookup."
+              ? commander
+                ? "Two tablets: the player pad sits on the table for life, poison, and commander damage. The judge tablet keeps Scryfall and match report."
+                : "Judge tablet — life, poison, score, clock, and Scryfall card lookup. Open the player tablet if the table wants to tap their own life."
               : swu
                 ? "Judge tablet — base HP, score, clock, and SWU-DB card lookup."
                 : ygo
@@ -794,7 +798,7 @@ export function PodPanel() {
       ) : mtg ? (
         <p className="mt-2 text-xs text-ok">
           {commander
-            ? `${desk.formatName} · type an amount then + / − · Game / Match or Wins report to the desk.`
+            ? `${desk.formatName} · drop the player tablet in the middle of the table. Judge tablet still reports Wins and looks up cards.`
             : "Type an amount then + / −. Game and Match report to the desk and bracket."}
         </p>
       ) : swu ? (
@@ -812,15 +816,22 @@ export function PodPanel() {
       ) : (
         <p className="mt-2 text-xs text-ok">{desk.tableSize}-seat table · updates the stream bugs live.</p>
       )}
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <Button variant="secondary" size="sm" className="flex-1" onClick={() => void copy()}>
           {copied ? "Copied" : "Copy URL"}
         </Button>
         <Button variant="outline" size="sm" asChild>
           <a href={path} target="_blank" rel="noreferrer">
-            Open tablet
+            Open judge tablet
           </a>
         </Button>
+        {mtg ? (
+          <Button variant={commander ? "default" : "outline"} size="sm" asChild>
+            <a href={playerPath} target="_blank" rel="noreferrer">
+              Open player tablet
+            </a>
+          </Button>
+        ) : null}
       </div>
     </section>
   );

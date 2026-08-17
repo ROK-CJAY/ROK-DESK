@@ -23,6 +23,9 @@ export function CardSpotlightView({
               src={cardImageUrl(card.image, "high")}
               alt=""
               className="w-full rounded-xl shadow-[0_24px_60px_rgb(0_0_0_/_0.45)]"
+              onError={(event) => {
+                event.currentTarget.style.display = "none";
+              }}
             />
             <figcaption className="mt-3 rounded-lg bg-ov-panel/90 px-3 py-2">
               <p className="font-display text-2xl leading-none font-semibold tracking-wide text-ov-fg uppercase">

@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
-import { extraFieldFor, gameOf, isCommanderLane } from "@/lib/games";
+import { extraFieldFor, gameOf, isCommanderLane, playerTabletPath } from "@/lib/games";
 import {
   SEAT_LABELS,
   isCommanderTable,
@@ -93,6 +93,13 @@ export function MtgJudgeTablet() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {commander ? (
+              <Button variant="outline" size="sm" asChild>
+                <a href={playerTabletPath(desk.gameId)} target="_blank" rel="noreferrer">
+                  Player tablet
+                </a>
+              </Button>
+            ) : null}
             <Button variant="outline" size="sm" onClick={resetGame}>
               Reset life
             </Button>

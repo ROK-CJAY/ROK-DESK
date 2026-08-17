@@ -5,11 +5,17 @@ import { useDeskStore } from "@/lib/desk-store";
 
 export const Route = createFileRoute("/tablet")({
   ssr: false,
+  validateSearch: (raw: Record<string, unknown>): { role?: "judge" | "player" } => {
+    if (raw.role === "player") return { role: "player" };
+    if (raw.role === "judge") return { role: "judge" };
+    return {};
+  },
   component: TabletRedirect,
 });
 
 function TabletRedirect() {
   const navigate = useNavigate();
+  const { role } = Route.useSearch();
   const hydrate = useDeskStore((s) => s.hydrate);
   const ready = useDeskStore((s) => s.ready);
   const gameId = useDeskStore((s) => s.desk.gameId);
@@ -20,8 +26,13 @@ function TabletRedirect() {
 
   useEffect(() => {
     if (!ready) return;
-    void navigate({ to: "/$game/tablet", params: { game: slugOf(gameId) }, replace: true });
-  }, [ready, gameId, navigate]);
+    void navigate({
+      to: "/$game/tablet",
+      params: { game: slugOf(gameId) },
+      search: role === "player" ? { role: "player" } : {},
+      replace: true,
+    });
+  }, [ready, gameId, role, navigate]);
 
   return <div className="grid h-dvh place-items-center bg-bg text-muted">Opening tablet…</div>;
 }

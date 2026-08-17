@@ -28,7 +28,7 @@ const STEPS = [
   {
     n: "05",
     title: "Floor devices",
-    body: "Open the judge tablet on a floor iPad — it follows the featured match. The floor clock is a full-page timer for the rest of the room.",
+    body: "Open the judge tablet on a floor iPad — it follows the featured match. Commander also has a player tablet for the table to tap life. The floor clock is a full-page timer for the rest of the room.",
   },
 ];
 
@@ -121,6 +121,19 @@ export function Landing() {
                 <p className="font-medium">Judge tablet</p>
                 <p className="mt-1 text-sm text-muted">
                   Per-game floor pad. Open from Production or Tournament so it stays on that event.
+                </p>
+              </div>
+            </Link>
+            <Link
+              to="/tablet"
+              search={{ role: "player" }}
+              className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40"
+            >
+              <Tablet className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Player tablet</p>
+                <p className="mt-1 text-sm text-muted">
+                  Commander / cEDH table pad — life, poison, and commander damage facing the seats.
                 </p>
               </div>
             </Link>

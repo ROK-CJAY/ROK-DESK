@@ -13,6 +13,15 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 
 ## Updates
 
+### HOTFIX — 17 Aug 2026 · player tablet
+
+- **MTG player tablet** is back for Commander, cEDH, and Duel Commander. Production and Tournament have **Open player tablet** — a face-out table pad for life, poison, and commander damage. The judge tablet stays for Scryfall and match report.
+- **PTCG card lookup** now loads TCGdex art (`/high.webp` / `/low.webp`) instead of a broken folder URL.
+
+### HOTFIX — 17 Aug 2026
+
+- **Test mode** stays on after you turn it on. A leftover-demo cleanup was running on every refresh and flipping the switch back off after a second. That wipe now runs only once at boot.
+
 ### v0.2.2 — 17 Aug 2026 · patch
 
 #### Added

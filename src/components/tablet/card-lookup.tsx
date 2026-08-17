@@ -237,7 +237,7 @@ export function CardLookup({
                 )}
               >
                 {card.image ? (
-                  <img src={cardImageUrl(card.image, "low")} alt="" className="h-12 w-9 shrink-0 rounded-sm object-cover" />
+                  <CardArt image={card.image} size="low" className="h-12 w-9 shrink-0 rounded-sm object-cover" />
                 ) : (
                   <span className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-surface text-[0.6rem] text-muted">
                     —
@@ -288,6 +288,27 @@ export function CardLookup({
   );
 }
 
+function CardArt({
+  image,
+  size = "high",
+  className,
+}: {
+  image?: string;
+  size?: "low" | "high";
+  className?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const src = cardImageUrl(image, size);
+  if (!src || failed) {
+    return (
+      <span className={cn("grid place-items-center bg-surface text-[0.6rem] text-muted", className)}>
+        —
+      </span>
+    );
+  }
+  return <img key={src} src={src} alt="" className={className} onError={() => setFailed(true)} />;
+}
+
 function FilterChip({
   active,
   onClick,
@@ -322,7 +343,7 @@ function CardDetail({
   return (
     <article className="mt-3 grid gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[8.5rem_1fr]">
       {card.image ? (
-        <img src={cardImageUrl(card.image)} alt="" className="mx-auto w-32 rounded-md" />
+        <CardArt image={card.image} className="mx-auto w-32 rounded-md" />
       ) : (
         <div className="grid h-40 place-items-center rounded-md bg-surface text-xs text-muted">No art</div>
       )}

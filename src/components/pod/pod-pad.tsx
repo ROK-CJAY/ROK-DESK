@@ -12,11 +12,12 @@ import { RiftJudgeTablet } from "@/components/tablet/rift-judge";
 import { LorcanaJudgeTablet } from "@/components/tablet/lorcana-judge";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { isCommanderLane } from "@/lib/games";
 import { cn } from "@/lib/cn";
 
 const TABLE_ORDER: SeatId[] = ["p3", "p4", "p2", "p1"];
 
-export function PodPad() {
+export function PodPad({ role = "judge" }: { role?: "judge" | "player" }) {
   const ready = useDeskStore((s) => s.ready);
   const hydrate = useDeskStore((s) => s.hydrate);
   const desk = useDeskStore((s) => s.desk);
@@ -57,36 +58,38 @@ export function PodPad() {
     );
   }
 
-  if (desk.gameId === "pokemon-vgc") {
-    return <VgcJudgeTablet />;
-  }
+  if (role !== "player") {
+    if (desk.gameId === "pokemon-vgc") {
+      return <VgcJudgeTablet />;
+    }
 
-  if (desk.gameId === "pokemon-tcg") {
-    return <TcgJudgeTablet />;
-  }
+    if (desk.gameId === "pokemon-tcg") {
+      return <TcgJudgeTablet />;
+    }
 
-  if (desk.gameId === "mtg") {
-    return <MtgJudgeTablet />;
-  }
+    if (desk.gameId === "mtg") {
+      return <MtgJudgeTablet />;
+    }
 
-  if (desk.gameId === "swu") {
-    return <SwuJudgeTablet />;
-  }
+    if (desk.gameId === "swu") {
+      return <SwuJudgeTablet />;
+    }
 
-  if (desk.gameId === "yugioh") {
-    return <YgoJudgeTablet />;
-  }
+    if (desk.gameId === "yugioh") {
+      return <YgoJudgeTablet />;
+    }
 
-  if (desk.gameId === "one-piece") {
-    return <OpJudgeTablet />;
-  }
+    if (desk.gameId === "one-piece") {
+      return <OpJudgeTablet />;
+    }
 
-  if (desk.gameId === "riftbound") {
-    return <RiftJudgeTablet />;
-  }
+    if (desk.gameId === "riftbound") {
+      return <RiftJudgeTablet />;
+    }
 
-  if (desk.gameId === "lorcana") {
-    return <LorcanaJudgeTablet />;
+    if (desk.gameId === "lorcana") {
+      return <LorcanaJudgeTablet />;
+    }
   }
 
   const seats = desk.tableSize === 4 ? TABLE_ORDER : seatsFor(Math.max(desk.tableSize, 2) as 2 | 3 | 4);
@@ -95,10 +98,10 @@ export function PodPad() {
     <div className="pod-shell flex h-dvh flex-col bg-bg text-fg" data-game={desk.gameId}>
       <header className="flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <div className="min-w-0">
-          <p className="font-mono text-[0.6rem] tracking-[0.2em] text-muted uppercase">ROK · Tablet</p>
+          <p className="font-mono text-[0.6rem] tracking-[0.2em] text-muted uppercase">ROK · Player tablet</p>
           <p className="truncate text-sm text-fg">
             {desk.eventName}
-            <span className="text-muted"> · {desk.roundName}</span>
+            <span className="text-muted"> · {desk.formatName} · {desk.roundName}</span>
           </p>
         </div>
         <div className="flex gap-1.5">
@@ -132,7 +135,10 @@ export function PodPad() {
           <SeatPad
             key={seat}
             seat={seat}
-            rotate={faceOut && (seat === "p3" || seat === "p4")}
+            rotate={
+              faceOut &&
+              (desk.tableSize >= 4 ? seat === "p3" || seat === "p4" : seat === "p2")
+            }
             onLife={(d) => bumpResource(seat, d)}
             onPoison={(d) => bumpSecondary(seat, d)}
             onCmd={(d) => bumpCmdDamage(seat, d)}
@@ -158,11 +164,12 @@ function SeatPad({
   onCmd: (delta: number) => void;
 }) {
   const player = useDeskStore((s) => s.desk[seat]);
+  const commander = useDeskStore((s) => isCommanderLane(s.desk));
   const life = player.resource;
   const poison = player.secondary;
   const cmd = player.cmdDamage;
   const out = life <= 0;
-  const lethal = cmd >= 21 || poison >= 10;
+  const lethal = commander && (cmd >= 21 || poison >= 10);
 
   return (
     <section
@@ -181,7 +188,7 @@ function SeatPad({
             <p className="font-display truncate text-xl leading-none font-semibold uppercase">
               {player.name || "Open"}
             </p>
-            <p className="truncate text-xs text-muted">{player.archetype || "Commander"}</p>
+            <p className="truncate text-xs text-muted">{player.archetype || (commander ? "Commander" : "Open")}</p>
           </div>
           {out || lethal ? <Skull className="size-4 text-live" /> : null}
         </div>
@@ -220,9 +227,11 @@ function SeatPad({
           <DeltaPad onDelta={onLife} size="tablet" />
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className={cn("mt-3 grid gap-2", commander ? "grid-cols-2" : "grid-cols-1")}>
           <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} max={10} />
-          <CounterChip label="Cmd" value={cmd} danger={cmd >= 21} onDelta={onCmd} max={21} />
+          {commander ? (
+            <CounterChip label="Cmd" value={cmd} danger={cmd >= 21} onDelta={onCmd} max={21} />
+          ) : null}
         </div>
       </div>
     </section>

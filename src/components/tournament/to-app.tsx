@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, signupPath, tabletPath } from "@/lib/games";
+import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
@@ -490,11 +490,20 @@ function StreamPanel() {
           ))
         )}
       </ul>
-      <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
-        <a href={tabletPath(t.gameId)} target="_blank" rel="noreferrer">
-          Open judge tablet
-        </a>
-      </Button>
+      <div className="mt-3 flex flex-col gap-2">
+        <Button variant="outline" size="sm" className="w-full" asChild>
+          <a href={tabletPath(t.gameId)} target="_blank" rel="noreferrer">
+            Open judge tablet
+          </a>
+        </Button>
+        {t.gameId === "mtg" ? (
+          <Button variant="secondary" size="sm" className="w-full" asChild>
+            <a href={playerTabletPath(t.gameId)} target="_blank" rel="noreferrer">
+              Open player tablet
+            </a>
+          </Button>
+        ) : null}
+      </div>
     </section>
   );
 }

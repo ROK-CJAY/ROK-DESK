@@ -87,7 +87,7 @@ const COPY: Record<
       },
       {
         title: "Commander and cEDH are the pod",
-        body: "Four seats, each with life, poison, and commander damage. Wins marks the table winner. Duel Commander stays two seats with commander damage.",
+        body: "Four seats, each with life, poison, and commander damage. Wins marks the table winner. For the players themselves, open Player tablet — it sits in the middle of the table with seats facing out. Duel Commander stays two seats with commander damage.",
       },
       {
         title: "Clock is the streamed match",

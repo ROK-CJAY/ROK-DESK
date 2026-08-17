@@ -380,6 +380,10 @@ export function tabletPath(gameId: GameId): string {
   return `/${slugOf(gameId)}/tablet`;
 }
 
+export function playerTabletPath(gameId: GameId): string {
+  return `/${slugOf(gameId)}/tablet?role=player`;
+}
+
 export function formatFamilyOf(preset?: FormatPreset): FormatFamily {
   return preset?.family ?? "constructed";
 }

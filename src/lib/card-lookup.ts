@@ -43,9 +43,58 @@ export function cardLookupReady(): boolean {
 
 export function cardImageUrl(image?: string, size: "low" | "high" = "high"): string {
   if (!image) return "";
-  if (/\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(image)) return image;
-  if (image.startsWith("/api/") || /^https?:\/\//i.test(image)) return image;
-  return `${image}/${size}.webp`;
+  const src = image.trim().replace(/\/+$/, "");
+  if (!src) return "";
+  if (/\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(src)) return src;
+  if (src.startsWith("/api/")) return src;
+  // TCGdex (and similar) return an assets prefix, not a file: …/en/me/me02/013
+  if (/assets\.tcgdex\.net/i.test(src) || !/\.[a-z0-9]{2,5}$/i.test(src)) {
+    return `${src}/${size}.webp`;
+  }
+  return src;
+}
+
+const TCGDEX_SERIES = [
+  "swsh",
+  "sv",
+  "sm",
+  "xy",
+  "bw",
+  "hgss",
+  "ecard",
+  "base",
+  "gym",
+  "neo",
+  "lc",
+  "ex",
+  "pop",
+  "tk",
+  "dp",
+  "pl",
+  "col",
+  "mc",
+  "tcgp",
+  "misc",
+  "me",
+] as const;
+
+export function tcgdexImagePrefix(setId?: string, localId?: string): string {
+  if (!setId || !localId) return "";
+  const serie = inferTcgdexSerie(setId);
+  if (!serie) return "";
+  return `https://assets.tcgdex.net/en/${serie}/${setId}/${localId}`;
+}
+
+function inferTcgdexSerie(setId: string): string | null {
+  const id = setId.toLowerCase();
+  if (/^\d{4}(sv|swsh|sm|xy|bw)/.test(id)) return "mc";
+  let best: string | null = null;
+  for (const serie of TCGDEX_SERIES) {
+    if (id === serie || id.startsWith(serie)) {
+      if (!best || serie.length > best.length) best = serie;
+    }
+  }
+  return best;
 }
 
 export async function searchLookupCards(query: string, liveOnly = true): Promise<LookupCard[]> {
@@ -274,6 +323,13 @@ function normalizeList(data: unknown): LookupCard[] {
 function normalizeCard(item: Record<string, unknown>): LookupCard {
   const set = isRecord(item.set) ? item.set : null;
   const types = Array.isArray(item.types) ? item.types.map(String) : [];
+  const id = String(item.id ?? item.name ?? "");
+  const number = item.localId != null ? String(item.localId) : item.number ? String(item.number) : undefined;
+  const setId = set?.id ? String(set.id) : id.includes("-") ? id.slice(0, id.lastIndexOf("-")) : undefined;
+  const image =
+    item.image
+      ? String(item.image)
+      : tcgdexImagePrefix(setId, number) || undefined;
   const attacks = Array.isArray(item.attacks)
     ? item.attacks.flatMap((row) => {
         if (!isRecord(row) || !row.name) return [];
@@ -301,11 +357,11 @@ function normalizeCard(item: Record<string, unknown>): LookupCard {
         ? String(item.text)
         : undefined;
   return {
-    id: String(item.id ?? item.name ?? ""),
+    id,
     name: String(item.name ?? "").trim(),
     set: set?.name ? String(set.name) : item.set ? String(item.set) : undefined,
-    number: item.localId != null ? String(item.localId) : item.number ? String(item.number) : undefined,
-    image: item.image ? String(item.image) : undefined,
+    number,
+    image,
     type: types.join(" / ") || (item.trainerType ? String(item.trainerType) : item.category ? String(item.category) : undefined),
     text,
     category: item.category ? String(item.category) : undefined,
