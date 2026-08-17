@@ -34,6 +34,7 @@ export const SCRYFALL_BASE = "https://api.scryfall.com";
 export const SWU_PROXY = "/api/swu-cards";
 export const YGO_PROXY = "/api/ygo-cards";
 export const OP_PROXY = "/api/op-cards";
+export const RIFT_PROXY = "/api/rift-cards";
 
 export function cardLookupReady(): boolean {
   return true;
@@ -204,6 +205,33 @@ export async function fetchOpCard(id: string): Promise<LookupCard | null> {
   return row ? normalizeOp(row) : null;
 }
 
+export async function searchRiftCards(query: string): Promise<LookupCard[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const url = new URL(RIFT_PROXY, window.location.origin);
+  url.searchParams.set("q", q);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) throw new Error(`Riftbound lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  const rows = isRecord(data) && Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : [];
+  return rows.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeRift(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function fetchRiftCard(id: string): Promise<LookupCard | null> {
+  if (!id) return null;
+  const url = new URL(RIFT_PROXY, window.location.origin);
+  url.searchParams.set("id", id);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as unknown;
+  if (!isRecord(data)) return null;
+  return normalizeRift(data);
+}
+
 function normalizeList(data: unknown): LookupCard[] {
   const rows = Array.isArray(data) ? data : [];
   const cards: LookupCard[] = [];
@@ -353,6 +381,36 @@ function normalizeOp(item: Record<string, unknown>): LookupCard {
     hp: power || undefined,
     rarity: [item.rarity, power ? `${power} power` : "", counter ? `${counter} counter` : ""].filter(Boolean).map(String).join(" · ") || undefined,
     category: item.category ? String(item.category) : undefined,
+  };
+}
+
+function normalizeRift(item: Record<string, unknown>): LookupCard {
+  const classification = isRecord(item.classification) ? item.classification : {};
+  const attributes = isRecord(item.attributes) ? item.attributes : {};
+  const textBlock = isRecord(item.text) ? item.text : {};
+  const set = isRecord(item.set) ? item.set : {};
+  const media = isRecord(item.media) ? item.media : {};
+  const domains = Array.isArray(classification.domain) ? classification.domain.map(String).join(" / ") : "";
+  const energy = attributes.energy != null ? String(attributes.energy) : "";
+  const might = attributes.might != null ? String(attributes.might) : "";
+  const power = attributes.power != null ? String(attributes.power) : "";
+  const stats = [
+    energy ? `Energy ${energy}` : "",
+    might ? `Might ${might}` : "",
+    power ? `Power ${power}` : "",
+  ].filter(Boolean);
+  return {
+    id: String(item.id ?? ""),
+    name: String(item.name ?? "").trim(),
+    set: set.label ? String(set.label) : set.set_id ? String(set.set_id) : undefined,
+    number: item.riftbound_id ? String(item.riftbound_id) : item.collector_number != null ? String(item.collector_number) : undefined,
+    image: media.image_url ? String(media.image_url) : undefined,
+    type: [classification.type, classification.supertype, domains].filter(Boolean).map(String).join(" · ") || undefined,
+    text: textBlock.plain ? String(textBlock.plain) : textBlock.rich ? String(textBlock.rich).replace(/<[^>]+>/g, "") : undefined,
+    mana: energy || undefined,
+    hp: might || undefined,
+    rarity: [classification.rarity, ...stats].filter(Boolean).map(String).join(" · ") || undefined,
+    category: classification.type ? String(classification.type) : undefined,
   };
 }
 

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, signupPath } from "@/lib/games";
+import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, signupPath, tabletPath } from "@/lib/games";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
@@ -490,6 +490,11 @@ function StreamPanel() {
           ))
         )}
       </ul>
+      <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
+        <a href={tabletPath(t.gameId)} target="_blank" rel="noreferrer">
+          Open judge tablet
+        </a>
+      </Button>
     </section>
   );
 }

@@ -9,12 +9,14 @@ export type TabletGuideKind =
   | "swu"
   | "ygo"
   | "op"
+  | "rift"
   | "table"
   | "cards"
   | "mtg-cards"
   | "swu-cards"
   | "ygo-cards"
-  | "op-cards";
+  | "op-cards"
+  | "rift-cards";
 
 const STORAGE_KEY = "rok-tablet-guide";
 
@@ -256,6 +258,48 @@ const COPY: Record<
       {
         title: "Leaders, characters, events, stages",
         body: "Parallels are hidden so you get one printing of each card. Art comes from the official card list.",
+      },
+      {
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  rift: {
+    kicker: "Judge tablet",
+    title: "How this Riftbound pad works",
+    lead: "You’re holding the floor copy of the live match. Points here are conquer / hold score — first to 8 wins the game.",
+    steps: [
+      {
+        title: "Tap points 1–8",
+        body: "Each tap sets that player’s points. Tap the current number again to step back one. First to 8 — last point from a hold or scoring both battlefields in one turn.",
+      },
+      {
+        title: "Game vs Match",
+        body: "Game scores the game, fires the game-win bug, and resets points for the next game. Match fires the match-win bug and, if this pair was sent from Tournament, advances the bracket.",
+      },
+      {
+        title: "Run the clock",
+        body: "This clock is the streamed match only. Type a time and Set, then Start / Pause. +1m / +3m / −1m adjust it. The floor clock lives on Tournament control.",
+      },
+      {
+        title: "Card lookup",
+        body: "Search at the bottom. Tap a result to read the printed text. Show on stream puts the art on the Card overlay. Clear takes it off.",
+      },
+    ],
+  },
+  "rift-cards": {
+    kicker: "Card lookup",
+    title: "How to pull a Riftbound card",
+    lead: "This search uses Riftcodex (community card API built from public Riftbound data) so you can read the printed card and send the art to the stream.",
+    steps: [
+      {
+        title: "Type at least two letters",
+        body: "Champion or card name is enough — Jinx, Volibear, Hidden Blade. Results appear as you type.",
+      },
+      {
+        title: "Points, type, domains",
+        body: "Energy, Might, and Power show with the type and domain (Fury, Calm, Mind, Body, Chaos, Order).",
       },
       {
         title: "Show on stream when you need it",

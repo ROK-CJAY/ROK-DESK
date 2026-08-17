@@ -84,19 +84,8 @@ const DECKS: Record<GameId, string[]> = {
     "Ruby/Sapphire",
     "Steel Challenger",
   ],
-  fab: ["Dorinthea", "Bravo", "Azalea", "Katsu", "Dash", "Prism", "Rhinar", "Fai"],
   swu: ["Vader", "Sabine", "Luke", "Boba Fett", "Han Solo", "Iden Versio", "Leia", "Thrawn"],
-  "union-arena": [
-    "JJK Gojo",
-    "CSM Denji",
-    "Demon Slayer",
-    "Hunter x Hunter",
-    "Code Geass",
-    "Bleach",
-    "Kaiju No. 8",
-    "Frieren",
-  ],
-  generic: ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel"],
+  riftbound: ["Jinx", "Volibear", "Annie", "Lee Sin", "Ahri", "Sett", "Kai'Sa", "Master Yi"],
 };
 
 const COMMANDERS = [
@@ -126,7 +115,7 @@ export function testCasters(): [Caster, Caster] {
 
 export function testPlayersFor(gameId: GameId, formatName: string): TestPlayer[] {
   const commander = isCommanderLane({ gameId, formatName });
-  const decks = commander ? COMMANDERS : (DECKS[gameId] ?? DECKS.generic);
+  const decks = commander ? COMMANDERS : (DECKS[gameId] ?? DECKS["pokemon-tcg"]);
   return PEOPLE.map((person, i) => ({
     ...person,
     deck: decks[i] ?? `Seat ${i + 1}`,

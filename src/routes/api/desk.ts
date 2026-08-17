@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { deskLaneOf, deskSchema } from "@/lib/desk-types";
+import { deskLaneOf, deskSchema, mergeDeskLane } from "@/lib/desk-types";
 import { gameIdFromSlug } from "@/lib/games";
 import { loadDesk, saveDesk } from "@/lib/desk-server";
 
@@ -33,6 +33,16 @@ export const Route = createFileRoute("/api/desk")({
             { error: "Invalid desk state", details: parsed.error.flatten() },
             { status: 400, headers: noStore },
           );
+        }
+        const wanted = new URL(request.url).searchParams.get("game");
+        const gameId = wanted ? gameIdFromSlug(wanted) : null;
+        if (wanted && !gameId) {
+          return Response.json({ error: "Unknown game" }, { status: 404, headers: noStore });
+        }
+        if (gameId) {
+          const live = await loadDesk();
+          const desk = await saveDesk(mergeDeskLane(live, gameId, parsed.data));
+          return Response.json(deskLaneOf(desk, gameId), { headers: noStore });
         }
         const desk = await saveDesk(parsed.data);
         return Response.json(desk, { headers: noStore });

@@ -68,8 +68,7 @@ export function Landing() {
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
           ROK Desk runs the tournament and the broadcast from the same event. Pairings,
           walk-up sign-up, judge tablets, and 1920×1080 overlays for Pokémon VGC, PTCG,
-          One Piece, Yu-Gi-Oh!, Magic, Lorcana, Flesh and Blood, Star Wars Unlimited,
-          Union Arena, and tabletop.
+          One Piece, Yu-Gi-Oh!, Magic, Lorcana, Star Wars Unlimited, and Riftbound.
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -120,7 +119,9 @@ export function Landing() {
               <Tablet className="mt-0.5 size-4 shrink-0 text-muted" />
               <div>
                 <p className="font-medium">Judge tablet</p>
-                <p className="mt-1 text-sm text-muted">Floor pad for the featured match — score, clock, card search.</p>
+                <p className="mt-1 text-sm text-muted">
+                  Per-game floor pad. Open from Production or Tournament so it stays on that event.
+                </p>
               </div>
             </Link>
             <Link to="/overlay" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">

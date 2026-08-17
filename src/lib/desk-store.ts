@@ -18,7 +18,7 @@ import {
   type SideId,
   type TableSize,
 } from "@/lib/desk-types";
-import { gameOf, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
+import { gameOf, slugOf, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
 import { clearLegacyDesk, deskLooksLikeTest, toggleTestDesk } from "@/lib/test-fixtures";
 import {
   CANVAS_H,
@@ -35,7 +35,8 @@ import {
 type DeskStore = {
   desk: DeskState;
   ready: boolean;
-  hydrate: () => Promise<void>;
+  pinnedGameId: GameId | null;
+  hydrate: (gameId?: GameId | null) => Promise<void>;
   setDesk: (desk: DeskState) => void;
   patch: (partial: Partial<DeskState>) => void;
   setPlayer: (side: SideId, partial: Partial<PlayerSide>) => void;
@@ -89,12 +90,17 @@ type DeskStore = {
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pollTimer: number | null = null;
 
+function deskApiUrl(): string {
+  const pin = useDeskStore.getState().pinnedGameId;
+  return pin ? `/api/desk?game=${encodeURIComponent(slugOf(pin))}` : "/api/desk";
+}
+
 function startDeskPoll() {
   if (pollTimer || typeof window === "undefined") return;
   pollTimer = window.setInterval(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/desk", { cache: "no-store" });
+        const res = await fetch(deskApiUrl(), { cache: "no-store" });
         if (!res.ok) return;
         const parsed = parseDesk(await res.json());
         if (!parsed) return;
@@ -115,7 +121,7 @@ function persist(desk: DeskState, immediate = false) {
     ...desk,
     lanes: { ...desk.lanes, [desk.gameId]: stripLane(desk) },
   };
-  if (typeof window !== "undefined") {
+  if (typeof window !== "undefined" && !useDeskStore.getState().pinnedGameId) {
     try {
       window.localStorage.setItem("rok-desk", JSON.stringify(next));
     } catch {
@@ -123,7 +129,7 @@ function persist(desk: DeskState, immediate = false) {
     }
   }
   const write = () => {
-    void fetch("/api/desk", {
+    void fetch(deskApiUrl(), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(next),
@@ -184,15 +190,18 @@ function layoutForTable(prev: LayoutMap, tableSize: TableSize): LayoutMap {
 export const useDeskStore = create<DeskStore>((set, get) => ({
   desk: defaultDesk(),
   ready: false,
+  pinnedGameId: null,
   focusedSeat: "p1",
 
   setFocusedSeat: (seat) => set({ focusedSeat: seat }),
 
-  hydrate: async () => {
+  hydrate: async (gameId) => {
+    const pin = gameId === undefined ? get().pinnedGameId : gameId;
+    set({ pinnedGameId: pin });
     let next = defaultDesk();
     let stripped = false;
     try {
-      const res = await fetch("/api/desk", { cache: "no-store" });
+      const res = await fetch(deskApiUrl(), { cache: "no-store" });
       if (res.ok) {
         const parsed = parseDesk(await res.json());
         if (parsed) {
@@ -202,7 +211,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         }
       }
     } catch {
-      if (typeof window !== "undefined") {
+      if (typeof window !== "undefined" && !pin) {
         const raw = window.localStorage.getItem("rok-desk");
         const parsed = raw ? parseDesk(raw) : null;
         if (parsed) {
@@ -212,14 +221,14 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         }
       }
     }
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !pin) {
       try {
         window.localStorage.setItem("rok-desk", JSON.stringify(next));
       } catch {
         /* ignore */
       }
     }
-    set({ desk: next, ready: true });
+    set({ desk: next, ready: true, pinnedGameId: pin });
     if (stripped) persist(next, true);
     if (typeof window !== "undefined") startDeskPoll();
   },

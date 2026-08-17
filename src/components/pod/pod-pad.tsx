@@ -8,6 +8,7 @@ import { MtgJudgeTablet } from "@/components/tablet/mtg-judge";
 import { SwuJudgeTablet } from "@/components/tablet/swu-judge";
 import { YgoJudgeTablet } from "@/components/tablet/ygo-judge";
 import { OpJudgeTablet } from "@/components/tablet/op-judge";
+import { RiftJudgeTablet } from "@/components/tablet/rift-judge";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { cn } from "@/lib/cn";
@@ -77,6 +78,10 @@ export function PodPad() {
 
   if (desk.gameId === "one-piece") {
     return <OpJudgeTablet />;
+  }
+
+  if (desk.gameId === "riftbound") {
+    return <RiftJudgeTablet />;
   }
 
   const seats = desk.tableSize === 4 ? TABLE_ORDER : seatsFor(Math.max(desk.tableSize, 2) as 2 | 3 | 4);

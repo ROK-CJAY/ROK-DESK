@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, signupPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, signupPath, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -751,7 +751,8 @@ export function PodPanel() {
   const swu = desk.gameId === "swu";
   const ygo = desk.gameId === "yugioh";
   const op = desk.gameId === "one-piece";
-  const path = "/tablet";
+  const rift = desk.gameId === "riftbound";
+  const path = tabletPath(desk.gameId);
 
   const copy = async () => {
     try {
@@ -779,7 +780,9 @@ export function PodPanel() {
                   ? "Judge tablet — life points, score, clock, and YGOPRODeck card lookup."
                   : op
                     ? "Judge tablet — life, DON!!, score, clock, and official OP card lookup."
-                    : "Player tablet for the live table. Each game uses its own layout."}
+                    : rift
+                      ? "Judge tablet — first-to-8 points, score, clock, and Riftcodex card lookup."
+                      : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
         <p className="mt-2 text-xs text-ok">Card lookup uses Pokémon TCG Live (TCGdex) data.</p>
@@ -797,6 +800,8 @@ export function PodPanel() {
         <p className="mt-2 text-xs text-ok">Life points default to 100 ticks. Game and Match report to the desk and bracket.</p>
       ) : op ? (
         <p className="mt-2 text-xs text-ok">Tap life. Type DON!! then + / −. Game and Match report to the desk and bracket.</p>
+      ) : rift ? (
+        <p className="mt-2 text-xs text-ok">Tap points 1–8. Game and Match report to the desk and bracket. Search cards below on the pad.</p>
       ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>
       ) : (

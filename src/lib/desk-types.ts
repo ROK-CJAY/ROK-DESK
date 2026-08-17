@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type BestOf, type GameId, type ScorebugStyle, gameOf } from "@/lib/games";
+import { type BestOf, type GameId, type ScorebugStyle, coerceGameId, gameOf } from "@/lib/games";
 import { DEFAULT_LAYOUT, mergeLayout, type LayoutMap } from "@/lib/layout";
 import { DEFAULT_LOOK_BOOK, mergeLookBook, type OverlayLookBook } from "@/lib/overlay-look";
 import { type Sponsor } from "@/lib/sponsors";
@@ -197,18 +197,7 @@ const casterSchema: z.ZodType<Caster> = z.object({
 
 export const deskSchema: z.ZodType<DeskState> = z.object({
   version: z.number(),
-  gameId: z.enum([
-    "pokemon-vgc",
-    "pokemon-tcg",
-    "one-piece",
-    "yugioh",
-    "mtg",
-    "lorcana",
-    "fab",
-    "swu",
-    "union-arena",
-    "generic",
-  ]),
+  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
   eventName: z.string(),
   eventPhase: z.string(),
   roundName: z.string(),
@@ -462,6 +451,7 @@ export function parseDesk(raw: unknown): DeskState | null {
   const merged = {
     ...base,
     ...incoming,
+    gameId: coerceGameId(incoming.gameId, base.gameId),
     p1: mergePlayer(base.p1, incoming.p1),
     p2: mergePlayer(base.p2, incoming.p2),
     p3: mergePlayer(base.p3, incoming.p3),
@@ -523,6 +513,23 @@ export function deskLaneOf(live: DeskState, gameId: GameId): DeskState {
     winnerSide: null,
     gameWinnerSide: null,
     lanes: live.lanes,
+  };
+}
+
+export function mergeDeskLane(live: DeskState, gameId: GameId, incoming: DeskState): DeskState {
+  const lane = stripLane({ ...incoming, gameId });
+  if (live.gameId === gameId) {
+    return {
+      ...incoming,
+      gameId,
+      version: Math.max(live.version, incoming.version) + 1,
+      lanes: { ...live.lanes, [gameId]: lane },
+    };
+  }
+  return {
+    ...live,
+    version: live.version + 1,
+    lanes: { ...live.lanes, [gameId]: lane },
   };
 }
 

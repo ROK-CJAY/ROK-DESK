@@ -1,14 +1,15 @@
-export type GameId =
-  | "pokemon-vgc"
-  | "pokemon-tcg"
-  | "one-piece"
-  | "yugioh"
-  | "mtg"
-  | "lorcana"
-  | "fab"
-  | "swu"
-  | "union-arena"
-  | "generic";
+export const GAME_IDS = [
+  "pokemon-vgc",
+  "pokemon-tcg",
+  "one-piece",
+  "yugioh",
+  "mtg",
+  "lorcana",
+  "swu",
+  "riftbound",
+] as const;
+
+export type GameId = (typeof GAME_IDS)[number];
 
 export type ResourceKind = "pips" | "life" | "points";
 export type ScorebugStyle = "bar" | "split";
@@ -31,7 +32,7 @@ export type GameDef = {
   id: GameId;
   name: string;
   short: string;
-  category: "VGC" | "TCG" | "Tabletop";
+  category: "VGC" | "TCG";
   resource: {
     kind: ResourceKind;
     label: string;
@@ -262,33 +263,6 @@ export const GAME_LIST: GameDef[] = [
     ],
   },
   {
-    id: "fab",
-    name: "Flesh and Blood",
-    short: "FaB",
-    category: "TCG",
-    resource: {
-      kind: "life",
-      label: "Life",
-      shortLabel: "LIFE",
-      min: 0,
-      max: 40,
-      start: 20,
-      step: 1,
-      invertWin: true,
-      pips: false,
-    },
-    extraLabel: "Hero",
-    extraPlaceholder: "Dorinthea · Bravo · Azalea",
-    scoreLabel: "Games",
-    defaultBestOf: 3,
-    defaultScorebug: "bar",
-    formats: [
-      { id: "cc", label: "Classic Constructed", resourceStart: 40, resourceMax: 40 },
-      { id: "blitz", label: "Blitz", resourceStart: 20, resourceMax: 20 },
-      { id: "prerelease", label: "Pre-release", bestOf: 1, resourceStart: 20, resourceMax: 20 },
-    ],
-  },
-  {
     id: "swu",
     name: "Star Wars Unlimited",
     short: "SWU",
@@ -315,56 +289,31 @@ export const GAME_LIST: GameDef[] = [
     ],
   },
   {
-    id: "union-arena",
-    name: "Union Arena",
-    short: "UA",
+    id: "riftbound",
+    name: "Riftbound",
+    short: "RB",
     category: "TCG",
-    resource: {
-      kind: "pips",
-      label: "Life",
-      shortLabel: "LIFE",
-      min: 0,
-      max: 7,
-      start: 7,
-      step: 1,
-      invertWin: true,
-      pips: true,
-    },
-    extraLabel: "Set / Character",
-    extraPlaceholder: "JJK · CSM",
-    scoreLabel: "Games",
-    defaultBestOf: 3,
-    defaultScorebug: "bar",
-    formats: [
-      { id: "official", label: "Official" },
-      { id: "prerelease", label: "Pre-release", bestOf: 1 },
-    ],
-  },
-  {
-    id: "generic",
-    name: "Tabletop / Other",
-    short: "TT",
-    category: "Tabletop",
     resource: {
       kind: "points",
       label: "Points",
       shortLabel: "PTS",
       min: 0,
-      max: 99,
+      max: 8,
       start: 0,
       step: 1,
       invertWin: false,
-      pips: false,
+      pips: true,
     },
-    extraLabel: "Faction / List",
-    extraPlaceholder: "Army · Color · School",
+    extraLabel: "Champion",
+    extraPlaceholder: "Jinx · Volibear · Annie",
     scoreLabel: "Games",
-    defaultBestOf: 1,
+    defaultBestOf: 3,
     defaultScorebug: "bar",
     formats: [
-      { id: "casual", label: "Casual" },
-      { id: "tournament", label: "Tournament", bestOf: 3 },
+      { id: "standard", label: "Standard", bestOf: 3 },
+      { id: "limited", label: "Limited / Sealed", bestOf: 3 },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
+      { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
     ],
   },
 ];
@@ -388,10 +337,16 @@ export const GAME_SLUG: Record<GameId, string> = {
   yugioh: "ygo",
   mtg: "mtg",
   lorcana: "lorcana",
-  fab: "fab",
   swu: "swu",
-  "union-arena": "ua",
-  generic: "tt",
+  riftbound: "rb",
+};
+
+const RETIRED_GAMES: Record<string, GameId> = {
+  fab: "pokemon-tcg",
+  "union-arena": "pokemon-tcg",
+  generic: "pokemon-tcg",
+  ua: "pokemon-tcg",
+  tt: "pokemon-tcg",
 };
 
 const SLUG_TO_GAME = Object.fromEntries(
@@ -405,11 +360,21 @@ export function slugOf(gameId: GameId): string {
 export function gameIdFromSlug(slug: string): GameId | null {
   const key = slug.trim().toLowerCase();
   if (isGameId(key)) return key;
+  if (RETIRED_GAMES[key]) return RETIRED_GAMES[key]!;
   return SLUG_TO_GAME[key] ?? null;
+}
+
+export function coerceGameId(value: unknown, fallback: GameId = "pokemon-tcg"): GameId {
+  if (typeof value !== "string") return fallback;
+  return gameIdFromSlug(value) ?? fallback;
 }
 
 export function signupPath(gameId: GameId): string {
   return `/${slugOf(gameId)}/signup`;
+}
+
+export function tabletPath(gameId: GameId): string {
+  return `/${slugOf(gameId)}/tablet`;
 }
 
 export function formatFamilyOf(preset?: FormatPreset): FormatFamily {
@@ -457,7 +422,6 @@ export function playerIdField(gameId: GameId): PlayerIdField {
         policyUrl: "https://www.pokemon.com/us/privacy-notice",
       };
     case "one-piece":
-    case "union-arena":
       return {
         label: "Bandai TCG+ ID",
         placeholder: "000000000",
@@ -489,14 +453,6 @@ export function playerIdField(gameId: GameId): PlayerIdField {
         policyName: "Ravensburger Privacy Policy",
         policyUrl: "https://www.ravensburger.us/discover/service/privacy-policy/index.html",
       };
-    case "fab":
-      return {
-        label: "GEM ID",
-        placeholder: "GEM-000000",
-        hint: "Your Flesh and Blood GEM (LSS) player ID.",
-        policyName: "Legend Story Studios Privacy Policy",
-        policyUrl: "https://fabtcg.com/en/privacy-policy/",
-      };
     case "swu":
       return {
         label: "SWU-Stats / OP ID",
@@ -504,6 +460,14 @@ export function playerIdField(gameId: GameId): PlayerIdField {
         hint: "Your SWU-Stats or organized play ID.",
         policyName: "Asmodee Privacy Policy",
         policyUrl: "https://privacy.asmodee.com/",
+      };
+    case "riftbound":
+      return {
+        label: "Riot ID",
+        placeholder: "Name#TAG",
+        hint: "Riot ID linked on your Riftbound / Carde.io organized-play account.",
+        policyName: "Riot Games Privacy Notice",
+        policyUrl: "https://www.riotgames.com/en/privacy-notice",
       };
     default:
       return {

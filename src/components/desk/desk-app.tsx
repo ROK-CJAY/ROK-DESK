@@ -50,7 +50,8 @@ export function DeskApp() {
     desk.gameId === "mtg" ||
     desk.gameId === "swu" ||
     desk.gameId === "yugioh" ||
-    desk.gameId === "one-piece";
+    desk.gameId === "one-piece" ||
+    desk.gameId === "riftbound";
 
   return (
     <TooltipProvider delayDuration={250}>

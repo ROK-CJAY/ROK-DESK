@@ -1,8 +1,8 @@
 # ROK Desk
 
-**v0.3.0 beta** — landing and Swiss close. Broadcast production desk for ROK Esports.
+**v0.3.1 beta** — Riftbound and pinned tablets. Broadcast production desk for ROK Esports.
 
-One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Flesh and Blood, Star Wars Unlimited, Union Arena, and generic tabletop.
+One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Star Wars Unlimited, and Riftbound.
 
 Versioning while the desk is in beta: **v0.MAJOR.PATCH**  
 `MAJOR` is a development milestone. `PATCH` is a fix or small follow-up inside that milestone.
@@ -12,6 +12,19 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### v0.3.1 — 17 Aug 2026 · patch
+
+Riftbound on the desk, and judge tablets that stay with their event.
+
+#### Added
+- **Riftbound** — first-to-8 points, Standard / Limited Bo3, Pre-release and Bo1 Swiss, Riot ID on signup
+- Riftbound **judge tablet** — point pad, Game / Match, stream clock, and **Riftcodex** card search (Show on stream / Clear)
+- Per-game tablet URLs: `/{game}/tablet` (for example `/rb/tablet`). `/tablet` opens the current title, then stays there
+
+#### Changed
+- Judge tablet no longer follows Production when you switch games — score, clock, and cards write only to that event
+- Title list is VGC, PTCG, One Piece, Yu-Gi-Oh!, MTG, Lorcana, SWU, and Riftbound (FaB, Union Arena, and Tabletop are off the picker for now)
 
 ### v0.3.0 — 17 Aug 2026 · landing & Swiss close
 
@@ -88,7 +101,7 @@ First tagged beta. This is the desk as it stands for venue use: Production, Tour
 | Home | `/` | Landing, Get Started, doors into Production and Tournament |
 | Production | `/production` | Featured match, scorebug, casters, overlays, look, arrange |
 | Tournament | `/tournament` | Roster, bracket, floor clock, team sheets, signup links |
-| Judge tablet | `/tablet` | Floor device for the featured match |
+| Judge tablet | `/{game}/tablet` | Floor device for that game’s event. `/tablet` opens the current title |
 | Walk-up signup | `/{game}/signup` | In-person player check-in for that game |
 | VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon VG team list |
 | Overlay index | `/overlay` | Browser-source list |
@@ -159,7 +172,7 @@ Add as OBS or vMix **Browser** sources: 1920×1080, transparent, no custom CSS. 
 | Sponsors | `/{game}/overlay/sponsors` |
 | Event logo | `/{game}/overlay/event-logo` |
 
-Game slugs: `vgc`, `ptcg`, `one-piece`, `yugioh`, `mtg`, `lorcana`, `fab`, `swu`, `union-arena`, `generic`.
+Game slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
 Empty card / sponsor / event-logo sources stay fully transparent.
 

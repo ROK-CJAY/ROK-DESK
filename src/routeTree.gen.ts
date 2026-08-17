@@ -18,9 +18,11 @@ import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TabletRouteImport } from './routes/tablet'
 import { Route as TournamentRouteImport } from './routes/tournament'
 import { Route as GameSignupRouteImport } from './routes/$game/signup'
+import { Route as GameTabletRouteImport } from './routes/$game/tablet'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiOpArtRouteImport } from './routes/api/op-art'
 import { Route as ApiOpCardsRouteImport } from './routes/api/op-cards'
+import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
 import { Route as ApiYgoCardsRouteImport } from './routes/api/ygo-cards'
@@ -93,6 +95,11 @@ const GameSignupRoute = GameSignupRouteImport.update({
   path: '/$game/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GameTabletRoute = GameTabletRouteImport.update({
+  id: '/$game/tablet',
+  path: '/$game/tablet',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDeskRoute = ApiDeskRouteImport.update({
   id: '/api/desk',
   path: '/api/desk',
@@ -106,6 +113,11 @@ const ApiOpArtRoute = ApiOpArtRouteImport.update({
 const ApiOpCardsRoute = ApiOpCardsRouteImport.update({
   id: '/api/op-cards',
   path: '/api/op-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRiftCardsRoute = ApiRiftCardsRouteImport.update({
+  id: '/api/rift-cards',
+  path: '/api/rift-cards',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSwuCardsRoute = ApiSwuCardsRouteImport.update({
@@ -249,9 +261,11 @@ export interface FileRoutesByFullPath {
   '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
+  '/$game/tablet': typeof GameTabletRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
@@ -288,9 +302,11 @@ export interface FileRoutesByTo {
   '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
+  '/$game/tablet': typeof GameTabletRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
@@ -329,9 +345,11 @@ export interface FileRoutesById {
   '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
+  '/$game/tablet': typeof GameTabletRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
@@ -371,9 +389,11 @@ export interface FileRouteTypes {
     | '/tablet'
     | '/tournament'
     | '/$game/signup'
+    | '/$game/tablet'
     | '/api/desk'
     | '/api/op-art'
     | '/api/op-cards'
+    | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
     | '/api/ygo-cards'
@@ -410,9 +430,11 @@ export interface FileRouteTypes {
     | '/tablet'
     | '/tournament'
     | '/$game/signup'
+    | '/$game/tablet'
     | '/api/desk'
     | '/api/op-art'
     | '/api/op-cards'
+    | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
     | '/api/ygo-cards'
@@ -450,9 +472,11 @@ export interface FileRouteTypes {
     | '/tablet'
     | '/tournament'
     | '/$game/signup'
+    | '/$game/tablet'
     | '/api/desk'
     | '/api/op-art'
     | '/api/op-cards'
+    | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
     | '/api/ygo-cards'
@@ -491,9 +515,11 @@ export interface RootRouteChildren {
   TabletRoute: typeof TabletRoute
   TournamentRoute: typeof TournamentRoute
   GameSignupRoute: typeof GameSignupRoute
+  GameTabletRoute: typeof GameTabletRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiOpArtRoute: typeof ApiOpArtRoute
   ApiOpCardsRoute: typeof ApiOpCardsRoute
+  ApiRiftCardsRoute: typeof ApiRiftCardsRoute
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
   ApiYgoCardsRoute: typeof ApiYgoCardsRoute
@@ -567,6 +593,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GameSignupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$game/tablet': {
+      id: '/$game/tablet'
+      path: '/$game/tablet'
+      fullPath: '/$game/tablet'
+      preLoaderRoute: typeof GameTabletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/desk': {
       id: '/api/desk'
       path: '/api/desk'
@@ -586,6 +619,13 @@ declare module '@tanstack/react-router' {
       path: '/api/op-cards'
       fullPath: '/api/op-cards'
       preLoaderRoute: typeof ApiOpCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/rift-cards': {
+      id: '/api/rift-cards'
+      path: '/api/rift-cards'
+      fullPath: '/api/rift-cards'
+      preLoaderRoute: typeof ApiRiftCardsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/swu-cards': {
@@ -843,9 +883,11 @@ const rootRouteChildren: RootRouteChildren = {
   TabletRoute: TabletRoute,
   TournamentRoute: TournamentRoute,
   GameSignupRoute: GameSignupRoute,
+  GameTabletRoute: GameTabletRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiOpArtRoute: ApiOpArtRoute,
   ApiOpCardsRoute: ApiOpCardsRoute,
+  ApiRiftCardsRoute: ApiRiftCardsRoute,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,
   ApiYgoCardsRoute: ApiYgoCardsRoute,

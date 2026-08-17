@@ -22,10 +22,8 @@
   --color-game-ygo: #6f86c9;
   --color-game-mtg: #b9b3a6;
   --color-game-lorcana: #8aa0c8;
-  --color-game-fab: #c4785a;
   --color-game-swu: #7a8ca3;
-  --color-game-ua: #9a8ab0;
-  --color-game-generic: #8d97a8;
+  --color-game-riftbound: #c4a35a;
 
   --color-ov-fg: #f4f4f1;
   --color-ov-muted: #b7b9be;
@@ -152,17 +150,11 @@
 [data-game="lorcana"] {
   --color-game: var(--color-game-lorcana);
 }
-[data-game="fab"] {
-  --color-game: var(--color-game-fab);
-}
 [data-game="swu"] {
   --color-game: var(--color-game-swu);
 }
-[data-game="union-arena"] {
-  --color-game: var(--color-game-ua);
-}
-[data-game="generic"] {
-  --color-game: var(--color-game-generic);
+[data-game="riftbound"] {
+  --color-game: var(--color-game-riftbound);
 }
 
 @media (prefers-reduced-motion: reduce) {
