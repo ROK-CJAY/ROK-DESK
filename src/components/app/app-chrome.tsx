@@ -20,7 +20,7 @@ export function AppChrome({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">
             <Link to="/" className="flex items-center gap-3">
-              <img src="/favicon.svg" alt="" className="size-9 rounded-md border border-border" />
+              <img src="/brand/rok-mark.png" alt="" className="size-9 object-contain" />
               <div>
                 <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
                   ROK Desk

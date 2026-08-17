@@ -10,7 +10,7 @@ function Login() {
   return (
     <main className="grid min-h-dvh place-items-center bg-bg px-6 text-fg">
       <div className="w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-panel">
-        <img src="/favicon.svg" alt="" className="mb-4 size-10 rounded-md border border-border" />
+        <img src="/brand/rok-mark.png" alt="" className="mb-4 size-10 object-contain" />
         <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
           ROK Esports
         </p>

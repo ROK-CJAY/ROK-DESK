@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clapperboard, ClipboardList, Clock, MonitorPlay, Tablet, Trophy } from "lucide-react";
+import { Clapperboard, ClipboardList, Clock, MessageSquarePlus, MonitorPlay, Tablet, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GAME_LIST } from "@/lib/games";
 import { APP_VERSION_LABEL } from "@/lib/version";
@@ -38,7 +38,7 @@ export function Landing() {
       <header className="border-b border-border bg-surface/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
           <div className="flex items-center gap-3">
-            <img src="/favicon.svg" alt="" className="size-9 rounded-md border border-border" />
+            <img src="/brand/rok-mark.png" alt="" className="size-9 object-contain" />
             <div>
               <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
                 ROK Desk
@@ -51,10 +51,10 @@ export function Landing() {
           </div>
           <nav className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" asChild>
-              <Link to="/tournament">Tournament</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link to="/production">Production</Link>
+              <a href="https://forms.gle/Re5mt8RXU7qNEN8W9" target="_blank" rel="noreferrer">
+                <MessageSquarePlus className="size-3.5" />
+                Feedback
+              </a>
             </Button>
           </nav>
         </div>
