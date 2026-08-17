@@ -3,5 +3,5 @@ import { OverlayPage } from "@/components/overlays/overlay-page";
 import { UpcomingView } from "@/components/overlays/graphics";
 
 export const Route = createFileRoute("/overlay/upcoming")({
-  component: () => <OverlayPage render={(desk) => <UpcomingView desk={desk} />} />,
+  component: () => <OverlayPage source="upcoming" render={(desk) => <UpcomingView desk={desk} />} />,
 });

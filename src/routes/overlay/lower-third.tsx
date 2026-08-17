@@ -3,5 +3,5 @@ import { OverlayPage } from "@/components/overlays/overlay-page";
 import { LowerThirdView } from "@/components/overlays/graphics";
 
 export const Route = createFileRoute("/overlay/lower-third")({
-  component: () => <OverlayPage render={(desk) => <LowerThirdView desk={desk} />} />,
+  component: () => <OverlayPage source="lower-third" render={(desk) => <LowerThirdView desk={desk} />} />,
 });

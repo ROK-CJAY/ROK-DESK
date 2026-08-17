@@ -5,17 +5,22 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, signupPath, type GameId } from "@/lib/games";
+import { deskLooksLikeTest } from "@/lib/test-fixtures";
+import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewsFor, deskForGame, emptyDesk, type BracketViewId } from "@/lib/tournament-types";
+import { overlayPath } from "@/components/desk/sources";
 import {
+  emptySpotlight,
   type LowerThirdMode,
   type RosterSide,
   type SlateKind,
   type TableSize,
   seatsFor,
   isCommanderTable,
+  resourceLimit,
 } from "@/lib/desk-types";
 import { useEffect, useState } from "react";
 
@@ -24,6 +29,8 @@ export function EventPanel() {
   const patch = useDeskStore((s) => s.patch);
   const applyFormat = useDeskStore((s) => s.applyFormat);
   const setTableSize = useDeskStore((s) => s.setTableSize);
+  const setResourceCap = useDeskStore((s) => s.setResourceCap);
+  const loadTestMode = useDeskStore((s) => s.loadTestMode);
   const game = gameOf(desk.gameId);
   const family = currentFamily(desk);
   const formatOptions = desk.gameId === "mtg" ? formatsInFamily(game, family) : game.formats;
@@ -96,12 +103,70 @@ export function EventPanel() {
             </NativeSelect>
           </Field>
         )}
+        {desk.gameId === "pokemon-tcg" ? (
+          <Field label="Prizes">
+            <NativeSelect
+              value={String(resourceLimit(desk))}
+              onChange={(e) => setResourceCap(Number(e.target.value))}
+            >
+              {[6, 4, 3, 2, 1].map((n) => (
+                <option key={n} value={n}>
+                  {n} {n === 1 ? "prize" : "prizes"}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : null}
         <Field label="Sponsor line">
           <Input
             value={desk.sponsorLine}
             onChange={(e) => patch({ sponsorLine: e.target.value })}
           />
         </Field>
+        <div className="grid gap-2">
+          <p className="text-[0.7rem] text-muted">Event logo</p>
+          <div className="flex items-center gap-3">
+            <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-surface-2">
+              {desk.eventLogo ? (
+                <img src={desk.eventLogo} alt="" className="max-h-full max-w-full object-contain" />
+              ) : (
+                <span className="text-[0.6rem] text-subtle">Logo</span>
+              )}
+            </div>
+            <div className="grid min-w-0 flex-1 gap-1.5">
+              <label className="flex cursor-pointer items-center justify-center rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted">
+                {desk.eventLogo ? "Replace logo" : "Upload logo"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    void readOverlayImage(file).then((eventLogo) => patch({ eventLogo }));
+                  }}
+                />
+              </label>
+              {desk.eventLogo ? (
+                <Button variant="ghost" size="sm" onClick={() => patch({ eventLogo: "" })}>
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
+          <div>
+            <p className="text-sm font-medium">Test mode</p>
+            <p className="text-[0.65rem] leading-relaxed text-subtle">
+              {deskLooksLikeTest(desk)
+                ? "Demo field is live. Turn off to restore the last real seats, casters, and queue."
+                : `Load 8 demo players for ${game.short}. Your current seats are saved until you turn this off.`}
+            </p>
+          </div>
+          <Switch checked={deskLooksLikeTest(desk)} onCheckedChange={() => loadTestMode()} aria-label="Toggle test mode" />
+        </div>
         <RoundClock />
       </div>
     </section>
@@ -150,6 +215,90 @@ export function CasterPanel() {
             </div>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+export function SponsorPanel() {
+  const desk = useDeskStore((s) => s.desk);
+  const patch = useDeskStore((s) => s.patch);
+
+  const update = (id: string, partial: Partial<(typeof desk.sponsors)[number]>) => {
+    patch({
+      sponsors: desk.sponsors.map((row) => (row.id === id ? { ...row, ...partial } : row)),
+    });
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Sponsors</p>
+      <p className="mt-1 text-[0.65rem] leading-relaxed text-subtle">
+        Logos rotate on the Sponsors overlay and in the HUD pack. Leave the list empty and the source stays transparent.
+      </p>
+      <div className="mt-3 grid gap-3">
+        {desk.sponsors.map((row) => (
+          <div key={row.id} className="grid gap-2 rounded-lg bg-surface-2 p-2">
+            <div className="flex items-center gap-2">
+              <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-md border border-border bg-bg">
+                {row.logo ? (
+                  <img src={row.logo} alt="" className="max-h-full max-w-full object-contain" />
+                ) : (
+                  <span className="text-[0.6rem] text-subtle">Logo</span>
+                )}
+              </div>
+              <Input
+                value={row.name}
+                placeholder="Sponsor name"
+                onChange={(e) => update(row.id, { name: e.target.value })}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label="Remove sponsor"
+                onClick={() => patch({ sponsors: desk.sponsors.filter((item) => item.id !== row.id) })}
+              >
+                <Trash2 className="size-3.5" />
+              </Button>
+            </div>
+            <label className="flex cursor-pointer items-center justify-between gap-2 rounded-md border border-dashed border-border px-2 py-1.5 text-xs text-muted">
+              <span>{row.logo ? "Replace logo" : "Upload logo"}</span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  void readSponsorLogo(file).then((logo) => update(row.id, { logo }));
+                }}
+              />
+            </label>
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => patch({ sponsors: [...desk.sponsors, blankSponsor()] })}
+        >
+          <Plus className="size-3.5" />
+          Add sponsor
+        </Button>
+        {desk.sponsors.length > 1 ? (
+          <Field label="Rotate every">
+            <NativeSelect
+              value={String(desk.sponsorSeconds)}
+              onChange={(e) => patch({ sponsorSeconds: Number(e.target.value) })}
+            >
+              {[4, 6, 8, 10, 12, 15, 20].map((n) => (
+                <option key={n} value={n}>
+                  {n} seconds
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : null}
       </div>
     </section>
   );
@@ -365,6 +514,23 @@ export function ShowPanel() {
             onCheckedChange={(showResources) => patch({ showResources })}
           />
         </div>
+        {desk.gameId === "pokemon-tcg" || desk.gameId === "mtg" ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-sm">Card overlay</p>
+              <p className="truncate text-xs text-muted">
+                {desk.cardSpotlight.visible && desk.cardSpotlight.name
+                  ? desk.cardSpotlight.name
+                  : "Tap a card on the judge tablet"}
+              </p>
+            </div>
+            {desk.cardSpotlight.visible ? (
+              <Button variant="outline" size="sm" onClick={() => patch({ cardSpotlight: emptySpotlight() })}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {desk.gameId === "pokemon-vgc" ? (
           <Field label="Team preview">
             <NativeSelect
@@ -502,7 +668,7 @@ export function BracketPanel() {
 
   const copy = async () => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/overlay/bracket`);
+      await navigator.clipboard.writeText(`${window.location.origin}${overlayPath(deskGame, "bracket")}`);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1400);
     } catch {
@@ -566,7 +732,7 @@ export function BracketPanel() {
           </Button>
         </div>
         <Button variant="secondary" size="sm" className="w-full" asChild>
-          <a href="/signup" target="_blank" rel="noreferrer">
+          <a href={signupPath(deskGame)} target="_blank" rel="noreferrer">
             Open walk-up sign-up
           </a>
         </Button>
@@ -581,6 +747,7 @@ export function PodPanel() {
   const commander = isCommanderTable(desk) || isCommanderLane(desk);
   const vgc = desk.gameId === "pokemon-vgc";
   const tcg = desk.gameId === "pokemon-tcg";
+  const mtg = desk.gameId === "mtg";
   const path = "/tablet";
 
   const copy = async () => {
@@ -601,14 +768,22 @@ export function PodPanel() {
           ? "Judge tablet — team sheets, remaining Pokémon, score, and the round clock."
           : tcg
             ? "Judge tablet — prizes, score, clock, and a card lookup for the floor."
-            : "Player tablet for the live table. Each game uses its own layout."}
+            : mtg
+              ? "Judge tablet — life, poison, commander damage, score, clock, and Scryfall card lookup."
+              : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
         <p className="mt-2 text-xs text-ok">Card lookup uses Pokémon TCG Live (TCGdex) data.</p>
       ) : vgc ? (
         <p className="mt-2 text-xs text-ok">Tap a Pokémon to mark it KO. Game / Match report to the desk.</p>
+      ) : mtg ? (
+        <p className="mt-2 text-xs text-ok">
+          {commander
+            ? `${desk.formatName} · type an amount then + / − · Game / Match or Wins report to the desk.`
+            : "Type an amount then + / −. Game and Match report to the desk and bracket."}
+        </p>
       ) : !commander ? (
-        <p className="mt-2 text-xs text-subtle">Switch MTG to Commander so all four seats are live.</p>
+        <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>
       ) : (
         <p className="mt-2 text-xs text-ok">{desk.tableSize}-seat table · updates the stream bugs live.</p>
       )}

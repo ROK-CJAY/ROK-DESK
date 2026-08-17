@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type GameId } from "@/lib/games";
+import { gameOf, isCommanderPodFormat, type GameId } from "@/lib/games";
 import {
   blankEntrant,
   defaultTournament,
@@ -17,8 +17,9 @@ import {
   setMatchScore,
   defaultSwissRounds,
 } from "@/lib/tournament-bracket";
-import { isCommanderPodFormat } from "@/lib/games";
+import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } from "@/lib/test-fixtures";
 import { remainingSeconds } from "@/lib/desk-types";
+import { useDeskStore } from "@/lib/desk-store";
 
 type TournamentStore = {
   tournament: TournamentState;
@@ -42,6 +43,7 @@ type TournamentStore = {
   setFloorClock: (seconds: number) => void;
   addFloorSeconds: (delta: number) => void;
   resetFloorTimer: () => void;
+  loadTestMode: () => void;
 };
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -56,9 +58,10 @@ function startTournamentPoll() {
         if (!res.ok) return;
         const parsed = parseTournament(await res.json());
         if (!parsed) return;
+        const incoming = clearLegacyTournament(parsed);
         const local = useTournamentStore.getState().tournament;
-        if (parsed.version >= local.version) {
-          useTournamentStore.setState({ tournament: parsed });
+        if (incoming.version >= local.version) {
+          useTournamentStore.setState({ tournament: incoming });
         }
       } catch {
         /* keep local */
@@ -108,16 +111,17 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       const res = await fetch("/api/tournament", { cache: "no-store" });
       if (res.ok) {
         const parsed = parseTournament(await res.json());
-        if (parsed) next = parsed;
+        if (parsed) next = clearLegacyTournament(parsed);
       }
     } catch {
       if (typeof window !== "undefined") {
         const raw = window.localStorage.getItem("rok-tournament");
         const parsed = raw ? parseTournament(raw) : null;
-        if (parsed) next = parsed;
+        if (parsed) next = clearLegacyTournament(parsed);
       }
     }
     set({ tournament: next, ready: true });
+    persist(next);
     if (typeof window !== "undefined") startTournamentPoll();
   },
 
@@ -319,5 +323,24 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
     });
     persist(tournament);
     set({ tournament });
+  },
+
+  loadTestMode: () => {
+    const prev = get().tournament;
+    const turningOn = !tournamentLooksLikeTest(prev);
+    const tournament = nextVersion(prev, toggleTestTournament(prev));
+    persist(tournament);
+    set({ tournament });
+    if (typeof window === "undefined") return;
+    const desk = useDeskStore.getState();
+    if (turningOn) {
+      if (desk.desk.gameId !== tournament.gameId) desk.applyGame(tournament.gameId);
+      const after = useDeskStore.getState();
+      if (after.desk.formatName !== tournament.formatName) {
+        const preset = gameOf(tournament.gameId).formats.find((f) => f.label === tournament.formatName);
+        if (preset) after.applyFormat(preset);
+      }
+    }
+    useDeskStore.getState().ensureTestMode(turningOn);
   },
 }));

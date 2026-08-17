@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { type BestOf, type GameId, type ScorebugStyle, gameOf } from "@/lib/games";
 import { DEFAULT_LAYOUT, mergeLayout, type LayoutMap } from "@/lib/layout";
+import { DEFAULT_LOOK_BOOK, mergeLookBook, type OverlayLookBook } from "@/lib/overlay-look";
+import { type Sponsor } from "@/lib/sponsors";
 import {
   emptyTeam,
   mergeTeam,
@@ -96,6 +98,16 @@ export type LowerThirdState = {
   side: SideId | "c1" | "c2";
 };
 
+export type SpotlightCard = {
+  visible: boolean;
+  id: string;
+  name: string;
+  set: string;
+  number: string;
+  image: string;
+  type: string;
+};
+
 export type DeskState = {
   version: number;
   gameId: GameId;
@@ -121,12 +133,21 @@ export type DeskState = {
   streamMatchId: string | null;
   queue: QueueMatch[];
   sponsorLine: string;
+  sponsors: Sponsor[];
+  sponsorSeconds: number;
+  eventLogo: string;
   showResources: boolean;
+  resourceCap: number | null;
   scorebugStyle: ScorebugStyle;
   scorebugPosition: "top" | "bottom";
   tableSize: TableSize;
   rosterSide: RosterSide;
   layout: LayoutMap;
+  overlayLook: OverlayLookBook;
+  cardSpotlight: SpotlightCard;
+  lanes: Partial<Record<GameId, Record<string, unknown>>>;
+  testMode: boolean;
+  testSnapshot: Record<string, unknown> | null;
 };
 
 const playerSchema: z.ZodType<PlayerSide> = z.object({
@@ -226,11 +247,40 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     }),
   ),
   sponsorLine: z.string(),
+  sponsors: z
+    .array(
+      z.object({
+        id: z.string(),
+        name: z.string(),
+        logo: z.string(),
+      }),
+    )
+    .optional()
+    .transform((v) => v ?? []),
+  sponsorSeconds: z.number().optional().transform((v) => (typeof v === "number" && v >= 2 ? v : 8)),
+  eventLogo: z.string().optional().transform((v) => v ?? ""),
   showResources: z.boolean(),
+  resourceCap: z.number().nullable().optional().transform((v) => (typeof v === "number" && v > 0 ? v : null)),
   scorebugStyle: z.enum(["bar", "split"]),
   scorebugPosition: z.enum(["top", "bottom"]),
   tableSize: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   rosterSide: z.enum(["hidden", "p1", "p2", "both"]),
+  lanes: z.record(z.string(), z.any()).optional().transform((v) => (v ?? {}) as DeskState["lanes"]),
+  overlayLook: z.any().optional().transform((v) => mergeLookBook(v)),
+  cardSpotlight: z
+    .object({
+      visible: z.boolean(),
+      id: z.string(),
+      name: z.string(),
+      set: z.string().optional().transform((v) => v ?? ""),
+      number: z.string().optional().transform((v) => v ?? ""),
+      image: z.string().optional().transform((v) => v ?? ""),
+      type: z.string().optional().transform((v) => v ?? ""),
+    })
+    .optional()
+    .transform((v) => v ?? emptySpotlight()),
+  testMode: z.boolean().optional().transform((v) => Boolean(v)),
+  testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   layout: z.object({
     scorebugBar: z.object({ x: z.number(), y: z.number() }),
     scorebugP1: z.object({ x: z.number(), y: z.number() }),
@@ -249,8 +299,15 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     upcoming: z.object({ x: z.number(), y: z.number() }),
     rosterP1: z.object({ x: z.number(), y: z.number() }),
     rosterP2: z.object({ x: z.number(), y: z.number() }),
+    cardSpotlight: z.object({ x: z.number(), y: z.number() }),
+    sponsors: z.object({ x: z.number(), y: z.number() }),
+    eventLogo: z.object({ x: z.number(), y: z.number() }),
   }),
 });
+
+export function emptySpotlight(): SpotlightCard {
+  return { visible: false, id: "", name: "", set: "", number: "", image: "", type: "" };
+}
 
 export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
   return {
@@ -277,48 +334,18 @@ export function defaultDesk(): DeskState {
   return {
     version: 1,
     gameId: "pokemon-tcg",
-    eventName: "ROK League Cup",
-    eventPhase: "Swiss",
-    roundName: "Round 4",
+    eventName: "",
+    eventPhase: "",
+    roundName: "",
     bestOf: 3,
     formatName: game.formats[0]?.label ?? "Standard",
-    p1: blankPlayer({
-      name: "Maya Cruz",
-      tag: "pocketstorm",
-      pronouns: "she/her",
-      country: "US",
-      score: 0,
-      resource: game.resource.start,
-      archetype: "Charizard ex",
-    }),
-    p2: blankPlayer({
-      name: "Luis Ortega",
-      tag: "tidebound",
-      pronouns: "he/him",
-      country: "US",
-      score: 0,
-      resource: game.resource.start,
-      archetype: "Dragapult",
-    }),
-    p3: blankPlayer({
-      name: "Jordan Hale",
-      tag: "praxis",
-      pronouns: "they/them",
-      country: "US",
-      resource: 40,
-      archetype: "Atraxa",
-    }),
-    p4: blankPlayer({
-      name: "Samir Cole",
-      tag: "kinnanfan",
-      pronouns: "he/him",
-      country: "US",
-      resource: 40,
-      archetype: "Kinnan",
-    }),
+    p1: blankPlayer({ resource: game.resource.start }),
+    p2: blankPlayer({ resource: game.resource.start }),
+    p3: blankPlayer({ resource: 40 }),
+    p4: blankPlayer({ resource: 40 }),
     casters: [
-      { name: "Rook", handle: "rookcasts", role: "Play-by-play" },
-      { name: "Marisol Vega", handle: "mariplays", role: "Color" },
+      { name: "", handle: "", role: "Play-by-play" },
+      { name: "", handle: "", role: "Color" },
     ],
     timerSeconds: 0,
     timerPresetSeconds: 0,
@@ -336,18 +363,38 @@ export function defaultDesk(): DeskState {
     winnerSide: null,
     gameWinnerSide: null,
     streamMatchId: null,
-    queue: [
-      { id: "q1", p1: "Kenji Mori", p2: "Ana Delgado", round: "Winners Semis", note: "Feature" },
-      { id: "q2", p1: "Chris Bell", p2: "Priya Shah", round: "Losers Quarters", note: "" },
-    ],
-    sponsorLine: "ROK Esports",
+    queue: [],
+    sponsorLine: "",
+    sponsors: [],
+    sponsorSeconds: 8,
+    eventLogo: "",
     showResources: true,
+    resourceCap: 6,
     scorebugStyle: "bar",
     scorebugPosition: "bottom",
     tableSize: 2,
     rosterSide: "hidden",
     layout: { ...DEFAULT_LAYOUT },
+    overlayLook: { ...DEFAULT_LOOK_BOOK, sources: {} },
+    cardSpotlight: emptySpotlight(),
+    lanes: {},
+    testMode: false,
+    testSnapshot: null,
   };
+}
+
+export function resourceLimit(desk: Pick<DeskState, "gameId" | "formatName" | "resourceCap">): number {
+  if (typeof desk.resourceCap === "number" && desk.resourceCap > 0) return desk.resourceCap;
+  const game = gameOf(desk.gameId);
+  const format = game.formats.find((f) => f.label === desk.formatName);
+  return format?.resourceMax ?? game.resource.max;
+}
+
+export function resourceResetValue(desk: Pick<DeskState, "gameId" | "formatName" | "resourceCap">): number {
+  if (typeof desk.resourceCap === "number" && desk.resourceCap > 0) return desk.resourceCap;
+  const game = gameOf(desk.gameId);
+  const format = game.formats.find((f) => f.label === desk.formatName);
+  return format?.resourceStart ?? game.resource.start;
 }
 
 export function remainingSeconds(
@@ -421,6 +468,11 @@ export function parseDesk(raw: unknown): DeskState | null {
       ...(isRecord(incoming.lowerThird) ? incoming.lowerThird : {}),
     },
     layout: mergeLayout(incoming.layout),
+    overlayLook: mergeLookBook(incoming.overlayLook),
+    cardSpotlight: {
+      ...emptySpotlight(),
+      ...(isRecord(incoming.cardSpotlight) ? incoming.cardSpotlight : {}),
+    },
     rosterSide:
       incoming.rosterSide === "p1" ||
       incoming.rosterSide === "p2" ||
@@ -431,6 +483,44 @@ export function parseDesk(raw: unknown): DeskState | null {
   };
   const parsed = deskSchema.safeParse(merged);
   return parsed.success ? (parsed.data as DeskState) : null;
+}
+
+export function stripLane(desk: DeskState): Record<string, unknown> {
+  const { lanes: _lanes, ...rest } = desk;
+  return rest;
+}
+
+export function withCurrentLane(desk: DeskState): DeskState {
+  return {
+    ...desk,
+    lanes: { ...desk.lanes, [desk.gameId]: stripLane(desk) },
+  };
+}
+
+export function deskLaneOf(live: DeskState, gameId: GameId): DeskState {
+  if (live.gameId === gameId) return live;
+  const raw = live.lanes?.[gameId];
+  const parsed = raw ? parseDesk(raw) : null;
+  if (parsed) return { ...parsed, lanes: live.lanes };
+  const game = gameOf(gameId);
+  const format = game.formats[0];
+  return {
+    ...defaultDesk(),
+    gameId,
+    formatName: format?.label ?? game.name,
+    bestOf: format?.bestOf ?? game.defaultBestOf,
+    scorebugStyle: game.defaultScorebug,
+    tableSize: format?.seats ?? 2,
+    p1: { ...defaultDesk().p1, resource: format?.resourceStart ?? game.resource.start, score: 0, down: normalizeDown([]), team: emptyTeam() },
+    p2: { ...defaultDesk().p2, resource: format?.resourceStart ?? game.resource.start, score: 0, down: normalizeDown([]), team: emptyTeam() },
+    timerSeconds: 0,
+    timerPresetSeconds: 0,
+    timerRunning: false,
+    timerEndsAt: null,
+    winnerSide: null,
+    gameWinnerSide: null,
+    lanes: live.lanes,
+  };
 }
 
 function mergePlayer(base: PlayerSide, raw: unknown): PlayerSide {

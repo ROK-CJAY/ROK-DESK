@@ -3,6 +3,7 @@ import {
   formatClock,
   remainingSeconds,
   monogram,
+  resourceLimit,
   type DeskState,
   type SlateKind,
 } from "@/lib/desk-types";
@@ -12,6 +13,9 @@ import type { OverlayEdit } from "@/components/overlays/placed";
 import { ScorebugView } from "@/components/overlays/scorebug";
 import { CommanderScorebug, CommanderVersus, useCommanderOverlay } from "@/components/overlays/commander";
 import { RosterView } from "@/components/overlays/roster";
+import { CardSpotlightView } from "@/components/overlays/card";
+import { EventLogoMark, EventLogoView } from "@/components/overlays/event-logo";
+import { SponsorsView } from "@/components/overlays/sponsors";
 
 const SLATE_COPY: Record<Exclude<SlateKind, "hidden">, { kicker: string; title: string; image: string }> = {
   starting: { kicker: "Live shortly", title: "Starting Soon", image: "/slates/starting.jpg" },
@@ -52,14 +56,17 @@ export function VersusView({ desk }: { desk: DeskState }) {
       />
       <div className="absolute inset-0 bg-linear-to-b from-ov-bg via-ov-bg/80 to-ov-bg" />
       <div className="relative flex h-full flex-col justify-between px-16 py-12">
-        <header className="flex items-end justify-between">
-          <div>
+        <header className="flex items-end justify-between gap-8">
+          <div className="flex min-w-0 items-end gap-5">
+            <EventLogoMark desk={desk} size="lg" />
+            <div className="min-w-0">
             <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">
               {desk.sponsorLine}
             </p>
             <h1 className="font-display mt-1 text-5xl font-semibold tracking-tight text-ov-fg uppercase">
               {desk.eventName}
             </h1>
+          </div>
           </div>
           <div className="text-right">
             <p className="font-mono text-ov-kicker tracking-[0.22em] text-ov-muted uppercase">
@@ -144,6 +151,7 @@ export function SlateView({ desk }: { desk: DeskState }) {
           {desk.sponsorLine}
         </p>
         <div>
+          <EventLogoMark desk={desk} size="lg" className="mb-5" />
           <p className="font-mono text-sm tracking-[0.32em] text-game uppercase">{copy.kicker}</p>
           <h1 className="font-display mt-2 text-7xl font-semibold tracking-tight text-ov-fg uppercase">
             {copy.title}
@@ -311,8 +319,7 @@ export function ResourceView({ desk, edit = null }: { desk: DeskState; edit?: Ov
     return <CommanderScorebug desk={desk} edit={edit} />;
   }
   const game = gameOf(desk.gameId);
-  const format = game.formats.find((f) => f.label === desk.formatName);
-  const max = format?.resourceMax ?? game.resource.max;
+  const max = resourceLimit(desk);
   return (
     <Shell desk={desk} edit={edit}>
       {(["p1", "p2"] as const).map((side) => {
@@ -414,6 +421,9 @@ export function HudView({
       <WinnerView desk={desk} edit={edit} />
       <GameWinView desk={desk} edit={edit} />
       <RosterView desk={desk} edit={edit} />
+      <CardSpotlightView desk={desk} edit={edit} />
+      <SponsorsView desk={desk} now={now} edit={edit} compact />
+      <EventLogoView desk={desk} edit={edit} />
     </div>
   );
 }

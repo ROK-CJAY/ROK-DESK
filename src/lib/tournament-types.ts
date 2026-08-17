@@ -3,7 +3,24 @@ import { type BestOf, type GameId, GAME_LIST, gameOf } from "@/lib/games";
 import { mergeTeam, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
 
 export type BracketType = "single" | "double" | "swiss";
-export type BracketSize = 4 | 8 | 16 | 32;
+export type BracketSize = number;
+export const PRESET_SIZES = [4, 8, 16, 32] as const;
+
+export function clampBracketSize(n: number): number {
+  if (!Number.isFinite(n)) return 8;
+  return Math.max(2, Math.min(128, Math.round(n)));
+}
+
+export function isPresetSize(n: number): boolean {
+  return (PRESET_SIZES as readonly number[]).includes(n);
+}
+
+export function bracketSlots(size: number): number {
+  const n = clampBracketSize(size);
+  let slots = 2;
+  while (slots < n) slots *= 2;
+  return slots;
+}
 export type BracketSide = "winners" | "losers" | "grand" | "swiss";
 export type SlotId = "p1" | "p2" | "p3" | "p4";
 export type TournamentPhase = "setup" | "running" | "complete";
@@ -91,6 +108,8 @@ export type GameDesk = {
   timerPresetSeconds: number;
   timerRunning: boolean;
   timerEndsAt: number | null;
+  testMode: boolean;
+  testSnapshot: Record<string, unknown> | null;
 };
 
 export type TournamentState = {
@@ -112,6 +131,8 @@ export type TournamentState = {
   timerPresetSeconds: number;
   timerRunning: boolean;
   timerEndsAt: number | null;
+  testMode: boolean;
+  testSnapshot: Record<string, unknown> | null;
 };
 
 const slotSchema = z.object({
@@ -160,7 +181,7 @@ const matchSchema: z.ZodType<BracketMatch> = z.object({
 const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
-  size: z.union([z.literal(4), z.literal(8), z.literal(16), z.literal(32)]),
+  size: z.number().int().min(2).max(128),
   bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
   phase: z.enum(["setup", "running", "complete"]),
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
@@ -172,6 +193,8 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   timerPresetSeconds: z.number().optional().transform((v) => v ?? 0),
   timerRunning: z.boolean().optional().transform((v) => v ?? false),
   timerEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
+  testMode: z.boolean().optional().transform((v) => Boolean(v)),
+  testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
 });
 
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
@@ -191,7 +214,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   ]),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
-  size: z.union([z.literal(4), z.literal(8), z.literal(16), z.literal(32)]),
+  size: z.number().int().min(2).max(128),
   bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
   phase: z.enum(["setup", "running", "complete"]),
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
@@ -204,6 +227,8 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   timerPresetSeconds: z.number().optional().transform((v) => v ?? 0),
   timerRunning: z.boolean().optional().transform((v) => v ?? false),
   timerEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
+  testMode: z.boolean().optional().transform((v) => Boolean(v)),
+  testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -234,22 +259,6 @@ export function teamSheetLabel(team: TeamMon[] | undefined): string {
   return names.length === 1 ? names[0]! : `${names[0]} +${names.length - 1}`;
 }
 
-function demoEntrants(): Entrant[] {
-  const rows: [string, string, string, string][] = [
-    ["Maya Cruz", "pocketstorm", "Charizard ex", "US"],
-    ["Luis Ortega", "tidebound", "Dragapult", "US"],
-    ["Ana Delgado", "anacuts", "Gardevoir", "MX"],
-    ["Kenji Mori", "voidline", "Raging Bolt", "JP"],
-    ["Chris Bell", "bellcurve", "Lugia", "US"],
-    ["Priya Shah", "priyaplays", "Pidgeot control", "GB"],
-    ["Jordan Hale", "praxis", "Roaring Moon", "US"],
-    ["Samir Cole", "kinnanfan", "Lost Zone box", "CA"],
-  ];
-  return rows.map(([name, tag, deck, country], i) =>
-    blankEntrant({ name, tag, deck, country, seed: i + 1, pronouns: i === 2 ? "she/her" : "" }),
-  );
-}
-
 export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk {
   return {
     formatName: t.formatName,
@@ -266,12 +275,19 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     timerPresetSeconds: t.timerPresetSeconds,
     timerRunning: t.timerRunning,
     timerEndsAt: t.timerEndsAt,
+    testMode: t.testMode,
+    testSnapshot: t.testSnapshot,
   };
 }
 
 export function deskForGame(t: TournamentState, gameId: GameId): GameDesk {
   if (t.gameId === gameId) return snapshotDesk(t);
   return t.desks[gameId] ?? emptyDesk(gameId);
+}
+
+export function viewTournament(t: TournamentState, gameId: GameId): TournamentState {
+  if (t.gameId === gameId) return t;
+  return { ...t, gameId, ...deskForGame(t, gameId) };
 }
 
 export function emptyDesk(gameId: GameId): GameDesk {
@@ -291,6 +307,8 @@ export function emptyDesk(gameId: GameId): GameDesk {
     timerPresetSeconds: 0,
     timerRunning: false,
     timerEndsAt: null,
+    testMode: false,
+    testSnapshot: null,
   };
 }
 
@@ -319,27 +337,13 @@ export function switchGame(t: TournamentState, gameId: GameId): TournamentState 
 
 export function defaultTournament(): TournamentState {
   const game = gameOf("pokemon-tcg");
-  const desk: GameDesk = {
-    formatName: game.formats[0]?.label ?? "Standard",
-    bracketType: "double",
-    size: 8,
-    bestOf: 3,
-    phase: "setup",
-    overlayView: "full",
-    streamMatchId: null,
-    swissRounds: 3,
-    entrants: demoEntrants(),
-    matches: [],
-    timerSeconds: 0,
-    timerPresetSeconds: 0,
-    timerRunning: false,
-    timerEndsAt: null,
-  };
+  const desk: GameDesk = emptyDesk("pokemon-tcg");
   return {
     version: 1,
-    name: "ROK League Cup",
+    name: "",
     gameId: "pokemon-tcg",
     ...desk,
+    formatName: game.formats[0]?.label ?? "Standard",
     desks: { "pokemon-tcg": desk },
   };
 }
@@ -371,6 +375,7 @@ export function parseTournament(raw: unknown): TournamentState | null {
       incoming.bracketType === "single" || incoming.bracketType === "double" || incoming.bracketType === "swiss"
         ? incoming.bracketType
         : base.bracketType,
+    size: typeof incoming.size === "number" ? clampBracketSize(incoming.size) : base.size,
     entrants: Array.isArray(incoming.entrants) ? incoming.entrants : base.entrants,
     matches: Array.isArray(incoming.matches) ? incoming.matches : base.matches,
     desks: incoming.desks && typeof incoming.desks === "object" ? incoming.desks : {},

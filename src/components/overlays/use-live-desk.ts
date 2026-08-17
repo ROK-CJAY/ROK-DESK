@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { parseDesk, type DeskState } from "@/lib/desk-types";
+import { slugOf, type GameId } from "@/lib/games";
 
-export function useLiveDesk(pollMs = 400): DeskState | null {
+export function useLiveDesk(gameId?: GameId, pollMs = 400): DeskState | null {
   const [desk, setDesk] = useState<DeskState | null>(null);
 
   useEffect(() => {
     let timer = 0;
     let cancelled = false;
+    const path = gameId ? `/api/desk?game=${encodeURIComponent(slugOf(gameId))}` : "/api/desk";
 
     const tick = async () => {
       try {
-        const res = await fetch("/api/desk", { cache: "no-store" });
+        const res = await fetch(path, { cache: "no-store" });
         if (res.ok) {
           const parsed = parseDesk(await res.json());
           if (!cancelled && parsed) setDesk(parsed);
@@ -26,7 +28,7 @@ export function useLiveDesk(pollMs = 400): DeskState | null {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [pollMs]);
+  }, [gameId, pollMs]);
 
   return desk;
 }

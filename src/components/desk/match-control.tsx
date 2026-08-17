@@ -1,4 +1,5 @@
 import { ArrowLeftRight, RotateCcw, Trophy } from "lucide-react";
+import { DeltaPad } from "@/components/desk/delta-pad";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import {
   SEAT_LABELS,
   isCommanderTable,
   remainingFromDown,
+  resourceLimit,
   seatsFor,
   toggleMonDown,
   type PlayerSide,
@@ -197,7 +199,8 @@ function SeatCard({
           <span className="text-xs text-muted">Life</span>
           <span className="font-display text-3xl font-semibold tabular-nums">{player.resource}</span>
         </div>
-        <div className={cn("flex flex-wrap gap-1.5", rtl && "lg:justify-end")}>
+        <DeltaPad onDelta={onResource} className={cn(rtl && "lg:justify-end")} />
+        <div className={cn("mt-2 flex flex-wrap gap-1.5", rtl && "lg:justify-end")}>
           {MTG_STEPS.map((step) => (
             <Button key={step} variant="outline" size="sm" onClick={() => onResource(step)}>
               {step > 0 ? `+${step}` : step}
@@ -206,29 +209,19 @@ function SeatCard({
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted">Poison</span>
-          <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" onClick={() => onSecondary(-1)}>
-              −
-            </Button>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs text-muted">Poison</span>
             <span className="min-w-5 text-center font-semibold tabular-nums">{player.secondary}</span>
-            <Button variant="outline" size="sm" onClick={() => onSecondary(1)}>
-              +
-            </Button>
           </div>
+          <DeltaPad onDelta={onSecondary} max={10} />
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs text-muted">Cmd dmg</span>
-          <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" onClick={() => onCmd(-1)}>
-              −
-            </Button>
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs text-muted">Cmd dmg</span>
             <span className="min-w-5 text-center font-semibold tabular-nums">{player.cmdDamage}</span>
-            <Button variant="outline" size="sm" onClick={() => onCmd(1)}>
-              +
-            </Button>
           </div>
+          <DeltaPad onDelta={onCmd} max={21} />
         </div>
       </div>
     </div>
@@ -263,8 +256,7 @@ function PlayerColumn({
   const matchWin = useDeskStore((s) => s.matchWin);
   const clearWinners = useDeskStore((s) => s.clearWinners);
   const game = gameOf(desk.gameId);
-  const format = game.formats.find((f) => f.label === desk.formatName);
-  const max = format?.resourceMax ?? game.resource.max;
+  const max = resourceLimit(desk);
   const rtl = align === "right";
   const extraLabel = commander ? "Commander" : game.extraLabel;
   const extraPlaceholder = commander ? "Atraxa · Yoshimaru" : game.extraPlaceholder;
@@ -425,12 +417,15 @@ function PlayerColumn({
             ))}
           </div>
         ) : game.resource.kind === "life" ? (
-          <div className={cn("flex flex-wrap gap-1.5", rtl && "lg:justify-end")}>
-            {MTG_STEPS.map((step) => (
-              <Button key={step} variant="outline" size="sm" onClick={() => onResource(step)}>
-                {step > 0 ? `+${step}` : step}
-              </Button>
-            ))}
+          <div className="grid gap-2">
+            <DeltaPad onDelta={onResource} className={cn(rtl && "lg:justify-end")} />
+            <div className={cn("flex flex-wrap gap-1.5", rtl && "lg:justify-end")}>
+              {MTG_STEPS.map((step) => (
+                <Button key={step} variant="outline" size="sm" onClick={() => onResource(step)}>
+                  {step > 0 ? `+${step}` : step}
+                </Button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className={cn("flex items-center gap-2", rtl && "lg:justify-end")}>
@@ -448,32 +443,26 @@ function PlayerColumn({
       </div>
 
       {game.secondary ? (
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="text-xs text-muted">{game.secondary.label}</span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => onSecondary(-game.secondary!.step)}>
-              −
-            </Button>
+        <div className="mt-4">
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <span className="text-xs text-muted">{game.secondary.label}</span>
             <span className="min-w-6 text-center font-semibold tabular-nums">{player.secondary}</span>
-            <Button variant="outline" size="sm" onClick={() => onSecondary(game.secondary!.step)}>
-              +
-            </Button>
           </div>
+          <DeltaPad
+            onDelta={onSecondary}
+            max={game.secondary.max}
+            className={cn(rtl && "lg:justify-end")}
+          />
         </div>
       ) : null}
 
       {commander ? (
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="text-xs text-muted">Commander damage</span>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => onCmd(-1)}>
-              −
-            </Button>
+        <div className="mt-4">
+          <div className="mb-1.5 flex items-center justify-between gap-3">
+            <span className="text-xs text-muted">Commander damage</span>
             <span className="min-w-6 text-center font-semibold tabular-nums">{player.cmdDamage}</span>
-            <Button variant="outline" size="sm" onClick={() => onCmd(1)}>
-              +
-            </Button>
           </div>
+          <DeltaPad onDelta={onCmd} max={21} className={cn(rtl && "lg:justify-end")} />
         </div>
       ) : null}
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { CircleHelp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type TabletGuideKind = "vgc" | "tcg" | "table" | "cards";
+export type TabletGuideKind = "vgc" | "tcg" | "mtg" | "table" | "cards" | "mtg-cards";
 
 const STORAGE_KEY = "rok-tablet-guide";
 
@@ -52,14 +52,41 @@ const COPY: Record<
       },
       {
         title: "Card lookup is for rulings",
-        body: "Search the box at the bottom. Live shows Standard-legal TCG Live cards from TCGdex. All sets searches the full paper catalog. Tap a result for art, HP, abilities, attacks, and trainer text. There’s a separate How to next to the search if you need it at the table.",
+        body: "Search the box at the bottom. Tap a result to read the card. Use Show on stream when you want the art on air, then Clear when the ruling is done.",
+      },
+    ],
+  },
+  mtg: {
+    kicker: "Judge tablet",
+    title: "How this MTG pad works",
+    lead: "This is the floor judge view for every Magic format — Standard through cEDH. Life, poison, commander damage, and the result stay in sync with production.",
+    steps: [
+      {
+        title: "Type an amount, then + or −",
+        body: "Life, poison, and commander damage all take a number. Type 20 and hit + to add 20. Leave it at 1 for single ticks.",
+      },
+      {
+        title: "Constructed is two seats",
+        body: "Standard, Modern, Pioneer, and the rest are 1v1. Games, Game, and Match work like the other judge tablets. Match reports into the bracket when the pair is linked.",
+      },
+      {
+        title: "Commander and cEDH are the pod",
+        body: "Four seats, each with life, poison, and commander damage. Wins marks the table winner. Duel Commander stays two seats with commander damage.",
+      },
+      {
+        title: "Clock is the streamed match",
+        body: "Type a time and Set, then Start. The floor clock for the rest of the room lives on Tournament control.",
+      },
+      {
+        title: "Card lookup is Scryfall",
+        body: "Search at the bottom. Filter to this format or All printings. Show on stream puts the art on the Card overlay. Clear takes it off.",
       },
     ],
   },
   cards: {
     kicker: "Card lookup",
     title: "How to pull a card",
-    lead: "This search hits TCGdex Pokémon TCG Live data so you can read the printed card without leaving the pad.",
+    lead: "This search hits TCGdex Pokémon TCG Live data so you can read the printed card and send it to the stream.",
     steps: [
       {
         title: "Type at least two letters",
@@ -70,8 +97,27 @@ const COPY: Record<
         body: "Live is Standard-legal TCG Live. Switch to All sets if the card is out of Standard or you need an older printing.",
       },
       {
-        title: "Tap a row for the full card",
-        body: "Art, set, number, rarity, HP, abilities, attacks, and trainer text. Use that for the ruling, then search the next name.",
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the full text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  "mtg-cards": {
+    kicker: "Card lookup",
+    title: "How to pull an MTG card",
+    lead: "This search hits Scryfall so you can read oracle text at the table and send the art to the stream.",
+    steps: [
+      {
+        title: "Type at least two letters",
+        body: "Name is enough — Sol Ring, Swords to Plowshares, Rhystic Study. Results appear as you type.",
+      },
+      {
+        title: "This format vs All printings",
+        body: "The first chip filters to cards legal in the event (Standard, Modern, Commander, …). All printings searches every Scryfall printing.",
+      },
+      {
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the oracle text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
       },
     ],
   },

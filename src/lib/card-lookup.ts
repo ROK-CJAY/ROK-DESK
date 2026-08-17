@@ -24,11 +24,13 @@ export type LookupCard = {
   stage?: string;
   trainerType?: string;
   retreat?: string;
+  mana?: string;
   attacks?: LookupAttack[];
   abilities?: LookupAbility[];
 };
 
 export const TCGDEX_BASE = "https://api.tcgdex.net/v2/en";
+export const SCRYFALL_BASE = "https://api.scryfall.com";
 
 export function cardLookupReady(): boolean {
   return true;
@@ -36,7 +38,7 @@ export function cardLookupReady(): boolean {
 
 export function cardImageUrl(image?: string, size: "low" | "high" = "high"): string {
   if (!image) return "";
-  if (image.endsWith(".webp") || image.endsWith(".png") || image.endsWith(".jpg")) return image;
+  if (image.endsWith(".webp") || image.endsWith(".png") || image.endsWith(".jpg") || image.endsWith(".jpeg")) return image;
   return `${image}/${size}.webp`;
 }
 
@@ -57,8 +59,49 @@ export async function fetchLookupCard(id: string): Promise<LookupCard | null> {
   const res = await fetch(`${TCGDEX_BASE}/cards/${encodeURIComponent(id)}`, { cache: "no-store" });
   if (!res.ok) throw new Error(`Card detail failed (${res.status})`);
   const data = (await res.json()) as unknown;
-  if (!data || typeof data !== "object") return null;
+  if (!data || typeof data === "object" === false) return null;
   return normalizeCard(data as Record<string, unknown>);
+}
+
+export function scryfallLegalFor(formatName: string): string | null {
+  const name = formatName.toLowerCase();
+  if (name.includes("standard")) return "standard";
+  if (name.includes("pioneer")) return "pioneer";
+  if (name.includes("modern")) return "modern";
+  if (name.includes("legacy")) return "legacy";
+  if (name.includes("vintage")) return "vintage";
+  if (name.includes("pauper")) return "pauper";
+  if (name.includes("commander") || name.includes("cedh") || name.includes("edh")) return "commander";
+  return null;
+}
+
+export async function searchScryfallCards(query: string, legal: string | null = null, uniquePrints = false): Promise<LookupCard[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const parts = [`${q}`];
+  if (legal && !uniquePrints) parts.push(`legal:${legal}`);
+  const url = new URL(`${SCRYFALL_BASE}/cards/search`);
+  url.searchParams.set("q", parts.join(" "));
+  url.searchParams.set("unique", uniquePrints ? "prints" : "cards");
+  url.searchParams.set("order", uniquePrints ? "released" : "name");
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`Scryfall lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  if (!isRecord(data) || !Array.isArray(data.data)) return [];
+  return data.data.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeScryfall(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function fetchScryfallCard(id: string): Promise<LookupCard | null> {
+  const res = await fetch(`${SCRYFALL_BASE}/cards/${encodeURIComponent(id)}`, { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as unknown;
+  if (!isRecord(data)) return null;
+  return normalizeScryfall(data);
 }
 
 function normalizeList(data: unknown): LookupCard[] {
@@ -117,6 +160,29 @@ function normalizeCard(item: Record<string, unknown>): LookupCard {
     retreat: item.retreat != null ? String(item.retreat) : undefined,
     attacks,
     abilities,
+  };
+}
+
+function normalizeScryfall(item: Record<string, unknown>): LookupCard {
+  const faces = Array.isArray(item.card_faces) ? item.card_faces.filter(isRecord) : [];
+  const face = faces[0];
+  const images = isRecord(item.image_uris) ? item.image_uris : face && isRecord(face.image_uris) ? face.image_uris : null;
+  const image = images?.normal ? String(images.normal) : images?.large ? String(images.large) : images?.small ? String(images.small) : undefined;
+  const textParts = faces.length
+    ? faces.map((f) => [f.name, f.oracle_text].filter(Boolean).join(" — ")).join("\n\n")
+    : item.oracle_text
+      ? String(item.oracle_text)
+      : undefined;
+  return {
+    id: String(item.id ?? ""),
+    name: String(item.name ?? "").trim(),
+    set: item.set_name ? String(item.set_name) : undefined,
+    number: item.collector_number != null ? String(item.collector_number) : undefined,
+    image,
+    type: item.type_line ? String(item.type_line) : face?.type_line ? String(face.type_line) : undefined,
+    text: textParts,
+    mana: item.mana_cost ? String(item.mana_cost) : face?.mana_cost ? String(face.mana_cost) : undefined,
+    rarity: item.rarity ? String(item.rarity) : undefined,
   };
 }
 

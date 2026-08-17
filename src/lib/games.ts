@@ -364,6 +364,37 @@ export function gameOf(id: GameId): GameDef {
   return GAMES[id];
 }
 
+export const GAME_SLUG: Record<GameId, string> = {
+  "pokemon-vgc": "vgc",
+  "pokemon-tcg": "ptcg",
+  "one-piece": "op",
+  yugioh: "ygo",
+  mtg: "mtg",
+  lorcana: "lorcana",
+  fab: "fab",
+  swu: "swu",
+  "union-arena": "ua",
+  generic: "tt",
+};
+
+const SLUG_TO_GAME = Object.fromEntries(
+  Object.entries(GAME_SLUG).map(([id, slug]) => [slug, id]),
+) as Record<string, GameId>;
+
+export function slugOf(gameId: GameId): string {
+  return GAME_SLUG[gameId];
+}
+
+export function gameIdFromSlug(slug: string): GameId | null {
+  const key = slug.trim().toLowerCase();
+  if (isGameId(key)) return key;
+  return SLUG_TO_GAME[key] ?? null;
+}
+
+export function signupPath(gameId: GameId): string {
+  return `/${slugOf(gameId)}/signup`;
+}
+
 export function formatFamilyOf(preset?: FormatPreset): FormatFamily {
   return preset?.family ?? "constructed";
 }
@@ -379,6 +410,14 @@ export function currentFamily(desk: { gameId: GameId; formatName: string }): For
 export function formatsInFamily(game: GameDef, family: FormatFamily): FormatPreset[] {
   const list = game.formats.filter((f) => formatFamilyOf(f) === family);
   return list.length ? list : game.formats;
+}
+
+export function extraFieldFor(gameId: GameId, formatName: string): { label: string; placeholder: string } {
+  const game = gameOf(gameId);
+  if (isCommanderLane({ gameId, formatName })) {
+    return { label: "Commander", placeholder: "Atraxa · Kinnan · Kenrith" };
+  }
+  return { label: game.extraLabel, placeholder: game.extraPlaceholder };
 }
 
 export function isCommanderLane(desk: { gameId: GameId; formatName: string }): boolean {

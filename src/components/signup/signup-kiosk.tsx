@@ -5,14 +5,16 @@ import { OfficialVgcForm } from "@/components/signup/official-vgc-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
-import { gameOf } from "@/lib/games";
+import { extraFieldFor, gameOf, slugOf, type GameId } from "@/lib/games";
 import { emptySignupDraft, type SignupDraft } from "@/components/signup/signup-types";
 import { useTournamentStore } from "@/lib/tournament-store";
+import { viewTournament } from "@/lib/tournament-types";
 
-export function SignupKiosk() {
+export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   const ready = useTournamentStore((s) => s.ready);
   const hydrate = useTournamentStore((s) => s.hydrate);
-  const t = useTournamentStore((s) => s.tournament);
+  const live = useTournamentStore((s) => s.tournament);
+  const t = pinnedGame ? viewTournament(live, pinnedGame) : live;
   const [step, setStep] = useState<"welcome" | "form" | "done">("welcome");
   const [draft, setDraft] = useState<SignupDraft>(() => emptySignupDraft());
   const [error, setError] = useState("");
@@ -43,6 +45,7 @@ export function SignupKiosk() {
   }
 
   const game = gameOf(t.gameId);
+  const extra = extraFieldFor(t.gameId, t.formatName);
   const closed = t.phase === "complete";
   const vgc = t.gameId === "pokemon-vgc";
 
@@ -70,6 +73,7 @@ export function SignupKiosk() {
           ageDivision: draft.ageDivision,
           birthDate: draft.birthDate.trim(),
           team: vgc ? draft.team : undefined,
+          game: slugOf(t.gameId),
         }),
       });
       const data = (await res.json()) as { error?: string; seed?: number; name?: string; count?: number };
@@ -124,7 +128,7 @@ export function SignupKiosk() {
               This tablet is the walk-up desk for <span className="text-fg">{t.name}</span>
               {vgc
                 ? ". Fill the official Video Game Team List — player info plus all six Pokémon — then submit."
-                : `. Enter your name, handle, and ${game.extraLabel.toLowerCase()} for ${game.name}.`}
+                : `. Enter your name, handle, and ${extra.label.toLowerCase()} for ${game.name}.`}
             </p>
             <ul className="mt-5 grid gap-2 text-sm text-muted">
               <li className="rounded-lg bg-surface-2 px-3 py-3">One player at a time. When you’re done, hand it back.</li>
@@ -212,11 +216,11 @@ export function SignupKiosk() {
                       ))}
                     </NativeSelect>
                   </Field>
-                  <Field label={game.extraLabel}>
+                  <Field label={extra.label}>
                     <Input
                       value={draft.deck}
                       onChange={(e) => setDraft((d) => ({ ...d, deck: e.target.value }))}
-                      placeholder={game.extraPlaceholder}
+                      placeholder={extra.placeholder}
                     />
                   </Field>
                 </div>

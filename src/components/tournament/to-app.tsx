@@ -3,10 +3,13 @@ import { ClipboardList, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, 
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { FloorClock } from "@/components/tournament/floor-clock";
+import { overlayPath } from "@/components/desk/sources";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { GAME_LIST, gameOf, isCommanderPodFormat } from "@/lib/games";
+import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, signupPath } from "@/lib/games";
+import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
 import { groupByRound, readyMatches, computeStandings, currentSwissRound, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
@@ -14,9 +17,13 @@ import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import {
   DRAW_ID,
+  PRESET_SIZES,
+  bracketSlots,
   championOf,
+  clampBracketSize,
   entrantById,
   isPodMatch,
+  isPresetSize,
   matchEntrantIds,
   matchSlots,
   teamSheetLabel,
@@ -104,13 +111,19 @@ function SetupPanel() {
   const setGame = useTournamentStore((s) => s.setGame);
   const generate = useTournamentStore((s) => s.generate);
   const resetBracket = useTournamentStore((s) => s.resetBracket);
+  const loadTestMode = useTournamentStore((s) => s.loadTestMode);
   const game = gameOf(t.gameId);
+  const [sizeDraft, setSizeDraft] = useState(String(t.size));
   const setShape = (partial: Partial<typeof t>) => {
     patch({
       ...partial,
       ...(t.matches.length ? { matches: [], phase: "setup" as const } : {}),
     });
   };
+
+  useEffect(() => {
+    setSizeDraft(String(t.size));
+  }, [t.size]);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
@@ -160,18 +173,51 @@ function SetupPanel() {
           </Field>
           <Field label="Size">
             <NativeSelect
-              value={String(t.size)}
-              onChange={(e) => setShape({ size: Number(e.target.value) as BracketSize })}
+              value={isPresetSize(t.size) ? String(t.size) : "custom"}
+              onChange={(e) => {
+                if (e.target.value === "custom") {
+                  setShape({ size: isPresetSize(t.size) ? 12 : clampBracketSize(t.size) });
+                  return;
+                }
+                setShape({ size: Number(e.target.value) as BracketSize });
+              }}
             >
-              {[4, 8, 16, 32].map((n) => (
+              {PRESET_SIZES.map((n) => (
                 <option key={n} value={n}>
                   {n} players
                 </option>
               ))}
+              <option value="custom">Custom</option>
             </NativeSelect>
           </Field>
         </div>
-        <p className="text-xs text-subtle">Changing bracket or size clears the current pairings so you can generate again.</p>
+        {!isPresetSize(t.size) ? (
+          <Field label="Players">
+            <Input
+              inputMode="numeric"
+              min={2}
+              max={128}
+              value={sizeDraft}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^\d]/g, "");
+                setSizeDraft(raw);
+                const n = Number(raw);
+                if (Number.isFinite(n) && n >= 2 && n <= 128) setShape({ size: n });
+              }}
+              onBlur={() => {
+                const next = clampBracketSize(Number(sizeDraft) || t.size);
+                setSizeDraft(String(next));
+                if (next !== t.size) setShape({ size: next });
+              }}
+            />
+          </Field>
+        ) : null}
+        <p className="text-xs text-subtle">
+          Changing bracket or size clears the current pairings so you can generate again.
+          {t.bracketType !== "swiss" && !isPresetSize(t.size)
+            ? ` Single/double elim builds a ${bracketSlots(t.size)}-slot bracket and fills empty seats as byes.`
+            : ""}
+        </p>
         {t.bracketType === "swiss" ? (
           <Field label="Swiss rounds">
             <NativeSelect
@@ -216,7 +262,7 @@ function SetupPanel() {
         <FloorClock />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="flex-1" asChild>
-            <a href="/overlay/floor-clock" target="_blank" rel="noreferrer">
+            <a href={overlayPath(t.gameId, "floor-clock")} target="_blank" rel="noreferrer">
               Open floor clock
             </a>
           </Button>
@@ -225,7 +271,7 @@ function SetupPanel() {
             size="sm"
             className="flex-1"
             onClick={() => {
-              void navigator.clipboard.writeText(`${window.location.origin}/overlay/floor-clock`);
+              void navigator.clipboard.writeText(`${window.location.origin}${overlayPath(t.gameId, "floor-clock")}`);
             }}
           >
             Copy floor clock URL
@@ -242,6 +288,17 @@ function SetupPanel() {
               Reset
             </Button>
           ) : null}
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
+          <div>
+            <p className="text-sm font-medium">Test mode</p>
+            <p className="text-[0.65rem] leading-relaxed text-subtle">
+              {tournamentLooksLikeTest(t)
+                ? "Demo roster is live. Turn off to restore the last real field and pairings."
+                : "Load 8 demo players for this game. Your current roster is saved until you turn this off."}
+            </p>
+          </div>
+          <Switch checked={tournamentLooksLikeTest(t)} onCheckedChange={() => loadTestMode()} aria-label="Toggle test mode" />
         </div>
       </div>
     </section>
@@ -358,6 +415,7 @@ function RosterPanel({
   const reseed = useTournamentStore((s) => s.reseed);
   const reorderEntrants = useTournamentStore((s) => s.reorderEntrants);
   const game = gameOf(t.gameId);
+  const extra = extraFieldFor(t.gameId, t.formatName);
   const [draft, setDraft] = useState({ name: "", tag: "", deck: "", country: "US" });
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -387,7 +445,7 @@ function RosterPanel({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" asChild>
-            <a href="/signup" target="_blank" rel="noreferrer">
+            <a href={signupPath(t.gameId)} target="_blank" rel="noreferrer">
               Open sign-up
             </a>
           </Button>
@@ -420,7 +478,7 @@ function RosterPanel({
           onChange={(e) => setDraft((d) => ({ ...d, tag: e.target.value }))}
         />
         <Input
-          placeholder={game.extraPlaceholder}
+          placeholder={extra.placeholder}
           value={draft.deck}
           onChange={(e) => setDraft((d) => ({ ...d, deck: e.target.value }))}
         />
@@ -445,7 +503,7 @@ function RosterPanel({
               <th className="pb-2 font-medium">Seed</th>
               <th className="pb-2 font-medium">Player</th>
               <th className="pb-2 font-medium">Handle</th>
-              <th className="pb-2 font-medium">{game.extraLabel}</th>
+              <th className="pb-2 font-medium">{extra.label}</th>
               <th className="pb-2 font-medium">CC</th>
               <th className="pb-2 font-medium" />
             </tr>
@@ -760,7 +818,7 @@ function StandingsTable({
           <tr>
             <th className="pb-2 font-medium">#</th>
             <th className="pb-2 font-medium">Player</th>
-            <th className="pb-2 font-medium">Deck</th>
+            <th className="pb-2 font-medium">{extraFieldFor(t.gameId, t.formatName).label}</th>
             <th className="pb-2 font-medium">W–L–D</th>
             <th className="pb-2 font-medium">Pts</th>
             <th className="pb-2 font-medium">OMW</th>

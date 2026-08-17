@@ -20,6 +20,9 @@ export const WIDGET_IDS = [
   "upcoming",
   "rosterP1",
   "rosterP2",
+  "cardSpotlight",
+  "sponsors",
+  "eventLogo",
 ] as const;
 
 export type WidgetId = (typeof WIDGET_IDS)[number];
@@ -44,6 +47,9 @@ export const WIDGET_LABELS: Record<WidgetId, string> = {
   upcoming: "Up next",
   rosterP1: "P1 roster",
   rosterP2: "P2 roster",
+  cardSpotlight: "Card",
+  sponsors: "Sponsors",
+  eventLogo: "Event logo",
 };
 
 export const DEFAULT_LAYOUT: LayoutMap = {
@@ -64,6 +70,9 @@ export const DEFAULT_LAYOUT: LayoutMap = {
   upcoming: { x: 48, y: 220 },
   rosterP1: { x: 1012, y: 132 },
   rosterP2: { x: 28, y: 132 },
+  cardSpotlight: { x: 1312, y: 168 },
+  sponsors: { x: 1548, y: 132 },
+  eventLogo: { x: 48, y: 132 },
 };
 
 export function clampPos(pos: WidgetPos, fullWidth = false): WidgetPos {

@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-import { type SideId } from "@/lib/desk-types";
+import { type SideId, resourceLimit } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
-import { gameOf } from "@/lib/games";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { PokeballIcon } from "@/components/overlays/pips";
@@ -49,9 +48,7 @@ export function TcgJudgeTablet() {
     return <div className="grid h-dvh place-items-center bg-bg text-muted">Loading tablet…</div>;
   }
 
-  const game = gameOf(desk.gameId);
-  const format = game.formats.find((f) => f.label === desk.formatName);
-  const max = format?.resourceMax ?? game.resource.max;
+  const max = resourceLimit(desk);
 
   const punchMatch = (side: SideId) => {
     if (desk.winnerSide === side) {

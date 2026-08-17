@@ -4,19 +4,43 @@ import { Input } from "@/components/ui/input";
 import {
   cardImageUrl,
   fetchLookupCard,
+  fetchScryfallCard,
+  scryfallLegalFor,
   searchLookupCards,
+  searchScryfallCards,
   type LookupCard,
 } from "@/lib/card-lookup";
+import { emptySpotlight } from "@/lib/desk-types";
+import { useDeskStore } from "@/lib/desk-store";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
-export function CardLookup({ compact = false }: { compact?: boolean }) {
+export function CardLookup({
+  compact = false,
+  catalog = "ptcg",
+  formatName = "",
+}: {
+  compact?: boolean;
+  catalog?: "ptcg" | "mtg";
+  formatName?: string;
+}) {
+  const patch = useDeskStore((s) => s.patch);
+  const spotlight = useDeskStore((s) => s.desk.cardSpotlight);
+  const hydrate = useDeskStore((s) => s.hydrate);
+  const ready = useDeskStore((s) => s.ready);
   const [query, setQuery] = useState("");
   const [liveOnly, setLiveOnly] = useState(true);
   const [results, setResults] = useState<LookupCard[]>([]);
   const [selected, setSelected] = useState<LookupCard | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
-  const guide = useTabletGuide("cards", false);
+  const guide = useTabletGuide(catalog === "mtg" ? "mtg-cards" : "cards", false);
+  const legal = catalog === "mtg" ? scryfallLegalFor(formatName) : null;
+  const mtg = catalog === "mtg";
+
+  useEffect(() => {
+    if (!ready) void hydrate();
+  }, [ready, hydrate]);
 
   useEffect(() => {
     const q = query.trim();
@@ -28,7 +52,10 @@ export function CardLookup({ compact = false }: { compact?: boolean }) {
     let cancelled = false;
     setStatus("loading");
     const timer = window.setTimeout(() => {
-      void searchLookupCards(q, liveOnly)
+      const run = mtg
+        ? searchScryfallCards(q, legal, !liveOnly)
+        : searchLookupCards(q, liveOnly);
+      void run
         .then((rows) => {
           if (cancelled) return;
           setResults(rows);
@@ -38,17 +65,35 @@ export function CardLookup({ compact = false }: { compact?: boolean }) {
           if (cancelled) return;
           setStatus("error");
         });
-    }, 220);
+    }, 280);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, liveOnly]);
+  }, [query, liveOnly, mtg, legal]);
+
+  const pushToStream = (card: LookupCard) => {
+    patch({
+      cardSpotlight: {
+        visible: true,
+        id: card.id,
+        name: card.name,
+        set: card.set ?? "",
+        number: card.number ?? "",
+        image: card.image ?? "",
+        type: card.type ?? "",
+      },
+    });
+  };
+
+  const clearStream = () => {
+    patch({ cardSpotlight: emptySpotlight() });
+  };
 
   const openCard = async (card: LookupCard) => {
     setSelected(card);
     try {
-      const detail = await fetchLookupCard(card.id);
+      const detail = mtg ? await fetchScryfallCard(card.id) : await fetchLookupCard(card.id);
       if (detail) setSelected(detail);
     } catch {
       /* keep list row */
@@ -60,16 +105,20 @@ export function CardLookup({ compact = false }: { compact?: boolean }) {
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="font-mono text-[0.65rem] tracking-[0.2em] text-muted uppercase">Card lookup</p>
-          <p className="text-sm text-muted">Pokémon TCG Live data via TCGdex. Search for a ruling.</p>
+          <p className="text-sm text-muted">
+            {mtg
+              ? "Scryfall search. Read the oracle text, then Show on stream if you want the art on air."
+              : "Search a card to read it. Show on stream when you want the art on air."}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <GuideButton onClick={guide.openGuide} />
           <div className="flex rounded-md bg-surface-2 p-0.5">
             <FilterChip active={liveOnly} onClick={() => setLiveOnly(true)}>
-              Live
+              {mtg && legal ? formatName : "Live"}
             </FilterChip>
             <FilterChip active={!liveOnly} onClick={() => setLiveOnly(false)}>
-              All sets
+              All printings
             </FilterChip>
           </div>
         </div>
@@ -79,7 +128,7 @@ export function CardLookup({ compact = false }: { compact?: boolean }) {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search Pikachu, Iono, Boss’s Orders…"
+          placeholder={mtg ? "Search Sol Ring, Swords to Plowshares…" : "Search Pikachu, Iono, Boss’s Orders…"}
           className="pl-9"
         />
       </div>
@@ -109,7 +158,7 @@ export function CardLookup({ compact = false }: { compact?: boolean }) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{card.name}</span>
                   <span className="block truncate text-xs text-muted">
-                    {[card.set, card.number].filter(Boolean).join(" · ")}
+                    {[card.mana, card.set, card.number].filter(Boolean).join(" · ")}
                   </span>
                 </span>
               </button>
@@ -119,11 +168,22 @@ export function CardLookup({ compact = false }: { compact?: boolean }) {
       ) : query.trim().length >= 2 ? (
         <p className="mt-4 text-sm text-muted">No cards matched.</p>
       ) : (
-        <p className="mt-4 text-sm text-muted">Type at least two letters. Live is Standard-legal TCG Live cards.</p>
+        <p className="mt-4 text-sm text-muted">
+          {mtg
+            ? `Type at least two letters. ${legal ? `${formatName} filters to cards legal in this event.` : "All printings searches the full Scryfall catalog."}`
+            : "Type at least two letters. Live is Standard-legal TCG Live cards."}
+        </p>
       )}
 
-      {selected ? <CardDetail card={selected} /> : null}
-      <TabletGuide kind="cards" open={guide.open} onClose={guide.close} />
+      {selected ? (
+        <CardDetail
+          card={selected}
+          onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
+          onShow={() => pushToStream(selected)}
+          onClear={clearStream}
+        />
+      ) : null}
+      <TabletGuide kind={catalog === "mtg" ? "mtg-cards" : "cards"} open={guide.open} onClose={guide.close} />
     </section>
   );
 }
@@ -148,7 +208,17 @@ function FilterChip({
   );
 }
 
-function CardDetail({ card }: { card: LookupCard }) {
+function CardDetail({
+  card,
+  onAir,
+  onShow,
+  onClear,
+}: {
+  card: LookupCard;
+  onAir: boolean;
+  onShow: () => void;
+  onClear: () => void;
+}) {
   return (
     <article className="mt-3 grid gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[8.5rem_1fr]">
       {card.image ? (
@@ -157,12 +227,30 @@ function CardDetail({ card }: { card: LookupCard }) {
         <div className="grid h-40 place-items-center rounded-md bg-surface text-xs text-muted">No art</div>
       )}
       <div className="min-w-0">
-        <h3 className="font-display text-xl font-semibold uppercase">{card.name}</h3>
-        <p className="text-xs text-muted">
-          {[card.set, card.number, card.rarity, card.stage || card.trainerType || card.category, card.type, card.hp ? `${card.hp} HP` : ""]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="font-display text-xl font-semibold uppercase">{card.name}</h3>
+            <p className="text-xs text-muted">
+              {[card.mana, card.set, card.number, card.rarity, card.stage || card.trainerType || card.category, card.type, card.hp ? `${card.hp} HP` : ""]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {onAir ? (
+              <Button variant="live" size="sm" type="button" aria-live="polite">
+                On stream
+              </Button>
+            ) : (
+              <Button size="sm" onClick={onShow} disabled={!card.image}>
+                Show on stream
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={onClear} disabled={!onAir}>
+              Clear
+            </Button>
+          </div>
+        </div>
         {card.abilities?.map((ability) => (
           <p key={ability.name} className="mt-2 text-sm leading-relaxed">
             <span className="text-muted">Ability · </span>
@@ -178,7 +266,7 @@ function CardDetail({ card }: { card: LookupCard }) {
             {attack.text ? <span className="mt-0.5 block text-muted">{attack.text}</span> : null}
           </p>
         ))}
-        {card.text ? <p className="mt-2 text-sm leading-relaxed text-fg">{card.text}</p> : null}
+        {card.text ? <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-fg">{card.text}</p> : null}
       </div>
     </article>
   );

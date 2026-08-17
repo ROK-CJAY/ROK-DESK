@@ -4,6 +4,8 @@ import { useDeskStore } from "@/lib/desk-store";
 import { SEAT_LABELS, seatsFor, type SeatId } from "@/lib/desk-types";
 import { VgcJudgeTablet } from "@/components/tablet/vgc-judge";
 import { TcgJudgeTablet } from "@/components/tablet/tcg-judge";
+import { MtgJudgeTablet } from "@/components/tablet/mtg-judge";
+import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { cn } from "@/lib/cn";
 
@@ -56,6 +58,10 @@ export function PodPad() {
 
   if (desk.gameId === "pokemon-tcg") {
     return <TcgJudgeTablet />;
+  }
+
+  if (desk.gameId === "mtg") {
+    return <MtgJudgeTablet />;
   }
 
   const seats = desk.tableSize === 4 ? TABLE_ORDER : seatsFor(Math.max(desk.tableSize, 2) as 2 | 3 | 4);
@@ -185,22 +191,13 @@ function SeatPad({
           </button>
         </div>
 
-        <div className="flex justify-center gap-2">
-          {[-5, 5].map((step) => (
-            <button
-              key={step}
-              type="button"
-              onClick={() => onLife(step)}
-              className="min-h-11 min-w-14 rounded-md border border-border bg-surface-2 text-sm font-medium tabular-nums"
-            >
-              {step > 0 ? `+${step}` : step}
-            </button>
-          ))}
+        <div className="flex justify-center">
+          <DeltaPad onDelta={onLife} size="tablet" />
         </div>
 
         <div className="mt-3 grid grid-cols-2 gap-2">
-          <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} />
-          <CounterChip label="Cmd" value={cmd} danger={cmd >= 21} onDelta={onCmd} />
+          <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} max={10} />
+          <CounterChip label="Cmd" value={cmd} danger={cmd >= 21} onDelta={onCmd} max={21} />
         </div>
       </div>
     </section>
@@ -212,29 +209,26 @@ function CounterChip({
   value,
   danger,
   onDelta,
+  max,
 }: {
   label: string;
   value: number;
   danger?: boolean;
   onDelta: (delta: number) => void;
+  max: number;
 }) {
   return (
     <div
       className={cn(
-        "flex items-center justify-between rounded-md border px-1 py-1",
+        "flex flex-col items-center gap-1 rounded-md border px-1 py-1.5",
         danger ? "border-live" : "border-border",
       )}
     >
-      <button type="button" className="grid size-11 place-items-center text-lg" onClick={() => onDelta(-1)}>
-        −
-      </button>
       <div className="text-center">
         <p className="font-mono text-[0.55rem] tracking-[0.16em] text-muted uppercase">{label}</p>
         <p className="font-display text-2xl leading-none font-semibold tabular-nums">{value}</p>
       </div>
-      <button type="button" className="grid size-11 place-items-center text-lg" onClick={() => onDelta(1)}>
-        +
-      </button>
+      <DeltaPad onDelta={onDelta} max={max} size="tablet" />
     </div>
   );
 }

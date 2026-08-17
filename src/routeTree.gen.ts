@@ -16,11 +16,14 @@ import { Route as PodRouteImport } from './routes/pod'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TabletRouteImport } from './routes/tablet'
 import { Route as TournamentRouteImport } from './routes/tournament'
+import { Route as GameSignupRouteImport } from './routes/$game/signup'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
 import { Route as OverlayIndexRouteImport } from './routes/overlay/index'
 import { Route as OverlayBracketRouteImport } from './routes/overlay/bracket'
+import { Route as OverlayCardRouteImport } from './routes/overlay/card'
 import { Route as OverlayCastersRouteImport } from './routes/overlay/casters'
+import { Route as OverlayEventLogoRouteImport } from './routes/overlay/event-logo'
 import { Route as OverlayFloorClockRouteImport } from './routes/overlay/floor-clock'
 import { Route as OverlayGameWinRouteImport } from './routes/overlay/game-win'
 import { Route as OverlayHudRouteImport } from './routes/overlay/hud'
@@ -29,11 +32,13 @@ import { Route as OverlayResourceRouteImport } from './routes/overlay/resource'
 import { Route as OverlayRosterRouteImport } from './routes/overlay/roster'
 import { Route as OverlayScorebugRouteImport } from './routes/overlay/scorebug'
 import { Route as OverlaySlateRouteImport } from './routes/overlay/slate'
+import { Route as OverlaySponsorsRouteImport } from './routes/overlay/sponsors'
 import { Route as OverlayTimerRouteImport } from './routes/overlay/timer'
 import { Route as OverlayUpcomingRouteImport } from './routes/overlay/upcoming'
 import { Route as OverlayVersusRouteImport } from './routes/overlay/versus'
 import { Route as OverlayWinnerRouteImport } from './routes/overlay/winner'
 import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
+import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
 
@@ -72,6 +77,11 @@ const TournamentRoute = TournamentRouteImport.update({
   path: '/tournament',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GameSignupRoute = GameSignupRouteImport.update({
+  id: '/$game/signup',
+  path: '/$game/signup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiDeskRoute = ApiDeskRouteImport.update({
   id: '/api/desk',
   path: '/api/desk',
@@ -92,9 +102,19 @@ const OverlayBracketRoute = OverlayBracketRouteImport.update({
   path: '/bracket',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const OverlayCardRoute = OverlayCardRouteImport.update({
+  id: '/card',
+  path: '/card',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
 const OverlayCastersRoute = OverlayCastersRouteImport.update({
   id: '/casters',
   path: '/casters',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
+const OverlayEventLogoRoute = OverlayEventLogoRouteImport.update({
+  id: '/event-logo',
+  path: '/event-logo',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
 const OverlayFloorClockRoute = OverlayFloorClockRouteImport.update({
@@ -137,6 +157,11 @@ const OverlaySlateRoute = OverlaySlateRouteImport.update({
   path: '/slate',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const OverlaySponsorsRoute = OverlaySponsorsRouteImport.update({
+  id: '/sponsors',
+  path: '/sponsors',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
 const OverlayTimerRoute = OverlayTimerRouteImport.update({
   id: '/timer',
   path: '/timer',
@@ -162,6 +187,11 @@ const PrintTeamListRoute = PrintTeamListRouteImport.update({
   path: '/print/team-list',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GameOverlaySourceRoute = GameOverlaySourceRouteImport.update({
+  id: '/$game/overlay/$source',
+  path: '/$game/overlay/$source',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -181,10 +211,13 @@ export interface FileRoutesByFullPath {
   '/signup': typeof SignupRoute
   '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
+  '/$game/signup': typeof GameSignupRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/overlay/bracket': typeof OverlayBracketRoute
+  '/overlay/card': typeof OverlayCardRoute
   '/overlay/casters': typeof OverlayCastersRoute
+  '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
   '/overlay/hud': typeof OverlayHudRoute
@@ -193,12 +226,14 @@ export interface FileRoutesByFullPath {
   '/overlay/roster': typeof OverlayRosterRoute
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
+  '/overlay/sponsors': typeof OverlaySponsorsRoute
   '/overlay/timer': typeof OverlayTimerRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
   '/print/team-list': typeof PrintTeamListRoute
   '/overlay/': typeof OverlayIndexRoute
+  '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
 }
@@ -209,10 +244,13 @@ export interface FileRoutesByTo {
   '/signup': typeof SignupRoute
   '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
+  '/$game/signup': typeof GameSignupRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/overlay/bracket': typeof OverlayBracketRoute
+  '/overlay/card': typeof OverlayCardRoute
   '/overlay/casters': typeof OverlayCastersRoute
+  '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
   '/overlay/hud': typeof OverlayHudRoute
@@ -221,12 +259,14 @@ export interface FileRoutesByTo {
   '/overlay/roster': typeof OverlayRosterRoute
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
+  '/overlay/sponsors': typeof OverlaySponsorsRoute
   '/overlay/timer': typeof OverlayTimerRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
   '/print/team-list': typeof PrintTeamListRoute
   '/overlay': typeof OverlayIndexRoute
+  '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
 }
@@ -239,10 +279,13 @@ export interface FileRoutesById {
   '/signup': typeof SignupRoute
   '/tablet': typeof TabletRoute
   '/tournament': typeof TournamentRoute
+  '/$game/signup': typeof GameSignupRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/overlay/bracket': typeof OverlayBracketRoute
+  '/overlay/card': typeof OverlayCardRoute
   '/overlay/casters': typeof OverlayCastersRoute
+  '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
   '/overlay/hud': typeof OverlayHudRoute
@@ -251,12 +294,14 @@ export interface FileRoutesById {
   '/overlay/roster': typeof OverlayRosterRoute
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
+  '/overlay/sponsors': typeof OverlaySponsorsRoute
   '/overlay/timer': typeof OverlayTimerRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
   '/print/team-list': typeof PrintTeamListRoute
   '/overlay/': typeof OverlayIndexRoute
+  '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
 }
@@ -270,10 +315,13 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tablet'
     | '/tournament'
+    | '/$game/signup'
     | '/api/desk'
     | '/api/tournament'
     | '/overlay/bracket'
+    | '/overlay/card'
     | '/overlay/casters'
+    | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
     | '/overlay/hud'
@@ -282,12 +330,14 @@ export interface FileRouteTypes {
     | '/overlay/roster'
     | '/overlay/scorebug'
     | '/overlay/slate'
+    | '/overlay/sponsors'
     | '/overlay/timer'
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
     | '/print/team-list'
     | '/overlay/'
+    | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/tournament/signup'
   fileRoutesByTo: FileRoutesByTo
@@ -298,10 +348,13 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tablet'
     | '/tournament'
+    | '/$game/signup'
     | '/api/desk'
     | '/api/tournament'
     | '/overlay/bracket'
+    | '/overlay/card'
     | '/overlay/casters'
+    | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
     | '/overlay/hud'
@@ -310,12 +363,14 @@ export interface FileRouteTypes {
     | '/overlay/roster'
     | '/overlay/scorebug'
     | '/overlay/slate'
+    | '/overlay/sponsors'
     | '/overlay/timer'
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
     | '/print/team-list'
     | '/overlay'
+    | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/tournament/signup'
   id:
@@ -327,10 +382,13 @@ export interface FileRouteTypes {
     | '/signup'
     | '/tablet'
     | '/tournament'
+    | '/$game/signup'
     | '/api/desk'
     | '/api/tournament'
     | '/overlay/bracket'
+    | '/overlay/card'
     | '/overlay/casters'
+    | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
     | '/overlay/hud'
@@ -339,12 +397,14 @@ export interface FileRouteTypes {
     | '/overlay/roster'
     | '/overlay/scorebug'
     | '/overlay/slate'
+    | '/overlay/sponsors'
     | '/overlay/timer'
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
     | '/print/team-list'
     | '/overlay/'
+    | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/tournament/signup'
   fileRoutesById: FileRoutesById
@@ -357,9 +417,11 @@ export interface RootRouteChildren {
   SignupRoute: typeof SignupRoute
   TabletRoute: typeof TabletRoute
   TournamentRoute: typeof TournamentRoute
+  GameSignupRoute: typeof GameSignupRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
   PrintTeamListRoute: typeof PrintTeamListRoute
+  GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -414,6 +476,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TournamentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$game/signup': {
+      id: '/$game/signup'
+      path: '/$game/signup'
+      fullPath: '/$game/signup'
+      preLoaderRoute: typeof GameSignupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/desk': {
       id: '/api/desk'
       path: '/api/desk'
@@ -442,11 +511,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayBracketRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/overlay/card': {
+      id: '/overlay/card'
+      path: '/card'
+      fullPath: '/overlay/card'
+      preLoaderRoute: typeof OverlayCardRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
     '/overlay/casters': {
       id: '/overlay/casters'
       path: '/casters'
       fullPath: '/overlay/casters'
       preLoaderRoute: typeof OverlayCastersRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
+    '/overlay/event-logo': {
+      id: '/overlay/event-logo'
+      path: '/event-logo'
+      fullPath: '/overlay/event-logo'
+      preLoaderRoute: typeof OverlayEventLogoRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
     '/overlay/floor-clock': {
@@ -505,6 +588,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlaySlateRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/overlay/sponsors': {
+      id: '/overlay/sponsors'
+      path: '/sponsors'
+      fullPath: '/overlay/sponsors'
+      preLoaderRoute: typeof OverlaySponsorsRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
     '/overlay/timer': {
       id: '/overlay/timer'
       path: '/timer'
@@ -540,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrintTeamListRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/$game/overlay/$source': {
+      id: '/$game/overlay/$source'
+      path: '/$game/overlay/$source'
+      fullPath: '/$game/overlay/$source'
+      preLoaderRoute: typeof GameOverlaySourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -559,7 +656,9 @@ declare module '@tanstack/react-router' {
 
 interface OverlayRouteRouteChildren {
   OverlayBracketRoute: typeof OverlayBracketRoute
+  OverlayCardRoute: typeof OverlayCardRoute
   OverlayCastersRoute: typeof OverlayCastersRoute
+  OverlayEventLogoRoute: typeof OverlayEventLogoRoute
   OverlayFloorClockRoute: typeof OverlayFloorClockRoute
   OverlayGameWinRoute: typeof OverlayGameWinRoute
   OverlayHudRoute: typeof OverlayHudRoute
@@ -568,6 +667,7 @@ interface OverlayRouteRouteChildren {
   OverlayRosterRoute: typeof OverlayRosterRoute
   OverlayScorebugRoute: typeof OverlayScorebugRoute
   OverlaySlateRoute: typeof OverlaySlateRoute
+  OverlaySponsorsRoute: typeof OverlaySponsorsRoute
   OverlayTimerRoute: typeof OverlayTimerRoute
   OverlayUpcomingRoute: typeof OverlayUpcomingRoute
   OverlayVersusRoute: typeof OverlayVersusRoute
@@ -577,7 +677,9 @@ interface OverlayRouteRouteChildren {
 
 const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayBracketRoute: OverlayBracketRoute,
+  OverlayCardRoute: OverlayCardRoute,
   OverlayCastersRoute: OverlayCastersRoute,
+  OverlayEventLogoRoute: OverlayEventLogoRoute,
   OverlayFloorClockRoute: OverlayFloorClockRoute,
   OverlayGameWinRoute: OverlayGameWinRoute,
   OverlayHudRoute: OverlayHudRoute,
@@ -586,6 +688,7 @@ const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayRosterRoute: OverlayRosterRoute,
   OverlayScorebugRoute: OverlayScorebugRoute,
   OverlaySlateRoute: OverlaySlateRoute,
+  OverlaySponsorsRoute: OverlaySponsorsRoute,
   OverlayTimerRoute: OverlayTimerRoute,
   OverlayUpcomingRoute: OverlayUpcomingRoute,
   OverlayVersusRoute: OverlayVersusRoute,
@@ -617,9 +720,11 @@ const rootRouteChildren: RootRouteChildren = {
   SignupRoute: SignupRoute,
   TabletRoute: TabletRoute,
   TournamentRoute: TournamentRoute,
+  GameSignupRoute: GameSignupRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,
   PrintTeamListRoute: PrintTeamListRoute,
+  GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

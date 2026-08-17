@@ -3,5 +3,5 @@ import { OverlayPage } from "@/components/overlays/overlay-page";
 import { HudView } from "@/components/overlays/graphics";
 
 export const Route = createFileRoute("/overlay/hud")({
-  component: () => <OverlayPage render={(desk, now) => <HudView desk={desk} now={now} />} />,
+  component: () => <OverlayPage source="hud" render={(desk, now) => <HudView desk={desk} now={now} />} />,
 });

@@ -17,12 +17,17 @@ import { ScorebugView } from "@/components/overlays/scorebug";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { Button } from "@/components/ui/button";
-import { OVERLAY_SOURCES, type OverlaySourceId } from "@/components/desk/sources";
+import { OVERLAY_SOURCES, overlayPath, type OverlaySourceId } from "@/components/desk/sources";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { BracketOverlay } from "@/components/overlays/bracket";
 import { FloorClockOverlay } from "@/components/overlays/floor-clock";
+import { OverlayLookRoot } from "@/components/overlays/overlay-look-root";
+import { CardSpotlightView } from "@/components/overlays/card";
+import { EventLogoView } from "@/components/overlays/event-logo";
+import { SponsorsView } from "@/components/overlays/sponsors";
 import { RosterView } from "@/components/overlays/roster";
+import { LookEditor } from "@/components/desk/look-editor";
 import {
   cloneLayout,
   isDefaultLayout,
@@ -36,6 +41,7 @@ const HISTORY_LIMIT = 30;
 
 export function OverlayPreview() {
   const desk = useDeskStore((s) => s.desk);
+  const patch = useDeskStore((s) => s.patch);
   const moveWidget = useDeskStore((s) => s.moveWidget);
   const applyLayout = useDeskStore((s) => s.applyLayout);
   const resetLayout = useDeskStore((s) => s.resetLayout);
@@ -131,7 +137,7 @@ export function OverlayPreview() {
   }, [arranging, past, future]);
 
   const current = OVERLAY_SOURCES.find((s) => s.id === source)!;
-  const url = origin ? `${origin}${current.path}` : current.path;
+  const url = origin ? `${origin}${overlayPath(desk.gameId, source)}` : overlayPath(desk.gameId, source);
   const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock";
   const atDefault = isDefaultLayout(desk.layout);
 
@@ -193,12 +199,12 @@ export function OverlayPreview() {
             <RotateCcw className="size-3.5" />
             Default look
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => void copy(current.path)}>
-            {copied === current.path ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          <Button variant="secondary" size="sm" onClick={() => void copy(overlayPath(desk.gameId, source))}>
+            {copied === overlayPath(desk.gameId, source) ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             Copy URL
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <a href={current.path} target="_blank" rel="noreferrer">
+            <a href={overlayPath(desk.gameId, source)} target="_blank" rel="noreferrer">
               <ExternalLink className="size-3.5" />
               Pop out
             </a>
@@ -215,6 +221,7 @@ export function OverlayPreview() {
         />
         <div className="absolute inset-0 bg-ov-bg/25" />
         <ScaleFrame>
+          <OverlayLookRoot book={desk.overlayLook} source={source}>
           {source === "hud" ? <HudView desk={desk} now={now} /> : null}
           {source === "scorebug" ? <ScorebugView desk={desk} now={now} /> : null}
           {source === "versus" ? <VersusView desk={desk} /> : null}
@@ -227,8 +234,12 @@ export function OverlayPreview() {
           {source === "resource" ? <ResourceView desk={desk} /> : null}
           {source === "upcoming" ? <UpcomingView desk={desk} /> : null}
           {source === "bracket" && tourneyReady ? <BracketOverlay tournament={tournament} /> : null}
-          {source === "floor-clock" && tourneyReady ? <FloorClockOverlay tournament={tournament} /> : null}
+          {source === "floor-clock" && tourneyReady ? <FloorClockOverlay tournament={tournament} desk={desk} /> : null}
           {source === "roster" ? <RosterView desk={desk} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} /> : null}
+          {source === "card" ? <CardSpotlightView desk={desk} /> : null}
+          {source === "sponsors" ? <SponsorsView desk={desk} now={now} /> : null}
+          {source === "event-logo" ? <EventLogoView desk={desk} /> : null}
+          </OverlayLookRoot>
         </ScaleFrame>
       </div>
 
@@ -253,6 +264,23 @@ export function OverlayPreview() {
 
       <p className="mt-3 truncate font-mono text-[0.7rem] text-subtle">{url}</p>
 
+      <LookEditor
+        book={desk.overlayLook}
+        source={source}
+        onChange={(overlayLook) => patch({ overlayLook })}
+      />
+
+      <details className="mt-3 rounded-lg bg-surface-2 px-3 py-2">
+        <summary className="cursor-pointer text-sm text-fg">OBS setup</summary>
+        <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted">
+          <li>Add Source → Browser.</li>
+          <li>Paste the overlay URL. Width 1920, Height 1080. FPS 30 is fine.</li>
+          <li>Check Shutdown source when not visible and Refresh browser when scene becomes active.</li>
+          <li>Leave Custom CSS empty. The page is already transparent — do not set a background.</li>
+          <li>Use HUD pack for one source, or add one Browser source per overlay (scorebug, clock, winner, …).</li>
+          <li>Look and Arrange changes save here and show up live. If a source looks stuck, click Refresh on the Browser source.</li>
+        </ol>
+      </details>
       <details className="mt-3 rounded-lg bg-surface-2 px-3 py-2">
         <summary className="cursor-pointer text-sm text-fg">vMix setup</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted">
@@ -260,9 +288,13 @@ export function OverlayPreview() {
           <li>Paste the overlay URL. Width 1920, Height 1080.</li>
           <li>Enable Transparent. Native CEF browser.</li>
           <li>Use HUD pack for one source, or split widgets onto their own inputs.</li>
-          <li>Arrange to park widgets. Undo a drag, or snap back to the default look.</li>
+          <li>Arrange to park widgets. Undo a drag, or snap back to the default layout.</li>
+          <li>Look changes (color, type, size) save automatically per overlay. No extra step.</li>
         </ol>
-        <ul className="mt-3 space-y-1 border-t border-border pt-2">
+      </details>
+      <details className="mt-3 rounded-lg bg-surface-2 px-3 py-2">
+        <summary className="cursor-pointer text-sm text-fg">Browser sources</summary>
+        <ul className="mt-2 space-y-1">
           {OVERLAY_SOURCES.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-2 text-xs">
               <span className="text-muted">
@@ -272,9 +304,9 @@ export function OverlayPreview() {
               <button
                 type="button"
                 className="text-fg underline-offset-2 hover:underline"
-                onClick={() => void copy(item.path)}
+                onClick={() => void copy(overlayPath(desk.gameId, item.id))}
               >
-                {copied === item.path ? "Copied" : "Copy"}
+                {copied === overlayPath(desk.gameId, item.id) ? "Copied" : "Copy"}
               </button>
             </li>
           ))}
@@ -328,7 +360,9 @@ export function OverlayPreview() {
                 />
                 <div className="absolute inset-0 bg-ov-bg/20" />
                 <ScaleFrame>
-                  <HudView desk={desk} now={now} edit={edit} />
+                  <OverlayLookRoot book={desk.overlayLook} source="hud">
+                    <HudView desk={desk} now={now} edit={edit} />
+                  </OverlayLookRoot>
                 </ScaleFrame>
               </div>
               <p className="mt-2 text-xs text-muted">

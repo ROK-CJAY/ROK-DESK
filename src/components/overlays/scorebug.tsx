@@ -1,5 +1,5 @@
 import { gameOf } from "@/lib/games";
-import { remainingSeconds, formatClock, type DeskState } from "@/lib/desk-types";
+import { remainingSeconds, formatClock, resourceLimit, type DeskState } from "@/lib/desk-types";
 import { ResourcePips } from "@/components/overlays/pips";
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
@@ -30,8 +30,7 @@ function TeamRow({
   const game = gameOf(desk.gameId);
   if (!desk.showResources) return null;
   const player = desk[side];
-  const format = game.formats.find((f) => f.label === desk.formatName);
-  const max = format?.resourceMax ?? game.resource.max;
+  const max = resourceLimit(desk);
   if (game.resource.pips) {
     return (
       <div className={cn("mt-1 flex", align === "right" && "justify-end")}>

@@ -43,7 +43,7 @@ export const Route = createRootRoute({
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@500;600&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Nunito+Sans:wght@500;600;700&family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@500;600&family=Source+Sans+3:wght@500;600;700&family=Teko:wght@500;600;700&display=swap",
       },
     ],
   }),
@@ -52,9 +52,9 @@ export const Route = createRootRoute({
 
 function RootDocument() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const overlay = pathname.startsWith("/overlay");
+  const overlay = pathname.includes("/overlay");
   const print = pathname.startsWith("/print");
-  const kiosk = pathname === "/pod" || pathname === "/tablet";
+  const kiosk = pathname === "/pod" || pathname === "/tablet" || pathname === "/signup" || pathname.endsWith("/signup");
 
   return (
     <html lang="en" className={overlay || print ? "overlay-mode" : kiosk ? "pod-mode dark" : "dark antialiased"} suppressHydrationWarning>

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { deskSchema } from "@/lib/desk-types";
+import { deskLaneOf, deskSchema } from "@/lib/desk-types";
+import { gameIdFromSlug } from "@/lib/games";
 import { loadDesk, saveDesk } from "@/lib/desk-server";
 
 const noStore = {
@@ -9,9 +10,15 @@ const noStore = {
 export const Route = createFileRoute("/api/desk")({
   server: {
     handlers: {
-      GET: async () => {
-        const desk = await loadDesk();
-        return Response.json(desk, { headers: noStore });
+      GET: async ({ request }) => {
+        const live = await loadDesk();
+        const wanted = new URL(request.url).searchParams.get("game");
+        if (!wanted) return Response.json(live, { headers: noStore });
+        const gameId = gameIdFromSlug(wanted);
+        if (!gameId) {
+          return Response.json({ error: "Unknown game" }, { status: 404, headers: noStore });
+        }
+        return Response.json(deskLaneOf(live, gameId), { headers: noStore });
       },
       PUT: async ({ request }) => {
         let body: unknown;

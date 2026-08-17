@@ -9,6 +9,9 @@ import {
   normalizeDown,
   remainingFromDown,
   downForRemaining,
+  resourceLimit,
+  resourceResetValue,
+  stripLane,
   type DeskState,
   type PlayerSide,
   type SeatId,
@@ -16,7 +19,7 @@ import {
   type TableSize,
 } from "@/lib/desk-types";
 import { gameOf, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
-import { sampleTeamA, sampleTeamB, teamHasMons } from "@/lib/pokemon-vgc";
+import { clearLegacyDesk, deskLooksLikeTest, toggleTestDesk } from "@/lib/test-fixtures";
 import {
   CANVAS_H,
   DEFAULT_LAYOUT,
@@ -60,6 +63,7 @@ type DeskStore = {
     p4?: Partial<PlayerSide>;
   }) => void;
   setTableSize: (size: TableSize) => void;
+  setResourceCap: (n: number) => void;
   setFocusedSeat: (seat: SeatId) => void;
   focusedSeat: SeatId;
   swapSides: () => void;
@@ -77,6 +81,8 @@ type DeskStore = {
   applyLayout: (layout: LayoutMap) => void;
   resetLayout: () => void;
   snapScorebug: (edge: "top" | "bottom") => void;
+  loadTestMode: () => void;
+  ensureTestMode: (on: boolean) => void;
 };
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -91,9 +97,10 @@ function startDeskPoll() {
         if (!res.ok) return;
         const parsed = parseDesk(await res.json());
         if (!parsed) return;
+        const incoming = clearLegacyDesk(parsed);
         const local = useDeskStore.getState().desk;
-        if (parsed.version >= local.version) {
-          useDeskStore.setState({ desk: parsed });
+        if (incoming.version >= local.version) {
+          useDeskStore.setState({ desk: incoming });
         }
       } catch {
         /* keep local */
@@ -102,24 +109,33 @@ function startDeskPoll() {
   }, 400);
 }
 
-function persist(desk: DeskState) {
+function persist(desk: DeskState, immediate = false) {
+  const next = {
+    ...desk,
+    lanes: { ...desk.lanes, [desk.gameId]: stripLane(desk) },
+  };
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem("rok-desk", JSON.stringify(desk));
+      window.localStorage.setItem("rok-desk", JSON.stringify(next));
     } catch {
       /* ignore quota */
     }
   }
-  if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+  const write = () => {
     void fetch("/api/desk", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(desk),
+      body: JSON.stringify(next),
     }).catch(() => {
       /* overlay polling will catch up on next successful write */
     });
-  }, 160);
+  };
+  if (saveTimer) clearTimeout(saveTimer);
+  if (immediate) {
+    write();
+    return;
+  }
+  saveTimer = setTimeout(write, 160);
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -133,7 +149,7 @@ function nextVersion(desk: DeskState, patch: Partial<DeskState>): DeskState {
 function resetResources(desk: DeskState): Pick<PlayerSide, "resource" | "secondary" | "cmdDamage" | "cmdFrom" | "down"> {
   const game = gameOf(desk.gameId);
   const format = game.formats.find((f) => f.label === desk.formatName);
-  const resource = format?.resourceStart ?? game.resource.start;
+  const resource = resourceResetValue(desk);
   return {
     resource,
     secondary: format?.secondaryStart ?? game.secondary?.start ?? 0,
@@ -173,17 +189,26 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   hydrate: async () => {
     let next = defaultDesk();
+    let stripped = false;
     try {
       const res = await fetch("/api/desk", { cache: "no-store" });
       if (res.ok) {
         const parsed = parseDesk(await res.json());
-        if (parsed) next = parsed;
+        if (parsed) {
+          const cleaned = clearLegacyDesk(parsed);
+          stripped = cleaned !== parsed;
+          next = cleaned;
+        }
       }
     } catch {
       if (typeof window !== "undefined") {
         const raw = window.localStorage.getItem("rok-desk");
         const parsed = raw ? parseDesk(raw) : null;
-        if (parsed) next = parsed;
+        if (parsed) {
+          const cleaned = clearLegacyDesk(parsed);
+          stripped = cleaned !== parsed;
+          next = cleaned;
+        }
       }
     }
     if (typeof window !== "undefined") {
@@ -194,6 +219,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       }
     }
     set({ desk: next, ready: true });
+    if (stripped) persist(next, true);
     if (typeof window !== "undefined") startDeskPoll();
   },
 
@@ -230,8 +256,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   bumpResource: (side, delta) => {
     const prev = get().desk;
     const game = gameOf(prev.gameId);
-    const format = game.formats.find((f) => f.label === prev.formatName);
-    const max = format?.resourceMax ?? game.resource.max;
+    const max = resourceLimit(prev);
     const resource = clamp(prev[side].resource + delta, game.resource.min, max);
     const desk = nextVersion(prev, {
       [side]: {
@@ -247,8 +272,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   setResource: (side, value) => {
     const prev = get().desk;
     const game = gameOf(prev.gameId);
-    const format = game.formats.find((f) => f.label === prev.formatName);
-    const max = format?.resourceMax ?? game.resource.max;
+    const max = resourceLimit(prev);
     const resource = clamp(value, game.resource.min, max);
     const desk = nextVersion(prev, {
       [side]: {
@@ -305,6 +329,15 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   applyGame: (gameId) => {
     const prev = get().desk;
+    if (prev.gameId === gameId) return;
+    const lanes = { ...prev.lanes, [prev.gameId]: stripLane(prev) };
+    const saved = lanes[gameId] ? parseDesk(lanes[gameId]) : null;
+    if (saved && saved.gameId === gameId) {
+      const desk = { ...saved, lanes, version: prev.version + 1 };
+      persist(desk);
+      set({ desk, focusedSeat: "p1" });
+      return;
+    }
     const game = gameOf(gameId);
     const format = game.formats[0];
     const resources = {
@@ -314,25 +347,11 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       down: normalizeDown([]),
     };
     const seats = withSeats(prev, { ...resources, score: 0 });
-    if (gameId === "pokemon-vgc") {
-      seats.p1 = {
-        ...prev.p1,
-        ...resources,
-        score: 0,
-        team: teamHasMons(prev.p1.team) ? prev.p1.team : sampleTeamA(),
-      };
-      seats.p2 = {
-        ...prev.p2,
-        ...resources,
-        score: 0,
-        team: teamHasMons(prev.p2.team) ? prev.p2.team : sampleTeamB(),
-      };
-    }
-    const saved = {
+    const savedClock = {
       remaining: remainingSeconds(prev),
       preset: prev.timerPresetSeconds,
     };
-    const clocks = { ...prev.gameClocks, [prev.gameId]: saved };
+    const clocks = { ...prev.gameClocks, [prev.gameId]: savedClock };
     const nextClock = clocks[gameId] ?? { remaining: 0, preset: 0 };
     const desk = nextVersion(prev, {
       gameId,
@@ -340,6 +359,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       bestOf: format?.bestOf ?? game.defaultBestOf,
       scorebugStyle: game.defaultScorebug,
       tableSize: format?.seats ?? 2,
+      resourceCap: format?.resourceMax ?? game.resource.max,
       layout: layoutForTable(prev.layout, format?.seats ?? 2),
       ...seats,
       winnerSide: null,
@@ -349,6 +369,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       timerRunning: false,
       timerEndsAt: null,
       gameClocks: clocks,
+      lanes,
     });
     persist(desk);
     set({ desk, focusedSeat: "p1" });
@@ -368,6 +389,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       formatName: preset.label,
       bestOf: preset.bestOf ?? prev.bestOf,
       tableSize,
+      resourceCap: preset.resourceMax ?? game.resource.max,
       layout: layoutForTable(prev.layout, tableSize),
       ...withSeats(prev, resources),
     });
@@ -421,6 +443,18 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     });
     persist(desk);
     set({ desk, focusedSeat: seatsFor(size).includes(get().focusedSeat) ? get().focusedSeat : "p1" });
+  },
+
+  setResourceCap: (n) => {
+    const prev = get().desk;
+    const cap = clamp(Math.round(n), 1, 6);
+    const desk = nextVersion(prev, {
+      resourceCap: cap,
+      p1: { ...prev.p1, resource: cap },
+      p2: { ...prev.p2, resource: cap },
+    });
+    persist(desk);
+    set({ desk });
   },
 
   swapSides: () => {
@@ -625,6 +659,21 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       layout: { ...prev.layout, scorebugBar: barPosFor(edge) },
     });
     persist(desk);
+    set({ desk });
+  },
+
+  loadTestMode: () => {
+    const prev = get().desk;
+    const desk = nextVersion(prev, toggleTestDesk(prev));
+    persist(desk, true);
+    set({ desk });
+  },
+
+  ensureTestMode: (on) => {
+    const prev = get().desk;
+    if (deskLooksLikeTest(prev) === on) return;
+    const desk = nextVersion(prev, toggleTestDesk(prev));
+    persist(desk, true);
     set({ desk });
   },
 }));

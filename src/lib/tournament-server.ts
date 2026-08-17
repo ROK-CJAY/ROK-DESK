@@ -1,4 +1,5 @@
 import { defaultTournament, parseTournament, type TournamentState } from "@/lib/tournament-types";
+import { clearLegacyTournament } from "@/lib/test-fixtures";
 import { getSql } from "@/lib/db";
 
 const TOURNAMENT_ID = "live";
@@ -16,7 +17,11 @@ export async function loadTournament(): Promise<TournamentState> {
     select payload from tournament_state where id = ${TOURNAMENT_ID}
   `;
   const existing = rows[0] ? parseTournament(rows[0].payload) : null;
-  if (existing) return existing;
+  if (existing) {
+    const cleaned = clearLegacyTournament(existing);
+    if (cleaned !== existing) await saveTournament(cleaned);
+    return cleaned;
+  }
 
   const seed = defaultTournament();
   await sql`

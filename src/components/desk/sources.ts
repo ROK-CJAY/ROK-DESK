@@ -1,3 +1,5 @@
+import { slugOf, type GameId } from "@/lib/games";
+
 export type OverlaySourceId =
   | "hud"
   | "scorebug"
@@ -12,7 +14,10 @@ export type OverlaySourceId =
   | "upcoming"
   | "bracket"
   | "floor-clock"
-  | "roster";
+  | "roster"
+  | "card"
+  | "sponsors"
+  | "event-logo";
 
 export type OverlaySource = {
   id: OverlaySourceId;
@@ -28,7 +33,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/hud",
     name: "HUD pack",
     size: "1920 × 1080",
-    note: "Scorebug, clock, resources, casters, lower third, game / match win — arrange them together.",
+    note: "Scorebug, clock, resources, casters, lower third, game / match win, sponsors — arrange them together.",
   },
   {
     id: "scorebug",
@@ -121,4 +126,29 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     size: "1920 × 1080",
     note: "Team preview. P1 sits on the right, P2 on the left. Punch P1 / P2 / Both from Show control.",
   },
+  {
+    id: "card",
+    path: "/overlay/card",
+    name: "Card",
+    size: "1920 × 1080",
+    note: "Judge card from the PTCG or MTG tablet. Search, then Show on stream. Clear from the tablet or Show control.",
+  },
+  {
+    id: "sponsors",
+    path: "/overlay/sponsors",
+    name: "Sponsors",
+    size: "1920 × 1080",
+    note: "Rotating sponsor logos. Add marks in Production. Hidden and fully transparent when the list is empty.",
+  },
+  {
+    id: "event-logo",
+    path: "/overlay/event-logo",
+    name: "Event logo",
+    size: "1920 × 1080",
+    note: "Tournament mark. Upload in Event. Hidden and fully transparent when empty.",
+  },
 ];
+
+export function overlayPath(gameId: GameId, source: OverlaySourceId): string {
+  return `/${slugOf(gameId)}/overlay/${source}`;
+}

@@ -105,14 +105,19 @@ export function CommanderVersus({ desk }: { desk: DeskState }) {
       />
       <div className="absolute inset-0 bg-linear-to-b from-ov-bg via-ov-bg/80 to-ov-bg" />
       <div className="relative flex h-full flex-col justify-between px-16 py-12">
-        <header className="flex items-end justify-between">
-          <div>
+        <header className="flex items-end justify-between gap-8">
+          <div className="flex min-w-0 items-end gap-5">
+            {desk.eventLogo ? (
+              <img src={desk.eventLogo} alt="" className="max-h-28 max-w-56 object-contain" />
+            ) : null}
+            <div className="min-w-0">
             <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">
               {desk.sponsorLine}
             </p>
             <h1 className="font-display mt-1 text-5xl font-semibold tracking-tight text-ov-fg uppercase">
               {desk.eventName}
             </h1>
+            </div>
           </div>
           <div className="text-right">
             <p className="font-mono text-ov-kicker tracking-[0.22em] text-ov-muted uppercase">

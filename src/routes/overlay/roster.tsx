@@ -4,6 +4,6 @@ import { RosterView } from "@/components/overlays/roster";
 
 export const Route = createFileRoute("/overlay/roster")({
   component: () => (
-    <OverlayPage render={(desk) => <RosterView desk={desk} />} />
+    <OverlayPage source="roster" render={(desk) => <RosterView desk={desk} />} />
   ),
 });

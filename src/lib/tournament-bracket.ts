@@ -2,6 +2,7 @@ import {
   DRAW_ID,
   emptySlot,
   matchEntrantIds,
+  bracketSlots,
   type BracketMatch,
   type BracketSize,
   type BracketType,
@@ -76,13 +77,14 @@ export function generateBracket(
   if (type === "swiss") {
     return pairSwissFirstRound(entrants, size, pod);
   }
+  const slots = bracketSlots(size);
   const bySeed = new Map(entrants.filter((e) => !e.dropped).map((e) => [e.seed, e]));
-  const order = generateSeeding(size);
-  const wRounds = Math.round(Math.log2(size));
+  const order = generateSeeding(slots);
+  const wRounds = Math.round(Math.log2(slots));
   const matches: BracketMatch[] = [];
 
   for (let r = 1; r <= wRounds; r += 1) {
-    const count = size / 2 ** r;
+    const count = slots / 2 ** r;
     for (let i = 0; i < count; i += 1) {
       const id = `w-${r}-${i}`;
       const last = r === wRounds;
@@ -98,20 +100,20 @@ export function generateBracket(
           nextWinnerSlot: nextSlot,
           nextLoserMatchId: null,
           nextLoserSlot: null,
-          label: winnersLabel(type, size, r, wRounds),
+          label: winnersLabel(type, slots, r, wRounds),
         }),
       );
     }
   }
 
   if (type === "single") {
-    placeSeeds(matches, order, bySeed, size);
+    placeSeeds(matches, order, bySeed, slots);
     autoAdvanceByes(matches);
     return matches;
   }
 
-  buildLosers(matches, size, wRounds);
-  placeSeeds(matches, order, bySeed, size);
+  buildLosers(matches, slots, wRounds);
+  placeSeeds(matches, order, bySeed, slots);
   autoAdvanceByes(matches);
   void swissRounds;
   return matches;
@@ -739,7 +741,7 @@ export function matchesForView(t: TournamentState, view: BracketViewId): Bracket
   return all.filter((m) => {
     if (m.side === "grand") return true;
     if (m.side === "winners") {
-      const remaining = t.size / 2 ** (m.round - 1);
+      const remaining = bracketSlots(t.size) / 2 ** (m.round - 1);
       return remaining <= cutoff;
     }
     if (m.side === "losers") {

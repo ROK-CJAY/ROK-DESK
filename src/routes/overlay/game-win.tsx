@@ -3,5 +3,5 @@ import { OverlayPage } from "@/components/overlays/overlay-page";
 import { GameWinView } from "@/components/overlays/graphics";
 
 export const Route = createFileRoute("/overlay/game-win")({
-  component: () => <OverlayPage render={(desk) => <GameWinView desk={desk} />} />,
+  component: () => <OverlayPage source="game-win" render={(desk) => <GameWinView desk={desk} />} />,
 });

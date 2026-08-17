@@ -1,4 +1,5 @@
 import { defaultDesk, parseDesk, type DeskState } from "@/lib/desk-types";
+import { clearLegacyDesk } from "@/lib/test-fixtures";
 import { getSql } from "@/lib/db";
 
 const DESK_ID = "live";
@@ -9,7 +10,11 @@ export async function loadDesk(): Promise<DeskState> {
     select payload from desk_state where id = ${DESK_ID}
   `;
   const existing = rows[0] ? parseDesk(rows[0].payload) : null;
-  if (existing) return existing;
+  if (existing) {
+    const cleaned = clearLegacyDesk(existing);
+    if (cleaned !== existing) await saveDesk(cleaned);
+    return cleaned;
+  }
 
   const seed = defaultDesk();
   await sql`

@@ -10,11 +10,12 @@ import {
   PodPanel,
   QueuePanel,
   ShowPanel,
+  SponsorPanel,
 } from "@/components/desk/side-panels";
 import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
-import { gameOf, isCommanderLane } from "@/lib/games";
+import { gameOf } from "@/lib/games";
 
 export function DeskApp() {
   const ready = useDeskStore((s) => s.ready);
@@ -46,7 +47,7 @@ export function DeskApp() {
   const showTablet =
     desk.gameId === "pokemon-vgc" ||
     desk.gameId === "pokemon-tcg" ||
-    isCommanderLane(desk);
+    desk.gameId === "mtg";
 
   return (
     <TooltipProvider delayDuration={250}>
@@ -87,6 +88,7 @@ export function DeskApp() {
               </div>
             ) : null}
             <CasterPanel />
+            <SponsorPanel />
             <QueuePanel />
           </div>
 
