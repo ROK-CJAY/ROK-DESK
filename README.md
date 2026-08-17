@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.3.1 beta** — Riftbound and pinned tablets. Broadcast production desk for ROK Esports.
+**v0.2.1 beta** — Riftbound and pinned tablets. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Star Wars Unlimited, and Riftbound.
 
@@ -13,7 +13,7 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 
 ## Updates
 
-### v0.3.1 — 17 Aug 2026 · patch
+### v0.2.1 — 17 Aug 2026 · patch
 
 Riftbound on the desk, and judge tablets that stay with their event.
 
@@ -26,41 +26,25 @@ Riftbound on the desk, and judge tablets that stay with their event.
 - Judge tablet no longer follows Production when you switch games — score, clock, and cards write only to that event
 - Title list is VGC, PTCG, One Piece, Yu-Gi-Oh!, MTG, Lorcana, SWU, and Riftbound (FaB, Union Arena, and Tabletop are off the picker for now)
 
-### v0.3.0 — 17 Aug 2026 · landing & Swiss close
+### v0.2.0 — 17 Aug 2026 · tournament ops
 
-Home screen, a real Swiss finish, and format cleanup so a TO can open the desk and close a Swiss event.
+Everything between the first beta and v0.2.1: IDs, archive, staff, landing, and Swiss close.
 
 #### Added
-- **Home / Get Started** landing at `/` — what the desk is, how a show runs, doors into Tournament and Production
+- **Home / Get Started** landing at `/` — how a show runs, doors into Tournament and Production
+- Per-game **Player ID** on walk-up signup and the Tournament roster, with a required privacy checkbox and publisher policy link
+- Per-event **staff list** — Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other (archive only, not on stream)
+- **Export tournament** — one zip of JSON plus CSVs (players, matches, standings, staff, VGC teams), including in test mode
 - **Complete tournament** — lock Swiss (and any event) without a grand final; 1st is standings (points / OMW%). Top 3 on the result card. **Reopen** if you still need to fix a result
-- **Pre-release** format on every title (OP keeps Pre-release / Sealed). PTCG 4 prizes, FaB 20 life, MTG sealed Bo1
-- Tournament export as a **single zip** (JSON + CSVs), including in test mode
+- **Pre-release** format on every title (OP keeps Pre-release / Sealed)
 
 #### Changed
 - Production Control lives at `/production`. Header: Home · Production · Tournament
 - One Piece defaults to **Bo1**. Formats: Standard, Extra (all cards), Pre-release / Sealed, Championship top cut (Bo3)
 - Swiss overlay says Champion after the event is complete (Leader while it is running)
-- Export button is always available, not only after a match winner
-
-### v0.2.1 — 17 Aug 2026 · patch
-
-#### Added
-- Per-event **staff list** on Tournament Control — Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other
-- Staff rides with the game’s event (not shared across titles) and is archive-only — not shown on stream
-- **Export tournament** now includes a staff CSV and staff names in the JSON archive
-
-### v0.2.0 — 17 Aug 2026 · tournament ops
-
-Signup IDs, privacy consent, and a full event export so a TO can close a show with the paper trail.
-
-#### Added
-- Per-game **Player ID** on walk-up signup and the Tournament roster (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, GEM, SWU-Stats / OP)
-- **Player ID privacy** notice and required checkbox when an ID is entered — staff roster only, never on stream, publisher policy link, guardian note for minors
-- **Export tournament** — JSON archive plus CSVs for players, matches, standings, and VGC teams (header, Event card, Champion card)
-
-#### Changed
 - Official VGC team list and TO roster show the Play! Pokémon ID label
 - Standings list the player ID under the name for staff checks
+- Export is always available, not only after a match winner
 
 ### v0.1.0 — 17 Aug 2026 · first beta
 
