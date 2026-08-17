@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
+import { ClipboardList, GripVertical, MessageSquarePlus, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { FloorClock } from "@/components/tournament/floor-clock";
@@ -67,14 +67,26 @@ export function TournamentApp() {
       <AppChrome
         view="tournament"
         trailing={
-          <p className="hidden text-sm text-muted sm:block">
-            {t.name}
-            <span className="text-subtle">
-              {" "}
-              · {game.short} ·{" "}
-              {t.bracketType === "double" ? "Double elim" : t.bracketType === "swiss" ? "Swiss" : "Single elim"} · {t.size}
-            </span>
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="hidden text-sm text-muted sm:block">
+              {t.name}
+              <span className="text-subtle">
+                {" "}
+                · {game.short} ·{" "}
+                {t.bracketType === "double" ? "Double elim" : t.bracketType === "swiss" ? "Swiss" : "Single elim"} · {t.size}
+              </span>
+            </p>
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href="https://forms.gle/Re5mt8RXU7qNEN8W9"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <MessageSquarePlus className="size-3.5" />
+                Feedback
+              </a>
+            </Button>
+          </div>
         }
       />
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)]">
