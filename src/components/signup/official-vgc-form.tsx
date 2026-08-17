@@ -15,6 +15,8 @@ import {
   type TeamMon,
 } from "@/lib/pokemon-vgc";
 import type { SignupDraft } from "@/components/signup/signup-types";
+import { playerIdField } from "@/lib/games";
+import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
 
 export function OfficialVgcForm({
   eventName,
@@ -36,6 +38,7 @@ export function OfficialVgcForm({
   onSubmit: () => void;
 }) {
   const patch = (partial: Partial<SignupDraft>) => onChange({ ...draft, ...partial });
+  const idField = playerIdField("pokemon-vgc");
   const setMon = (index: number, mon: TeamMon) => {
     const team = draft.team.slice();
     team[index] = mon;
@@ -63,8 +66,13 @@ export function OfficialVgcForm({
         <Field label="Player Name" className="sm:col-span-2 lg:col-span-1">
           <Input value={draft.name} onChange={(e) => patch({ name: e.target.value })} autoComplete="name" />
         </Field>
-        <Field label="Player ID">
-          <Input value={draft.playerId} onChange={(e) => patch({ playerId: e.target.value })} />
+        <Field label={idField.label}>
+          <Input
+            value={draft.playerId}
+            onChange={(e) => patch({ playerId: e.target.value })}
+            placeholder={idField.placeholder}
+            autoComplete="off"
+          />
         </Field>
         <Field label="Date of Birth">
           <Input value={draft.birthDate} placeholder="YYYY-MM-DD" onChange={(e) => patch({ birthDate: e.target.value })} />
@@ -111,6 +119,16 @@ export function OfficialVgcForm({
       </div>
 
       {error ? <p className="mt-4 text-sm text-live">{error}</p> : null}
+
+      {draft.playerId.trim() ? (
+        <div className="mt-4">
+          <PlayerIdPrivacy
+            gameId="pokemon-vgc"
+            accepted={draft.idPrivacy}
+            onAccept={(idPrivacy) => patch({ idPrivacy })}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-5 flex flex-wrap gap-2">
         <Button className="min-h-12 min-w-40" disabled={busy} onClick={onSubmit}>

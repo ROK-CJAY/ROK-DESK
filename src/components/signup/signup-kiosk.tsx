@@ -5,8 +5,9 @@ import { OfficialVgcForm } from "@/components/signup/official-vgc-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, gameOf, slugOf, type GameId } from "@/lib/games";
+import { extraFieldFor, gameOf, playerIdField, slugOf, type GameId } from "@/lib/games";
 import { emptySignupDraft, type SignupDraft } from "@/components/signup/signup-types";
+import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament } from "@/lib/tournament-types";
 
@@ -46,6 +47,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
 
   const game = gameOf(t.gameId);
   const extra = extraFieldFor(t.gameId, t.formatName);
+  const idField = playerIdField(t.gameId);
   const closed = t.phase === "complete";
   const vgc = t.gameId === "pokemon-vgc";
 
@@ -53,6 +55,10 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
     const name = draft.name.trim();
     if (!name) {
       setError("Add your name to continue.");
+      return;
+    }
+    if (draft.playerId.trim() && !draft.idPrivacy) {
+      setError("Check the Player ID privacy notice to continue.");
       return;
     }
     setBusy(true);
@@ -128,7 +134,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
               This tablet is the walk-up desk for <span className="text-fg">{t.name}</span>
               {vgc
                 ? ". Fill the official Video Game Team List — player info plus all six Pokémon — then submit."
-                : `. Enter your name, handle, and ${extra.label.toLowerCase()} for ${game.name}.`}
+                : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
             </p>
             <ul className="mt-5 grid gap-2 text-sm text-muted">
               <li className="rounded-lg bg-surface-2 px-3 py-3">One player at a time. When you’re done, hand it back.</li>
@@ -216,6 +222,16 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                       ))}
                     </NativeSelect>
                   </Field>
+                  <Field label={idField.label}>
+                    <Input
+                      value={draft.playerId}
+                      onChange={(e) => setDraft((d) => ({ ...d, playerId: e.target.value }))}
+                      placeholder={idField.placeholder}
+                      inputMode="text"
+                      autoComplete="off"
+                    />
+                    <p className="mt-1 text-[0.7rem] text-muted">{idField.hint}</p>
+                  </Field>
                   <Field label={extra.label}>
                     <Input
                       value={draft.deck}
@@ -224,6 +240,20 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                     />
                   </Field>
                 </div>
+
+                {draft.playerId.trim() ? (
+                  <div className="mt-4">
+                    <PlayerIdPrivacy
+                      gameId={t.gameId}
+                      accepted={draft.idPrivacy}
+                      onAccept={(idPrivacy) => setDraft((d) => ({ ...d, idPrivacy }))}
+                    />
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-muted">
+                    Player ID is optional here. If you add one, you’ll confirm the privacy notice before submit.
+                  </p>
+                )}
 
                 {error ? <p className="mt-4 text-sm text-live">{error}</p> : null}
 

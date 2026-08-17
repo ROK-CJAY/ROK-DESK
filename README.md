@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.1.0 beta** — first versioned release. Broadcast production desk for ROK Esports.
+**v0.2.0 beta** — tournament ops milestone. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Flesh and Blood, Star Wars Unlimited, Union Arena, and generic tabletop.
 
@@ -12,6 +12,19 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### v0.2.0 — 17 Aug 2026 · tournament ops
+
+Signup IDs, privacy consent, and a full event export so a TO can close a show with the paper trail.
+
+#### Added
+- Per-game **Player ID** on walk-up signup and the Tournament roster (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, GEM, SWU-Stats / OP)
+- **Player ID privacy** notice and required checkbox when an ID is entered — staff roster only, never on stream, publisher policy link, guardian note for minors
+- **Export tournament** — JSON archive plus CSVs for players, matches, standings, and VGC teams (header, Event card, Champion card)
+
+#### Changed
+- Official VGC team list and TO roster show the Play! Pokémon ID label
+- Standings list the player ID under the name for staff checks
 
 ### v0.1.0 — 17 Aug 2026 · first beta
 
@@ -77,6 +90,7 @@ First tagged beta. This is the desk as it stands for venue use: Production, Tour
 - Per-game roster — switching titles does not share players
 - Send a match to stream from the bracket
 - VGC official team-list export (2 pages per player)
+- **Export tournament** — JSON archive plus CSVs (players, matches, standings, VGC teams). Includes player IDs; keep it with event staff.
 - Commander / cEDH / Duel Commander signup asks for commander
 
 ## Judge tablet
@@ -94,7 +108,7 @@ Open `/tablet` on a floor device. It follows the Production game.
 
 ## Signup
 
-Walk-up kiosk at `/{game}/signup`. Fields follow the game (VGC team sheet, PTCG deck, MTG commander when needed). Sign-in is off until accounts land.
+Walk-up kiosk at `/{game}/signup`. Fields follow the game (VGC team sheet, PTCG deck, MTG commander when needed) plus the organized-play **Player ID** for that title (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, GEM, PlayHub, SWU-Stats). Entering an ID requires a privacy checkbox: IDs stay on this event roster, never on stream. Each field links the publisher’s official policy. Sign-in is off until accounts land.
 
 ## Overlays
 

@@ -8,13 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, signupPath } from "@/lib/games";
+import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, signupPath } from "@/lib/games";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
 import { groupByRound, readyMatches, computeStandings, currentSwissRound, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
+import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
+import { ExportTournamentButton } from "@/components/tournament/export-button";
 import {
   DRAW_ID,
   PRESET_SIZES,
@@ -86,6 +88,7 @@ export function TournamentApp() {
                 Feedback
               </a>
             </Button>
+            <ExportTournamentButton />
           </div>
         }
       />
@@ -98,6 +101,12 @@ export function TournamentApp() {
               <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Champion</p>
               <p className="font-display mt-2 text-3xl font-semibold tracking-tight uppercase">{champ.name}</p>
               <p className="text-sm text-muted">{champ.deck || champ.tag}</p>
+              <div className="mt-3">
+                <ExportTournamentButton variant="secondary" full />
+              </div>
+              <p className="mt-2 text-[0.65rem] leading-relaxed text-subtle">
+                JSON plus CSVs of players, matches, and standings. Includes player IDs — keep it with event staff.
+              </p>
             </section>
           ) : null}
         </div>
@@ -301,6 +310,15 @@ function SetupPanel() {
             </Button>
           ) : null}
         </div>
+        {t.phase === "complete" || t.matches.some((m) => m.winnerId) ? (
+          <div className="grid gap-2">
+            <ExportTournamentButton variant={t.phase === "complete" ? "default" : "outline"} full />
+            <p className="text-[0.65rem] leading-relaxed text-subtle">
+              Downloads a full JSON archive plus CSVs (players, matches, standings
+              {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}). Includes player IDs — keep it with event staff.
+            </p>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
           <div>
             <p className="text-sm font-medium">Test mode</p>
@@ -428,7 +446,8 @@ function RosterPanel({
   const reorderEntrants = useTournamentStore((s) => s.reorderEntrants);
   const game = gameOf(t.gameId);
   const extra = extraFieldFor(t.gameId, t.formatName);
-  const [draft, setDraft] = useState({ name: "", tag: "", deck: "", country: "US" });
+  const idField = playerIdField(t.gameId);
+  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", country: "US" });
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
@@ -437,10 +456,11 @@ function RosterPanel({
     addEntrant({
       name: draft.name.trim(),
       tag: draft.tag.trim(),
+      playerId: draft.playerId.trim(),
       deck: draft.deck.trim(),
       country: draft.country,
     });
-    setDraft({ name: "", tag: "", deck: "", country: draft.country });
+    setDraft({ name: "", tag: "", playerId: "", deck: "", country: draft.country });
   };
 
   return (
@@ -454,6 +474,9 @@ function RosterPanel({
             {t.entrants.length} players · drag a row to change seed
             {t.gameId === "pokemon-vgc" ? " · open a team sheet below" : ""}
           </p>
+          <div className="mt-1 max-w-xl">
+            <PlayerIdStaffNote gameId={t.gameId} />
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" asChild>
@@ -475,7 +498,7 @@ function RosterPanel({
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_1fr_6rem_auto]">
+      <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_10rem_1fr_6rem_auto]">
         <Input
           placeholder="Name"
           value={draft.name}
@@ -488,6 +511,11 @@ function RosterPanel({
           placeholder="Handle"
           value={draft.tag}
           onChange={(e) => setDraft((d) => ({ ...d, tag: e.target.value }))}
+        />
+        <Input
+          placeholder={idField.label}
+          value={draft.playerId}
+          onChange={(e) => setDraft((d) => ({ ...d, playerId: e.target.value }))}
         />
         <Input
           placeholder={extra.placeholder}
@@ -515,6 +543,7 @@ function RosterPanel({
               <th className="pb-2 font-medium">Seed</th>
               <th className="pb-2 font-medium">Player</th>
               <th className="pb-2 font-medium">Handle</th>
+              <th className="pb-2 font-medium">{idField.label}</th>
               <th className="pb-2 font-medium">{extra.label}</th>
               <th className="pb-2 font-medium">CC</th>
               <th className="pb-2 font-medium" />
@@ -544,6 +573,7 @@ function RosterPanel({
                     setOverId(null);
                   }}
                   showTeam={t.gameId === "pokemon-vgc"}
+                  idLabel={idField.label}
                   sheetActive={sheetPlayerId === e.id}
                   onOpenSheet={onOpenSheet}
                 />
@@ -566,6 +596,7 @@ function EntrantRow({
   onDrop,
   onDragEnd,
   showTeam,
+  idLabel,
   sheetActive,
   onOpenSheet,
 }: {
@@ -579,6 +610,7 @@ function EntrantRow({
   onDrop: () => void;
   onDragEnd: () => void;
   showTeam: boolean;
+  idLabel: string;
   sheetActive: boolean;
   onOpenSheet: (id: string) => void;
 }) {
@@ -634,6 +666,14 @@ function EntrantRow({
           value={entrant.tag}
           onChange={(e) => onChange(entrant.id, { tag: e.target.value })}
           className="h-8"
+        />
+      </td>
+      <td className="py-2 pr-2">
+        <Input
+          value={entrant.playerId}
+          onChange={(e) => onChange(entrant.id, { playerId: e.target.value })}
+          className="h-8"
+          placeholder={idLabel}
         />
       </td>
       <td className="py-2 pr-2">
@@ -842,7 +882,12 @@ function StandingsTable({
             return (
               <tr key={row.entrantId} className="border-t border-border">
                 <td className="py-1.5 pr-3 font-mono text-muted">{i + 1}</td>
-                <td className="py-1.5 pr-3">{e?.name ?? "—"}</td>
+                <td className="py-1.5 pr-3">
+                  <p>{e?.name ?? "—"}</p>
+                  {e?.playerId ? (
+                    <p className="font-mono text-[0.68rem] text-muted">{e.playerId}</p>
+                  ) : null}
+                </td>
                 <td className="py-1.5 pr-3 text-muted">{e?.deck || "—"}</td>
                 <td className="py-1.5 pr-3 font-mono tabular-nums">
                   {row.wins}–{row.losses}–{row.draws}

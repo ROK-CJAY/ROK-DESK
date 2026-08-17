@@ -420,6 +420,85 @@ export function extraFieldFor(gameId: GameId, formatName: string): { label: stri
   return { label: game.extraLabel, placeholder: game.extraPlaceholder };
 }
 
+export type PlayerIdField = {
+  label: string;
+  placeholder: string;
+  hint: string;
+  policyName: string;
+  policyUrl: string;
+};
+
+export function playerIdField(gameId: GameId): PlayerIdField {
+  switch (gameId) {
+    case "pokemon-vgc":
+    case "pokemon-tcg":
+      return {
+        label: "Play! Pokémon ID",
+        placeholder: "1234567890",
+        hint: "The number on your Play! Pokémon account.",
+        policyName: "Pokémon Privacy Notice",
+        policyUrl: "https://www.pokemon.com/us/privacy-notice",
+      };
+    case "one-piece":
+    case "union-arena":
+      return {
+        label: "Bandai TCG+ ID",
+        placeholder: "000000000",
+        hint: "Your Bandai TCG+ / Bandai App player ID.",
+        policyName: "BANDAI TCG+ Privacy Policy",
+        policyUrl: "https://lp.bandai-tcg-plus.com/privacy/en/",
+      };
+    case "yugioh":
+      return {
+        label: "KONAMI ID",
+        placeholder: "000-000-000",
+        hint: "Your KONAMI ID from the official app.",
+        policyName: "KONAMI Privacy Notice",
+        policyUrl: "https://legal.konami.com/kde/privacy/en-us/",
+      };
+    case "mtg":
+      return {
+        label: "Wizards / PlayMTG ID",
+        placeholder: "Wizards account ID",
+        hint: "Your Wizards account or PlayMTG player ID.",
+        policyName: "Wizards of the Coast Privacy Policy",
+        policyUrl: "https://company.wizards.com/legal/wizards-coasts-privacy-policy",
+      };
+    case "lorcana":
+      return {
+        label: "PlayHub ID",
+        placeholder: "PlayHub ID",
+        hint: "Your Ravensburger PlayHub / companion ID.",
+        policyName: "Ravensburger Privacy Policy",
+        policyUrl: "https://www.ravensburger.us/discover/service/privacy-policy/index.html",
+      };
+    case "fab":
+      return {
+        label: "GEM ID",
+        placeholder: "GEM-000000",
+        hint: "Your Flesh and Blood GEM (LSS) player ID.",
+        policyName: "Legend Story Studios Privacy Policy",
+        policyUrl: "https://fabtcg.com/en/privacy-policy/",
+      };
+    case "swu":
+      return {
+        label: "SWU-Stats / OP ID",
+        placeholder: "Player ID",
+        hint: "Your SWU-Stats or organized play ID.",
+        policyName: "Asmodee Privacy Policy",
+        policyUrl: "https://privacy.asmodee.com/",
+      };
+    default:
+      return {
+        label: "Player ID",
+        placeholder: "ID number",
+        hint: "Organized play or app ID for this game.",
+        policyName: "event privacy notice",
+        policyUrl: "",
+      };
+  }
+}
+
 export function isCommanderLane(desk: { gameId: GameId; formatName: string }): boolean {
   return desk.gameId === "mtg" && currentFamily(desk) === "commander";
 }

@@ -259,7 +259,7 @@ function IdentityFields({
 }) {
   return (
     <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-      <Field label="Player ID">
+      <Field label="Play! Pokémon ID">
         <Input value={player.playerId} onChange={(e) => onChange({ playerId: e.target.value })} />
       </Field>
       <Field label="Trainer name in game">

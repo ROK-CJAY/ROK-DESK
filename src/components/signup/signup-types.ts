@@ -12,6 +12,7 @@ export type SignupDraft = {
   ageDivision: "" | "juniors" | "seniors" | "masters";
   birthDate: string;
   team: TeamMon[];
+  idPrivacy: boolean;
 };
 
 export const emptySignupDraft = (): SignupDraft => ({
@@ -26,4 +27,5 @@ export const emptySignupDraft = (): SignupDraft => ({
   ageDivision: "",
   birthDate: "",
   team: emptyTeam(),
+  idPrivacy: false,
 });
