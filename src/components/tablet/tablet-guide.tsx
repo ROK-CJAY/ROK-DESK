@@ -270,11 +270,11 @@ const COPY: Record<
   rift: {
     kicker: "Judge tablet",
     title: "How this Riftbound pad works",
-    lead: "You’re holding the floor copy of the live match. Points here are conquer / hold score — first to 8 wins the game.",
+    lead: "You’re holding the floor copy of the live match. Points here are conquer / hold score — first to 8, strictly ahead. Duel and Match are 1v1. Skirmish is three seats. War is four. Magma Chamber 2v2 is not on this pad.",
     steps: [
       {
         title: "Tap points 1–8",
-        body: "Each tap sets that player’s points. Tap the current number again to step back one. First to 8 — last point from a hold or scoring both battlefields in one turn.",
+        body: "Each tap sets that player’s points. Tap the current number again to step back one. First to 8 — last point from a hold or scoring both battlefields in one turn. Skirmish and War add seats 3 and 4 on this pad.",
       },
       {
         title: "Game vs Match",

@@ -782,7 +782,7 @@ export function PodPanel() {
                   : op
                     ? "Judge tablet — life, DON!!, score, clock, and official OP card lookup."
                     : rift
-                      ? "Judge tablet — first-to-8 points, score, clock, and Riftcodex card lookup."
+                      ? "Judge tablet — first-to-8 points, Duel / Match / Skirmish / War, clock, and Riftcodex card lookup."
                       : lorcana
                         ? "Judge tablet — lore to 20, score, clock, and Lorcast card lookup."
                         : "Player tablet for the live table. Each game uses its own layout."}

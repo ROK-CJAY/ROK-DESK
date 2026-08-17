@@ -1,6 +1,6 @@
 import { extraFieldFor, gameOf, isCommanderLane, type GameId } from "@/lib/games";
-import { blankPlayer, type Caster, type DeskState, type PlayerSide, type QueueMatch } from "@/lib/desk-types";
-import { blankEntrant, type Entrant, type TournamentState } from "@/lib/tournament-types";
+import { blankPlayer, parseDesk, stripLane, type Caster, type DeskState, type PlayerSide, type QueueMatch } from "@/lib/desk-types";
+import { blankEntrant, type Entrant, type GameDesk, type TournamentState } from "@/lib/tournament-types";
 import { sampleTeamA, sampleTeamB, type TeamMon } from "@/lib/pokemon-vgc";
 
 export type TestPlayer = {
@@ -220,60 +220,44 @@ export function isLegacyDemoTournament(t: TournamentState): boolean {
 }
 
 export function clearLegacyDesk(desk: DeskState): DeskState {
-  if (!isLegacyDemoDesk(desk)) return desk;
-  return {
-    ...desk,
-    eventName: "",
-    eventPhase: "",
-    roundName: "",
-    sponsorLine: "",
-    p1: blankPlayer({ resource: desk.p1.resource }),
-    p2: blankPlayer({ resource: desk.p2.resource }),
-    p3: blankPlayer({ resource: desk.p3.resource }),
-    p4: blankPlayer({ resource: desk.p4.resource }),
-    casters: emptyCasters(),
-    queue: [],
-    winnerSide: null,
-    gameWinnerSide: null,
-    testMode: false,
-    testSnapshot: null,
-  };
+  let next = desk;
+  if (isLegacyDemoDesk(desk)) {
+    next = {
+      ...desk,
+      eventName: "",
+      eventPhase: "",
+      roundName: "",
+      sponsorLine: "",
+      p1: blankPlayer({ resource: desk.p1.resource }),
+      p2: blankPlayer({ resource: desk.p2.resource }),
+      p3: blankPlayer({ resource: desk.p3.resource }),
+      p4: blankPlayer({ resource: desk.p4.resource }),
+      casters: emptyCasters(),
+      queue: [],
+      winnerSide: null,
+      gameWinnerSide: null,
+      testMode: false,
+      testSnapshot: null,
+    };
+  }
+  return stripTestFromDesk(next);
 }
 
 export function clearLegacyTournament(t: TournamentState): TournamentState {
-  if (!isLegacyDemoTournament(t)) return t;
-  return {
-    ...t,
-    name: "",
-    phase: "setup",
-    matches: [],
-    streamMatchId: null,
-    entrants: [],
-    desks: {
-      ...t.desks,
-      [t.gameId]: {
-        formatName: t.formatName,
-        bracketType: t.bracketType,
-        size: t.size,
-        bestOf: t.bestOf,
-        phase: "setup",
-        overlayView: t.overlayView,
-        streamMatchId: null,
-        swissRounds: t.swissRounds,
-        entrants: [],
-        matches: [],
-        timerSeconds: t.timerSeconds,
-        timerPresetSeconds: t.timerPresetSeconds,
-        timerRunning: t.timerRunning,
-        timerEndsAt: t.timerEndsAt,
-        testMode: false,
-        testSnapshot: null,
-        staff: t.staff ?? [],
-      },
-    },
-    testMode: false,
-    testSnapshot: null,
-  };
+  let next = t;
+  if (isLegacyDemoTournament(t)) {
+    next = {
+      ...t,
+      name: "",
+      phase: "setup",
+      matches: [],
+      streamMatchId: null,
+      entrants: [],
+      testMode: false,
+      testSnapshot: null,
+    };
+  }
+  return stripTestFromTournament(next);
 }
 
 export function deskLooksLikeTest(desk: DeskState): boolean {
@@ -282,6 +266,47 @@ export function deskLooksLikeTest(desk: DeskState): boolean {
 
 export function tournamentLooksLikeTest(t: TournamentState): boolean {
   return t.testMode || (t.entrants[0]?.name === "Maya Cruz" && t.name.trim().endsWith("Test") && t.entrants.length === 8);
+}
+
+function gameDeskLooksLikeTest(d: GameDesk): boolean {
+  return d.testMode || (d.entrants[0]?.name === "Maya Cruz" && d.entrants.length === 8);
+}
+
+export function stripTestFromDesk(desk: DeskState): DeskState {
+  let next = deskLooksLikeTest(desk) ? { ...desk, ...toggleTestDesk(desk) } : desk;
+  let lanesChanged = false;
+  const lanes = { ...(next.lanes ?? {}) };
+  for (const key of Object.keys(lanes) as GameId[]) {
+    const parsed = parseDesk(lanes[key]);
+    if (!parsed || !deskLooksLikeTest(parsed)) continue;
+    lanes[key] = stripLane({ ...parsed, ...toggleTestDesk(parsed) });
+    lanesChanged = true;
+  }
+  if (next === desk && !lanesChanged) return desk;
+  return { ...next, lanes, testMode: false, testSnapshot: next.testSnapshot ?? null };
+}
+
+export function stripTestFromTournament(t: TournamentState): TournamentState {
+  let next = tournamentLooksLikeTest(t) ? { ...t, ...toggleTestTournament(t) } : t;
+  let desksChanged = false;
+  const desks = { ...next.desks };
+  for (const key of Object.keys(desks) as GameId[]) {
+    const desk = desks[key];
+    if (!desk || !gameDeskLooksLikeTest(desk)) continue;
+    const snap = desk.testSnapshot;
+    desks[key] = {
+      ...desk,
+      entrants: Array.isArray(snap?.entrants) ? (snap.entrants as GameDesk["entrants"]) : [],
+      matches: Array.isArray(snap?.matches) ? (snap.matches as GameDesk["matches"]) : [],
+      phase: snap?.phase === "running" || snap?.phase === "complete" ? snap.phase : "setup",
+      streamMatchId: typeof snap?.streamMatchId === "string" ? snap.streamMatchId : null,
+      testMode: false,
+      testSnapshot: null,
+    };
+    desksChanged = true;
+  }
+  if (next === t && !desksChanged) return t;
+  return { ...next, desks, testMode: false, testSnapshot: next.testSnapshot ?? null };
 }
 
 function captureDesk(desk: DeskState): Record<string, unknown> {
