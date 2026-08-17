@@ -17,6 +17,7 @@ import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
+import { StaffPanel } from "@/components/tournament/staff-panel";
 import {
   DRAW_ID,
   PRESET_SIZES,
@@ -95,6 +96,7 @@ export function TournamentApp() {
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="flex flex-col gap-4">
           <SetupPanel />
+          <StaffPanel />
           <StreamPanel />
           {champ ? (
             <section className="rounded-xl border border-border bg-surface p-4">
@@ -314,7 +316,7 @@ function SetupPanel() {
           <div className="grid gap-2">
             <ExportTournamentButton variant={t.phase === "complete" ? "default" : "outline"} full />
             <p className="text-[0.65rem] leading-relaxed text-subtle">
-              Downloads a full JSON archive plus CSVs (players, matches, standings
+              Downloads a full JSON archive plus CSVs (players, matches, standings, staff
               {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}). Includes player IDs — keep it with event staff.
             </p>
           </div>

@@ -71,6 +71,46 @@ export type Entrant = {
 
 export type AgeDivision = "" | "juniors" | "seniors" | "masters";
 
+export type StaffRole =
+  | "head-judge"
+  | "judge"
+  | "feature-judge"
+  | "producer"
+  | "scorekeeper"
+  | "staff"
+  | "other";
+
+export const STAFF_ROLES: { id: StaffRole; label: string }[] = [
+  { id: "head-judge", label: "Head Judge" },
+  { id: "judge", label: "Judge" },
+  { id: "feature-judge", label: "Feature Match Judge" },
+  { id: "producer", label: "Producer" },
+  { id: "scorekeeper", label: "Scorekeeper" },
+  { id: "staff", label: "Staff" },
+  { id: "other", label: "Other" },
+];
+
+export function staffRoleLabel(role: StaffRole): string {
+  return STAFF_ROLES.find((row) => row.id === role)?.label ?? "Staff";
+}
+
+export type StaffMember = {
+  id: string;
+  name: string;
+  role: StaffRole;
+  note: string;
+};
+
+export function blankStaff(overrides: Partial<StaffMember> = {}): StaffMember {
+  return {
+    id: `s-${Math.random().toString(36).slice(2, 9)}`,
+    name: "",
+    role: "staff",
+    note: "",
+    ...overrides,
+  };
+}
+
 export type MatchSlot = {
   entrantId: string | null;
   score: number;
@@ -110,6 +150,7 @@ export type GameDesk = {
   timerEndsAt: number | null;
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
+  staff: StaffMember[];
 };
 
 export type TournamentState = {
@@ -133,6 +174,7 @@ export type TournamentState = {
   timerEndsAt: number | null;
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
+  staff: StaffMember[];
 };
 
 const slotSchema = z.object({
@@ -159,6 +201,13 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
     .optional()
     .transform((v): AgeDivision => (v === "juniors" || v === "seniors" || v === "masters" ? v : "")),
   birthDate: z.string().optional().transform((v) => v ?? ""),
+});
+
+const staffSchema: z.ZodType<StaffMember> = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.enum(["head-judge", "judge", "feature-judge", "producer", "scorekeeper", "staff", "other"]),
+  note: z.string().optional().transform((v) => v ?? ""),
 });
 
 const matchSchema: z.ZodType<BracketMatch> = z.object({
@@ -195,6 +244,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   timerEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
+  staff: z.array(staffSchema).optional().transform((v) => v ?? []),
 });
 
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
@@ -229,6 +279,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   timerEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
+  staff: z.array(staffSchema).optional().transform((v) => v ?? []),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -277,6 +328,7 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     timerEndsAt: t.timerEndsAt,
     testMode: t.testMode,
     testSnapshot: t.testSnapshot,
+    staff: t.staff ?? [],
   };
 }
 
@@ -309,6 +361,7 @@ export function emptyDesk(gameId: GameId): GameDesk {
     timerEndsAt: null,
     testMode: false,
     testSnapshot: null,
+    staff: [],
   };
 }
 
@@ -378,6 +431,7 @@ export function parseTournament(raw: unknown): TournamentState | null {
     size: typeof incoming.size === "number" ? clampBracketSize(incoming.size) : base.size,
     entrants: Array.isArray(incoming.entrants) ? incoming.entrants : base.entrants,
     matches: Array.isArray(incoming.matches) ? incoming.matches : base.matches,
+    staff: Array.isArray(incoming.staff) ? incoming.staff : base.staff,
     desks: incoming.desks && typeof incoming.desks === "object" ? incoming.desks : {},
   };
   const parsed = tournamentSchema.safeParse(merged);

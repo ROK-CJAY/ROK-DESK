@@ -6,6 +6,7 @@ import {
   championOf,
   matchEntrantIds,
   matchSlots,
+  staffRoleLabel,
   type BracketMatch,
   type Entrant,
   type TournamentState,
@@ -27,6 +28,7 @@ export type TournamentExport = {
     swissRounds: number;
     champion: string;
   };
+  staff: Array<{ name: string; role: string; note: string }>;
   players: Array<
     Entrant & {
       record: string;
@@ -146,6 +148,11 @@ export function buildTournamentExport(t: TournamentState): TournamentExport {
       swissRounds: t.swissRounds,
       champion: champ?.name ?? "",
     },
+    staff: (t.staff ?? []).map((row) => ({
+      name: row.name,
+      role: staffRoleLabel(row.role),
+      note: row.note,
+    })),
     players: t.entrants
       .slice()
       .sort((a, b) => a.seed - b.seed)
@@ -213,6 +220,20 @@ export function exportTournamentFiles(t: TournamentState) {
   const base = `rok-desk-${slug(game.short)}-${slug(t.name || "tournament")}-${stamp}`;
 
   download(`${base}.json`, JSON.stringify(data, null, 2), "application/json");
+
+  if (data.staff.length) {
+    download(
+      `${base}-staff.csv`,
+      csv(
+        data.staff.map((row) => ({
+          role: row.role,
+          name: row.name,
+          note: row.note,
+        })),
+      ),
+      "text/csv",
+    );
+  }
 
   download(
     `${base}-players.csv`,

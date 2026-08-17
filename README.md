@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.2.0 beta** — tournament ops milestone. Broadcast production desk for ROK Esports.
+**v0.2.1 beta** — tournament ops. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Flesh and Blood, Star Wars Unlimited, Union Arena, and generic tabletop.
 
@@ -12,6 +12,13 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### v0.2.1 — 17 Aug 2026 · patch
+
+#### Added
+- Per-event **staff list** on Tournament Control — Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other
+- Staff rides with the game’s event (not shared across titles) and is archive-only — not shown on stream
+- **Export tournament** now includes a staff CSV and staff names in the JSON archive
 
 ### v0.2.0 — 17 Aug 2026 · tournament ops
 
@@ -89,8 +96,9 @@ First tagged beta. This is the desk as it stands for venue use: Production, Tour
 - Size presets 4 / 8 / 16 / 32 plus **Custom** (2–128). Elim brackets pad to the next power of two with byes
 - Per-game roster — switching titles does not share players
 - Send a match to stream from the bracket
+- Per-event **staff list** — Head Judge, judges, feature match judges, producer, scorekeeper, staff (archive only, not on stream)
 - VGC official team-list export (2 pages per player)
-- **Export tournament** — JSON archive plus CSVs (players, matches, standings, VGC teams). Includes player IDs; keep it with event staff.
+- **Export tournament** — JSON archive plus CSVs (players, matches, standings, staff, VGC teams). Includes player IDs; keep it with event staff.
 - Commander / cEDH / Duel Commander signup asks for commander
 
 ## Judge tablet

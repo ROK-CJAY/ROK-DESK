@@ -279,6 +279,7 @@ export function clearLegacyTournament(t: TournamentState): TournamentState {
         timerEndsAt: t.timerEndsAt,
         testMode: false,
         testSnapshot: null,
+        staff: t.staff ?? [],
       },
     },
     testMode: false,
@@ -352,6 +353,7 @@ function captureTournament(t: TournamentState): Record<string, unknown> {
     matches: t.matches,
     streamMatchId: t.streamMatchId,
     entrants: t.entrants,
+    staff: t.staff,
   };
 }
 

@@ -2,12 +2,14 @@ import { create } from "zustand";
 import { gameOf, isCommanderPodFormat, type GameId } from "@/lib/games";
 import {
   blankEntrant,
+  blankStaff,
   defaultTournament,
   parseTournament,
   snapshotDesk,
   switchGame,
   type Entrant,
   type SlotId,
+  type StaffMember,
   type TournamentState,
 } from "@/lib/tournament-types";
 import {
@@ -31,6 +33,9 @@ type TournamentStore = {
   addEntrant: (partial?: Partial<Entrant>) => void;
   updateEntrant: (id: string, partial: Partial<Entrant>) => void;
   removeEntrant: (id: string) => void;
+  addStaff: (partial?: Partial<StaffMember>) => void;
+  updateStaff: (id: string, partial: Partial<StaffMember>) => void;
+  removeStaff: (id: string) => void;
   reseed: () => void;
   reorderEntrants: (fromId: string, toId: string) => void;
   generate: () => void;
@@ -170,6 +175,33 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
     const prev = get().tournament;
     const tournament = nextVersion(prev, {
       entrants: prev.entrants.filter((e) => e.id !== id),
+    });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  addStaff: (partial) => {
+    const prev = get().tournament;
+    const tournament = nextVersion(prev, {
+      staff: [...(prev.staff ?? []), blankStaff(partial)],
+    });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  updateStaff: (id, partial) => {
+    const prev = get().tournament;
+    const tournament = nextVersion(prev, {
+      staff: (prev.staff ?? []).map((row) => (row.id === id ? { ...row, ...partial } : row)),
+    });
+    persist(tournament);
+    set({ tournament });
+  },
+
+  removeStaff: (id) => {
+    const prev = get().tournament;
+    const tournament = nextVersion(prev, {
+      staff: (prev.staff ?? []).filter((row) => row.id !== id),
     });
     persist(tournament);
     set({ tournament });
