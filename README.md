@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.2.1 beta** — Riftbound and pinned tablets. Broadcast production desk for ROK Esports.
+**v0.2.2 beta** — Lorcana judge tablet. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Star Wars Unlimited, and Riftbound.
 
@@ -12,6 +12,12 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### v0.2.2 — 17 Aug 2026 · patch
+
+#### Added
+- **Lorcana judge tablet** — lore 0–20 (+ / − or tap a number), Game / Match, stream clock
+- **Lorcast** card search on the Lorcana pad (Show on stream / Clear). URL: `/lorcana/tablet`
 
 ### v0.2.1 — 17 Aug 2026 · patch
 

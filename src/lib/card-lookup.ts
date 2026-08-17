@@ -35,6 +35,7 @@ export const SWU_PROXY = "/api/swu-cards";
 export const YGO_PROXY = "/api/ygo-cards";
 export const OP_PROXY = "/api/op-cards";
 export const RIFT_PROXY = "/api/rift-cards";
+export const LORCANA_PROXY = "/api/lorcana-cards";
 
 export function cardLookupReady(): boolean {
   return true;
@@ -42,8 +43,8 @@ export function cardLookupReady(): boolean {
 
 export function cardImageUrl(image?: string, size: "low" | "high" = "high"): string {
   if (!image) return "";
-  if (/\.(webp|png|jpe?g)(\?|#|$)/i.test(image)) return image;
-  if (image.startsWith("/api/")) return image;
+  if (/\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(image)) return image;
+  if (image.startsWith("/api/") || /^https?:\/\//i.test(image)) return image;
   return `${image}/${size}.webp`;
 }
 
@@ -232,6 +233,33 @@ export async function fetchRiftCard(id: string): Promise<LookupCard | null> {
   return normalizeRift(data);
 }
 
+export async function searchLorcanaCards(query: string): Promise<LookupCard[]> {
+  const q = query.trim();
+  if (!q) return [];
+  const url = new URL(LORCANA_PROXY, window.location.origin);
+  url.searchParams.set("q", q);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) throw new Error(`Lorcana lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  const rows = isRecord(data) && Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+  return rows.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeLorcana(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function fetchLorcanaCard(id: string): Promise<LookupCard | null> {
+  if (!id) return null;
+  const url = new URL(LORCANA_PROXY, window.location.origin);
+  url.searchParams.set("id", id);
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (!res.ok) return null;
+  const data = (await res.json()) as unknown;
+  if (!isRecord(data)) return null;
+  return normalizeLorcana(data);
+}
+
 function normalizeList(data: unknown): LookupCard[] {
   const rows = Array.isArray(data) ? data : [];
   const cards: LookupCard[] = [];
@@ -411,6 +439,43 @@ function normalizeRift(item: Record<string, unknown>): LookupCard {
     hp: might || undefined,
     rarity: [classification.rarity, ...stats].filter(Boolean).map(String).join(" · ") || undefined,
     category: classification.type ? String(classification.type) : undefined,
+  };
+}
+
+function normalizeLorcana(item: Record<string, unknown>): LookupCard {
+  const images = isRecord(item.image_uris) ? item.image_uris : {};
+  const digital = isRecord(images.digital) ? images.digital : images;
+  const set = isRecord(item.set) ? item.set : {};
+  const types = Array.isArray(item.type) ? item.type.map(String).join(" / ") : item.type ? String(item.type) : "";
+  const inks = Array.isArray(item.inks) ? item.inks.map(String).join(" / ") : item.ink ? String(item.ink) : "";
+  const version = item.version ? String(item.version) : "";
+  const name = String(item.name ?? "").trim();
+  const image =
+    digital.normal
+      ? String(digital.normal)
+      : digital.large
+        ? String(digital.large)
+        : digital.small
+          ? String(digital.small)
+          : undefined;
+  const stats = [
+    item.cost != null ? `Ink ${item.cost}` : "",
+    item.strength != null ? `Str ${item.strength}` : "",
+    item.willpower != null ? `Will ${item.willpower}` : "",
+    item.lore != null ? `Lore ${item.lore}` : "",
+  ].filter(Boolean);
+  return {
+    id: String(item.id ?? name),
+    name: version ? `${name} — ${version}` : name,
+    set: set.name ? String(set.name) : set.code ? String(set.code) : undefined,
+    number: item.collector_number != null ? String(item.collector_number) : undefined,
+    image,
+    type: [types, inks].filter(Boolean).join(" · ") || undefined,
+    text: item.text ? String(item.text) : undefined,
+    mana: item.cost != null ? String(item.cost) : undefined,
+    hp: item.willpower != null ? String(item.willpower) : undefined,
+    rarity: [item.rarity, ...stats].filter(Boolean).map(String).join(" · ") || undefined,
+    category: types || undefined,
   };
 }
 

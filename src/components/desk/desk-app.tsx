@@ -51,7 +51,8 @@ export function DeskApp() {
     desk.gameId === "swu" ||
     desk.gameId === "yugioh" ||
     desk.gameId === "one-piece" ||
-    desk.gameId === "riftbound";
+    desk.gameId === "riftbound" ||
+    desk.gameId === "lorcana";
 
   return (
     <TooltipProvider delayDuration={250}>

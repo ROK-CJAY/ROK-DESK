@@ -10,13 +10,15 @@ export type TabletGuideKind =
   | "ygo"
   | "op"
   | "rift"
+  | "lorcana"
   | "table"
   | "cards"
   | "mtg-cards"
   | "swu-cards"
   | "ygo-cards"
   | "op-cards"
-  | "rift-cards";
+  | "rift-cards"
+  | "lorcana-cards";
 
 const STORAGE_KEY = "rok-tablet-guide";
 
@@ -300,6 +302,48 @@ const COPY: Record<
       {
         title: "Points, type, domains",
         body: "Energy, Might, and Power show with the type and domain (Fury, Calm, Mind, Body, Chaos, Order).",
+      },
+      {
+        title: "Show on stream when you need it",
+        body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  lorcana: {
+    kicker: "Judge tablet",
+    title: "How this Lorcana pad works",
+    lead: "You’re holding the floor copy of the live match. Lore here is first to 20 — same number the scorebug shows.",
+    steps: [
+      {
+        title: "Tap lore 1–20",
+        body: "Each tap sets that player’s lore. Tap the current number again to step back one, or use + / −. First to 20 wins the game.",
+      },
+      {
+        title: "Game vs Match",
+        body: "Game scores the game, fires the game-win bug, and resets lore for the next game. Match fires the match-win bug and, if this pair was sent from Tournament, advances the bracket.",
+      },
+      {
+        title: "Run the clock",
+        body: "This clock is the streamed match only. Type a time and Set, then Start / Pause. +1m / +3m / −1m adjust it. The floor clock lives on Tournament control.",
+      },
+      {
+        title: "Card lookup",
+        body: "Search at the bottom. Tap a result to read the printed text. Show on stream puts the art on the Card overlay. Clear takes it off.",
+      },
+    ],
+  },
+  "lorcana-cards": {
+    kicker: "Card lookup",
+    title: "How to pull a Lorcana card",
+    lead: "This search uses Lorcast so you can read the printed card and send the art to the stream.",
+    steps: [
+      {
+        title: "Type at least two letters",
+        body: "Character or song name is enough — Elsa, Maui, Be Prepared. Results appear as you type.",
+      },
+      {
+        title: "Ink, strength, willpower, lore",
+        body: "Cost and inks show with the type. Strength, willpower, and the card’s lore value sit in the meta line.",
       },
       {
         title: "Show on stream when you need it",

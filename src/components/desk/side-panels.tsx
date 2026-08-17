@@ -752,6 +752,7 @@ export function PodPanel() {
   const ygo = desk.gameId === "yugioh";
   const op = desk.gameId === "one-piece";
   const rift = desk.gameId === "riftbound";
+  const lorcana = desk.gameId === "lorcana";
   const path = tabletPath(desk.gameId);
 
   const copy = async () => {
@@ -782,7 +783,9 @@ export function PodPanel() {
                     ? "Judge tablet — life, DON!!, score, clock, and official OP card lookup."
                     : rift
                       ? "Judge tablet — first-to-8 points, score, clock, and Riftcodex card lookup."
-                      : "Player tablet for the live table. Each game uses its own layout."}
+                      : lorcana
+                        ? "Judge tablet — lore to 20, score, clock, and Lorcast card lookup."
+                        : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
         <p className="mt-2 text-xs text-ok">Card lookup uses Pokémon TCG Live (TCGdex) data.</p>
@@ -802,6 +805,8 @@ export function PodPanel() {
         <p className="mt-2 text-xs text-ok">Tap life. Type DON!! then + / −. Game and Match report to the desk and bracket.</p>
       ) : rift ? (
         <p className="mt-2 text-xs text-ok">Tap points 1–8. Game and Match report to the desk and bracket. Search cards below on the pad.</p>
+      ) : lorcana ? (
+        <p className="mt-2 text-xs text-ok">Tap lore 1–20 or use + / −. Game and Match report to the desk and bracket.</p>
       ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>
       ) : (

@@ -9,6 +9,7 @@ import {
   fetchYgoCard,
   fetchOpCard,
   fetchRiftCard,
+  fetchLorcanaCard,
   scryfallLegalFor,
   searchLookupCards,
   searchScryfallCards,
@@ -16,6 +17,7 @@ import {
   searchYgoCards,
   searchOpCards,
   searchRiftCards,
+  searchLorcanaCards,
   ygoFormatFor,
   type LookupCard,
 } from "@/lib/card-lookup";
@@ -31,7 +33,7 @@ export function CardLookup({
   formatName = "",
 }: {
   compact?: boolean;
-  catalog?: "ptcg" | "mtg" | "swu" | "ygo" | "op" | "rift";
+  catalog?: "ptcg" | "mtg" | "swu" | "ygo" | "op" | "rift" | "lorcana";
   formatName?: string;
 }) {
   const patch = useDeskStore((s) => s.patch);
@@ -54,7 +56,9 @@ export function CardLookup({
             ? "op-cards"
             : catalog === "rift"
               ? "rift-cards"
-              : "cards",
+              : catalog === "lorcana"
+                ? "lorcana-cards"
+                : "cards",
     false,
   );
   const legal = catalog === "mtg" ? scryfallLegalFor(formatName) : null;
@@ -64,6 +68,7 @@ export function CardLookup({
   const ygo = catalog === "ygo";
   const op = catalog === "op";
   const rift = catalog === "rift";
+  const lorcana = catalog === "lorcana";
 
   useEffect(() => {
     if (!ready) void hydrate();
@@ -89,7 +94,9 @@ export function CardLookup({
               ? searchOpCards(q)
               : rift
                 ? searchRiftCards(q)
-                : searchLookupCards(q, liveOnly);
+                : lorcana
+                  ? searchLorcanaCards(q)
+                  : searchLookupCards(q, liveOnly);
       void run
         .then((rows) => {
           if (cancelled) return;
@@ -105,7 +112,7 @@ export function CardLookup({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, liveOnly, mtg, swu, ygo, op, rift, legal, ygoFormat]);
+  }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat]);
 
   const pushToStream = (card: LookupCard) => {
     patch({
@@ -138,7 +145,9 @@ export function CardLookup({
               ? await fetchOpCard(card.id)
               : rift
                 ? await fetchRiftCard(card.id)
-                : await fetchLookupCard(card.id);
+                : lorcana
+                  ? await fetchLorcanaCard(card.id)
+                  : await fetchLookupCard(card.id);
       if (detail) setSelected(detail);
     } catch {
       /* keep list row */
@@ -161,12 +170,14 @@ export function CardLookup({
                     ? "Official OP card data. Read the text, then Show on stream if you want the art on air."
                     : rift
                       ? "Riftcodex search. Read the printed text, then Show on stream if you want the art on air."
-                      : "Search a card to read it. Show on stream when you want the art on air."}
+                      : lorcana
+                        ? "Lorcast search. Read the printed text, then Show on stream if you want the art on air."
+                        : "Search a card to read it. Show on stream when you want the art on air."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <GuideButton onClick={guide.openGuide} />
-          {swu || op || rift ? null : (
+          {swu || op || rift || lorcana ? null : (
           <div className="flex rounded-md bg-surface-2 p-0.5">
             <FilterChip active={liveOnly} onClick={() => setLiveOnly(true)}>
               {mtg && legal ? formatName : ygo && ygoFormat ? formatName : "Live"}
@@ -194,7 +205,9 @@ export function CardLookup({
                     ? "Search Nami, Luffy, Zoro…"
                     : rift
                       ? "Search Jinx, Volibear, Hidden Blade…"
-                      : "Search Pikachu, Iono, Boss’s Orders…"
+                      : lorcana
+                        ? "Search Elsa, Be Prepared, Maui…"
+                        : "Search Pikachu, Iono, Boss’s Orders…"
           }
           className="pl-9"
         />
