@@ -71,6 +71,11 @@ export type PlayerSide = {
   cmdFrom: CmdFrom;
   team: TeamMon[];
   down: boolean[];
+  recordW: number;
+  recordL: number;
+  recordD: number;
+  ink1: string;
+  ink2: string;
 };
 
 export type Caster = {
@@ -187,6 +192,11 @@ const playerSchema: z.ZodType<PlayerSide> = z.object({
     .array(z.boolean())
     .optional()
     .transform((rows) => normalizeDown(rows)),
+  recordW: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  recordL: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  recordD: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  ink1: z.string().optional().transform((v) => v ?? ""),
+  ink2: z.string().optional().transform((v) => v ?? ""),
 });
 
 const casterSchema: z.ZodType<Caster> = z.object({
@@ -252,7 +262,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   eventLogo: z.string().optional().transform((v) => v ?? ""),
   showResources: z.boolean(),
   resourceCap: z.number().nullable().optional().transform((v) => (typeof v === "number" && v > 0 ? v : null)),
-  scorebugStyle: z.enum(["bar", "split"]),
+  scorebugStyle: z.enum(["bar", "split", "rok"]),
   scorebugPosition: z.enum(["top", "bottom"]),
   tableSize: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   rosterSide: z.enum(["hidden", "p1", "p2", "both"]),
@@ -317,6 +327,11 @@ export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
     cmdFrom: { ...emptyCmdFrom(), ...overrides.cmdFrom },
     team: mergeTeam(overrides.team ?? emptyTeam()),
     down: normalizeDown(overrides.down),
+    recordW: overrides.recordW ?? 0,
+    recordL: overrides.recordL ?? 0,
+    recordD: overrides.recordD ?? 0,
+    ink1: overrides.ink1 ?? "",
+    ink2: overrides.ink2 ?? "",
   };
 }
 

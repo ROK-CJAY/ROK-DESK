@@ -554,16 +554,23 @@ export function ShowPanel() {
           >
             <option value="bar">Scorebug · bar</option>
             <option value="split">Scorebug · split</option>
+            {desk.gameId === "lorcana" ? <option value="rok">ROK Layout</option> : null}
           </NativeSelect>
-          <NativeSelect
-            value={desk.scorebugPosition}
-            onChange={(e) =>
-              snapScorebug(e.target.value as typeof desk.scorebugPosition)
-            }
-          >
-            <option value="bottom">Bottom</option>
-            <option value="top">Top</option>
-          </NativeSelect>
+          {desk.scorebugStyle === "rok" ? (
+            <p className="self-center text-[0.7rem] text-muted">
+              Cameras, lore ladder, inks, W/L/D, diamonds, clock, card well.
+            </p>
+          ) : (
+            <NativeSelect
+              value={desk.scorebugPosition}
+              onChange={(e) =>
+                snapScorebug(e.target.value as typeof desk.scorebugPosition)
+              }
+            >
+              <option value="bottom">Bottom</option>
+              <option value="top">Top</option>
+            </NativeSelect>
+          )}
         </div>
         )}
         <div className="grid grid-cols-2 gap-2">
@@ -788,7 +795,7 @@ export function PodPanel() {
                     : rift
                       ? "Judge tablet — first-to-8 points, Duel / Match / Skirmish / War, clock, and Riftcodex card lookup."
                       : lorcana
-                        ? "Judge tablet — lore to 20, score, clock, and Lorcast card lookup."
+                        ? "Two tablets: the player pad sits with the table for lore, games, and the match clock. The judge tablet keeps Lorcast and match report."
                         : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
@@ -810,7 +817,7 @@ export function PodPanel() {
       ) : rift ? (
         <p className="mt-2 text-xs text-ok">Tap points 1–8. Game and Match report to the desk and bracket. Search cards below on the pad.</p>
       ) : lorcana ? (
-        <p className="mt-2 text-xs text-ok">Tap lore 1–20 or use + / −. Game and Match report to the desk and bracket.</p>
+        <p className="mt-2 text-xs text-ok">Player tablet: tap lore and game diamonds. Judge tablet still looks up cards and reports the match.</p>
       ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>
       ) : (
@@ -825,8 +832,8 @@ export function PodPanel() {
             Open judge tablet
           </a>
         </Button>
-        {mtg ? (
-          <Button variant={commander ? "default" : "outline"} size="sm" asChild>
+        {mtg || lorcana ? (
+          <Button variant={commander || lorcana ? "default" : "outline"} size="sm" asChild>
             <a href={playerPath} target="_blank" rel="noreferrer">
               Open player tablet
             </a>

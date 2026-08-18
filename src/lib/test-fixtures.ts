@@ -169,7 +169,7 @@ export function applyTestDesk(desk: DeskState): Partial<DeskState> {
       note: extraFieldFor(desk.gameId, desk.formatName).label === "Commander" ? `${a.deck} / ${b.deck}` : a.deck,
     });
   }
-  const asSide = (row: TestPlayer | undefined, fallbackResource: number): PlayerSide =>
+  const asSide = (row: TestPlayer | undefined, fallbackResource: number, seat = 0): PlayerSide =>
     blankPlayer({
       name: row?.name ?? "",
       tag: row?.tag ?? "",
@@ -178,6 +178,11 @@ export function applyTestDesk(desk: DeskState): Partial<DeskState> {
       archetype: row?.deck ?? "",
       resource: fallbackResource,
       team: row?.team,
+      recordW: desk.gameId === "lorcana" ? 5 - seat : 0,
+      recordL: desk.gameId === "lorcana" ? seat : 0,
+      recordD: desk.gameId === "lorcana" ? 2 - Math.min(seat, 2) : 0,
+      ink1: desk.gameId === "lorcana" ? (seat % 2 === 0 ? "amber" : "ruby") : "",
+      ink2: desk.gameId === "lorcana" ? (seat % 2 === 0 ? "amethyst" : "emerald") : "",
     });
 
   return {
@@ -185,10 +190,10 @@ export function applyTestDesk(desk: DeskState): Partial<DeskState> {
     eventPhase: desk.eventPhase.trim() || "Swiss",
     roundName: desk.roundName.trim() || "Round 1",
     sponsorLine: desk.sponsorLine.trim() || "ROK Esports",
-    p1: asSide(featured[0], desk.p1.resource),
-    p2: asSide(featured[1], desk.p2.resource),
-    p3: asSide(featured[2], desk.p3.resource),
-    p4: asSide(featured[3], desk.p4.resource),
+    p1: asSide(featured[0], desk.p1.resource, 0),
+    p2: asSide(featured[1], desk.p2.resource, 1),
+    p3: asSide(featured[2], desk.p3.resource, 2),
+    p4: asSide(featured[3], desk.p4.resource, 3),
     casters: testCasters(),
     queue,
     winnerSide: null,

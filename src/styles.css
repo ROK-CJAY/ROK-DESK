@@ -25,6 +25,13 @@
   --color-game-swu: #7a8ca3;
   --color-game-riftbound: #c4a35a;
 
+  --color-ink-amber: #e3a31a;
+  --color-ink-amethyst: #7a3ea6;
+  --color-ink-emerald: #2b8a4c;
+  --color-ink-ruby: #c62828;
+  --color-ink-sapphire: #1c6fb5;
+  --color-ink-steel: #7d8894;
+
   --color-ov-fg: #f4f4f1;
   --color-ov-muted: #b7b9be;
   --color-ov-bg: #101215;
@@ -150,6 +157,13 @@
 [data-game="lorcana"] {
   --color-game: var(--color-game-lorcana);
 }
+
+.ink-mark[data-ink="amber"] { color: var(--color-ink-amber); }
+.ink-mark[data-ink="amethyst"] { color: var(--color-ink-amethyst); }
+.ink-mark[data-ink="emerald"] { color: var(--color-ink-emerald); }
+.ink-mark[data-ink="ruby"] { color: var(--color-ink-ruby); }
+.ink-mark[data-ink="sapphire"] { color: var(--color-ink-sapphire); }
+.ink-mark[data-ink="steel"] { color: var(--color-ink-steel); }
 [data-game="swu"] {
   --color-game: var(--color-game-swu);
 }

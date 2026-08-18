@@ -4,6 +4,7 @@ import { blankEntrant, emptyDesk, snapshotDesk } from "@/lib/tournament-types";
 import { loadTournament, saveTournament } from "@/lib/tournament-server";
 import { mergeTeam } from "@/lib/pokemon-vgc";
 import { gameIdFromSlug } from "@/lib/games";
+import { sanitizeInk } from "@/lib/lorcana";
 
 const noStore = {
   "cache-control": "no-store, no-cache, must-revalidate",
@@ -26,6 +27,8 @@ const signupSchema = z.object({
   birthDate: z.string().trim().max(20).optional().default(""),
   team: z.unknown().optional(),
   game: z.string().trim().max(40).optional(),
+  ink1: z.string().trim().max(20).optional().default(""),
+  ink2: z.string().trim().max(20).optional().default(""),
 });
 
 export const Route = createFileRoute("/api/tournament/signup")({
@@ -70,6 +73,8 @@ export const Route = createFileRoute("/api/tournament/signup")({
           birthDate: parsed.data.birthDate,
           seed,
           team: mergeTeam(parsed.data.team),
+          ink1: sanitizeInk(parsed.data.ink1),
+          ink2: sanitizeInk(parsed.data.ink2),
         });
         const nextLane = { ...lane, entrants: [...lane.entrants, entrant] };
         const next = live

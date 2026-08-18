@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.2.2 beta** — Lorcana judge tablet. Broadcast production desk for ROK Esports.
+**v0.3.0 beta** — Lorcana broadcast layout. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Star Wars Unlimited, and Riftbound.
 
@@ -12,6 +12,22 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### v0.3.0 — 18 Aug 2026 · Lorcana
+
+Lorcana gets a stream layout that matches how the title is actually broadcast, plus table and signup fields to feed it.
+
+#### Added
+- **ROK Layout** — Lorcana scorebug style: camera wells, official ink emblems (up to two), W/L/D under each name, best-of-3 game diamonds, lore ladder 0–20, featured-match round, stream clock, official card back (or a judged card when shown on stream)
+- **Lorcana player tablet** — table pad at `/{game}/tablet?role=player`. Split lore pads, + / − and +8 / −8 chips, game diamonds, match clock. Dark ROK Desk look
+- **Ink picker** on Production, the Tournament roster, and walk-up signup (tap up to two official inks)
+- W/L/D record fields on Production (live match record on the ROK Layout)
+
+#### Changed
+- Lorcana signup extra field is **Deck**; inks are their own control
+- Sending a match to stream carries the player's inks onto the overlay
+- Camera wells on ROK Layout are black frames for player cameras
+- Round label on ROK Layout is the featured match round — no generic “ROUND” fallback
 
 ### HOTFIX — 18 Aug 2026 · VGC signup & team list
 
@@ -106,18 +122,20 @@ First tagged beta. This is the desk as it stands for venue use: Production, Tour
 | Production | `/production` | Featured match, scorebug, casters, overlays, look, arrange |
 | Tournament | `/tournament` | Roster, bracket, floor clock, team sheets, signup links |
 | Judge tablet | `/{game}/tablet` | Floor device for that game’s event. `/tablet` opens the current title |
+| Player tablet | `/{game}/tablet?role=player` | Table pad — Commander life / Lorcana lore |
 | Walk-up signup | `/{game}/signup` | In-person player check-in for that game |
 | VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon VG team list |
 | Overlay index | `/overlay` | Browser-source list |
 
 ## Production
 
-- Featured match: names, score, resources (prizes / remaining Pokémon / life / base HP), casters, queue
+- Featured match: names, score, resources (prizes / remaining Pokémon / life / lore / base HP), casters, queue
 - **Game win** and **Match win** — match win also reports into the live bracket when the pair is linked
 - Independent **stream clock** (Production) vs **floor clock** (Tournament). Judge tablets follow the stream clock
 - **PTCG prizes** — 6 / 4 / 3 / 2 / 1 per match (Pocket format still defaults to 3)
 - **VGC team** on the scorebug uses the player's submitted team
 - **SWU initiative** on the scorebug when a player is marked
+- **Lorcana ROK Layout** — camera wells, inks, W/L/D, lore ladder, game diamonds, official card back
 - **Test mode** toggle — 8 demo players. Off restores the last real field. Production and Tournament stay in sync with the judge tablet
 - **Sponsors** — upload marks; they rotate on the Sponsors overlay, HUD pack, and floor clock
 - **Event logo** — tournament mark on Versus, slates, HUD, Event logo overlay, and the floor clock
@@ -129,11 +147,12 @@ First tagged beta. This is the desk as it stands for venue use: Production, Tour
 - Single elim, double elim, and Swiss (pairings, standings, OMW%)
 - Size presets 4 / 8 / 16 / 32 plus **Custom** (2–128). Elim brackets pad to the next power of two with byes
 - Per-game roster — switching titles does not share players
-- Send a match to stream from the bracket
+- Send a match to stream from the bracket (Lorcana inks travel with the player)
 - Per-event **staff list** — Head Judge, judges, feature match judges, producer, scorekeeper, staff (archive only, not on stream)
 - VGC official team-list export (2 pages per player)
 - **Export tournament** — JSON archive plus CSVs (players, matches, standings, staff, VGC teams). Includes player IDs; keep it with event staff.
 - Commander / cEDH / Duel Commander signup asks for commander
+- Lorcana roster and signup ask for deck plus up to two inks
 
 ## Judge tablet
 
@@ -145,12 +164,20 @@ Open `/tablet` on a floor device. It follows the Production game.
 - **SWU** — base HP, initiative, game / match report, clock, **SWU-DB card search**
 - **YGO** — 8000 LP with typed ticks, game / match report, clock, **YGOPRODeck card search**
 - **OP** — life circles, DON!!, game / match report, clock, official English card search
+- **Lorcana** — lore 0–20, game / match report, clock, **Lorcast card search**
 - How-to guide on open, plus a card-search how-to next to lookup
 - Start / pause / add or remove time / reset clock (stream clock)
 
+## Player tablet
+
+Open `/{game}/tablet?role=player` (Production and Tournament have the button).
+
+- **MTG Commander / cEDH / Duel Commander** — face-out life, poison, and commander damage
+- **Lorcana** — split lore pads, game diamonds, +8 / −8 chips, streamed match clock
+
 ## Signup
 
-Walk-up kiosk at `/{game}/signup`. Fields follow the game (VGC team sheet, PTCG deck, MTG commander when needed) plus the organized-play **Player ID** for that title (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, GEM, PlayHub, SWU-Stats). Entering an ID requires a privacy checkbox: IDs stay on this event roster, never on stream. Each field links the publisher’s official policy. Sign-in is off until accounts land.
+Walk-up kiosk at `/{game}/signup`. Fields follow the game (VGC team sheet, PTCG deck, MTG commander when needed, Lorcana deck + inks) plus the organized-play **Player ID** for that title (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, GEM, PlayHub, SWU-Stats). Entering an ID requires a privacy checkbox: IDs stay on this event roster, never on stream. Each field links the publisher’s official policy. Sign-in is off until accounts land.
 
 ## Overlays
 
@@ -178,7 +205,7 @@ Add as OBS or vMix **Browser** sources: 1920×1080, transparent, no custom CSS. 
 
 Game slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
-Empty card / sponsor / event-logo sources stay fully transparent.
+On Lorcana, set **Scorebug style** to **ROK Layout** to get the camera / ink / lore broadcast frame. Empty card / sponsor / event-logo sources stay fully transparent.
 
 ## Run it
 

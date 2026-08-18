@@ -8,6 +8,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { extraFieldFor, gameOf, playerIdField, slugOf, type GameId } from "@/lib/games";
 import { emptySignupDraft, type SignupDraft } from "@/components/signup/signup-types";
 import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
+import { InkPicker } from "@/components/desk/ink-picker";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament } from "@/lib/tournament-types";
 
@@ -79,6 +80,8 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
           ageDivision: draft.ageDivision,
           birthDate: draft.birthDate.trim(),
           team: vgc ? draft.team : undefined,
+          ink1: t.gameId === "lorcana" ? draft.ink1 : undefined,
+          ink2: t.gameId === "lorcana" ? draft.ink2 : undefined,
           game: slugOf(t.gameId),
         }),
       });
@@ -134,7 +137,9 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
               This tablet is the walk-up desk for <span className="text-fg">{t.name}</span>
               {vgc
                 ? ". Fill the official Video Game Team List — player info plus all six Pokémon — then submit."
-                : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
+                : t.gameId === "lorcana"
+                  ? `. Enter your name, ${idField.label}, deck, and up to two inks for ${game.name}.`
+                  : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
             </p>
             <ul className="mt-5 grid gap-2 text-sm text-muted">
               <li className="rounded-lg bg-surface-2 px-3 py-3">One player at a time. When you’re done, hand it back.</li>
@@ -240,6 +245,17 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                     />
                   </Field>
                 </div>
+
+                {t.gameId === "lorcana" ? (
+                  <div className="mt-4">
+                    <p className="font-mono mb-2 text-[0.62rem] tracking-[0.16em] text-muted uppercase">Inks</p>
+                    <InkPicker
+                      ink1={draft.ink1}
+                      ink2={draft.ink2}
+                      onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
+                    />
+                  </div>
+                ) : null}
 
                 {draft.playerId.trim() ? (
                   <div className="mt-4">

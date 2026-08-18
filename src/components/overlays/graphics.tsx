@@ -411,17 +411,18 @@ export function HudView({
   edit?: OverlayEdit | null;
 }) {
   const commander = useCommanderOverlay(desk);
+  const rok = desk.scorebugStyle === "rok";
   return (
     <div className={`pointer-events-none absolute inset-0 ${edit ? "layout-grid" : ""}`}>
       <ScorebugView desk={desk} now={now} edit={edit} />
-      <TimerView desk={desk} now={now} edit={edit} />
-      {commander ? null : <ResourceView desk={desk} edit={edit} />}
-      {commander ? null : <CastersView desk={desk} edit={edit} />}
+      {rok ? null : <TimerView desk={desk} now={now} edit={edit} />}
+      {commander || rok ? null : <ResourceView desk={desk} edit={edit} />}
+      {commander || rok ? null : <CastersView desk={desk} edit={edit} />}
       <LowerThirdView desk={desk} edit={edit} />
       <WinnerView desk={desk} edit={edit} />
       <GameWinView desk={desk} edit={edit} />
-      <RosterView desk={desk} edit={edit} />
-      <CardSpotlightView desk={desk} edit={edit} />
+      {rok ? null : <RosterView desk={desk} edit={edit} />}
+      {rok ? null : <CardSpotlightView desk={desk} edit={edit} />}
       <SponsorsView desk={desk} now={now} edit={edit} compact />
       <EventLogoView desk={desk} edit={edit} />
     </div>

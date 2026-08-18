@@ -13,6 +13,8 @@ export type SignupDraft = {
   birthDate: string;
   team: TeamMon[];
   idPrivacy: boolean;
+  ink1: string;
+  ink2: string;
 };
 
 export const emptySignupDraft = (): SignupDraft => ({
@@ -28,4 +30,6 @@ export const emptySignupDraft = (): SignupDraft => ({
   birthDate: "",
   team: emptyTeam(),
   idPrivacy: false,
+  ink1: "",
+  ink2: "",
 });

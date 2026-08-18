@@ -12,7 +12,7 @@ export const GAME_IDS = [
 export type GameId = (typeof GAME_IDS)[number];
 
 export type ResourceKind = "pips" | "life" | "points";
-export type ScorebugStyle = "bar" | "split";
+export type ScorebugStyle = "bar" | "split" | "rok";
 export type BestOf = 1 | 3 | 5 | 7;
 
 export type FormatFamily = "constructed" | "commander";
@@ -252,8 +252,8 @@ export const GAME_LIST: GameDef[] = [
       invertWin: false,
       pips: false,
     },
-    extraLabel: "Ink / Deck",
-    extraPlaceholder: "Amber/Steel · Ruby Aggro",
+    extraLabel: "Deck",
+    extraPlaceholder: "Ruby Aggro · Amber/Steel midrange",
     scoreLabel: "Games",
     defaultBestOf: 3,
     defaultScorebug: "bar",

@@ -10,6 +10,7 @@ import { YgoJudgeTablet } from "@/components/tablet/ygo-judge";
 import { OpJudgeTablet } from "@/components/tablet/op-judge";
 import { RiftJudgeTablet } from "@/components/tablet/rift-judge";
 import { LorcanaJudgeTablet } from "@/components/tablet/lorcana-judge";
+import { LorcanaPlayerTablet } from "@/components/tablet/lorcana-player";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { isCommanderLane } from "@/lib/games";
@@ -90,6 +91,10 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" }) {
     if (desk.gameId === "lorcana") {
       return <LorcanaJudgeTablet />;
     }
+  }
+
+  if (role === "player" && desk.gameId === "lorcana") {
+    return <LorcanaPlayerTablet />;
   }
 
   const seats = desk.tableSize === 4 ? TABLE_ORDER : seatsFor(Math.max(desk.tableSize, 2) as 2 | 3 | 4);

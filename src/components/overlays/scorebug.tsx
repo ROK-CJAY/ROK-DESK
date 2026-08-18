@@ -7,6 +7,7 @@ import { CommanderScorebug, useCommanderOverlay } from "@/components/overlays/co
 import { isCommanderLane } from "@/lib/games";
 import { cn } from "@/lib/cn";
 import { InitiativeMark } from "@/components/desk/initiative";
+import { RokLayoutView } from "@/components/overlays/rok-layout";
 
 function Flag({ code }: { code: string }) {
   if (!code) return null;
@@ -140,6 +141,13 @@ export function ScorebugView({
   const game = gameOf(desk.gameId);
   if (useCommanderOverlay(desk)) {
     return <CommanderScorebug desk={desk} edit={edit} />;
+  }
+  if (desk.scorebugStyle === "rok") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <RokLayoutView desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
   }
   const clock = formatClock(remainingSeconds(desk, now));
   const center = (

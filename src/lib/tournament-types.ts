@@ -67,6 +67,8 @@ export type Entrant = {
   switchProfile: string;
   ageDivision: AgeDivision;
   birthDate: string;
+  ink1: string;
+  ink2: string;
 };
 
 export type AgeDivision = "" | "juniors" | "seniors" | "masters";
@@ -201,6 +203,8 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
     .optional()
     .transform((v): AgeDivision => (v === "juniors" || v === "seniors" || v === "masters" ? v : "")),
   birthDate: z.string().optional().transform((v) => v ?? ""),
+  ink1: z.string().optional().transform((v) => v ?? ""),
+  ink2: z.string().optional().transform((v) => v ?? ""),
 });
 
 const staffSchema: z.ZodType<StaffMember> = z.object({
@@ -287,6 +291,8 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     switchProfile: "",
     ageDivision: "",
     birthDate: "",
+    ink1: "",
+    ink2: "",
     ...overrides,
     team: mergeTeam(overrides.team),
   };

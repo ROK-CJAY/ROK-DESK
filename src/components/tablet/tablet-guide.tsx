@@ -11,6 +11,7 @@ export type TabletGuideKind =
   | "op"
   | "rift"
   | "lorcana"
+  | "lorcana-player"
   | "table"
   | "cards"
   | "mtg-cards"
@@ -348,6 +349,29 @@ const COPY: Record<
       {
         title: "Show on stream when you need it",
         body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+      },
+    ],
+  },
+  "lorcana-player": {
+    kicker: "Player tablet",
+    title: "How this Lorcana table pad works",
+    lead: "This tablet sits with the players. Lore, game diamonds, and the match clock are the same ones Production and the stream see.",
+    steps: [
+      {
+        title: "Tap + or − for lore",
+        body: "The big number is that player’s lore (0–20). The plus above and minus below change it by one. Use +8 / −8 for a big swing.",
+      },
+      {
+        title: "Tap the diamonds for games",
+        body: "Filled diamonds are games won in the match. Tap one to mark a game win. Tap the last filled diamond to take it back.",
+      },
+      {
+        title: "Watch the clock",
+        body: "The time at the top is the streamed match clock. Judges and Production start, pause, and add time. This pad only shows it.",
+      },
+      {
+        title: "Same seats as the stream",
+        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream.",
       },
     ],
   },

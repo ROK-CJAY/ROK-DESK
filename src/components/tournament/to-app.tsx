@@ -16,6 +16,7 @@ import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventC
 import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
+import { InkPicker } from "@/components/desk/ink-picker";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
 import { StaffPanel } from "@/components/tournament/staff-panel";
 import {
@@ -413,6 +414,8 @@ function sendMatchToStream(matchId: string) {
       archetype: e?.deck ?? "",
       extra: e?.extra ?? "",
       team: vgc ? (teamHasMons(e?.team) ? e!.team : emptyTeam()) : undefined,
+      ink1: e?.ink1 ?? "",
+      ink2: e?.ink2 ?? "",
     };
   };
   const pod = isPodMatch(match);
@@ -496,7 +499,7 @@ function StreamPanel() {
             Open judge tablet
           </a>
         </Button>
-        {t.gameId === "mtg" ? (
+        {t.gameId === "mtg" || t.gameId === "lorcana" ? (
           <Button variant="secondary" size="sm" className="w-full" asChild>
             <a href={playerTabletPath(t.gameId)} target="_blank" rel="noreferrer">
               Open player tablet
@@ -524,7 +527,7 @@ function RosterPanel({
   const game = gameOf(t.gameId);
   const extra = extraFieldFor(t.gameId, t.formatName);
   const idField = playerIdField(t.gameId);
-  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", country: "US" });
+  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", country: "US", ink1: "", ink2: "" });
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
@@ -536,8 +539,10 @@ function RosterPanel({
       playerId: draft.playerId.trim(),
       deck: draft.deck.trim(),
       country: draft.country,
+      ink1: draft.ink1,
+      ink2: draft.ink2,
     });
-    setDraft({ name: "", tag: "", playerId: "", deck: "", country: draft.country });
+    setDraft({ name: "", tag: "", playerId: "", deck: "", country: draft.country, ink1: "", ink2: "" });
   };
 
   return (
@@ -611,6 +616,16 @@ function RosterPanel({
           Add
         </Button>
       </div>
+      {t.gameId === "lorcana" ? (
+        <div className="mt-2">
+          <InkPicker
+            size="sm"
+            ink1={draft.ink1}
+            ink2={draft.ink2}
+            onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -622,6 +637,7 @@ function RosterPanel({
               <th className="pb-2 font-medium">Handle</th>
               <th className="pb-2 font-medium">{idField.label}</th>
               <th className="pb-2 font-medium">{extra.label}</th>
+              {t.gameId === "lorcana" ? <th className="pb-2 font-medium">Inks</th> : null}
               <th className="pb-2 font-medium">CC</th>
               <th className="pb-2 font-medium" />
             </tr>
@@ -650,6 +666,7 @@ function RosterPanel({
                     setOverId(null);
                   }}
                   showTeam={t.gameId === "pokemon-vgc"}
+                  showInks={t.gameId === "lorcana"}
                   idLabel={idField.label}
                   sheetActive={sheetPlayerId === e.id}
                   onOpenSheet={onOpenSheet}
@@ -673,6 +690,7 @@ function EntrantRow({
   onDrop,
   onDragEnd,
   showTeam,
+  showInks,
   idLabel,
   sheetActive,
   onOpenSheet,
@@ -687,6 +705,7 @@ function EntrantRow({
   onDrop: () => void;
   onDragEnd: () => void;
   showTeam: boolean;
+  showInks?: boolean;
   idLabel: string;
   sheetActive: boolean;
   onOpenSheet: (id: string) => void;
@@ -760,6 +779,16 @@ function EntrantRow({
           className="h-8"
         />
       </td>
+      {showInks ? (
+        <td className="py-2 pr-2">
+          <InkPicker
+            size="sm"
+            ink1={entrant.ink1}
+            ink2={entrant.ink2}
+            onChange={(next) => onChange(entrant.id, next)}
+          />
+        </td>
+      ) : null}
       <td className="py-2 pr-2">
         <NativeSelect
           value={entrant.country}
