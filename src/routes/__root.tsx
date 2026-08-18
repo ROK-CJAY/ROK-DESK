@@ -54,14 +54,17 @@ function RootDocument() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const overlay = pathname.includes("/overlay");
   const print = pathname.startsWith("/print");
-  const kiosk = pathname === "/pod" || pathname === "/tablet" || pathname.endsWith("/tablet") || pathname === "/signup" || pathname.endsWith("/signup");
+  const tablet =
+    pathname === "/pod" ||
+    pathname === "/tablet" ||
+    pathname.endsWith("/tablet");
 
   return (
-    <html lang="en" className={overlay || print ? "overlay-mode" : kiosk ? "pod-mode dark" : "dark antialiased"} suppressHydrationWarning>
+    <html lang="en" className={overlay || print ? "overlay-mode" : tablet ? "pod-mode dark" : "dark antialiased"} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
-      <body className={overlay || print ? "overlay-body" : kiosk ? "pod-body" : "min-h-dvh bg-bg text-fg antialiased"}>
+      <body className={overlay || print ? "overlay-body" : tablet ? "pod-body" : "min-h-dvh bg-bg text-fg antialiased"}>
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

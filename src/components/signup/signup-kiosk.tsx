@@ -120,7 +120,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
         </p>
       </header>
 
-      <main className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto px-4 py-6">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
         {closed ? (
           <section className="rounded-xl border border-border bg-surface p-6 text-center">
             <p className="font-display text-3xl font-semibold uppercase">Registration closed</p>

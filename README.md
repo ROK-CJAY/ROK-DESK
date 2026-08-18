@@ -13,6 +13,11 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 
 ## Updates
 
+### HOTFIX — 18 Aug 2026 · VGC signup & team list
+
+- **VGC walk-up sign-up** scrolls again. The long official team list was locked in the tablet shell (`overflow: hidden`), so Pokémon 2–6 and Submit were clipped.
+- **Printed VG team list** matches the Play! Pokémon two-page form: staff page (IDs, DOB, Support ID, age division, six Pokémon with stats) and opponent page (no numeric stats). Tera type prints next to the species name.
+
 ### HOTFIX — 17 Aug 2026 · player tablet
 
 - **MTG player tablet** is back for Commander, cEDH, and Duel Commander. Production and Tournament have **Open player tablet** — a face-out table pad for life, poison, and commander damage. The judge tablet stays for Scryfall and match report.
