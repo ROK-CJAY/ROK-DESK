@@ -38,6 +38,7 @@ import {
   type SlotId,
 } from "@/lib/tournament-types";
 import { cn } from "@/lib/cn";
+import { supportsMatchSlots } from "@/lib/desk-types";
 
 export function TournamentApp() {
   const ready = useTournamentStore((s) => s.ready);
@@ -399,7 +400,7 @@ function SetupPanel() {
   );
 }
 
-function sendMatchToStream(matchId: string) {
+function sendMatchToStream(matchId: string, slot: 1 | 2 = 1) {
   const t = useTournamentStore.getState().tournament;
   const match = t.matches.find((m) => m.id === matchId);
   if (!match) return;
@@ -419,7 +420,8 @@ function sendMatchToStream(matchId: string) {
     };
   };
   const pod = isPodMatch(match);
-  useTournamentStore.getState().setStreamMatch(matchId);
+  const deskSlot = supportsMatchSlots(t.gameId) ? slot : 1;
+  useTournamentStore.getState().setStreamMatch(matchId, deskSlot);
   useDeskStore.getState().loadStreamMatch({
     eventName: t.name,
     roundName: match.label,
@@ -436,6 +438,7 @@ function sendMatchToStream(matchId: string) {
     formatName: t.formatName,
     tableSize: pod ? 4 : 2,
     matchId: match.id,
+    matchSlot: deskSlot,
     p1: seat(match.p1.entrantId),
     p2: seat(match.p2.entrantId),
     p3: pod ? seat(match.p3?.entrantId) : undefined,
@@ -450,62 +453,151 @@ function namesForMatch(t: import("@/lib/tournament-types").TournamentState, matc
   return names[0] ?? "TBD";
 }
 
+function removeMatchFromStream(slot: 1 | 2) {
+  const t = useTournamentStore.getState().tournament;
+  useTournamentStore.getState().setStreamMatch(null, slot);
+  useDeskStore.getState().clearStreamSlot(t.gameId, slot);
+}
+
 function StreamPanel() {
   const t = useTournamentStore((s) => s.tournament);
   const ready = readyMatches(t);
-  const live = t.matches.find((m) => m.id === t.streamMatchId);
+  const live1 = t.matches.find((m) => m.id === t.streamMatchId);
+  const live2 = t.matches.find((m) => m.id === t.streamMatchId2);
+  const dual = supportsMatchSlots(t.gameId);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Stream match</p>
-      {live ? (
-        <div className="mt-3 rounded-lg border border-live/40 bg-live/10 px-3 py-2">
-          <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">On air</p>
-          <p className="text-sm text-fg">{namesForMatch(t, live)}</p>
-          <p className="text-xs text-muted">{live.label}</p>
+      {live1 || live2 ? (
+        <div className="mt-3 grid gap-2">
+          {live1 ? (
+            <div className="rounded-lg border border-live/40 bg-live/10 px-3 py-2">
+              <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">
+                On air{dual ? " · Match 1 (A)" : ""}
+              </p>
+              <p className="text-sm text-fg">{namesForMatch(t, live1)}</p>
+              <p className="text-xs text-muted">{live1.label}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 w-full"
+                onClick={() => removeMatchFromStream(1)}
+              >
+                Remove from stream
+              </Button>
+            </div>
+          ) : null}
+          {dual && live2 ? (
+            <div className="rounded-lg border border-live/40 bg-live/10 px-3 py-2">
+              <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">On air · Match 2 (B)</p>
+              <p className="text-sm text-fg">{namesForMatch(t, live2)}</p>
+              <p className="text-xs text-muted">{live2.label}</p>
+              <Button
+                size="sm"
+                variant="outline"
+                className="mt-2 w-full"
+                onClick={() => removeMatchFromStream(2)}
+              >
+                Remove from stream
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : (
-        <p className="mt-3 text-sm text-muted">No match assigned. Pick a ready match to push names onto Production.</p>
+        <p className="mt-3 text-sm text-muted">
+          {dual
+            ? "No match assigned. Send a ready pairing to Match 1 (A) or Match 2 (B)."
+            : "No match assigned. Pick a ready match to push names onto Production."}
+        </p>
       )}
       <ul className="mt-3 space-y-2">
         {ready.length === 0 ? (
           <li className="text-xs text-subtle">No ready matches.</li>
         ) : (
-          ready.map((match) => (
-            <li key={match.id}>
-              <button
-                type="button"
-                onClick={() => sendMatchToStream(match.id)}
-                className={cn(
-                  "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm",
-                  t.streamMatchId === match.id
-                    ? "border-live bg-live/10"
-                    : "border-border bg-surface-2 hover:border-muted",
+          ready.map((match) => {
+            const on1 = t.streamMatchId === match.id;
+            const on2 = t.streamMatchId2 === match.id;
+            return (
+              <li key={match.id} className="rounded-lg border border-border bg-surface-2 px-3 py-2">
+                <p className="text-xs text-muted">{match.label}</p>
+                <p className="text-sm">{namesForMatch(t, match)}</p>
+                {dual ? (
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <Button
+                      size="sm"
+                      variant={on1 ? "live" : "secondary"}
+                      onClick={() => sendMatchToStream(match.id, 1)}
+                    >
+                      Match 1 · A
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={on2 ? "live" : "secondary"}
+                      onClick={() => sendMatchToStream(match.id, 2)}
+                    >
+                      Match 2 · B
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={on1 ? "live" : "secondary"}
+                    className="mt-2 w-full"
+                    onClick={() => sendMatchToStream(match.id, 1)}
+                  >
+                    Send to stream
+                  </Button>
                 )}
-              >
-                <span>
-                  <span className="block text-xs text-muted">{match.label}</span>
-                  {namesForMatch(t, match)}
-                </span>
-                <Radio className="size-3.5 shrink-0" />
-              </button>
-            </li>
-          ))
+              </li>
+            );
+          })
         )}
       </ul>
       <div className="mt-3 flex flex-col gap-2">
-        <Button variant="outline" size="sm" className="w-full" asChild>
-          <a href={tabletPath(t.gameId)} target="_blank" rel="noreferrer">
-            Open judge tablet
-          </a>
-        </Button>
-        {t.gameId === "mtg" || t.gameId === "lorcana" ? (
-          <Button variant="secondary" size="sm" className="w-full" asChild>
-            <a href={playerTabletPath(t.gameId)} target="_blank" rel="noreferrer">
-              Open player tablet
-            </a>
-          </Button>
-        ) : null}
+        {dual ? (
+          <>
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <a href={tabletPath(t.gameId, 1)} target="_blank" rel="noreferrer">
+                Judge tablet · Match 1
+              </a>
+            </Button>
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <a href={tabletPath(t.gameId, 2)} target="_blank" rel="noreferrer">
+                Judge tablet · Match 2
+              </a>
+            </Button>
+            {t.gameId === "mtg" || t.gameId === "lorcana" ? (
+              <>
+                <Button variant="secondary" size="sm" className="w-full" asChild>
+                  <a href={playerTabletPath(t.gameId, 1)} target="_blank" rel="noreferrer">
+                    Player tablet · Match 1
+                  </a>
+                </Button>
+                <Button variant="secondary" size="sm" className="w-full" asChild>
+                  <a href={playerTabletPath(t.gameId, 2)} target="_blank" rel="noreferrer">
+                    Player tablet · Match 2
+                  </a>
+                </Button>
+              </>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Button variant="outline" size="sm" className="w-full" asChild>
+              <a href={tabletPath(t.gameId)} target="_blank" rel="noreferrer">
+                Open judge tablet
+              </a>
+            </Button>
+            {t.gameId === "mtg" || t.gameId === "lorcana" ? (
+              <Button variant="secondary" size="sm" className="w-full" asChild>
+                <a href={playerTabletPath(t.gameId)} target="_blank" rel="noreferrer">
+                  Open player tablet
+                </a>
+              </Button>
+            ) : null}
+          </>
+        )}
       </div>
     </section>
   );
@@ -897,7 +989,7 @@ function BracketBoard() {
                   <p className="mb-2 truncate text-xs text-subtle">{col.label}</p>
                   <div className="flex flex-col gap-2">
                     {col.matches.map((match) => {
-                      const live = t.streamMatchId === match.id;
+                      const live = t.streamMatchId === match.id || t.streamMatchId2 === match.id;
                       const skip = match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId;
                       if (skip) return null;
                       const seats = matchSlots(match).filter(

@@ -137,7 +137,8 @@ export function OverlayPreview() {
   }, [arranging, past, future]);
 
   const current = OVERLAY_SOURCES.find((s) => s.id === source)!;
-  const url = origin ? `${origin}${overlayPath(desk.gameId, source)}` : overlayPath(desk.gameId, source);
+  const pathFor = (id: OverlaySourceId) => overlayPath(desk.gameId, id, desk.matchSlot ?? 1);
+  const url = origin ? `${origin}${pathFor(source)}` : pathFor(source);
   const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock";
   const atDefault = isDefaultLayout(desk.layout);
 
@@ -199,12 +200,12 @@ export function OverlayPreview() {
             <RotateCcw className="size-3.5" />
             Default look
           </Button>
-          <Button variant="secondary" size="sm" onClick={() => void copy(overlayPath(desk.gameId, source))}>
-            {copied === overlayPath(desk.gameId, source) ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+          <Button variant="secondary" size="sm" onClick={() => void copy(pathFor(source))}>
+            {copied === pathFor(source) ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
             Copy URL
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <a href={overlayPath(desk.gameId, source)} target="_blank" rel="noreferrer">
+            <a href={pathFor(source)} target="_blank" rel="noreferrer">
               <ExternalLink className="size-3.5" />
               Pop out
             </a>
@@ -304,9 +305,9 @@ export function OverlayPreview() {
               <button
                 type="button"
                 className="text-fg underline-offset-2 hover:underline"
-                onClick={() => void copy(overlayPath(desk.gameId, item.id))}
+                onClick={() => void copy(pathFor(item.id))}
               >
-                {copied === overlayPath(desk.gameId, item.id) ? "Copied" : "Copy"}
+                {copied === pathFor(item.id) ? "Copied" : "Copy"}
               </button>
             </li>
           ))}

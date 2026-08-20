@@ -45,7 +45,7 @@ type TournamentStore = {
   resetBracket: () => void;
   report: (matchId: string, winnerId: string) => void;
   setScore: (matchId: string, slot: SlotId, score: number) => void;
-  setStreamMatch: (matchId: string | null) => void;
+  setStreamMatch: (matchId: string | null, slot?: 1 | 2) => void;
   toggleFloorTimer: () => void;
   setFloorClock: (seconds: number) => void;
   addFloorSeconds: (delta: number) => void;
@@ -258,6 +258,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       ),
       phase: "running",
       streamMatchId: null,
+      streamMatchId2: null,
     });
     persist(tournament);
     set({ tournament });
@@ -294,6 +295,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       matches: [],
       phase: "setup",
       streamMatchId: null,
+      streamMatchId2: null,
     });
     persist(tournament);
     set({ tournament });
@@ -311,8 +313,19 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
     set({ tournament });
   },
 
-  setStreamMatch: (matchId) => {
-    const tournament = nextVersion(get().tournament, { streamMatchId: matchId });
+  setStreamMatch: (matchId, slot = 1) => {
+    const prev = get().tournament;
+    const patch =
+      slot === 2
+        ? {
+            streamMatchId2: matchId,
+            streamMatchId: prev.streamMatchId === matchId ? null : prev.streamMatchId,
+          }
+        : {
+            streamMatchId: matchId,
+            streamMatchId2: prev.streamMatchId2 === matchId ? null : prev.streamMatchId2,
+          };
+    const tournament = nextVersion(prev, patch);
     persist(tournament);
     set({ tournament });
   },

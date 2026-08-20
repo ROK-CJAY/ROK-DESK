@@ -189,7 +189,7 @@ function OverlayMatch({
   match: BracketMatch;
 }) {
   if (match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId) return null;
-  const live = tournament.streamMatchId === match.id;
+  const live = tournament.streamMatchId === match.id || tournament.streamMatchId2 === match.id;
   const seats = matchSlots(match).filter((row) => row.slot.entrantId);
   return (
     <div

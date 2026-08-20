@@ -2,36 +2,40 @@ import { useEffect, useLayoutEffect } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { PodPad } from "@/components/pod/pod-pad";
 import { gameIdFromSlug } from "@/lib/games";
+import { parseMatchSlot } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 
 type TabletSearch = {
   role?: "judge" | "player";
 };
 
-export const Route = createFileRoute("/$game/tablet")({
+export const Route = createFileRoute("/$game/$slot/tablet")({
   ssr: false,
   validateSearch: (raw: Record<string, unknown>): TabletSearch => {
     if (raw.role === "player") return { role: "player" };
     if (raw.role === "judge") return { role: "judge" };
     return {};
   },
-  component: PinnedTablet,
+  component: SlotTablet,
 });
 
-function PinnedTablet() {
-  const { game } = Route.useParams();
+function SlotTablet() {
+  const { game, slot } = Route.useParams();
   const { role } = Route.useSearch();
   const gameId = gameIdFromSlug(game);
+  const matchSlot = parseMatchSlot(slot);
   const hydrate = useDeskStore((s) => s.hydrate);
 
   useLayoutEffect(() => {
-    if (gameId) useDeskStore.setState({ pinnedGameId: gameId, pinnedSlot: 1 });
-  }, [gameId]);
+    if (gameId && (slot === "1" || slot === "2")) {
+      useDeskStore.setState({ pinnedGameId: gameId, pinnedSlot: matchSlot });
+    }
+  }, [gameId, slot, matchSlot]);
 
   useEffect(() => {
-    if (gameId) void hydrate(gameId, 1);
-  }, [gameId, hydrate]);
+    if (gameId && (slot === "1" || slot === "2")) void hydrate(gameId, matchSlot);
+  }, [gameId, matchSlot, slot, hydrate]);
 
-  if (!gameId) throw notFound();
+  if (!gameId || (slot !== "1" && slot !== "2")) throw notFound();
   return <PodPad role={role === "player" ? "player" : "judge"} />;
 }

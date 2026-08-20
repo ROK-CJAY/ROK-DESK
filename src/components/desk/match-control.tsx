@@ -1,4 +1,4 @@
-import { ArrowLeftRight, RotateCcw, Trophy } from "lucide-react";
+import { ArrowLeftRight, Eraser, RotateCcw, Trophy } from "lucide-react";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   remainingFromDown,
   resourceLimit,
   seatsFor,
+  supportsMatchSlots,
   toggleMonDown,
   type PlayerSide,
   type SeatId,
@@ -37,6 +38,7 @@ export function MatchControl() {
   const swapSides = useDeskStore((s) => s.swapSides);
   const resetGame = useDeskStore((s) => s.resetGame);
   const resetMatch = useDeskStore((s) => s.resetMatch);
+  const resetInfo = useDeskStore((s) => s.resetInfo);
   const gameWin = useDeskStore((s) => s.gameWin);
   const game = gameOf(desk.gameId);
   const commanderTable = isCommanderTable(desk);
@@ -47,7 +49,7 @@ export function MatchControl() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
-            {commanderTable ? "Live pod" : "Live match"}
+            {commanderTable ? "Live pod" : supportsMatchSlots(desk.gameId) ? `Live match ${desk.matchSlot ?? 1}` : "Live match"}
           </p>
           <h2 className="font-display text-2xl font-semibold tracking-tight uppercase">
             {desk.roundName}
@@ -67,6 +69,10 @@ export function MatchControl() {
           </Button>
           <Button variant="outline" size="sm" onClick={resetMatch}>
             Reset match
+          </Button>
+          <Button variant="outline" size="sm" onClick={resetInfo}>
+            <Eraser className="size-3.5" />
+            Reset info
           </Button>
         </div>
       </div>

@@ -95,7 +95,7 @@ export function MtgJudgeTablet() {
           <div className="flex flex-wrap gap-2">
             {commander ? (
               <Button variant="outline" size="sm" asChild>
-                <a href={playerTabletPath(desk.gameId)} target="_blank" rel="noreferrer">
+                <a href={playerTabletPath(desk.gameId, desk.matchSlot ?? 1)} target="_blank" rel="noreferrer">
                   Player tablet
                 </a>
               </Button>

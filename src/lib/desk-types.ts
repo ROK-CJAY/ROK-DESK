@@ -17,6 +17,7 @@ export type GameClock = {
 export type SeatId = "p1" | "p2" | "p3" | "p4";
 export type SideId = SeatId;
 export type TableSize = 2 | 3 | 4;
+export type MatchSlot = 1 | 2;
 export type RosterSide = "hidden" | "p1" | "p2" | "both";
 export type CmdFrom = Record<SeatId, number>;
 
@@ -116,6 +117,7 @@ export type SpotlightCard = {
 export type DeskState = {
   version: number;
   gameId: GameId;
+  matchSlot: MatchSlot;
   eventName: string;
   eventPhase: string;
   roundName: string;
@@ -151,7 +153,7 @@ export type DeskState = {
   layout: LayoutMap;
   overlayLook: OverlayLookBook;
   cardSpotlight: SpotlightCard;
-  lanes: Partial<Record<GameId, Record<string, unknown>>>;
+  lanes: Record<string, Record<string, unknown>>;
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
 };
@@ -208,6 +210,7 @@ const casterSchema: z.ZodType<Caster> = z.object({
 export const deskSchema: z.ZodType<DeskState> = z.object({
   version: z.number(),
   gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
+  matchSlot: z.union([z.literal(1), z.literal(2)]).optional().transform((v) => (v === 2 ? 2 : 1)),
   eventName: z.string(),
   eventPhase: z.string(),
   roundName: z.string(),
@@ -340,6 +343,7 @@ export function defaultDesk(): DeskState {
   return {
     version: 1,
     gameId: "pokemon-tcg",
+    matchSlot: 1,
     eventName: "",
     eventPhase: "",
     roundName: "",
@@ -400,9 +404,14 @@ export function resourceLimit(desk: Pick<DeskState, "gameId" | "formatName" | "r
 export function resourceResetValue(desk: Pick<DeskState, "gameId" | "formatName" | "resourceCap">): number {
   const game = gameOf(desk.gameId);
   const format = game.formats.find((f) => f.label === desk.formatName);
-  // Prize-style remaining (PTCG prizes, VGC mons) start at the match cap.
-  // Point resources (Lorcana lore, Riftbound) start at 0 / format start.
-  if (game.resource.invertWin && typeof desk.resourceCap === "number" && desk.resourceCap > 0) {
+  // Remaining-style pips (PTCG prizes, VGC Pokémon, OP life) start at the match cap.
+  // Life / lore / points start at format start (YGO 8000, MTG 20/40, Lorcana 0).
+  if (
+    game.resource.kind === "pips" &&
+    game.resource.invertWin &&
+    typeof desk.resourceCap === "number" &&
+    desk.resourceCap > 0
+  ) {
     return desk.resourceCap;
   }
   return format?.resourceStart ?? game.resource.start;
@@ -471,6 +480,7 @@ export function parseDesk(raw: unknown): DeskState | null {
     ...base,
     ...incoming,
     gameId: coerceGameId(incoming.gameId, base.gameId),
+    matchSlot: incoming.matchSlot === 2 ? 2 : 1,
     p1: mergePlayer(base.p1, incoming.p1),
     p2: mergePlayer(base.p2, incoming.p2),
     p3: mergePlayer(base.p3, incoming.p3),
@@ -497,28 +507,49 @@ export function parseDesk(raw: unknown): DeskState | null {
   return parsed.success ? (parsed.data as DeskState) : null;
 }
 
+export function parseMatchSlot(raw: unknown): MatchSlot {
+  return raw === 2 || raw === "2" ? 2 : 1;
+}
+
+export function supportsMatchSlots(gameId: GameId): boolean {
+  return gameOf(gameId).category === "TCG";
+}
+
+export function laneKey(gameId: GameId, slot: MatchSlot = 1): string {
+  return slot === 1 ? gameId : `${gameId}:2`;
+}
+
 export function stripLane(desk: DeskState): Record<string, unknown> {
   const { lanes: _lanes, ...rest } = desk;
   return rest;
 }
 
 export function withCurrentLane(desk: DeskState): DeskState {
+  const slot = supportsMatchSlots(desk.gameId) ? (desk.matchSlot ?? 1) : 1;
   return {
     ...desk,
-    lanes: { ...desk.lanes, [desk.gameId]: stripLane(desk) },
+    matchSlot: slot,
+    lanes: { ...desk.lanes, [laneKey(desk.gameId, slot)]: stripLane({ ...desk, matchSlot: slot }) },
   };
 }
 
-export function deskLaneOf(live: DeskState, gameId: GameId): DeskState {
-  if (live.gameId === gameId) return live;
-  const raw = live.lanes?.[gameId];
+export function deskLaneOf(live: DeskState, gameId: GameId, slot: MatchSlot = 1): DeskState {
+  const wanted = supportsMatchSlots(gameId) ? slot : 1;
+  if (live.gameId === gameId && (live.matchSlot ?? 1) === wanted) return live;
+  const raw = live.lanes?.[laneKey(gameId, wanted)];
   const parsed = raw ? parseDesk(raw) : null;
-  if (parsed) return { ...parsed, lanes: live.lanes };
+  if (parsed) return { ...parsed, gameId, matchSlot: wanted, lanes: live.lanes };
   const game = gameOf(gameId);
   const format = game.formats[0];
   return {
     ...defaultDesk(),
     gameId,
+    matchSlot: wanted,
+    eventName: live.eventName,
+    eventLogo: live.eventLogo,
+    sponsors: live.sponsors,
+    sponsorSeconds: live.sponsorSeconds,
+    overlayLook: live.overlayLook,
     formatName: format?.label ?? game.name,
     bestOf: format?.bestOf ?? game.defaultBestOf,
     scorebugStyle: game.defaultScorebug,
@@ -535,20 +566,23 @@ export function deskLaneOf(live: DeskState, gameId: GameId): DeskState {
   };
 }
 
-export function mergeDeskLane(live: DeskState, gameId: GameId, incoming: DeskState): DeskState {
-  const lane = stripLane({ ...incoming, gameId });
-  if (live.gameId === gameId) {
+export function mergeDeskLane(live: DeskState, gameId: GameId, incoming: DeskState, slot: MatchSlot = 1): DeskState {
+  const wanted = supportsMatchSlots(gameId) ? slot : 1;
+  const lane = stripLane({ ...incoming, gameId, matchSlot: wanted });
+  const key = laneKey(gameId, wanted);
+  if (live.gameId === gameId && (live.matchSlot ?? 1) === wanted) {
     return {
       ...incoming,
       gameId,
+      matchSlot: wanted,
       version: Math.max(live.version, incoming.version) + 1,
-      lanes: { ...live.lanes, [gameId]: lane },
+      lanes: { ...live.lanes, [key]: lane },
     };
   }
   return {
     ...live,
     version: live.version + 1,
-    lanes: { ...live.lanes, [gameId]: lane },
+    lanes: { ...live.lanes, [key]: lane },
   };
 }
 

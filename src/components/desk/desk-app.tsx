@@ -12,10 +12,11 @@ import {
   ShowPanel,
   SponsorPanel,
 } from "@/components/desk/side-panels";
+import { CardLookup } from "@/components/tablet/card-lookup";
 import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
-import { gameOf } from "@/lib/games";
+import { gameOf, type GameId } from "@/lib/games";
 
 export function DeskApp() {
   const ready = useDeskStore((s) => s.ready);
@@ -44,6 +45,7 @@ export function DeskApp() {
   }
 
   const game = gameOf(desk.gameId);
+  const lookupCatalog = catalogForGame(desk.gameId);
   const showTablet =
     desk.gameId === "pokemon-vgc" ||
     desk.gameId === "pokemon-tcg" ||
@@ -82,6 +84,9 @@ export function DeskApp() {
 
           <div className="order-1 flex flex-col gap-4 lg:order-2">
             <MatchControl />
+            {lookupCatalog ? (
+              <CardLookup compact catalog={lookupCatalog} formatName={desk.formatName} />
+            ) : null}
             <TeamPanel />
           </div>
 
@@ -104,4 +109,25 @@ export function DeskApp() {
       </div>
     </TooltipProvider>
   );
+}
+
+function catalogForGame(gameId: GameId) {
+  switch (gameId) {
+    case "pokemon-tcg":
+      return "ptcg" as const;
+    case "mtg":
+      return "mtg" as const;
+    case "swu":
+      return "swu" as const;
+    case "yugioh":
+      return "ygo" as const;
+    case "one-piece":
+      return "op" as const;
+    case "riftbound":
+      return "rift" as const;
+    case "lorcana":
+      return "lorcana" as const;
+    default:
+      return null;
+  }
 }

@@ -149,6 +149,10 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
   },
 ];
 
-export function overlayPath(gameId: GameId, source: OverlaySourceId): string {
+export function overlayPath(gameId: GameId, source: OverlaySourceId, slot: 1 | 2 = 1): string {
+  if (source === "floor-clock" || source === "bracket") {
+    return `/${slugOf(gameId)}/overlay/${source}`;
+  }
+  if (slot === 2) return `/${slugOf(gameId)}/2/overlay/${source}`;
   return `/${slugOf(gameId)}/overlay/${source}`;
 }

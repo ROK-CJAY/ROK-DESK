@@ -143,6 +143,7 @@ export type GameDesk = {
   phase: TournamentPhase;
   overlayView: BracketViewId;
   streamMatchId: string | null;
+  streamMatchId2: string | null;
   swissRounds: number;
   entrants: Entrant[];
   matches: BracketMatch[];
@@ -166,6 +167,7 @@ export type TournamentState = {
   phase: TournamentPhase;
   overlayView: BracketViewId;
   streamMatchId: string | null;
+  streamMatchId2: string | null;
   swissRounds: number;
   entrants: Entrant[];
   matches: BracketMatch[];
@@ -239,6 +241,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   phase: z.enum(["setup", "running", "complete"]),
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
   streamMatchId: z.string().nullable(),
+  streamMatchId2: z.string().nullable().optional().transform((v) => v ?? null),
   swissRounds: z.number(),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
@@ -262,6 +265,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   phase: z.enum(["setup", "running", "complete"]),
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
   streamMatchId: z.string().nullable(),
+  streamMatchId2: z.string().nullable().optional().transform((v) => v ?? null),
   swissRounds: z.number(),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
@@ -314,6 +318,7 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     phase: t.phase,
     overlayView: t.overlayView,
     streamMatchId: t.streamMatchId,
+    streamMatchId2: t.streamMatchId2 ?? null,
     swissRounds: t.swissRounds,
     entrants: t.entrants,
     matches: t.matches,
@@ -347,6 +352,7 @@ export function emptyDesk(gameId: GameId): GameDesk {
     phase: "setup",
     overlayView: "full",
     streamMatchId: null,
+    streamMatchId2: null,
     swissRounds: 3,
     entrants: [],
     matches: [],

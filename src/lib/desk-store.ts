@@ -5,14 +5,20 @@ import {
   remainingSeconds,
   seatsFor,
   emptyCmdFrom,
+  emptySpotlight,
   incomingCmd,
   normalizeDown,
   remainingFromDown,
   downForRemaining,
   resourceLimit,
   resourceResetValue,
+  blankPlayer,
   stripLane,
+  laneKey,
+  parseMatchSlot,
+  supportsMatchSlots,
   type DeskState,
+  type MatchSlot,
   type PlayerSide,
   type SeatId,
   type SideId,
@@ -36,7 +42,8 @@ type DeskStore = {
   desk: DeskState;
   ready: boolean;
   pinnedGameId: GameId | null;
-  hydrate: (gameId?: GameId | null) => Promise<void>;
+  pinnedSlot: MatchSlot | null;
+  hydrate: (gameId?: GameId | null, slot?: MatchSlot | null) => Promise<void>;
   setDesk: (desk: DeskState) => void;
   patch: (partial: Partial<DeskState>) => void;
   setPlayer: (side: SideId, partial: Partial<PlayerSide>) => void;
@@ -47,6 +54,7 @@ type DeskStore = {
   bumpCmdDamage: (side: SideId, delta: number) => void;
   bumpCmdFrom: (target: SeatId, from: SeatId, delta: number) => void;
   applyGame: (gameId: GameId) => void;
+  applyMatchSlot: (slot: MatchSlot) => void;
   applyFormat: (preset: FormatPreset) => void;
   applyMtgLane: (lane: FormatFamily) => void;
   loadStreamMatch: (payload: {
@@ -58,6 +66,7 @@ type DeskStore = {
     formatName: string;
     tableSize?: TableSize;
     matchId?: string | null;
+    matchSlot?: MatchSlot;
     p1: Partial<PlayerSide>;
     p2: Partial<PlayerSide>;
     p3?: Partial<PlayerSide>;
@@ -70,6 +79,8 @@ type DeskStore = {
   swapSides: () => void;
   resetGame: () => void;
   resetMatch: () => void;
+  resetInfo: () => void;
+  clearStreamSlot: (gameId: GameId, slot: MatchSlot) => void;
   gameWin: (side: SideId) => void;
   matchWin: (side: SideId) => void;
   clearWinners: () => void;
@@ -91,8 +102,10 @@ let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let pollTimer: number | null = null;
 
 function deskApiUrl(): string {
-  const pin = useDeskStore.getState().pinnedGameId;
-  return pin ? `/api/desk?game=${encodeURIComponent(slugOf(pin))}` : "/api/desk";
+  const { pinnedGameId, pinnedSlot } = useDeskStore.getState();
+  if (!pinnedGameId) return "/api/desk";
+  const q = new URLSearchParams({ game: slugOf(pinnedGameId), slot: String(pinnedSlot ?? 1) });
+  return `/api/desk?${q.toString()}`;
 }
 
 function startDeskPoll() {
@@ -117,9 +130,11 @@ function startDeskPoll() {
 }
 
 function persist(desk: DeskState, immediate = false) {
+  const slot = supportsMatchSlots(desk.gameId) ? (desk.matchSlot ?? 1) : 1;
   const next = {
     ...desk,
-    lanes: { ...desk.lanes, [desk.gameId]: stripLane(desk) },
+    matchSlot: slot,
+    lanes: { ...desk.lanes, [laneKey(desk.gameId, slot)]: stripLane({ ...desk, matchSlot: slot }) },
   };
   if (typeof window !== "undefined" && !useDeskStore.getState().pinnedGameId) {
     try {
@@ -191,13 +206,15 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   desk: defaultDesk(),
   ready: false,
   pinnedGameId: null,
+  pinnedSlot: null,
   focusedSeat: "p1",
 
   setFocusedSeat: (seat) => set({ focusedSeat: seat }),
 
-  hydrate: async (gameId) => {
+  hydrate: async (gameId, slot) => {
     const pin = gameId === undefined ? get().pinnedGameId : gameId;
-    set({ pinnedGameId: pin });
+    const pinSlot = slot === undefined ? get().pinnedSlot : slot;
+    set({ pinnedGameId: pin, pinnedSlot: pin ? parseMatchSlot(pinSlot ?? 1) : null });
     let next = defaultDesk();
     let stripped = false;
     try {
@@ -228,7 +245,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         /* ignore */
       }
     }
-    set({ desk: next, ready: true, pinnedGameId: pin });
+    set({ desk: next, ready: true, pinnedGameId: pin, pinnedSlot: pin ? parseMatchSlot(pinSlot ?? 1) : null });
     if (stripped) persist(next, true);
     if (typeof window !== "undefined") startDeskPoll();
   },
@@ -340,10 +357,12 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   applyGame: (gameId) => {
     const prev = get().desk;
     if (prev.gameId === gameId) return;
-    const lanes = { ...prev.lanes, [prev.gameId]: stripLane(prev) };
-    const saved = lanes[gameId] ? parseDesk(lanes[gameId]) : null;
+    const fromSlot = supportsMatchSlots(prev.gameId) ? (prev.matchSlot ?? 1) : 1;
+    const nextSlot = supportsMatchSlots(gameId) ? fromSlot : 1;
+    const lanes = { ...prev.lanes, [laneKey(prev.gameId, fromSlot)]: stripLane({ ...prev, matchSlot: fromSlot }) };
+    const saved = lanes[laneKey(gameId, nextSlot)] ? parseDesk(lanes[laneKey(gameId, nextSlot)]) : null;
     if (saved && saved.gameId === gameId) {
-      const desk = { ...saved, lanes, version: prev.version + 1 };
+      const desk = { ...saved, matchSlot: nextSlot, lanes, version: prev.version + 1 };
       persist(desk);
       set({ desk, focusedSeat: "p1" });
       return;
@@ -365,6 +384,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const nextClock = clocks[gameId] ?? { remaining: 0, preset: 0 };
     const desk = nextVersion(prev, {
       gameId,
+      matchSlot: nextSlot,
       formatName: format?.label ?? game.name,
       bestOf: format?.bestOf ?? game.defaultBestOf,
       scorebugStyle: game.defaultScorebug,
@@ -379,6 +399,41 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       timerRunning: false,
       timerEndsAt: null,
       gameClocks: clocks,
+      lanes,
+    });
+    persist(desk);
+    set({ desk, focusedSeat: "p1" });
+  },
+
+  applyMatchSlot: (slot) => {
+    const prev = get().desk;
+    if (!supportsMatchSlots(prev.gameId)) return;
+    const current = prev.matchSlot ?? 1;
+    if (current === slot) return;
+    const lanes = { ...prev.lanes, [laneKey(prev.gameId, current)]: stripLane({ ...prev, matchSlot: current }) };
+    const saved = lanes[laneKey(prev.gameId, slot)] ? parseDesk(lanes[laneKey(prev.gameId, slot)]) : null;
+    if (saved && saved.gameId === prev.gameId) {
+      const desk = { ...saved, matchSlot: slot, lanes, version: prev.version + 1 };
+      persist(desk);
+      set({ desk, focusedSeat: "p1" });
+      return;
+    }
+    const resources = resetResources(prev);
+    const empty = blankPlayer({ ...resources, score: 0 });
+    const desk = nextVersion(prev, {
+      matchSlot: slot,
+      p1: { ...empty },
+      p2: { ...empty },
+      p3: blankPlayer({ resource: prev.p3.resource }),
+      p4: blankPlayer({ resource: prev.p4.resource }),
+      winnerSide: null,
+      gameWinnerSide: null,
+      streamMatchId: null,
+      cardSpotlight: emptySpotlight(),
+      roundName: "",
+      timerSeconds: 0,
+      timerRunning: false,
+      timerEndsAt: null,
       lanes,
     });
     persist(desk);
@@ -421,6 +476,10 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   loadStreamMatch: (payload) => {
     if (get().desk.gameId !== payload.gameId) {
       get().applyGame(payload.gameId);
+    }
+    const wantedSlot = supportsMatchSlots(payload.gameId) ? (payload.matchSlot ?? 1) : 1;
+    if ((get().desk.matchSlot ?? 1) !== wantedSlot) {
+      get().applyMatchSlot(wantedSlot);
     }
     const prev = get().desk;
     const resources = resetResources({ ...prev, formatName: payload.formatName });
@@ -523,6 +582,56 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     set({ desk });
   },
 
+  resetInfo: () => {
+    const prev = get().desk;
+    const resources = resetResources(prev);
+    const empty = blankPlayer({ ...resources, score: 0 });
+    const desk = nextVersion(prev, {
+      p1: { ...empty },
+      p2: { ...empty },
+      p3: { ...empty },
+      p4: { ...empty },
+      winnerSide: null,
+      gameWinnerSide: null,
+      initiativeSide: null,
+      streamMatchId: null,
+      cardSpotlight: emptySpotlight(),
+      lowerThird: { ...prev.lowerThird, visible: false },
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  clearStreamSlot: (gameId, slot) => {
+    const prev = get().desk;
+    const current = supportsMatchSlots(prev.gameId) ? (prev.matchSlot ?? 1) : 1;
+    if (prev.gameId === gameId && current === slot) {
+      get().resetInfo();
+      return;
+    }
+    const key = laneKey(gameId, slot);
+    const parsed = prev.lanes[key] ? parseDesk(prev.lanes[key]) : null;
+    if (!parsed) return;
+    const resources = resetResources(parsed);
+    const empty = blankPlayer({ ...resources, score: 0 });
+    const cleaned = {
+      ...parsed,
+      p1: { ...empty },
+      p2: { ...empty },
+      p3: { ...empty },
+      p4: { ...empty },
+      winnerSide: null,
+      gameWinnerSide: null,
+      streamMatchId: null,
+      cardSpotlight: emptySpotlight(),
+    };
+    const desk = nextVersion(prev, {
+      lanes: { ...prev.lanes, [key]: stripLane(cleaned) },
+    });
+    persist(desk);
+    set({ desk });
+  },
+
   gameWin: (side) => {
     const prev = get().desk;
     const resources = resetResources(prev);
@@ -539,7 +648,12 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   matchWin: (side) => {
     const prev = get().desk;
+    const resources = resetResources(prev);
+    const alreadyCounted = prev.gameWinnerSide === side;
+    const score = alreadyCounted ? prev[side].score : clamp(prev[side].score + 1, 0, 9);
     const desk = nextVersion(prev, {
+      ...withSeats(prev, resources),
+      [side]: { ...prev[side], ...resources, score },
       winnerSide: side,
       gameWinnerSide: null,
     });

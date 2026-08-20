@@ -376,12 +376,13 @@ export function signupPath(gameId: GameId): string {
   return `/${slugOf(gameId)}/signup`;
 }
 
-export function tabletPath(gameId: GameId): string {
+export function tabletPath(gameId: GameId, slot: 1 | 2 = 1): string {
+  if (slot === 2) return `/${slugOf(gameId)}/2/tablet`;
   return `/${slugOf(gameId)}/tablet`;
 }
 
-export function playerTabletPath(gameId: GameId): string {
-  return `/${slugOf(gameId)}/tablet?role=player`;
+export function playerTabletPath(gameId: GameId, slot: 1 | 2 = 1): string {
+  return `${tabletPath(gameId, slot)}?role=player`;
 }
 
 export function formatFamilyOf(preset?: FormatPreset): FormatFamily {

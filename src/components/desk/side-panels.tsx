@@ -21,6 +21,8 @@ import {
   seatsFor,
   isCommanderTable,
   resourceLimit,
+  supportsMatchSlots,
+  type MatchSlot,
 } from "@/lib/desk-types";
 import { useEffect, useState } from "react";
 
@@ -554,11 +556,25 @@ export function ShowPanel() {
           >
             <option value="bar">Scorebug · bar</option>
             <option value="split">Scorebug · split</option>
-            {desk.gameId === "lorcana" ? <option value="rok">ROK Layout</option> : null}
+            {desk.gameId === "lorcana" ||
+            desk.gameId === "yugioh" ||
+            desk.gameId === "pokemon-tcg" ||
+            desk.gameId === "riftbound" ||
+            (desk.gameId === "mtg" && !isCommanderLane(desk)) ? (
+              <option value="rok">ROK Layout</option>
+            ) : null}
           </NativeSelect>
           {desk.scorebugStyle === "rok" ? (
             <p className="self-center text-[0.7rem] text-muted">
-              Cameras, lore ladder, inks, W/L/D, diamonds, clock, card well.
+              {desk.gameId === "mtg"
+                ? "Cameras, life, poison, W/L/D, Best-of diamonds, clock, Magic card well."
+                : desk.gameId === "yugioh"
+                  ? "Cameras, LP, W/L/D, Best-of diamonds, clock, Yu-Gi-Oh! card well."
+                  : desk.gameId === "pokemon-tcg"
+                    ? "Cameras, prize pokéballs, W/L/D, Best-of diamonds, clock, Pokémon card well."
+                    : desk.gameId === "riftbound"
+                      ? "Cameras, point ladder, W/L/D, Best-of diamonds, clock, Riftbound card well."
+                      : "Cameras, lore ladder, inks, W/L/D, diamonds, clock, card well."}
             </p>
           ) : (
             <NativeSelect
@@ -607,7 +623,10 @@ export function ShowPanel() {
 export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
   const desk = useDeskStore((s) => s.desk);
   const applyMtgLane = useDeskStore((s) => s.applyMtgLane);
+  const applyMatchSlot = useDeskStore((s) => s.applyMatchSlot);
   const commander = isCommanderLane(desk);
+  const dual = supportsMatchSlots(desk.gameId);
+  const slot = (desk.matchSlot ?? 1) as MatchSlot;
 
   return (
     <div className="flex flex-col gap-2">
@@ -631,6 +650,24 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
           );
         })}
       </div>
+      {dual ? (
+        <div className="flex gap-1.5">
+          {([1, 2] as MatchSlot[]).map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => applyMatchSlot(n)}
+              className={`rounded-md border px-3 py-1 text-xs font-medium tracking-wide ${
+                slot === n
+                  ? "border-accent bg-accent text-accent-fg"
+                  : "border-border bg-surface-2 text-muted hover:text-fg"
+              }`}
+            >
+              Match {n}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {desk.gameId === "mtg" ? (
         <div className="flex gap-1.5">
           <button
@@ -760,8 +797,9 @@ export function PodPanel() {
   const op = desk.gameId === "one-piece";
   const rift = desk.gameId === "riftbound";
   const lorcana = desk.gameId === "lorcana";
-  const path = tabletPath(desk.gameId);
-  const playerPath = playerTabletPath(desk.gameId);
+  const slot = supportsMatchSlots(desk.gameId) ? (desk.matchSlot ?? 1) : 1;
+  const path = tabletPath(desk.gameId, slot);
+  const playerPath = playerTabletPath(desk.gameId, slot);
   const copyPath = mtg && commander ? playerPath : path;
 
   const copy = async () => {
@@ -776,7 +814,9 @@ export function PodPanel() {
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Tablet</p>
+      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
+        Tablet{supportsMatchSlots(desk.gameId) ? ` · match ${desk.matchSlot ?? 1}` : ""}
+      </p>
       <p className="mt-1 text-sm text-muted">
         {vgc
           ? "Judge tablet — team sheets, remaining Pokémon, score, and the round clock."

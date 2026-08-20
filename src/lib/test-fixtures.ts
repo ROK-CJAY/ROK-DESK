@@ -145,6 +145,7 @@ export function applyTestTournament(t: TournamentState): Partial<TournamentState
     phase: "setup",
     matches: [],
     streamMatchId: null,
+    streamMatchId2: null,
     entrants: testEntrants(t.gameId, t.formatName),
     testMode: true,
   };
@@ -275,7 +276,7 @@ export function stripTestFromDesk(desk: DeskState): DeskState {
   let next = deskLooksLikeTest(desk) ? { ...desk, ...toggleTestDesk(desk) } : desk;
   let lanesChanged = false;
   const lanes = { ...(next.lanes ?? {}) };
-  for (const key of Object.keys(lanes) as GameId[]) {
+  for (const key of Object.keys(lanes)) {
     const parsed = parseDesk(lanes[key]);
     if (!parsed || !deskLooksLikeTest(parsed)) continue;
     lanes[key] = stripLane({ ...parsed, ...toggleTestDesk(parsed) });

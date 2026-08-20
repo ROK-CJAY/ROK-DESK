@@ -1,17 +1,36 @@
 # ROK Desk
 
-**v0.3.1 beta** — Lorcana broadcast layout. Broadcast production desk for ROK Esports.
+**v1.0.0-beta** — dual live matches on one host. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Star Wars Unlimited, and Riftbound.
 
-Versioning while the desk is in beta: **v0.MAJOR.PATCH**  
-`MAJOR` is a development milestone. `PATCH` is a fix or small follow-up inside that milestone.
+Versioning: **vMAJOR.MINOR.PATCH** (this cut is the first **1.0 beta**).
 
-Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/overlay/scorebug` and `/vgc/overlay/scorebug`) so two streams on the same host do not mix bugs.
+Overlays are **per event**, and TCG titles also have **Match 1 / Match 2**. Use `/{game}/overlay/{source}` for Match 1 and `/{game}/2/overlay/{source}` for Match 2 (for example `/ptcg/overlay/scorebug` and `/ptcg/2/overlay/scorebug`) so two feature tables on the same host do not mix bugs.
 
 ---
 
 ## Updates
+
+### v1.0.0-beta — 20 Aug 2026 · dual matches
+
+Two live TCG tables on one host, plus the production/TO polish that landed after v0.3.
+
+#### Added
+- **Match 1 / Match 2** on Production for every TCG title (not VGC). Independent players, scores, clocks, winners, tablets, and overlays
+- Match 2 overlay / tablet paths: `/{game}/2/overlay/{source}` and `/{game}/2/tablet`
+- Tournament **Stream match** send targets **Match 1 (A)** and **Match 2 (B)**, with **Remove from stream** on each on-air card
+- Production **Reset info** — wipe names, decks, W/L/D, teams, and the featured-match link without changing event/format/timer
+- Production **card search** under Live Match (same catalogs as the judge tablets)
+- Lorcana player tablet **+ / −** for game count (diamonds stay as the score display)
+- ROK Layout scorebugs for MTG constructed, YGO, PTCG, and Riftbound (camera wells, game diamonds, official card backs)
+
+#### Changed
+- **Match win** also awards a game win (does not double-count if Game was already punched)
+- **Reset match / Reset info** restore starting life for YGO (8000) and MTG (20 / 40 Commander), not the cap
+- Lorcana lore still resets to **0**
+- Overlay preview / tablet copy URLs follow the selected match slot
+- Floor clock and bracket stay per-game (one tournament overlay), not per table
 
 ### HOTFIX — 20 Aug 2026 · Lorcana lore reset
 
@@ -189,8 +208,8 @@ Add as OBS or vMix **Browser** sources: 1920×1080, transparent, no custom CSS. 
 
 | Source | Path |
 | --- | --- |
-| HUD pack | `/{game}/overlay/hud` |
-| Scorebug | `/{game}/overlay/scorebug` |
+| HUD pack | `/{game}/overlay/hud` · Match 2: `/{game}/2/overlay/hud` |
+| Scorebug | `/{game}/overlay/scorebug` · Match 2: `/{game}/2/overlay/scorebug` |
 | Versus | `/{game}/overlay/versus` |
 | Hold slate | `/{game}/overlay/slate` |
 | Casters | `/{game}/overlay/casters` |
@@ -200,8 +219,8 @@ Add as OBS or vMix **Browser** sources: 1920×1080, transparent, no custom CSS. 
 | Round clock | `/{game}/overlay/timer` |
 | Resource plates | `/{game}/overlay/resource` |
 | Up next | `/{game}/overlay/upcoming` |
-| Bracket | `/{game}/overlay/bracket` |
-| Floor clock | `/{game}/overlay/floor-clock` |
+| Bracket | `/{game}/overlay/bracket` (per game, not per table) |
+| Floor clock | `/{game}/overlay/floor-clock` (per game, not per table) |
 | VGC roster | `/{game}/overlay/roster` |
 | Card | `/{game}/overlay/card` |
 | Sponsors | `/{game}/overlay/sponsors` |
@@ -225,10 +244,10 @@ npm run build
 
 Production build is Vercel-ready (`nitro` preset). Local persistence uses PGLite; set a Postgres URL if you deploy.
 
-One host PC is one event. Two titles at once means two hosts (or two accounts once login ships). Overlay paths are already game-scoped so a single host can keep PTCG and VGC bugs from colliding.
+One host PC can run two TCG feature tables (Match 1 and Match 2) plus the floor clock. Two *titles* at once still means two hosts (or two accounts once login ships). Overlay paths are game-scoped and, for TCG, slot-scoped so bugs do not collide.
 
 ## Notes
 
 Overlay pages are chromeless and transparent so OBS / vMix can key them. Production and Tournament stay opaque. The tablet writes the same live desk the stream bugs read. The floor clock is the rest of the room — it does not follow the featured-match timer.
 
-This build is **beta**. Expect layout and game coverage to move under `v0.x.x` until a 1.0 cut.
+This build is **v1.0.0-beta**. Expect polish; the dual-match desk is the 1.0 feature cut.

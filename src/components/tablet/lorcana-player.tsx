@@ -62,22 +62,39 @@ function PlayerHalf({ side }: { side: SideId }) {
             {player.name || "Open"}
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: needed }, (_, i) => {
-            const filled = i < player.score;
-            return (
-              <button
-                key={i}
-                type="button"
-                aria-label={`${player.name || side} game ${i + 1}`}
-                onClick={() => bumpScore(side, filled && i === player.score - 1 ? -1 : i + 1 - player.score)}
-                className={cn(
-                  "size-3.5 rotate-45 border-2",
-                  filled ? "border-accent bg-accent" : "border-muted bg-transparent",
-                )}
-              />
-            );
-          })}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => bumpScore(side, -1)}
+            disabled={player.score <= 0}
+            aria-label={`${player.name || side} minus one game`}
+            className="grid size-11 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
+          >
+            −
+          </button>
+          <div className="flex min-w-10 flex-col items-center gap-1">
+            <span className="font-display text-lg leading-none font-semibold tabular-nums">{player.score}</span>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: needed }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "size-2.5 rotate-45 border-2",
+                    i < player.score ? "border-accent bg-accent" : "border-muted bg-transparent",
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => bumpScore(side, 1)}
+            disabled={player.score >= needed}
+            aria-label={`${player.name || side} plus one game`}
+            className="grid size-11 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
+          >
+            +
+          </button>
         </div>
       </div>
 

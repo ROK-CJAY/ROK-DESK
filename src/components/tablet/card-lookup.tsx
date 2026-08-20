@@ -160,7 +160,9 @@ export function CardLookup({
         <div>
           <p className="font-mono text-[0.65rem] tracking-[0.2em] text-muted uppercase">Card lookup</p>
           <p className="text-sm text-muted">
-            {mtg
+            {compact
+              ? "Search, pick a card, then Show on stream."
+              : mtg
               ? "Scryfall search. Read the oracle text, then Show on stream if you want the art on air."
               : swu
                 ? "SWU-DB search. Read the printed text, then Show on stream if you want the art on air."
@@ -225,7 +227,7 @@ export function CardLookup({
       ) : status === "error" ? (
         <p className="mt-4 text-sm text-live">Lookup failed. Try again.</p>
       ) : results.length > 0 ? (
-        <ul className="mt-3 min-h-0 flex-1 space-y-1 overflow-auto">
+        <ul className={cn("mt-3 min-h-0 flex-1 space-y-1 overflow-auto", compact && "max-h-72")}>
           {results.map((card) => (
             <li key={card.id}>
               <button
