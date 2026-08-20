@@ -27,16 +27,16 @@ Two TCG feature tables can run on **one host**. Two *titles* at once (PTCG on on
 
 ## Titles
 
-| Title | Slug | What the desk tracks | Card lookup |
-| --- | --- | --- | --- |
-| Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games | — |
-| Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3 | TCGdex (Pokémon TCG Live) |
-| One Piece TCG | `op` | Life, DON!!, Bo1 by default | Official English art |
-| Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3 | YGOPRODeck |
-| Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH | Scryfall |
-| Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, ROK Layout | Lorcast |
-| Star Wars Unlimited | `swu` | Base HP, initiative | SWU-DB |
-| Riftbound | `rb` | First-to-8 points | Riftcodex |
+| Title | Slug | What the desk tracks |
+| --- | --- | --- |
+| Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games |
+| Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3 |
+| One Piece TCG | `op` | Life, DON!!, Bo1 by default |
+| Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3 |
+| Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH |
+| Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, ROK Layout |
+| Star Wars Unlimited | `swu` | Base HP, initiative |
+| Riftbound | `rb` | First-to-8 points |
 
 Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switching games on Production does not throw away the other event’s live match.
 
