@@ -400,7 +400,8 @@ export function resourceLimit(desk: Pick<DeskState, "gameId" | "formatName" | "r
 export function resourceResetValue(desk: Pick<DeskState, "gameId" | "formatName" | "resourceCap">): number {
   const game = gameOf(desk.gameId);
   const format = game.formats.find((f) => f.label === desk.formatName);
-  // Remaining-style resources (prizes) start at the match cap. Point/lore resources start at 0 (or format start).
+  // Prize-style remaining (PTCG prizes, VGC mons) start at the match cap.
+  // Point resources (Lorcana lore, Riftbound) start at 0 / format start.
   if (game.resource.invertWin && typeof desk.resourceCap === "number" && desk.resourceCap > 0) {
     return desk.resourceCap;
   }

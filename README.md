@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v0.3.0 beta** — Lorcana broadcast layout. Broadcast production desk for ROK Esports.
+**v0.3.1 beta** — Lorcana broadcast layout. Broadcast production desk for ROK Esports.
 
 One control app drives tournament operations and 1920×1080 browser-source overlays for Pokémon VGC, Pokémon TCG, One Piece, Yu-Gi-Oh!, Magic: The Gathering (constructed and Commander), Lorcana, Star Wars Unlimited, and Riftbound.
 
@@ -12,6 +12,10 @@ Overlays are **per event**. Use `/{game}/overlay/{source}` (for example `/ptcg/o
 ---
 
 ## Updates
+
+### HOTFIX — 20 Aug 2026 · Lorcana lore reset
+
+- **Reset Match / Reset Game** on Lorcana now sets lore to **0**. Reset was using the resource cap (20), so lore stayed at 20 after a reset. Prize-style games (PTCG remaining prizes, VGC remaining Pokémon) still reset to the match cap.
 
 ### v0.3.0 — 18 Aug 2026 · Lorcana
 
