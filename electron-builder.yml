@@ -1,0 +1,39 @@
+appId: es.rok.desk
+productName: ROK Desk
+copyright: ROK Esports
+asar: true
+directories:
+  output: release
+  buildResources: electron/resources
+files:
+  - electron/**/*
+  - package.json
+extraResources:
+  - from: .output
+    to: output
+extraMetadata:
+  main: electron/main.mjs
+win:
+  target:
+    - portable
+    - nsis
+  artifactName: ROK-Desk-${version}-${os}-${arch}.${ext}
+  icon: public/brand/rok-mark.png
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  shortcutName: ROK Desk
+linux:
+  target:
+    - AppImage
+  category: Utility
+  artifactName: ROK-Desk-${version}-${os}-${arch}.${ext}
+  icon: public/brand/rok-mark.png
+mac:
+  target:
+    - dmg
+  category: public.app-category.utilities
+  artifactName: ROK-Desk-${version}-${os}-${arch}.${ext}
+  icon: public/brand/rok-mark.png
+  identity: null

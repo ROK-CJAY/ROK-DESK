@@ -6,6 +6,8 @@ ROK Desk is the control room for a live TCG / VGC event. One host machine runs t
 
 It is built for a venue with a stream: a TO laptop, a production PC, tablets on feature tables, and a monitor showing the room clock.
 
+ROK Desk is **free and in beta**. If it saves you a night, [donate via PayPal](https://www.paypal.com/donate/?hosted_button_id=XM6K2Y4MXJZC4). Not affiliated with Pokémon, Wizards, Ravensburger, or the other publishers.
+
 ---
 
 ## What it does
@@ -246,6 +248,25 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 ---
 
+## Download (venues)
+
+For stores and stream PCs — **no terminal**.
+
+1. On GitHub, open **Actions → Desktop → Run workflow** (or grab a Release tagged `v*`).
+2. Download **ROK-Desk** for your OS:
+   - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
+   - macOS: `.dmg` (unsigned — right-click → Open the first time)
+   - Linux: `.AppImage`
+3. Run **ROK Desk**. The desk window opens. Event data is saved on that PC.
+4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi.
+5. Windows Firewall: allow ROK Desk on **private** networks or iPads will not connect.
+
+Keep the app open while you stream. Closing it stops overlays and tablets.
+
+SmartScreen may say “unknown publisher” until the Windows build is code-signed. Use **More info → Run anyway** for this beta.
+
+---
+
 ## Hosting model
 
 This build is a **local desk** (TSH-style): one process, one event, devices on the LAN.
@@ -255,7 +276,9 @@ This build is a **local desk** (TSH-style): one process, one event, devices on t
 - Two titles in one venue (PTCG streamed on one PC, Commander on another) = **two hosts**
 - Login / multi-account isolation is not in this beta. Do not share one running instance across unrelated organizers
 
-Local persistence uses PGLite. Set a Postgres URL if you deploy. Production build is Vercel-ready (`nitro` preset).
+Local persistence uses PGLite on disk in the desktop app. Set a Postgres URL if you deploy the web build. Production web build is Vercel-ready (`nitro` preset).
+
+### From source (developers)
 
 ```bash
 npm install
@@ -265,6 +288,13 @@ npm run dev
 ```bash
 npm run typecheck
 npm run build
+```
+
+Desktop bundle:
+
+```bash
+npm run build:desktop
+npm run dist
 ```
 
 ---

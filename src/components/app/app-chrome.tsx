@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Clapperboard, House, Trophy } from "lucide-react";
+import { SupportButtons } from "@/components/app/support-links";
 import { cn } from "@/lib/cn";
 import { APP_VERSION_LABEL } from "@/lib/version";
 
@@ -22,12 +23,14 @@ export function AppChrome({
             <Link to="/" className="flex items-center gap-3">
               <img src="/brand/rok-mark.png" alt="" className="size-9 object-contain" />
               <div>
-                <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
-                  ROK Desk
-                  <span className="ml-2 align-middle font-mono text-[0.62rem] font-medium tracking-[0.14em] text-muted normal-case">
+                <div className="flex items-baseline gap-2">
+                  <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
+                    ROK Desk
+                  </p>
+                  <span className="font-mono text-[0.62rem] font-medium tracking-[0.12em] text-muted">
                     {APP_VERSION_LABEL}
                   </span>
-                </p>
+                </div>
                 <p className="text-xs text-muted">
                   {eyebrow ??
                     (view === "production"
@@ -77,7 +80,10 @@ export function AppChrome({
               </span>
             ) : null}
           </div>
-          {trailing ? <div className="flex items-center gap-3">{trailing}</div> : null}
+          <div className="flex flex-wrap items-center gap-3">
+            {trailing}
+            <SupportButtons />
+          </div>
         </div>
         {children}
       </div>

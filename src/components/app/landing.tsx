@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Clapperboard, ClipboardList, Clock, MessageSquarePlus, MonitorPlay, Tablet, Trophy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Clapperboard, ClipboardList, Clock, MonitorPlay, Tablet, Trophy } from "lucide-react";
+import { FloorLinks } from "@/components/app/floor-links";
+import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
 import { GAME_LIST } from "@/lib/games";
 import { APP_VERSION_LABEL } from "@/lib/version";
 
@@ -40,22 +41,19 @@ export function Landing() {
           <div className="flex items-center gap-3">
             <img src="/brand/rok-mark.png" alt="" className="size-9 object-contain" />
             <div>
-              <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
-                ROK Desk
-                <span className="ml-2 align-middle font-mono text-[0.62rem] font-medium tracking-[0.14em] text-muted normal-case">
+              <div className="flex items-baseline gap-2">
+                <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
+                  ROK Desk
+                </p>
+                <span className="font-mono text-[0.62rem] font-medium tracking-[0.12em] text-muted">
                   {APP_VERSION_LABEL}
                 </span>
-              </p>
+              </div>
               <p className="text-xs text-muted">Broadcast production desk</p>
             </div>
           </div>
           <nav className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <a href="https://forms.gle/Re5mt8RXU7qNEN8W9" target="_blank" rel="noreferrer">
-                <MessageSquarePlus className="size-3.5" />
-                Feedback
-              </a>
-            </Button>
+            <SupportButtons />
           </nav>
         </div>
       </header>
@@ -95,6 +93,8 @@ export function Landing() {
             <p className="mt-4 text-sm font-medium">Open production →</p>
           </Link>
         </div>
+
+        <FloorLinks />
 
         <section className="mt-12">
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Get started</p>
@@ -174,8 +174,12 @@ export function Landing() {
             ))}
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-subtle">
-            One host is one event. Overlay paths are game-scoped so PTCG and VGC bugs do not mix.
-            This build is {APP_VERSION_LABEL}.
+            Free and in beta. One host is one event. Overlay paths are game-scoped so PTCG and VGC
+            bugs do not mix. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
+            <a href={DONATE_URL} target="_blank" rel="noreferrer" className="underline hover:text-muted">
+              donate
+            </a>
+            .
           </p>
         </section>
       </main>

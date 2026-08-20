@@ -146,7 +146,9 @@ export default defineConfig(({ command }) => ({
     ...(command === "build"
       ? [
           nitro({
-            preset: "vercel",
+            // Default stays Vercel (Grok/platform deploy). Desktop builds set
+            // ROK_DESKTOP=1 for a Node listener OBS and tablets can hit on LAN.
+            preset: process.env.ROK_DESKTOP === "1" ? "node-server" : "vercel",
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.

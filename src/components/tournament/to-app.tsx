@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Flag, GripVertical, MessageSquarePlus, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
+import { ClipboardList, Flag, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { FloorClock } from "@/components/tournament/floor-clock";
@@ -82,16 +82,6 @@ export function TournamentApp() {
                 {t.bracketType === "double" ? "Double elim" : t.bracketType === "swiss" ? "Swiss" : "Single elim"} · {t.size}
               </span>
             </p>
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href="https://forms.gle/Re5mt8RXU7qNEN8W9"
-                target="_blank"
-                rel="noreferrer"
-              >
-                <MessageSquarePlus className="size-3.5" />
-                Feedback
-              </a>
-            </Button>
             <ExportTournamentButton />
           </div>
         }
