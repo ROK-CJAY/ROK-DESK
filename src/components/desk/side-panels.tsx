@@ -560,6 +560,7 @@ export function ShowPanel() {
             desk.gameId === "yugioh" ||
             desk.gameId === "pokemon-tcg" ||
             desk.gameId === "riftbound" ||
+            desk.gameId === "swu" ||
             (desk.gameId === "mtg" && !isCommanderLane(desk)) ? (
               <option value="rok">ROK Layout</option>
             ) : null}
@@ -574,6 +575,8 @@ export function ShowPanel() {
                     ? "Cameras, prize pokéballs, W/L/D, Best-of diamonds, clock, Pokémon card well."
                     : desk.gameId === "riftbound"
                       ? "Cameras, point ladder, W/L/D, Best-of diamonds, clock, Riftbound card well."
+                      : desk.gameId === "swu"
+                        ? "Cameras, base HP, initiative, W/L/D, Best-of diamonds, clock, SWU card well."
                       : "Cameras, lore ladder, inks, W/L/D, diamonds, clock, card well."}
             </p>
           ) : (

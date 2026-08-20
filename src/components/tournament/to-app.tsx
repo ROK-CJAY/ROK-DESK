@@ -41,7 +41,6 @@ import { cn } from "@/lib/cn";
 import { supportsMatchSlots } from "@/lib/desk-types";
 
 export function TournamentApp() {
-  const ready = useTournamentStore((s) => s.ready);
   const hydrate = useTournamentStore((s) => s.hydrate);
   const hydrateDesk = useDeskStore((s) => s.hydrate);
   const t = useTournamentStore((s) => s.tournament);
@@ -51,17 +50,6 @@ export function TournamentApp() {
     void hydrate();
     void hydrateDesk();
   }, [hydrate, hydrateDesk]);
-
-  if (!ready) {
-    return (
-      <div className="min-h-dvh bg-bg text-fg">
-        <div className="mx-auto max-w-[1600px] px-4 py-6">
-          <div className="h-12 w-48 animate-pulse rounded-lg bg-surface" />
-          <div className="mt-6 h-96 animate-pulse rounded-xl bg-surface" />
-        </div>
-      </div>
-    );
-  }
 
   const game = gameOf(t.gameId);
   const champ = eventChampion(t);

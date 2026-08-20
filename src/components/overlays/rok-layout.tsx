@@ -1,3 +1,4 @@
+import { InitiativeMark } from "@/components/desk/initiative";
 import { cardImageUrl } from "@/lib/card-lookup";
 import { formatClock, remainingSeconds, resourceLimit, type DeskState, type SideId } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
@@ -11,6 +12,7 @@ export function rokCardBack(desk: DeskState): string {
   if (desk.gameId === "yugioh") return "/ygo/card-back.png";
   if (desk.gameId === "pokemon-tcg") return "/ptcg/card-back-v2.png";
   if (desk.gameId === "riftbound") return "/riftbound/card-back.png";
+  if (desk.gameId === "swu") return "/swu/card-back.png";
   return "/lorcana/card-back.png";
 }
 
@@ -19,7 +21,8 @@ export function rokDiamondCount(desk: DeskState): number {
     desk.gameId === "mtg" ||
     desk.gameId === "yugioh" ||
     desk.gameId === "pokemon-tcg" ||
-    desk.gameId === "riftbound"
+    desk.gameId === "riftbound" ||
+    desk.gameId === "swu"
   ) {
     return Math.max(1, desk.bestOf);
   }
@@ -61,6 +64,8 @@ function RokSide({
   const ygo = desk.gameId === "yugioh";
   const ptcg = desk.gameId === "pokemon-tcg";
   const riftbound = desk.gameId === "riftbound";
+  const swu = desk.gameId === "swu";
+  const hasInit = swu && desk.initiativeSide === side;
   const max = resourceLimit(desk);
   const needed = rokDiamondCount(desk);
   const inks = [player.ink1, player.ink2].filter(isLorcanaInk);
@@ -79,12 +84,22 @@ function RokSide({
               ))}
             </div>
           ) : null}
+          {hasInit ? (
+            <div className={cn("absolute top-2.5", right ? "left-2.5" : "right-2.5")}>
+              <InitiativeMark live />
+            </div>
+          ) : null}
         </div>
         <div className="flex min-h-0 flex-1 flex-col bg-black px-3 pt-2 pb-4">
           {mtg ? <MtgMeters life={player.resource} poison={player.secondary} /> : null}
           {ygo ? (
             <div className="mb-3">
               <LifeMeter label="LP" value={player.resource} />
+            </div>
+          ) : null}
+          {swu ? (
+            <div className="mb-3">
+              <LifeMeter label="Base HP" value={player.resource} />
             </div>
           ) : null}
           <div className="mx-auto w-[9.2rem] bg-ov-fg px-2.5 py-1 text-center">

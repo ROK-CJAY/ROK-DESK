@@ -19,7 +19,6 @@ import { useDeskStore } from "@/lib/desk-store";
 import { gameOf, type GameId } from "@/lib/games";
 
 export function DeskApp() {
-  const ready = useDeskStore((s) => s.ready);
   const hydrate = useDeskStore((s) => s.hydrate);
   const desk = useDeskStore((s) => s.desk);
   const applyGame = useDeskStore((s) => s.applyGame);
@@ -27,22 +26,6 @@ export function DeskApp() {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
-
-  if (!ready) {
-    return (
-      <div className="min-h-dvh bg-bg text-fg">
-        <div className="mx-auto max-w-[1600px] px-4 py-6">
-          <div className="h-12 w-48 animate-pulse rounded-lg bg-surface" />
-          <div className="mt-6 grid gap-4 lg:grid-cols-[260px_1fr_260px]">
-            <div className="h-80 animate-pulse rounded-xl bg-surface" />
-            <div className="h-80 animate-pulse rounded-xl bg-surface" />
-            <div className="h-80 animate-pulse rounded-xl bg-surface" />
-            <div className="h-56 animate-pulse rounded-xl bg-surface lg:col-span-3" />
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   const game = gameOf(desk.gameId);
   const lookupCatalog = catalogForGame(desk.gameId);
