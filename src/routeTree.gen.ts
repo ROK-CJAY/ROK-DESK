@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BrowserRouteImport } from './routes/browser'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OverlayRouteRouteImport } from './routes/overlay/route'
 import { Route as PodRouteImport } from './routes/pod'
@@ -57,6 +58,11 @@ import { Route as GameSlotOverlaySourceRouteImport } from './routes/$game/$slot/
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrowserRoute = BrowserRouteImport.update({
+  id: '/browser',
+  path: '/browser',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -278,6 +284,7 @@ const GameSlotOverlaySourceRoute = GameSlotOverlaySourceRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/overlay': typeof OverlayRouteRouteWithChildren
+  '/browser': typeof BrowserRoute
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -323,6 +330,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/browser': typeof BrowserRoute
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/overlay': typeof OverlayRouteRouteWithChildren
+  '/browser': typeof BrowserRoute
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -418,6 +427,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/overlay'
+    | '/browser'
     | '/login'
     | '/pod'
     | '/production'
@@ -463,6 +473,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/browser'
     | '/login'
     | '/pod'
     | '/production'
@@ -509,6 +520,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/overlay'
+    | '/browser'
     | '/login'
     | '/pod'
     | '/production'
@@ -556,6 +568,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OverlayRouteRoute: typeof OverlayRouteRouteWithChildren
+  BrowserRoute: typeof BrowserRoute
   LoginRoute: typeof LoginRoute
   PodRoute: typeof PodRoute
   ProductionRoute: typeof ProductionRoute
@@ -587,6 +600,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/browser': {
+      id: '/browser'
+      path: '/browser'
+      fullPath: '/browser'
+      preLoaderRoute: typeof BrowserRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -956,6 +976,7 @@ const ApiTournamentRouteWithChildren = ApiTournamentRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OverlayRouteRoute: OverlayRouteRouteWithChildren,
+  BrowserRoute: BrowserRoute,
   LoginRoute: LoginRoute,
   PodRoute: PodRoute,
   ProductionRoute: ProductionRoute,

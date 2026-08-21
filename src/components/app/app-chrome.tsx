@@ -10,7 +10,7 @@ export function AppChrome({
   children,
   trailing,
 }: {
-  view: "production" | "tournament" | "home";
+  view: "production" | "tournament" | "home" | "browser";
   eyebrow?: string;
   children?: React.ReactNode;
   trailing?: React.ReactNode;
@@ -37,7 +37,9 @@ export function AppChrome({
                       ? "Production control"
                       : view === "tournament"
                         ? "Tournament organizer"
-                        : "Home")}
+                        : view === "browser"
+                          ? "Browser"
+                          : "Home")}
                 </p>
               </div>
             </Link>

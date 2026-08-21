@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.0.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.1.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -55,8 +55,9 @@ Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switc
 | VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon form |
 | Overlay index | `/overlay` | Browser-source list |
 | Floor clock | `/{game}/overlay/floor-clock` | Room monitor |
+| Browser | `/browser` | In-app Chromium for pairings, downloads, card DBs |
 
-Header on Production / Tournament: **Home · Production · Tournament**. Feedback goes to the [ROK Desk form](https://forms.gle/Re5mt8RXU7qNEN8W9).
+Header on Production / Tournament: **Home · Production · Tournament**, plus **Browser · Donate · Feedback**. Feedback goes to the [ROK Desk form](https://forms.gle/Re5mt8RXU7qNEN8W9).
 
 ---
 
@@ -227,11 +228,28 @@ Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no cust
 
 Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
-**ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, and Riftbound have the same frame with their own card backs.
+**ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, Riftbound, and SWU have the same frame with their own card backs.
 
 Empty card / sponsor / event-logo sources stay fully transparent.
 
 Overlay pages are chromeless. Production and Tournament stay opaque.
+
+---
+
+## Built-in browser
+
+`/browser` (also **Browser** next to Donate / Feedback) is a Chromium window inside the desk so TOs do not have to leave ROK Desk for pairings, PayPal, feedback, Scryfall, Limitless, or Pokémon DB.
+
+**Desktop `.exe`** is a real browser: cookies, cache, logins, downloads, and print persist on that PC (`persist:rok-browser`). **New tab** / **New window**, back / forward, a bookmark bar (star a page; right-click to rename or remove), history, zoom, and a Chrome-style **⋮** menu.
+
+**⋮ menu**
+- New tab, New window
+- Zoom − / 100% / + (Ctrl/⌘ +, −, 0)
+- Bookmarks manager (Done to close)
+- History, Downloads, Print
+- Settings — privacy (clear history / cookies / cache), search engine, startup, printing, downloads
+
+The web preview cannot embed Google (sites block iframes). It still saves bookmarks and history, and opens pages in a separate tab.
 
 ---
 
@@ -301,6 +319,21 @@ npm run dist
 
 ## Changelog
 
+### v1.1.0-beta — 21 Aug 2026 · browser
+
+In-app Chromium so pairings, donations, feedback, and card databases stay next to the desk.
+
+**Added**
+- `/browser` and a **Browser** control next to Donate / Feedback
+- Persistent session (cookies, cache, logins) in the desktop app
+- Tabs, new window, bookmark bar + manager (rename / remove), history
+- Chrome-style ⋮ menu: zoom, bookmarks, history, downloads, print, settings
+- Settings: clear browsing data, search engine, startup, print, downloads folder
+- Page zoom (saved; Ctrl/⌘ +, −, 0)
+
+**Changed**
+- ROK Layout scorebug called out for Star Wars Unlimited as well as the other TCG frames
+
 ### v1.0.0-beta — 20 Aug 2026 · dual matches
 
 Two live TCG tables on one host, plus the production/TO polish that landed after v0.3.
@@ -311,7 +344,7 @@ Two live TCG tables on one host, plus the production/TO polish that landed after
 - Production **Reset info**
 - Production card search under Live Match
 - Lorcana player tablet **+ / −** for game count
-- ROK Layout scorebugs for MTG constructed, YGO, PTCG, and Riftbound
+- ROK Layout scorebugs for MTG constructed, YGO, PTCG, Riftbound, and SWU
 
 **Changed**
 - Match win also awards a game win (no double-count if Game was already punched)
@@ -355,4 +388,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.0.0-beta**. Dual-match is the 1.0 feature cut; expect polish.
+This build is **v1.1.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1. Expect polish.
