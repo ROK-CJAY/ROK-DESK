@@ -3,6 +3,7 @@ import { type SideId, resourceLimit } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { CardLookup } from "@/components/tablet/card-lookup";
+import { PtcgJudgeBoard } from "@/components/desk/ptcg-board-panel";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { RoundClock } from "@/components/desk/round-clock";
@@ -193,6 +194,34 @@ function TcgSide({
           Match
         </Button>
       </div>
+      <PtcgTurnFlags side={side === "p2" ? "p2" : "p1"} align={align} />
+      <PtcgJudgeBoard side={side === "p2" ? "p2" : "p1"} />
+    </div>
+  );
+}
+
+function PtcgTurnFlags({ side, align }: { side: "p1" | "p2"; align: "left" | "right" }) {
+  const board = useDeskStore((s) => s.desk.ptcgBoard[side]);
+  const patch = useDeskStore((s) => s.patch);
+  const toggle = (flag: "energy" | "supporter" | "retreat") => {
+    const live = useDeskStore.getState().desk.ptcgBoard;
+    patch({ ptcgBoard: { ...live, [side]: { ...live[side], [flag]: !live[side][flag] } } });
+  };
+  return (
+    <div className={cn("mt-2 grid grid-cols-3 gap-1", align === "right" && "lg:justify-end")}>
+      {(["energy", "supporter", "retreat"] as const).map((flag) => (
+        <button
+          key={flag}
+          type="button"
+          onClick={() => toggle(flag)}
+          className={cn(
+            "rounded-md px-1 py-1.5 text-[0.62rem] font-semibold tracking-[0.12em] uppercase",
+            board[flag] ? "bg-accent text-accent-fg" : "bg-surface-2 text-muted line-through",
+          )}
+        >
+          {flag} {board[flag] ? "on" : "off"}
+        </button>
+      ))}
     </div>
   );
 }

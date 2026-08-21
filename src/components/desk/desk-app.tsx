@@ -13,6 +13,7 @@ import {
   SponsorPanel,
 } from "@/components/desk/side-panels";
 import { CardLookup } from "@/components/tablet/card-lookup";
+import { PtcgBoardPanel } from "@/components/desk/ptcg-board-panel";
 import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
@@ -70,6 +71,7 @@ export function DeskApp() {
             {lookupCatalog ? (
               <CardLookup compact catalog={lookupCatalog} formatName={desk.formatName} />
             ) : null}
+            <PtcgBoardPanel />
             <TeamPanel />
           </div>
 

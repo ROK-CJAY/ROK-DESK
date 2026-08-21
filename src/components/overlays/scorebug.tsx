@@ -8,6 +8,7 @@ import { isCommanderLane } from "@/lib/games";
 import { cn } from "@/lib/cn";
 import { InitiativeMark } from "@/components/desk/initiative";
 import { RokLayoutView } from "@/components/overlays/rok-layout";
+import { PtcgPlayLayout } from "@/components/overlays/ptcg-play";
 
 function Flag({ code }: { code: string }) {
   if (!code) return null;
@@ -141,6 +142,13 @@ export function ScorebugView({
   const game = gameOf(desk.gameId);
   if (useCommanderOverlay(desk)) {
     return <CommanderScorebug desk={desk} edit={edit} />;
+  }
+  if (desk.scorebugStyle === "play" && desk.gameId === "pokemon-tcg") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <PtcgPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
   }
   if (desk.scorebugStyle === "rok") {
     return (

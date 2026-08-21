@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.1.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -18,7 +18,7 @@ On a typical show:
 2. Pairings go out as **single elim**, **double elim**, or **Swiss**. Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
 3. A ready pairing is **sent to stream** onto **Match 1 (A)** or **Match 2 (B)**. Production receives names, decks, inks, and teams.
 4. **Production Control** drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
-5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share the **stream clock**. A **player tablet** is available for Commander and Lorcana.
+5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share the **stream clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander and Lorcana.
 6. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**, which is a separate timer from the feature match.
 
 Two TCG feature tables can run on **one host**. Two *titles* at once (PTCG on one side of the hall, Commander on the other) still means two hosts — each machine is one event.
@@ -30,7 +30,7 @@ Two TCG feature tables can run on **one host**. Two *titles* at once (PTCG on on
 | Title | Slug | What the desk tracks |
 | --- | --- | --- |
 | Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games |
-| Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3 |
+| Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3, **Play Layout** board |
 | One Piece TCG | `op` | Life, DON!!, Bo1 by default |
 | Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3 |
 | Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH |
@@ -131,7 +131,8 @@ From Tournament **Stream match**, send a ready pairing to **Match 1 · A** or **
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG also has **Show P1 / Show P2** (card over that player’s bench), **Set Active**, and **Set Bench 1–5**
+- PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
 - PTCG prize count 6 / 4 / 3 / 2 / 1
@@ -145,7 +146,7 @@ From Tournament **Stream match**, send a ready pairing to **Match 1 · A** or **
 - Lower third: player, caster, or custom
 - Casters (play-by-play and color)
 - Up-next queue
-- Scorebug style (bar / split / **ROK Layout** where the title supports it)
+- Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on PTCG)
 - Arrange widgets on the HUD pack; undo / redo / default look
 - Per-overlay **look editor** — colors, fonts, scale. Saves per source, not globally. Instructions for saving sit on the editor
 - OBS and vMix setup notes (browser sources as a dropdown)
@@ -169,7 +170,7 @@ How-to guide on first open. Start / pause / add or remove time / reset the **str
 | Game | Pad | Lookup |
 | --- | --- | --- |
 | VGC | Remaining Pokémon from the team sheet (tap to KO) | — |
-| PTCG | Prize balls | TCGdex — Show on stream / Clear |
+| PTCG | Prize balls, Energy / Supporter / Retreat, Active / bench, Swap / KO in | TCGdex — Show P1 / Show P2 / Clear, Set Active, Set Bench |
 | MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall |
 | SWU | Base HP, initiative | SWU-DB |
 | YGO | 8000 LP, typed ticks | YGOPRODeck |
@@ -229,6 +230,8 @@ Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no cust
 Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
 **ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, Riftbound, and SWU have the same frame with their own card backs.
+
+**Play Layout** is the default PTCG scorebug — a Play! Pokémon-style table-cam overlay. Full-height rails on both sides (Active illustration, five bench slots, prizes, W/L/D, country) with a transparent center for the overhead camera. Energy / Supporter / Retreat start ON. HP bars are green, turn orange at 30%, red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
 
 Empty card / sponsor / event-logo sources stay fully transparent.
 
@@ -319,6 +322,23 @@ npm run dist
 
 ## Changelog
 
+### v1.2.0-beta — 21 Aug 2026 · PTCG Play Layout
+
+Play! Pokémon-style table-cam overlay for Pokémon TCG, plus the board tools to drive it.
+
+**Added**
+- **Play Layout** scorebug (default for PTCG): full-height rails, cropped card illustrations, Active + 5 bench, prizes, W/L/D, country
+- Energy / Supporter / Retreat chips (start ON; punch to turn off) on Production and the judge tablet
+- Dual **Show P1 / Show P2** card overlay over that player’s bench, plus Set Active / Set Bench from card search
+- Production **PTCG board** — typed HP (−10 / +10) on Active and every bench slot
+- **Swap** (retreat / switch) and **KO in** (promote a benched Pokémon, remove Active) on Production and the judge tablet
+- HP bars: green → orange at 30% → red at 10%
+- Solid show-title · phase · round + stream clock bar, centered between the rails
+
+**Changed**
+- ROK Layout remains available on PTCG; Play Layout is the default scorebug
+- Overlay card images load eagerly so OBS browser sources show bench art
+
 ### v1.1.0-beta — 21 Aug 2026 · browser
 
 In-app Chromium so pairings, donations, feedback, and card databases stay next to the desk.
@@ -388,4 +408,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.1.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1. Expect polish.
+This build is **v1.2.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

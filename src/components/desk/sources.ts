@@ -40,7 +40,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/scorebug",
     name: "Scorebug",
     size: "1920 × 1080",
-    note: "Always-on names, score, resources. Lorcana also has ROK Layout — cameras, lore ladder, inks, and card well.",
+    note: "Always-on names, score, resources. PTCG Play Layout: table cam in the middle, rails for active / bench / prizes. ROK Layout on other titles.",
   },
   {
     id: "versus",

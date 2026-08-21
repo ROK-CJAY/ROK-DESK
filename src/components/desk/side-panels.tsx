@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, playerTabletPath, signupPath, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, playerTabletPath, signupPath, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -556,13 +556,11 @@ export function ShowPanel() {
           >
             <option value="bar">Scorebug · bar</option>
             <option value="split">Scorebug · split</option>
-            {desk.gameId === "lorcana" ||
-            desk.gameId === "yugioh" ||
-            desk.gameId === "pokemon-tcg" ||
-            desk.gameId === "riftbound" ||
-            desk.gameId === "swu" ||
-            (desk.gameId === "mtg" && !isCommanderLane(desk)) ? (
+            {supportsRokLayout(desk) ? (
               <option value="rok">ROK Layout</option>
+            ) : null}
+            {desk.gameId === "pokemon-tcg" ? (
+              <option value="play">Play Layout</option>
             ) : null}
           </NativeSelect>
           {desk.scorebugStyle === "rok" ? (
@@ -578,6 +576,10 @@ export function ShowPanel() {
                       : desk.gameId === "swu"
                         ? "Cameras, base HP, initiative, W/L/D, Best-of diamonds, clock, SWU card well."
                       : "Cameras, lore ladder, inks, W/L/D, diamonds, clock, card well."}
+            </p>
+          ) : desk.scorebugStyle === "play" ? (
+            <p className="self-center text-[0.7rem] text-muted">
+              Side rails: prizes, active, bench. Energy / Supporter / Retreat. Show P1 / P2 over the bench.
             </p>
           ) : (
             <NativeSelect

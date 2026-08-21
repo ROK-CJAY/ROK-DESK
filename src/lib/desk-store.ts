@@ -24,7 +24,8 @@ import {
   type SideId,
   type TableSize,
 } from "@/lib/desk-types";
-import { gameOf, slugOf, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
+import { gameOf, isCommanderLane, slugOf, supportsRokLayout, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
+import { emptyPtcgBoard } from "@/lib/ptcg-board";
 import { clearLegacyDesk, deskLooksLikeTest, toggleTestDesk } from "@/lib/test-fixtures";
 import {
   CANVAS_H,
@@ -450,12 +451,21 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       down: normalizeDown([]),
     };
     const tableSize = preset.seats ?? 2;
+    const nextFormat = { gameId: prev.gameId, formatName: preset.label };
+    const nextStyle = supportsRokLayout(nextFormat)
+      ? isCommanderLane(prev) && game.defaultScorebug === "rok"
+        ? "rok"
+        : prev.scorebugStyle
+      : prev.scorebugStyle === "rok"
+        ? "bar"
+        : prev.scorebugStyle;
     const desk = nextVersion(prev, {
       formatName: preset.label,
       bestOf: preset.bestOf ?? prev.bestOf,
       tableSize,
       resourceCap: preset.resourceMax ?? game.resource.max,
       layout: layoutForTable(prev.layout, tableSize),
+      scorebugStyle: nextStyle,
       ...withSeats(prev, resources),
     });
     persist(desk);
@@ -532,6 +542,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       const desk = nextVersion(prev, {
         p1: prev.p2,
         p2: prev.p1,
+        ptcgBoard: { p1: prev.ptcgBoard.p2, p2: prev.ptcgBoard.p1 },
         winnerSide:
           prev.winnerSide === "p1" ? "p2" : prev.winnerSide === "p2" ? "p1" : prev.winnerSide,
         gameWinnerSide:
@@ -564,6 +575,10 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       ...withSeats(prev, resources),
       winnerSide: null,
       gameWinnerSide: null,
+      ptcgBoard: {
+        p1: { ...prev.ptcgBoard.p1, energy: true, supporter: true, retreat: true, spotlight: null },
+        p2: { ...prev.ptcgBoard.p2, energy: true, supporter: true, retreat: true, spotlight: null },
+      },
     });
     persist(desk);
     set({ desk });
@@ -577,6 +592,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       winnerSide: null,
       gameWinnerSide: null,
       initiativeSide: null,
+      ptcgBoard: emptyPtcgBoard(),
     });
     persist(desk);
     set({ desk });
@@ -596,6 +612,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       initiativeSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      ptcgBoard: emptyPtcgBoard(),
       lowerThird: { ...prev.lowerThird, visible: false },
     });
     persist(desk);

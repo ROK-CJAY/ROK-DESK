@@ -412,19 +412,20 @@ export function HudView({
 }) {
   const commander = useCommanderOverlay(desk);
   const rok = desk.scorebugStyle === "rok";
+  const play = desk.scorebugStyle === "play";
   return (
     <div className={`pointer-events-none absolute inset-0 ${edit ? "layout-grid" : ""}`}>
       <ScorebugView desk={desk} now={now} edit={edit} />
-      {rok ? null : <TimerView desk={desk} now={now} edit={edit} />}
-      {commander || rok ? null : <ResourceView desk={desk} edit={edit} />}
-      {commander || rok ? null : <CastersView desk={desk} edit={edit} />}
-      <LowerThirdView desk={desk} edit={edit} />
+      {rok || play ? null : <TimerView desk={desk} now={now} edit={edit} />}
+      {commander || rok || play ? null : <ResourceView desk={desk} edit={edit} />}
+      {commander || rok || play ? null : <CastersView desk={desk} edit={edit} />}
+      {play ? null : <LowerThirdView desk={desk} edit={edit} />}
       <WinnerView desk={desk} edit={edit} />
       <GameWinView desk={desk} edit={edit} />
-      {rok ? null : <RosterView desk={desk} edit={edit} />}
-      {rok ? null : <CardSpotlightView desk={desk} edit={edit} />}
-      <SponsorsView desk={desk} now={now} edit={edit} compact />
-      <EventLogoView desk={desk} edit={edit} />
+      {rok || play ? null : <RosterView desk={desk} edit={edit} />}
+      {rok || play ? null : <CardSpotlightView desk={desk} edit={edit} />}
+      {play ? null : <SponsorsView desk={desk} now={now} edit={edit} compact />}
+      {play ? null : <EventLogoView desk={desk} edit={edit} />}
     </div>
   );
 }

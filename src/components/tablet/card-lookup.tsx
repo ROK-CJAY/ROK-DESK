@@ -22,6 +22,7 @@ import {
   type LookupCard,
 } from "@/lib/card-lookup";
 import { emptySpotlight } from "@/lib/desk-types";
+import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,7 @@ export function CardLookup({
 }) {
   const patch = useDeskStore((s) => s.patch);
   const spotlight = useDeskStore((s) => s.desk.cardSpotlight);
+  const ptcgBoard = useDeskStore((s) => s.desk.ptcgBoard);
   const hydrate = useDeskStore((s) => s.hydrate);
   const ready = useDeskStore((s) => s.ready);
   const [query, setQuery] = useState("");
@@ -114,22 +116,67 @@ export function CardLookup({
     };
   }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat]);
 
-  const pushToStream = (card: LookupCard) => {
+  const detailOf = async (card: LookupCard) => {
+    if ((card.attacks && card.attacks.length) || (card.abilities && card.abilities.length) || card.hp) return card;
+    try {
+      return (await fetchLookupCard(card.id)) ?? card;
+    } catch {
+      return card;
+    }
+  };
+
+  const pushToStream = async (card: LookupCard, side?: "p1" | "p2") => {
+    const full = catalog === "ptcg" ? await detailOf(card) : card;
+    const mon = monFromLookup(full);
     patch({
       cardSpotlight: {
         visible: true,
-        id: card.id,
-        name: card.name,
-        set: card.set ?? "",
-        number: card.number ?? "",
-        image: card.image ?? "",
-        type: card.type ?? "",
+        id: full.id,
+        name: full.name,
+        set: full.set ?? "",
+        number: full.number ?? "",
+        image: full.image ?? "",
+        type: full.type ?? "",
       },
     });
+    if (catalog === "ptcg" && side) {
+      const live = useDeskStore.getState().desk.ptcgBoard;
+      patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: mon } } });
+    }
   };
 
-  const clearStream = () => {
+  const clearStream = (side?: "p1" | "p2") => {
+    if (catalog === "ptcg" && side) {
+      const live = useDeskStore.getState().desk.ptcgBoard;
+      patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: null } } });
+      const other = side === "p1" ? live.p2.spotlight : live.p1.spotlight;
+      if (!other) patch({ cardSpotlight: emptySpotlight() });
+      return;
+    }
+    if (catalog === "ptcg") {
+      const live = useDeskStore.getState().desk.ptcgBoard;
+      patch({
+        cardSpotlight: emptySpotlight(),
+        ptcgBoard: {
+          p1: { ...live.p1, spotlight: null },
+          p2: { ...live.p2, spotlight: null },
+        },
+      });
+      return;
+    }
     patch({ cardSpotlight: emptySpotlight() });
+  };
+
+  const setActive = async (card: LookupCard, side: "p1" | "p2") => {
+    const full = await detailOf(card);
+    const live = useDeskStore.getState().desk.ptcgBoard;
+    patch({ ptcgBoard: { ...live, [side]: { ...live[side], active: monFromLookup(full) } } });
+  };
+
+  const setBench = async (card: LookupCard, side: "p1" | "p2") => {
+    const full = await detailOf(card);
+    const live = useDeskStore.getState().desk.ptcgBoard;
+    patch({ ptcgBoard: { ...live, [side]: addToBench(live[side], monFromLookup(full)) } });
   };
 
   const openCard = async (card: LookupCard) => {
@@ -161,7 +208,9 @@ export function CardLookup({
           <p className="font-mono text-[0.65rem] tracking-[0.2em] text-muted uppercase">Card lookup</p>
           <p className="text-sm text-muted">
             {compact
-              ? "Search, pick a card, then Show on stream."
+              ? catalog === "ptcg"
+                ? "Search a Pokémon, set Active / Bench, then Show P1 or Show P2 over the bench."
+                : "Search, pick a card, then Show on stream."
               : mtg
               ? "Scryfall search. Read the oracle text, then Show on stream if you want the art on air."
               : swu
@@ -217,9 +266,20 @@ export function CardLookup({
       {selected ? (
         <CardDetail
           card={selected}
+          ptcg={catalog === "ptcg"}
           onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
-          onShow={() => pushToStream(selected)}
-          onClear={clearStream}
+          onAirP1={Boolean(ptcgBoard.p1.spotlight && ptcgBoard.p1.spotlight.id === selected.id)}
+          onAirP2={Boolean(ptcgBoard.p2.spotlight && ptcgBoard.p2.spotlight.id === selected.id)}
+          onShow={() => void pushToStream(selected)}
+          onShowP1={() => void pushToStream(selected, "p1")}
+          onShowP2={() => void pushToStream(selected, "p2")}
+          onClear={() => clearStream()}
+          onClearP1={() => clearStream("p1")}
+          onClearP2={() => clearStream("p2")}
+          onActiveP1={() => void setActive(selected, "p1")}
+          onActiveP2={() => void setActive(selected, "p2")}
+          onBenchP1={() => void setBench(selected, "p1")}
+          onBenchP2={() => void setBench(selected, "p2")}
         />
       ) : null}
       {status === "loading" ? (
@@ -333,14 +393,36 @@ function FilterChip({
 
 function CardDetail({
   card,
+  ptcg = false,
   onAir,
+  onAirP1,
+  onAirP2,
   onShow,
+  onShowP1,
+  onShowP2,
   onClear,
+  onClearP1,
+  onClearP2,
+  onActiveP1,
+  onActiveP2,
+  onBenchP1,
+  onBenchP2,
 }: {
   card: LookupCard;
+  ptcg?: boolean;
   onAir: boolean;
+  onAirP1?: boolean;
+  onAirP2?: boolean;
   onShow: () => void;
+  onShowP1?: () => void;
+  onShowP2?: () => void;
   onClear: () => void;
+  onClearP1?: () => void;
+  onClearP2?: () => void;
+  onActiveP1?: () => void;
+  onActiveP2?: () => void;
+  onBenchP1?: () => void;
+  onBenchP2?: () => void;
 }) {
   return (
     <article className="mt-3 grid gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[8.5rem_1fr]">
@@ -359,6 +441,19 @@ function CardDetail({
                 .join(" · ")}
             </p>
           </div>
+          {ptcg ? (
+            <div className="flex flex-wrap gap-2">
+              <Button variant={onAirP1 ? "live" : "default"} size="sm" type="button" onClick={onShowP1} disabled={!card.image}>
+                {onAirP1 ? "P1 on stream" : "Show P1"}
+              </Button>
+              <Button variant={onAirP2 ? "live" : "default"} size="sm" type="button" onClick={onShowP2} disabled={!card.image}>
+                {onAirP2 ? "P2 on stream" : "Show P2"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={onClear} disabled={!onAirP1 && !onAirP2}>
+                Clear
+              </Button>
+            </div>
+          ) : (
           <div className="flex flex-wrap gap-2">
             {onAir ? (
               <Button variant="live" size="sm" type="button" aria-live="polite">
@@ -373,7 +468,16 @@ function CardDetail({
               Clear
             </Button>
           </div>
+          )}
         </div>
+        {ptcg ? (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <Button type="button" variant="outline" size="sm" onClick={onActiveP1}>P1 active</Button>
+            <Button type="button" variant="outline" size="sm" onClick={onBenchP1}>P1 bench</Button>
+            <Button type="button" variant="outline" size="sm" onClick={onActiveP2}>P2 active</Button>
+            <Button type="button" variant="outline" size="sm" onClick={onBenchP2}>P2 bench</Button>
+          </div>
+        ) : null}
         {card.abilities?.map((ability) => (
           <p key={ability.name} className="mt-2 text-sm leading-relaxed">
             <span className="text-muted">Ability · </span>

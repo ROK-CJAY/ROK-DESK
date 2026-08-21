@@ -12,7 +12,7 @@ export const GAME_IDS = [
 export type GameId = (typeof GAME_IDS)[number];
 
 export type ResourceKind = "pips" | "life" | "points";
-export type ScorebugStyle = "bar" | "split" | "rok";
+export type ScorebugStyle = "bar" | "split" | "rok" | "play";
 export type BestOf = 1 | 3 | 5 | 7;
 
 export type FormatFamily = "constructed" | "commander";
@@ -112,7 +112,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Charizard ex · Raging Bolt",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "bar",
+    defaultScorebug: "play",
     formats: [
       { id: "standard", label: "Standard" },
       { id: "expanded", label: "Expanded" },
@@ -169,7 +169,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Tenpai · Yubel · Snake-Eye",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "bar",
+    defaultScorebug: "rok",
     formats: [
       { id: "tcg", label: "TCG Advanced" },
       { id: "md", label: "Master Duel" },
@@ -199,7 +199,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Domain Zoo · Izzet Phoenix",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "bar",
+    defaultScorebug: "rok",
     formats: [
       { id: "standard", label: "Standard", family: "constructed" },
       { id: "modern", label: "Modern", family: "constructed" },
@@ -256,7 +256,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Ruby Aggro · Amber/Steel midrange",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "bar",
+    defaultScorebug: "rok",
     formats: [
       { id: "core", label: "Core Constructed" },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
@@ -282,7 +282,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Vader · Sabine",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "bar",
+    defaultScorebug: "rok",
     formats: [
       { id: "premier", label: "Premier" },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
@@ -308,7 +308,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Jinx · Volibear · Annie",
     scoreLabel: "Games",
     defaultBestOf: 1,
-    defaultScorebug: "bar",
+    defaultScorebug: "rok",
     formats: [
       { id: "duel", label: "Duel (1v1)", bestOf: 1, seats: 2 },
       { id: "match", label: "Match (1v1, Bo3)", bestOf: 3, seats: 2 },
@@ -490,6 +490,23 @@ export function playerIdField(gameId: GameId): PlayerIdField {
 
 export function isCommanderLane(desk: { gameId: GameId; formatName: string }): boolean {
   return desk.gameId === "mtg" && currentFamily(desk) === "commander";
+}
+
+const ROK_LAYOUT_GAMES: GameId[] = [
+  "lorcana",
+  "yugioh",
+  "pokemon-tcg",
+  "riftbound",
+  "swu",
+  "mtg",
+];
+
+export function supportsRokLayout(desk: { gameId: GameId; formatName?: string }): boolean {
+  if (!ROK_LAYOUT_GAMES.includes(desk.gameId)) return false;
+  if (desk.gameId === "mtg" && desk.formatName && isCommanderLane({ gameId: "mtg", formatName: desk.formatName })) {
+    return false;
+  }
+  return true;
 }
 
 export function isCommanderPodFormat(gameId: GameId, formatName: string): boolean {

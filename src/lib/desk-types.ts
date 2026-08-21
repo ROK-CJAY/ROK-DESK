@@ -8,6 +8,7 @@ import {
   mergeTeam,
   type TeamMon,
 } from "@/lib/pokemon-vgc";
+import { emptyPtcgBoard, parsePtcgBoard, type PtcgBoard } from "@/lib/ptcg-board";
 
 export type GameClock = {
   remaining: number;
@@ -153,6 +154,7 @@ export type DeskState = {
   layout: LayoutMap;
   overlayLook: OverlayLookBook;
   cardSpotlight: SpotlightCard;
+  ptcgBoard: PtcgBoard;
   lanes: Record<string, Record<string, unknown>>;
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
@@ -265,7 +267,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   eventLogo: z.string().optional().transform((v) => v ?? ""),
   showResources: z.boolean(),
   resourceCap: z.number().nullable().optional().transform((v) => (typeof v === "number" && v > 0 ? v : null)),
-  scorebugStyle: z.enum(["bar", "split", "rok"]),
+  scorebugStyle: z.enum(["bar", "split", "rok", "play"]),
   scorebugPosition: z.enum(["top", "bottom"]),
   tableSize: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   rosterSide: z.enum(["hidden", "p1", "p2", "both"]),
@@ -283,6 +285,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     })
     .optional()
     .transform((v) => v ?? emptySpotlight()),
+  ptcgBoard: z.any().optional().transform((v) => parsePtcgBoard(v)),
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   layout: z.object({
@@ -381,13 +384,14 @@ export function defaultDesk(): DeskState {
     eventLogo: "",
     showResources: true,
     resourceCap: 6,
-    scorebugStyle: "bar",
+    scorebugStyle: game.defaultScorebug,
     scorebugPosition: "bottom",
     tableSize: 2,
     rosterSide: "hidden",
     layout: { ...DEFAULT_LAYOUT },
     overlayLook: { ...DEFAULT_LOOK_BOOK, sources: {} },
     cardSpotlight: emptySpotlight(),
+    ptcgBoard: emptyPtcgBoard(),
     lanes: {},
     testMode: false,
     testSnapshot: null,
@@ -495,6 +499,7 @@ export function parseDesk(raw: unknown): DeskState | null {
       ...emptySpotlight(),
       ...(isRecord(incoming.cardSpotlight) ? incoming.cardSpotlight : {}),
     },
+    ptcgBoard: parsePtcgBoard(incoming.ptcgBoard),
     rosterSide:
       incoming.rosterSide === "p1" ||
       incoming.rosterSide === "p2" ||
