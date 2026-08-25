@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.3.1-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.1-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -322,7 +322,7 @@ npm run dist
 
 ## Changelog
 
-### v1.3.1-beta — 25 Aug 2026 · Play Layout polish
+### v1.2.1-beta — 25 Aug 2026 · Play Layout polish
 
 Graphical pass on the PTCG Play Layout and Production resource numbers.
 
@@ -432,4 +432,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.3.1-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; Stream / Floor tables are 1.3. Expect polish.
+This build is **v1.2.1-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
