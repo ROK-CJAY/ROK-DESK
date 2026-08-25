@@ -6,13 +6,19 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+## v1.2.4-beta — 2026-08-25
+
+Hotfix: PTCG card art, lookup reset, judge board.
+
 ### Added
 
 - PTCG judge tablet now has the full **PTCG board** card from Production (Active / bench / HP / Swap / KO / Clear)
+- `/api/ptcg-art` proxy — walks TCGdex → Pokémon.com → pokemontcg.io and only returns a real 200 image
 
 ### Fixed
 
 - Card lookup (search, selected card, on-stream spotlight) clears when you switch games in Production
+- Blank PTCG card art when TCGdex had no file (SVP / MEP promos and other printings). A failed load no longer sticks on the next card
 
 ## v1.2.3-beta — 2026-08-25
 
