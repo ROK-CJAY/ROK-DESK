@@ -8,6 +8,8 @@ It is built for a venue with a stream: a TO laptop, a production PC, tablets on 
 
 ROK Desk is **free and in beta**. If it saves you a night, [donate via PayPal](https://www.paypal.com/donate/?hosted_button_id=XM6K2Y4MXJZC4). Not affiliated with Pokémon, Wizards, Ravensburger, or the other publishers.
 
+Version history: **[CHANGELOG.md](./CHANGELOG.md)**.
+
 ---
 
 ## What it does
@@ -348,7 +350,9 @@ npm run dist
 
 ## Changelog
 
-### HOTFIX — 25 Aug 2026 · PTCG lookup & judge board
+Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### Unreleased
 
 - Card lookup (search, selected card, on-stream spotlight) clears when you switch games in Production
 - PTCG judge tablet now has the full **PTCG board** card from Production (Active / bench / HP / Swap / KO / Clear)
