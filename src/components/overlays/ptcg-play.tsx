@@ -1,4 +1,4 @@
-import { cardImageUrl } from "@/lib/card-lookup";
+import { useCardImageSrc } from "@/components/ui/remote-art";
 import { formatClock, remainingSeconds, resourceLimit, type DeskState } from "@/lib/desk-types";
 import { emptyPtcgSide, energyColor, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { PokeballIcon } from "@/components/overlays/pips";
@@ -16,21 +16,25 @@ const ABILITY_NAME = "text-[#f0d78a]";
  */
 function CardIllustration({
   image,
+  id,
   size = "high",
   className,
 }: {
   image?: string;
+  id?: string;
   size?: "low" | "high";
   className?: string;
 }) {
-  const src = cardImageUrl(image, size);
+  const { src, onError } = useCardImageSrc(image, size, id);
   return (
     <div className={cn("relative overflow-hidden bg-[#0b0c0e]", className)} style={{ aspectRatio: "5 / 3" }}>
       {src ? (
         <img
+          key={src}
           src={src}
           alt=""
           decoding="async"
+          onError={onError}
           className="pointer-events-none absolute max-w-none select-none"
           style={{
             width: "119%",
@@ -91,7 +95,7 @@ function ActiveCard({ mon }: { mon: PtcgMon }) {
   return (
     <div className="flex shrink-0 flex-col gap-2">
       <div className={cn("relative overflow-hidden", SLOT)}>
-        <CardIllustration image={mon.image} className="w-full" />
+        <CardIllustration image={mon.image} id={mon.id} className="w-full" />
         <p className="pointer-events-none absolute top-2 right-2 rounded-sm bg-[#f4f4f1] px-2 py-0.5 font-display text-[1.15rem] leading-none font-semibold tracking-wide text-[#101215] uppercase">
           {mon.name}
         </p>
@@ -128,7 +132,7 @@ function BenchRow({ mon }: { mon: PtcgMon | null }) {
   }
   return (
     <div className={cn("flex min-h-[5.25rem] flex-1 items-center gap-2.5 overflow-hidden px-2 py-1.5", SLOT)}>
-      <CardIllustration image={mon.image} className="w-[min(9.25rem,46%)] shrink-0 rounded-md" />
+      <CardIllustration image={mon.image} id={mon.id} className="w-[min(9.25rem,46%)] shrink-0 rounded-md" />
       <div className="min-w-0 flex-1">
         <p className="truncate font-display text-[1.15rem] leading-tight font-semibold tracking-wide text-white uppercase">
           {mon.name}
@@ -153,11 +157,11 @@ function BenchRow({ mon }: { mon: PtcgMon | null }) {
 }
 
 function SpotlightOverBench({ mon }: { mon: PtcgMon }) {
-  const src = cardImageUrl(mon.image, "high");
+  const { src, onError } = useCardImageSrc(mon.image, "high", mon.id);
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col gap-2 p-2", SLOT)}>
       <div className="min-h-0 flex-1 overflow-hidden rounded-md bg-black/40">
-        {src ? <img src={src} alt="" decoding="async" className="h-full w-full object-contain" /> : null}
+        {src ? <img key={src} src={src} alt="" decoding="async" onError={onError} className="h-full w-full object-contain" /> : null}
       </div>
       <p className="font-display text-center text-lg font-semibold tracking-wide text-white uppercase">{mon.name}</p>
       {mon.abilities[0] ? (

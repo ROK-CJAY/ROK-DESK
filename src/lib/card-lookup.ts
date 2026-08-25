@@ -82,17 +82,119 @@ export function cardLookupReady(): boolean {
   return true;
 }
 
-export function cardImageUrl(image?: string, size: "low" | "high" = "high"): string {
-  if (!image) return "";
-  const src = image.trim().replace(/\/+$/, "");
-  if (!src) return "";
-  if (/\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(src)) return src;
-  if (src.startsWith("/api/")) return src;
-  // TCGdex (and similar) return an assets prefix, not a file: …/en/me/me02/013
-  if (/assets\.tcgdex\.net/i.test(src) || !/\.[a-z0-9]{2,5}$/i.test(src)) {
-    return `${src}/${size}.webp`;
+export function ptcgArtUrl(id?: string, image?: string, size: "low" | "high" = "high"): string {
+  const q = new URLSearchParams();
+  if (id) q.set("id", id);
+  if (image) q.set("image", image);
+  q.set("size", size);
+  if (!id && !image) return "";
+  return `/api/ptcg-art?${q.toString()}`;
+}
+
+export function isPtcgArt(image?: string, id?: string): boolean {
+  if (id && /^(sv|swsh|sm|xy|bw|me|svp|mep|sve|mee|tk|dp|pl|col|mc|ex|neo|base|gym|lc|hgss|ecard|pop)/i.test(id)) {
+    return true;
   }
-  return src;
+  return /tcgdex\.net/i.test(image ?? "");
+}
+
+export function cardImageUrl(image?: string, size: "low" | "high" = "high", id?: string): string {
+  return cardImageCandidates(image, size, id)[0] ?? "";
+}
+
+export function cardImageCandidates(image?: string, size: "low" | "high" = "high", id?: string): string[] {
+  if (isPtcgArt(image, id)) {
+    const url = ptcgArtUrl(id, image, size);
+    return url ? [url] : [];
+  }
+  return ptcgArtSources(image, size, id);
+}
+
+/** Direct CDN URLs. The /api/ptcg-art proxy walks these and only returns a real 200 image. */
+export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id?: string): string[] {
+  const out: string[] = [];
+  const add = (url?: string) => {
+    const src = url?.trim();
+    if (src && !out.includes(src)) out.push(src);
+  };
+
+  const prefix = (image ?? "").trim().replace(/\/+$/, "");
+  const isFile = Boolean(prefix) && /\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(prefix);
+  if (isFile) add(prefix);
+  else if (prefix.startsWith("/api/")) add(prefix);
+  else if (prefix) {
+    const other = size === "high" ? "low" : "high";
+    add(`${prefix}/${size}.webp`);
+    add(`${prefix}/${other}.webp`);
+    add(`${prefix}/${size}.png`);
+    add(`${prefix}/${other}.png`);
+  }
+
+  const parsed = parseCardId(id);
+  if (parsed) {
+    const built = prefix ? "" : tcgdexImagePrefix(parsed.set, parsed.number);
+    if (built) {
+      const other = size === "high" ? "low" : "high";
+      add(`${built}/${size}.webp`);
+      add(`${built}/${other}.webp`);
+      add(`${built}/${size}.png`);
+    }
+    const num = parsed.number.replace(/^0+/, "") || "0";
+    for (const folder of pokemonComFolders(parsed.set)) {
+      add(
+        `https://www.pokemon.com/static-assets/content-assets/cms2/img/cards/web/${folder}/${folder}_EN_${num}.png`,
+      );
+    }
+    for (const ioSet of pokemonTcgIoSets(parsed.set)) {
+      add(`https://images.pokemontcg.io/${ioSet}/${num}.png`);
+      if (size === "high") add(`https://images.pokemontcg.io/${ioSet}/${num}_hires.png`);
+    }
+  }
+  return out;
+}
+
+function parseCardId(id?: string): { set: string; number: string } | null {
+  if (!id) return null;
+  const last = id.lastIndexOf("-");
+  if (last < 1) return null;
+  const set = id.slice(0, last).trim();
+  const number = id.slice(last + 1).trim();
+  if (!set || !number) return null;
+  return { set, number };
+}
+
+function pokemonComFolders(setId: string): string[] {
+  const folders: string[] = [];
+  const add = (value: string) => {
+    const folder = value.trim().toUpperCase();
+    if (folder && !folders.includes(folder)) folders.push(folder);
+  };
+  add(setId);
+  add(setId.replace(/\./g, ""));
+  add(setId.replace(/\.(\d+)/g, "PT$1"));
+  const sv = setId.match(/^sv0*(\d+)(?:\.(\d+))?(.*)$/i);
+  if (sv) {
+    const pt = sv[2] ? `PT${sv[2]}` : "";
+    const rest = (sv[3] ?? "").toUpperCase();
+    add(`SV${sv[1]}${pt}${rest}`);
+    add(`SV${sv[1].padStart(2, "0")}${pt}${rest}`);
+  }
+  const me = setId.match(/^me0*(\d+)$/i);
+  if (me) {
+    add(`ME${me[1].padStart(2, "0")}`);
+    add(`ME${me[1]}`);
+  }
+  return folders;
+}
+
+function pokemonTcgIoSets(setId: string): string[] {
+  const ids = [setId];
+  const sv = setId.match(/^sv0*(\d+(?:\.\d+)?)$/i);
+  if (sv) ids.push(`sv${sv[1].replace(".", "pt")}`);
+  const dotted = setId.replace(/\.(\d+)/, "pt$1");
+  if (dotted !== setId) ids.push(dotted);
+  if (setId === "mep") ids.push("svp");
+  return ids.filter((value, i) => ids.indexOf(value) === i);
 }
 
 const TCGDEX_SERIES = [
@@ -116,6 +218,10 @@ const TCGDEX_SERIES = [
   "mc",
   "tcgp",
   "misc",
+  "sve",
+  "svp",
+  "mep",
+  "mee",
   "me",
 ] as const;
 

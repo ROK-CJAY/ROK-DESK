@@ -91,8 +91,8 @@ export function DecklistEditor({
                 onClick={() => add(card)}
                 className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-surface"
               >
-                {card.image ? (
-                  <img src={cardImageUrl(card.image, "low")} alt="" className="h-10 w-7 shrink-0 rounded-sm object-cover" />
+                {card.image || card.id ? (
+                  <img src={cardImageUrl(card.image, "low", card.id)} alt="" className="h-10 w-7 shrink-0 rounded-sm object-cover" />
                 ) : (
                   <span className="grid h-10 w-7 shrink-0 place-items-center rounded-sm bg-surface text-[0.55rem] text-muted">
                     —
@@ -117,8 +117,8 @@ export function DecklistEditor({
         <ul className="grid gap-1">
           {value.map((card) => (
             <li key={card.id} className="flex items-center gap-2 rounded-md bg-surface-2 px-2 py-1.5">
-              {card.image ? (
-                <img src={cardImageUrl(card.image, "low")} alt="" className="h-9 w-6 shrink-0 rounded-sm object-cover" />
+              {card.image || card.id ? (
+                <img src={cardImageUrl(card.image, "low", card.id)} alt="" className="h-9 w-6 shrink-0 rounded-sm object-cover" />
               ) : (
                 <span className="size-6 shrink-0 rounded-sm bg-surface" />
               )}

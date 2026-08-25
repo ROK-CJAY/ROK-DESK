@@ -25,6 +25,7 @@ import { Route as ApiHostInfoRouteImport } from './routes/api/host-info'
 import { Route as ApiLorcanaCardsRouteImport } from './routes/api/lorcana-cards'
 import { Route as ApiOpArtRouteImport } from './routes/api/op-art'
 import { Route as ApiOpCardsRouteImport } from './routes/api/op-cards'
+import { Route as ApiPtcgArtRouteImport } from './routes/api/ptcg-art'
 import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
@@ -134,6 +135,11 @@ const ApiOpArtRoute = ApiOpArtRouteImport.update({
 const ApiOpCardsRoute = ApiOpCardsRouteImport.update({
   id: '/api/op-cards',
   path: '/api/op-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPtcgArtRoute = ApiPtcgArtRouteImport.update({
+  id: '/api/ptcg-art',
+  path: '/api/ptcg-art',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRiftCardsRoute = ApiRiftCardsRouteImport.update({
@@ -304,6 +310,7 @@ export interface FileRoutesByFullPath {
   '/api/lorcana-cards': typeof ApiLorcanaCardsRoute
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/ptcg-art': typeof ApiPtcgArtRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -351,6 +358,7 @@ export interface FileRoutesByTo {
   '/api/lorcana-cards': typeof ApiLorcanaCardsRoute
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/ptcg-art': typeof ApiPtcgArtRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -400,6 +408,7 @@ export interface FileRoutesById {
   '/api/lorcana-cards': typeof ApiLorcanaCardsRoute
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
+  '/api/ptcg-art': typeof ApiPtcgArtRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -450,6 +459,7 @@ export interface FileRouteTypes {
     | '/api/lorcana-cards'
     | '/api/op-art'
     | '/api/op-cards'
+    | '/api/ptcg-art'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -497,6 +507,7 @@ export interface FileRouteTypes {
     | '/api/lorcana-cards'
     | '/api/op-art'
     | '/api/op-cards'
+    | '/api/ptcg-art'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -545,6 +556,7 @@ export interface FileRouteTypes {
     | '/api/lorcana-cards'
     | '/api/op-art'
     | '/api/op-cards'
+    | '/api/ptcg-art'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -594,6 +606,7 @@ export interface RootRouteChildren {
   ApiLorcanaCardsRoute: typeof ApiLorcanaCardsRoute
   ApiOpArtRoute: typeof ApiOpArtRoute
   ApiOpCardsRoute: typeof ApiOpCardsRoute
+  ApiPtcgArtRoute: typeof ApiPtcgArtRoute
   ApiRiftCardsRoute: typeof ApiRiftCardsRoute
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
@@ -717,6 +730,13 @@ declare module '@tanstack/react-router' {
       path: '/api/op-cards'
       fullPath: '/api/op-cards'
       preLoaderRoute: typeof ApiOpCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ptcg-art': {
+      id: '/api/ptcg-art'
+      path: '/api/ptcg-art'
+      fullPath: '/api/ptcg-art'
+      preLoaderRoute: typeof ApiPtcgArtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/rift-cards': {
@@ -1011,6 +1031,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLorcanaCardsRoute: ApiLorcanaCardsRoute,
   ApiOpArtRoute: ApiOpArtRoute,
   ApiOpCardsRoute: ApiOpCardsRoute,
+  ApiPtcgArtRoute: ApiPtcgArtRoute,
   ApiRiftCardsRoute: ApiRiftCardsRoute,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,

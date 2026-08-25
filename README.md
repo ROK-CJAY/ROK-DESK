@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.3-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.4-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -301,8 +301,8 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. On GitHub, open **Actions → Desktop → Run workflow** (or grab a Release tagged `v*`).
-2. Download **ROK-Desk** for your OS:
+1. Download **v1.2.4-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.4-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
+2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
    - Linux: `.AppImage`
@@ -352,10 +352,15 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
-### Unreleased
+### v1.2.4-beta — 25 Aug 2026 · hotfix: PTCG art & judge board
 
-- Card lookup (search, selected card, on-stream spotlight) clears when you switch games in Production
+**Added**
 - PTCG judge tablet now has the full **PTCG board** card from Production (Active / bench / HP / Swap / KO / Clear)
+- `/api/ptcg-art` proxy — TCGdex → Pokémon.com → pokemontcg.io, only a real image is returned
+
+**Fixed**
+- Card lookup (search, selected card, on-stream spotlight) clears when you switch games in Production
+- Blank PTCG card art when TCGdex had no file (promos, some printings). A failed load no longer sticks on the next card
 
 ### v1.2.3-beta — 25 Aug 2026 · hotfix: per-table clocks
 
@@ -505,4 +510,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.3-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.4-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

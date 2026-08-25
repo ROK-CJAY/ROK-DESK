@@ -1,5 +1,5 @@
 import { InitiativeMark } from "@/components/desk/initiative";
-import { cardImageUrl } from "@/lib/card-lookup";
+import { useCardImageSrc } from "@/components/ui/remote-art";
 import { formatClock, remainingSeconds, resourceLimit, type DeskState, type SideId } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
 import { PokeballIcon } from "@/components/overlays/pips";
@@ -35,13 +35,14 @@ export function RokLayoutView({ desk, now = Date.now() }: { desk: DeskState; now
   const clock = formatClock(remainingSeconds(desk, now));
   const card = desk.cardSpotlight;
   const fallback = rokCardBack(desk);
-  const showCard = Boolean(card?.visible && card.image);
-  const cardSrc = showCard ? cardImageUrl(card.image, "high") : fallback;
+  const showCard = Boolean(card?.visible && (card.image || card.id));
+  const { src: liveSrc, onError: onCardError } = useCardImageSrc(showCard ? card.image : "", "high", showCard ? card.id : "");
+  const cardSrc = showCard && liveSrc ? liveSrc : fallback;
 
   return (
     <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
-      <RokSide desk={desk} side="p1" clock={clock} cardSrc={cardSrc} fallback={fallback} />
-      <RokSide desk={desk} side="p2" clock={clock} cardSrc={cardSrc} fallback={fallback} />
+      <RokSide desk={desk} side="p1" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} />
+      <RokSide desk={desk} side="p2" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} />
     </div>
   );
 }
@@ -52,12 +53,14 @@ function RokSide({
   clock,
   cardSrc,
   fallback,
+  onCardError,
 }: {
   desk: DeskState;
   side: SideId;
   clock: string;
   cardSrc: string;
   fallback: string;
+  onCardError: () => void;
 }) {
   const player = desk[side];
   const right = side === "p2";
@@ -142,11 +145,12 @@ function RokSide({
               </>
             ) : (
               <img
+                key={cardSrc}
                 src={cardSrc}
                 alt=""
                 className="mx-auto w-[15.5rem] rounded-[0.7rem] border border-[#d4b46a]/50 shadow-[0_18px_40px_rgb(0_0_0_/_0.55)]"
-                onError={(event) => {
-                  event.currentTarget.src = fallback;
+                onError={() => {
+                  if (cardSrc !== fallback) onCardError();
                 }}
               />
             )}

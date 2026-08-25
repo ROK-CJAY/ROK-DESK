@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  cardImageUrl,
   fetchLookupCard,
   fetchScryfallCard,
   fetchSwuCard,
@@ -27,6 +26,7 @@ import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { Button } from "@/components/ui/button";
+import { RemoteArt } from "@/components/ui/remote-art";
 import { cn } from "@/lib/cn";
 
 export function CardLookup({
@@ -318,8 +318,8 @@ export function CardLookup({
                   selected?.id === card.id ? "bg-accent/15 text-fg" : "hover:bg-surface-2",
                 )}
               >
-                {card.image ? (
-                  <CardArt image={card.image} size="low" className="h-12 w-9 shrink-0 rounded-sm object-cover" />
+                {card.image || card.id ? (
+                  <RemoteArt image={card.image} id={card.id} size="low" className="h-12 w-9 shrink-0 rounded-sm object-cover" />
                 ) : (
                   <span className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-surface text-[0.6rem] text-muted">
                     —
@@ -441,27 +441,6 @@ function MatchDeckStrip({
   );
 }
 
-function CardArt({
-  image,
-  size = "high",
-  className,
-}: {
-  image?: string;
-  size?: "low" | "high";
-  className?: string;
-}) {
-  const [failed, setFailed] = useState(false);
-  const src = cardImageUrl(image, size);
-  if (!src || failed) {
-    return (
-      <span className={cn("grid place-items-center bg-surface text-[0.6rem] text-muted", className)}>
-        —
-      </span>
-    );
-  }
-  return <img key={src} src={src} alt="" className={className} onError={() => setFailed(true)} />;
-}
-
 function FilterChip({
   active,
   onClick,
@@ -517,8 +496,8 @@ function CardDetail({
 }) {
   return (
     <article className="mt-3 grid gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[8.5rem_1fr]">
-      {card.image ? (
-        <CardArt image={card.image} className="mx-auto w-32 rounded-md" />
+      {card.image || card.id ? (
+        <RemoteArt image={card.image} id={card.id} className="mx-auto w-32 rounded-md object-contain" />
       ) : (
         <div className="grid h-40 place-items-center rounded-md bg-surface text-xs text-muted">No art</div>
       )}
@@ -534,10 +513,10 @@ function CardDetail({
           </div>
           {ptcg ? (
             <div className="flex flex-wrap gap-2">
-              <Button variant={onAirP1 ? "live" : "default"} size="sm" type="button" onClick={onShowP1} disabled={!card.image}>
+              <Button variant={onAirP1 ? "live" : "default"} size="sm" type="button" onClick={onShowP1}>
                 {onAirP1 ? "P1 on stream" : "Show P1"}
               </Button>
-              <Button variant={onAirP2 ? "live" : "default"} size="sm" type="button" onClick={onShowP2} disabled={!card.image}>
+              <Button variant={onAirP2 ? "live" : "default"} size="sm" type="button" onClick={onShowP2}>
                 {onAirP2 ? "P2 on stream" : "Show P2"}
               </Button>
               <Button variant="outline" size="sm" onClick={onClear} disabled={!onAirP1 && !onAirP2}>
@@ -551,7 +530,7 @@ function CardDetail({
                 On stream
               </Button>
             ) : (
-              <Button size="sm" onClick={onShow} disabled={!card.image}>
+              <Button size="sm" onClick={onShow}>
                 Show on stream
               </Button>
             )}
