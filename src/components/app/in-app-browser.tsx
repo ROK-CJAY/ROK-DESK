@@ -143,8 +143,10 @@ export function InAppBrowser() {
       void desktop.historyList().then(setHistory);
       void desktop.settings().then((next) => {
         setSettings(next);
-        if (next.startup === "continue" && next.lastUrl) go(next.lastUrl);
-        if (next.startup === "homepage" && next.homepage) go(next.homepage);
+        const goTo = new URLSearchParams(window.location.search).get("go");
+        if (goTo) go(goTo);
+        else if (next.startup === "continue" && next.lastUrl) go(next.lastUrl);
+        else if (next.startup === "homepage" && next.homepage) go(next.homepage);
       });
       void desktop.downloadsPath().then(setDownloads);
       const offUrl = desktop.onBrowserUrl((next) => {
@@ -170,8 +172,10 @@ export function InAppBrowser() {
     setBookmarks(localBookmarks());
     setHistory(localHistory());
     setSettings(local);
-    if (local.startup === "continue" && local.lastUrl) go(local.lastUrl);
-    if (local.startup === "homepage" && local.homepage) go(local.homepage);
+    const goTo = new URLSearchParams(window.location.search).get("go");
+    if (goTo) go(goTo);
+    else if (local.startup === "continue" && local.lastUrl) go(local.lastUrl);
+    else if (local.startup === "homepage" && local.homepage) go(local.homepage);
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps -- start once
   }, [desktop]);
@@ -186,7 +190,15 @@ export function InAppBrowser() {
     syncBounds();
     const onResize = () => syncBounds();
     window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
+    const ro =
+      frameRef.current && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(onResize)
+        : null;
+    if (ro && frameRef.current) ro.observe(frameRef.current);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      ro?.disconnect();
+    };
   }, [desktop, url, panel, syncBounds]);
 
   useEffect(() => {
@@ -288,7 +300,7 @@ export function InAppBrowser() {
   const openNewWindow = () => {
     setMoreOpen(false);
     if (desktop) void desktop.newWindow();
-    else window.open("/browser", "rok-desk-browser-2");
+    else window.open("/browser", "_blank", "noopener,width=1440,height=900");
   };
 
   const printPage = () => {

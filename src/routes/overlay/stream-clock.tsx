@@ -6,7 +6,7 @@ import { useLiveDesk } from "@/components/overlays/use-live-desk";
 
 function StreamClockPage() {
   const tournament = useLiveTournament();
-  const desk = useLiveDesk();
+  const desk = useLiveDesk(tournament?.gameId, 400, 1);
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-ov-bg">
       {tournament ? (

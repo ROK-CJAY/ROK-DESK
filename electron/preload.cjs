@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld("rokDesk", {
   browserReload: () => ipcRenderer.send("rok:browser-reload"),
   browserPrint: () => ipcRenderer.send("rok:browser-print"),
   browserZoom: (factor) => ipcRenderer.invoke("rok:browser-zoom", factor),
-  newWindow: () => ipcRenderer.invoke("rok:browser-new-window"),
+  newWindow: (url) => ipcRenderer.invoke("rok:browser-new-window", url || ""),
   historyList: () => ipcRenderer.invoke("rok:browser-history"),
   bookmarksList: () => ipcRenderer.invoke("rok:browser-bookmarks"),
   bookmarkAdd: (item) => ipcRenderer.invoke("rok:browser-bookmark-add", item),

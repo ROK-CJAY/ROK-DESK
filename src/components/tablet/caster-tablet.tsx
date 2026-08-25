@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { TypeIcon, TeraBadge } from "@/components/overlays/type-icon";
 import { InitiativeGlyph } from "@/components/desk/initiative";
@@ -30,6 +30,7 @@ import {
   type CasterPath,
 } from "@/lib/caster-path";
 import { cn } from "@/lib/cn";
+import { useClockNow } from "@/lib/use-clock-now";
 
 function countryName(code: string) {
   return COUNTRIES.find((c) => c.code === code)?.name || code || "—";
@@ -41,16 +42,11 @@ export function CasterTablet() {
   const desk = useDeskStore((s) => s.desk);
   const live = useLiveTournament();
   const guide = useTabletGuide("caster");
-  const [now, setNow] = useState(() => Date.now());
+  const now = useClockNow({ live: desk.timerRunning, pauseWhenHidden: true });
 
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
 
   useEffect(() => {
     let lock: WakeLockSentinel | null = null;

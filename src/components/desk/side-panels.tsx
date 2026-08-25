@@ -177,8 +177,12 @@ export function EventPanel() {
         <RoundClock />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="flex-1" asChild>
-            <a href={overlayPath(desk.gameId, "stream-clock")} target="_blank" rel="noreferrer">
-              Open stream clock
+            <a
+              href={overlayPath(desk.gameId, "stream-clock", desk.matchSlot ?? 1)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open {MATCH_SLOT_SHORT[(desk.matchSlot ?? 1) as MatchSlot]} clock
             </a>
           </Button>
           <Button
@@ -187,11 +191,11 @@ export function EventPanel() {
             className="flex-1"
             onClick={() => {
               void navigator.clipboard.writeText(
-                `${window.location.origin}${overlayPath(desk.gameId, "stream-clock")}`,
+                `${window.location.origin}${overlayPath(desk.gameId, "stream-clock", desk.matchSlot ?? 1)}`,
               );
             }}
           >
-            Copy stream clock URL
+            Copy clock URL
           </Button>
         </div>
       </div>

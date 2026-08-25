@@ -29,8 +29,8 @@ export function ClockPad({
   const [draft, setDraft] = useState(formatClock(remaining));
 
   useEffect(() => {
-    if (running) setDraft(formatClock(remaining));
-  }, [running, remaining]);
+    setDraft(formatClock(remaining));
+  }, [remaining]);
 
   const applyDraft = () => {
     const parsed = parseClockInput(draft);

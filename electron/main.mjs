@@ -1,4 +1,4 @@
-import { app, BrowserView, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserView, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
@@ -23,6 +23,11 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 8080;
 let servingPort = DEFAULT_PORT;
+
+app.commandLine.appendSwitch("ignore-gpu-blocklist");
+app.commandLine.appendSwitch("enable-gpu-rasterization");
+app.commandLine.appendSwitch("enable-zero-copy");
+app.commandLine.appendSwitch("disable-features", "CalculateNativeWinOcclusion");
 
 function isPackaged() {
   return app.isPackaged;
@@ -124,50 +129,97 @@ function guestForward(contents) {
   if (typeof contents.canGoForward === "function" && contents.canGoForward()) contents.goForward();
 }
 
-/** @type {WeakMap<import('electron').WebContents, import('electron').BrowserView>} */
+function isHttpUrl(url) {
+  return typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
+}
+
+function offsetFromFocused() {
+  const focused = BrowserWindow.getFocusedWindow();
+  if (!focused) return {};
+  const [x, y] = focused.getPosition();
+  return { x: x + 40, y: y + 40 };
+}
+
+/** @type {WeakMap<import('electron').WebContents, { webContents: import('electron').WebContents, setBounds: Function }>} */
 const guests = new WeakMap();
+
+function attachGuest(win, view) {
+  if (typeof win.contentView?.addChildView === "function" && view instanceof WebContentsView) {
+    const kids = win.contentView.children ?? [];
+    if (!kids.includes(view)) win.contentView.addChildView(view);
+    return;
+  }
+  if (typeof win.addBrowserView === "function") {
+    win.addBrowserView(view);
+    return;
+  }
+  win.setBrowserView(view);
+}
+
+function detachGuest(win, view) {
+  if (!view) return;
+  if (typeof win.contentView?.removeChildView === "function" && view instanceof WebContentsView) {
+    try {
+      win.contentView.removeChildView(view);
+    } catch {
+      /* already gone */
+    }
+    return;
+  }
+  if (typeof win.removeBrowserView === "function") {
+    win.removeBrowserView(view);
+    return;
+  }
+  win.setBrowserView(null);
+}
+
+function makeGuestView(win) {
+  const prefs = {
+    session: browserSession(),
+    contextIsolation: true,
+    nodeIntegration: false,
+    sandbox: true,
+    spellcheck: false,
+  };
+  const view =
+    typeof WebContentsView === "function"
+      ? new WebContentsView({ webPreferences: prefs })
+      : new BrowserView({ webPreferences: prefs });
+  if (typeof view.setBackgroundColor === "function") view.setBackgroundColor("#0b0d12");
+  view.webContents.setWindowOpenHandler(({ url }) => {
+    if (isHttpUrl(url)) void openBrowserWindow(url);
+    return { action: "deny" };
+  });
+  const sendUrl = (_event, url) => {
+    if (url) win.webContents.send("rok:browser-url", url);
+  };
+  view.webContents.on("did-navigate", sendUrl);
+  view.webContents.on("did-navigate-in-page", sendUrl);
+  view.webContents.on("page-title-updated", (_event, title) => {
+    win.webContents.send("rok:browser-title", title);
+    try {
+      const current = view.webContents.getURL();
+      recordHistory({ url: current, title });
+      win.webContents.send("rok:browser-history", loadHistory());
+    } catch {
+      /* ignore */
+    }
+  });
+  try {
+    view.webContents.setZoomFactor(loadSettings().zoom || 1);
+  } catch {
+    /* ignore */
+  }
+  guests.set(win.webContents, view);
+  return view;
+}
 
 function wireBrowserView(win) {
   let view = null;
 
   const ensureView = () => {
     if (view) return view;
-    view = new BrowserView({
-      webPreferences: {
-        session: browserSession(),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-      },
-    });
-    view.setBackgroundColor("#0b0d12");
-    view.webContents.setWindowOpenHandler(({ url }) => {
-      if (url.startsWith("http://") || url.startsWith("https://")) {
-        void view.webContents.loadURL(url);
-      }
-      return { action: "deny" };
-    });
-    const sendUrl = (_event, url) => {
-      if (url) win.webContents.send("rok:browser-url", url);
-    };
-    view.webContents.on("did-navigate", sendUrl);
-    view.webContents.on("did-navigate-in-page", sendUrl);
-    view.webContents.on("page-title-updated", (_event, title) => {
-      win.webContents.send("rok:browser-title", title);
-      try {
-        const current = view.webContents.getURL();
-        recordHistory({ url: current, title });
-        win.webContents.send("rok:browser-history", loadHistory());
-      } catch {
-        /* ignore */
-      }
-    });
-    try {
-      view.webContents.setZoomFactor(loadSettings().zoom || 1);
-    } catch {
-      /* ignore */
-    }
-    guests.set(win.webContents, view);
+    view = makeGuestView(win);
     return view;
   };
 
@@ -176,19 +228,18 @@ function wireBrowserView(win) {
   const onAttach = (event, bounds) => {
     if (!fromThisWindow(event)) return;
     const guest = ensureView();
-    win.setBrowserView(guest);
+    attachGuest(win, guest);
     guest.setBounds(clampBounds(bounds));
-    guest.setAutoResize({ width: true, height: true });
   };
   const onDetach = (event) => {
     if (!fromThisWindow(event)) return;
-    if (view) win.removeBrowserView(view);
+    detachGuest(win, view);
   };
   const onLoad = (event, url) => {
     if (!fromThisWindow(event)) return;
-    if (typeof url !== "string" || (!url.startsWith("http://") && !url.startsWith("https://"))) return;
+    if (!isHttpUrl(url)) return;
     const guest = ensureView();
-    win.setBrowserView(guest);
+    attachGuest(win, guest);
     void guest.webContents.loadURL(url);
   };
   const onBack = (event) => {
@@ -228,26 +279,44 @@ function wireBrowserView(win) {
   });
 }
 
-async function createWindow(port, route = "/") {
+async function createWindow(port, route = "/", { offset = false } = {}) {
+  const pos = offset ? offsetFromFocused() : {};
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
     minWidth: 1024,
     minHeight: 700,
-    title: route === "/browser" ? "ROK Browser" : "ROK Desk",
+    ...pos,
+    title: route.startsWith("/browser") ? "ROK Browser" : "ROK Desk",
     backgroundColor: "#0b0d12",
     autoHideMenuBar: true,
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      spellcheck: false,
+      backgroundThrottling: true,
     },
+  });
+
+  win.once("ready-to-show", () => {
+    win.show();
+    if (offset) win.focus();
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost")) {
+      if (url.includes("/browser")) {
+        void createWindow(port, "/browser", { offset: true });
+        return { action: "deny" };
+      }
       return { action: "allow" };
+    }
+    if (isHttpUrl(url)) {
+      void openBrowserWindow(url);
+      return { action: "deny" };
     }
     openExternal(url);
     return { action: "deny" };
@@ -261,6 +330,13 @@ async function createWindow(port, route = "/") {
   wireBrowserView(win);
   const pathName = route.startsWith("/") ? route : `/${route}`;
   await win.loadURL(`http://127.0.0.1:${port}${pathName}`);
+  return win;
+}
+
+async function openBrowserWindow(go) {
+  const pathName =
+    isHttpUrl(go) ? `/browser?go=${encodeURIComponent(go)}` : "/browser";
+  return createWindow(servingPort, pathName, { offset: true });
 }
 
 app.setName("ROK Desk");
@@ -295,8 +371,8 @@ if (!gotLock) {
       void shell.openPath(downloadsPath());
       return true;
     });
-    ipcMain.handle("rok:browser-new-window", async () => {
-      await createWindow(servingPort, "/browser");
+    ipcMain.handle("rok:browser-new-window", async (_event, url) => {
+      await openBrowserWindow(isHttpUrl(url) ? url : "");
       return true;
     });
     ipcMain.handle("rok:browser-zoom", (event, factor) => {

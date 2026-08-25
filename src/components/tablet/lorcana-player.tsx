@@ -3,19 +3,14 @@ import { formatClock, remainingSeconds, type SideId } from "@/lib/desk-types";
 import { gameDiamonds } from "@/lib/lorcana";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { cn } from "@/lib/cn";
-import { useEffect, useState } from "react";
+import { useClockNow } from "@/lib/use-clock-now";
 
 const LORE_STEPS = [8, -8, 1, -1];
 
 export function LorcanaPlayerTablet() {
   const desk = useDeskStore((s) => s.desk);
   const guide = useTabletGuide("lorcana-player");
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
+  const now = useClockNow({ live: desk.timerRunning, pauseWhenHidden: true });
 
   const clock = formatClock(remainingSeconds(desk, now));
 

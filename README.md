@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.2-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.3-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -18,7 +18,7 @@ On a typical show:
 2. Pairings go out as **single elim**, **double elim**, or **Swiss**. Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
 3. A ready pairing is **sent** onto **Stream Match**, **Floor Match 1**, or **Floor Match 2**. Production receives names, decks, inks, and teams.
 4. **Production Control** drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
-5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share the **stream clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander and Lorcana.
+5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share **that table’s match clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander and Lorcana.
 6. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**, which is a separate timer from the feature match.
 
 Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at once (PTCG on one side of the hall, Commander on the other) still means two hosts — each machine is one event.
@@ -74,9 +74,9 @@ Every title — including VGC — has **three** independent tables:
 | Player tablet | `/{game}/tablet?role=player` | `/{game}/2/tablet?role=player` | `/{game}/3/tablet?role=player` |
 | Commentary tablet | `/{game}/tablet?role=caster` | `/{game}/2/tablet?role=caster` | `/{game}/3/tablet?role=caster` |
 
-On Production, **Stream | Floor 1 | Floor 2** sits under the game chips. Each slot has its own players, scores, clock, winners, card spotlight, and tablets. Switching slots (or games) keeps the other tables.
+On Production, **Stream | Floor 1 | Floor 2** sits under the game chips. Each slot has its own players, scores, **match clock**, winners, card spotlight, and tablets. Switching slots (or games) keeps the other tables.
 
-**Floor clock**, **stream clock**, and **bracket** stay per-game (`/{game}/overlay/floor-clock`, `/{game}/overlay/stream-clock`, `/{game}/overlay/bracket`) — one tournament overlay for the room, not a copy per table.
+**Floor clock** and **bracket** stay per-game (`/{game}/overlay/floor-clock`, `/{game}/overlay/bracket`) — one room overlay, not a copy per table. **Match clocks** are per table (`/{game}/overlay/stream-clock`, `/{game}/2/overlay/stream-clock`, `/{game}/3/overlay/stream-clock`).
 
 From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor 1**, or **Floor 2**. Each on-air card has **Remove** if it was sent by mistake. That unassigns the pairing and clears that slot’s names on Production.
 
@@ -141,10 +141,11 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - SWU initiative toggle
 - PTCG prize count 6 / 4 / 3 / 2 / 1
 
-**Stream clock**
+**Match clock**
 - Starts at `00:00`. Type a time, start / pause, + / − while running or paused, reset
-- Independent from the Tournament floor clock. Judge tablets follow **this** clock so the feature table can start late
-- **Open stream clock** pops a full-screen page (`/{game}/overlay/stream-clock`) for a monitor at that table
+- **Stream**, **Floor 1**, and **Floor 2** each have their own timer. Judge tablets on that table follow **that** clock
+- Independent from the Tournament **floor clock** (the room timer for every other table)
+- **Open clock** pops a full-screen page for a monitor at that table (`/{game}/overlay/stream-clock`, `/{game}/2/overlay/stream-clock`, `/{game}/3/overlay/stream-clock`)
 
 **Show control**
 - Hold slates: Starting soon / BRB / Thanks / Tech (hidden = fully transparent)
@@ -170,7 +171,7 @@ Open from Production or Tournament so the URL is pinned to that **game and match
 
 ### Judge tablet
 
-How-to guide on first open. Start / pause / add or remove time / reset the **stream clock**. Game / Match report to the desk and, when linked, the bracket. Per-player **judge notes** (warnings, slow play, deck check) stay with that player for the event.
+How-to guide on first open. Start / pause / add or remove time / reset **this table’s match clock**. Game / Match report to the desk and, when linked, the bracket. Per-player **judge notes** (warnings, slow play, deck check) stay with that player for the event.
 
 | Game | Pad | Lookup |
 | --- | --- | --- |
@@ -247,6 +248,7 @@ Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no cust
 | VGC roster | `/{game}/overlay/roster` | `/{game}/2/overlay/roster` | `/{game}/3/overlay/roster` |
 | Bracket | `/{game}/overlay/bracket` | per game, not per table | per game, not per table |
 | Floor clock | `/{game}/overlay/floor-clock` | per game, not per table | per game, not per table |
+| Match clock | `/{game}/overlay/stream-clock` | `/{game}/2/overlay/stream-clock` | `/{game}/3/overlay/stream-clock` |
 | Stream clock | `/{game}/overlay/stream-clock` | per game, not per table | per game, not per table |
 
 Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
@@ -289,7 +291,7 @@ There are **two timers** on purpose.
 
 Both default to `00:00`. Type the round length, then start. Add or remove time while running or paused. Reset returns to `00:00` (stream) or the last typed floor time.
 
-**Open stream clock** lives on Production next to the stream timer. **Open floor clock** lives on Tournament.
+**Open clock** lives on Production next to that table’s timer. **Open floor clock** lives on Tournament.
 
 ---
 
@@ -345,6 +347,23 @@ npm run dist
 ---
 
 ## Changelog
+
+### v1.2.3-beta — 25 Aug 2026 · hotfix: per-table clocks
+
+Stream, Floor 1, and Floor 2 no longer share one production timer. Desktop browser and overlay polling also get a smoothness pass.
+
+**Added**
+- Independent **match clock** per table — Stream / Floor 1 / Floor 2 each keep their own time, judge tablet, scorebug, and pop-out monitor
+- Desktop **New window** opens a real OS browser window (offset and focused). Site popups do the same instead of replacing the current tab
+
+**Changed**
+- Production clock label follows the selected table (Stream clock / Floor 1 clock / Floor 2 clock)
+- Overlay clocks tick fast only while a timer is running; control-panel polling pauses when the window is in the background
+- Desktop build turns on GPU rasterization and stops Windows from throttling an “occluded” window
+
+**Fixed**
+- Switching Stream / Floor 1 / Floor 2 left the typed clock display stuck on the previous table
+- Overlay pages re-rendered the HUD on every poll even when nothing changed
 
 ### v1.2.2-beta — 25 Aug 2026 · caster, decklists, judge notes
 
@@ -477,4 +496,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.2-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.3-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

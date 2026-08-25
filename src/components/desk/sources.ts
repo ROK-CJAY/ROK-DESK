@@ -124,9 +124,9 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
   {
     id: "stream-clock",
     path: "/overlay/stream-clock",
-    name: "Stream clock",
+    name: "Match clock",
     size: "1920 × 1080",
-    note: "Full-screen clock for a monitor at the streamed table. Driven from Production (same timer as the scorebug).",
+    note: "Full-screen clock for a monitor at that table. Stream, Floor 1, and Floor 2 each have their own timer. The room-wide floor clock stays on Tournament.",
   },
   {
     id: "roster",
@@ -159,7 +159,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
 ];
 
 export function overlayPath(gameId: GameId, source: OverlaySourceId, slot: MatchSlot = 1): string {
-  if (source === "floor-clock" || source === "stream-clock" || source === "bracket") {
+  if (source === "floor-clock" || source === "bracket") {
     return `/${slugOf(gameId)}/overlay/${source}`;
   }
   if (slot !== 1) return `/${slugOf(gameId)}/${slot}/overlay/${source}`;

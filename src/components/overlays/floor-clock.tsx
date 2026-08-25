@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { formatClock, remainingSeconds, type DeskState } from "@/lib/desk-types";
+import { MATCH_SLOT_CLOCK, formatClock, remainingSeconds, type DeskState, type MatchSlot } from "@/lib/desk-types";
 import { gameOf } from "@/lib/games";
 import { currentSponsor, liveSponsors } from "@/lib/sponsors";
 import type { TournamentState } from "@/lib/tournament-types";
+import { useClockNow } from "@/lib/use-clock-now";
 
 const IDLE_CLOCK = { timerRunning: false, timerEndsAt: null, timerSeconds: 0 };
 
@@ -15,13 +15,12 @@ export function FloorClockOverlay({
   desk?: DeskState | null;
   variant?: "floor" | "stream";
 }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 200);
-    return () => window.clearInterval(id);
-  }, []);
-
   const clock = variant === "stream" ? (desk ?? IDLE_CLOCK) : tournament;
+  const now = useClockNow({
+    live: Boolean(clock.timerRunning),
+    pauseWhenHidden: false,
+    liveMs: 200,
+  });
   const left = remainingSeconds(clock, now);
   const running = Boolean(clock.timerRunning);
   const preset = variant === "stream" ? (desk?.timerPresetSeconds ?? 0) : tournament.timerPresetSeconds;
@@ -55,7 +54,9 @@ export function FloorClockOverlay({
           </div>
           <div className="text-right">
             <p className="font-mono text-[clamp(0.65rem,1vw,0.85rem)] tracking-[0.22em] text-ov-muted uppercase">
-              {stream ? "Stream clock" : "Floor clock"}
+              {stream
+                ? MATCH_SLOT_CLOCK[(desk?.matchSlot ?? 1) as MatchSlot]
+                : "Floor clock"}
             </p>
             <p className="font-display text-[clamp(1.2rem,2.4vw,2rem)] font-semibold text-ov-fg uppercase">
               {tournament.bracketType === "swiss" ? "Swiss" : tournament.bracketType === "double" ? "Double elim" : "Single elim"}

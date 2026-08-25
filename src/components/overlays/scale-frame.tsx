@@ -69,6 +69,8 @@ export function ScaleFrame({
             top: offset.y,
             transform: `scale(${scale})`,
             transformOrigin: "top left",
+            contain: "strict",
+            willChange: "transform",
           }}
         >
           {children}

@@ -16,7 +16,7 @@ export function AppChrome({
   trailing?: React.ReactNode;
 }) {
   return (
-    <header className="border-b border-border bg-surface/80 backdrop-blur-sm">
+    <header className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-3">

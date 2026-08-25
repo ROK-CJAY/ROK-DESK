@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
 import { ClockPad } from "@/components/desk/clock-pad";
 import { remainingSeconds } from "@/lib/desk-types";
 import { useTournamentStore } from "@/lib/tournament-store";
+import { useClockNow } from "@/lib/use-clock-now";
 
 export function FloorClock({ compact = false }: { compact?: boolean }) {
   const t = useTournamentStore((s) => s.tournament);
@@ -9,12 +9,7 @@ export function FloorClock({ compact = false }: { compact?: boolean }) {
   const setFloorClock = useTournamentStore((s) => s.setFloorClock);
   const addFloorSeconds = useTournamentStore((s) => s.addFloorSeconds);
   const resetFloorTimer = useTournamentStore((s) => s.resetFloorTimer);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
+  const now = useClockNow({ live: t.timerRunning, pauseWhenHidden: true });
 
   return (
     <ClockPad

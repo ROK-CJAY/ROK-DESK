@@ -64,7 +64,7 @@ export function PinnedGameOverlay({
     return <PinnedFloorClock gameId={gameId} />;
   }
   if (source === "stream-clock") {
-    return <PinnedStreamClock gameId={gameId} />;
+    return <PinnedStreamClock gameId={gameId} slot={slot} />;
   }
   if (source === "bracket") {
     return <PinnedBracket gameId={gameId} />;
@@ -128,9 +128,9 @@ function PinnedFloorClock({ gameId }: { gameId: GameId }) {
   );
 }
 
-function PinnedStreamClock({ gameId }: { gameId: GameId }) {
+function PinnedStreamClock({ gameId, slot = 1 }: { gameId: GameId; slot?: MatchSlot }) {
   const tournament = useLiveTournament();
-  const desk = useLiveDesk(gameId, 400, 1);
+  const desk = useLiveDesk(gameId, 400, slot);
   if (!tournament) return null;
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-ov-bg">

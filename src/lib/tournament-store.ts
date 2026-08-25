@@ -60,6 +60,7 @@ let pollTimer: number | null = null;
 function startTournamentPoll() {
   if (pollTimer || typeof window === "undefined") return;
   pollTimer = window.setInterval(() => {
+    if (typeof document !== "undefined" && document.hidden) return;
     void (async () => {
       try {
         const res = await fetch("/api/tournament", { cache: "no-store" });
@@ -75,7 +76,7 @@ function startTournamentPoll() {
         /* keep local */
       }
     })();
-  }, 500);
+  }, 800);
 }
 
 function persist(t: TournamentState) {

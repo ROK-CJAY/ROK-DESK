@@ -13,7 +13,9 @@ export function useLiveTournament(pollMs = 400): TournamentState | null {
         const res = await fetch("/api/tournament", { cache: "no-store" });
         if (res.ok) {
           const parsed = parseTournament(await res.json());
-          if (!cancelled && parsed) setTournament(parsed);
+          if (!cancelled && parsed) {
+            setTournament((prev) => (prev && prev.version === parsed.version ? prev : parsed));
+          }
         }
       } catch {
         /* keep last good frame */

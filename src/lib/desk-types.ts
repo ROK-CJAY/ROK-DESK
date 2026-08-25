@@ -36,6 +36,12 @@ export const MATCH_SLOT_SHORT: Record<MatchSlot, string> = {
   2: "Floor 1",
   3: "Floor 2",
 };
+
+export const MATCH_SLOT_CLOCK: Record<MatchSlot, string> = {
+  1: "Stream clock",
+  2: "Floor 1 clock",
+  3: "Floor 2 clock",
+};
 export const SEAT_IDS: SeatId[] = ["p1", "p2", "p3", "p4"];
 export const SEAT_LABELS: Record<SeatId, string> = {
   p1: "Seat 1",

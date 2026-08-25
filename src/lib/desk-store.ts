@@ -111,6 +111,7 @@ function deskApiUrl(): string {
 function startDeskPoll() {
   if (pollTimer || typeof window === "undefined") return;
   pollTimer = window.setInterval(() => {
+    if (typeof document !== "undefined" && document.hidden) return;
     void (async () => {
       try {
         const res = await fetch(deskApiUrl(), { cache: "no-store" });
@@ -126,7 +127,7 @@ function startDeskPoll() {
         /* keep local */
       }
     })();
-  }, 400);
+  }, 700);
 }
 
 function persist(desk: DeskState, immediate = false) {
@@ -381,12 +382,6 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       down: normalizeDown([]),
     };
     const seats = withSeats(prev, { ...resources, score: 0 });
-    const savedClock = {
-      remaining: remainingSeconds(prev),
-      preset: prev.timerPresetSeconds,
-    };
-    const clocks = { ...prev.gameClocks, [prev.gameId]: savedClock };
-    const nextClock = clocks[gameId] ?? { remaining: 0, preset: 0 };
     const desk = nextVersion(prev, {
       gameId,
       matchSlot: nextSlot,
@@ -399,11 +394,14 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       ...seats,
       winnerSide: null,
       gameWinnerSide: null,
-      timerSeconds: nextClock.remaining,
-      timerPresetSeconds: nextClock.preset,
+      timerSeconds: 0,
+      timerPresetSeconds: 0,
       timerRunning: false,
       timerEndsAt: null,
-      gameClocks: clocks,
+      gameClocks: {
+        ...prev.gameClocks,
+        [prev.gameId]: { remaining: remainingSeconds(prev), preset: prev.timerPresetSeconds },
+      },
       lanes,
     });
     persist(desk);
@@ -436,6 +434,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       cardSpotlight: emptySpotlight(),
       roundName: "",
       timerSeconds: 0,
+      timerPresetSeconds: 0,
       timerRunning: false,
       timerEndsAt: null,
       lanes,

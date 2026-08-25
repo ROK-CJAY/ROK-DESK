@@ -36,6 +36,7 @@ import {
   type WidgetId,
 } from "@/lib/layout";
 import { cn } from "@/lib/cn";
+import { useClockNow } from "@/lib/use-clock-now";
 
 const HISTORY_LIMIT = 30;
 
@@ -49,7 +50,7 @@ export function OverlayPreview() {
   const tourneyReady = useTournamentStore((s) => s.ready);
   const hydrateTourney = useTournamentStore((s) => s.hydrate);
   const [source, setSource] = useState<OverlaySourceId>("hud");
-  const [now, setNow] = useState(() => Date.now());
+  const now = useClockNow({ live: desk.timerRunning, pauseWhenHidden: true });
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [arranging, setArranging] = useState(false);
@@ -57,11 +58,6 @@ export function OverlayPreview() {
   const [past, setPast] = useState<LayoutMap[]>([]);
   const [future, setFuture] = useState<LayoutMap[]>([]);
   const gestureStart = useRef<LayoutMap | null>(null);
-
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 250);
-    return () => window.clearInterval(id);
-  }, []);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -214,7 +210,7 @@ export function OverlayPreview() {
       </div>
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,52rem)_minmax(18rem,1fr)]">
-      <div className="checker relative aspect-video overflow-hidden rounded-lg border border-border">
+      <div className="checker relative aspect-video overflow-hidden rounded-lg border border-border contain-paint">
         <img
           src="/slates/starting.jpg"
           alt=""
@@ -358,7 +354,7 @@ export function OverlayPreview() {
                   </Button>
                 </div>
               </div>
-              <div className="checker relative min-h-0 overflow-hidden rounded-xl border border-border">
+              <div className="checker relative min-h-0 overflow-hidden rounded-xl border border-border contain-paint">
                 <img
                   src="/slates/starting.jpg"
                   alt=""

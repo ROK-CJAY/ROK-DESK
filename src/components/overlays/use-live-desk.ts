@@ -17,7 +17,9 @@ export function useLiveDesk(gameId?: GameId, pollMs = 400, slot: MatchSlot = 1):
         const res = await fetch(path, { cache: "no-store" });
         if (res.ok) {
           const parsed = parseDesk(await res.json());
-          if (!cancelled && parsed) setDesk(parsed);
+          if (!cancelled && parsed) {
+            setDesk((prev) => (prev && prev.version === parsed.version ? prev : parsed));
+          }
         }
       } catch {
         /* keep last good frame */
