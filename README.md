@@ -31,7 +31,7 @@ Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at o
 | --- | --- | --- |
 | Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games |
 | Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3, **Play Layout** board |
-| One Piece TCG | `op` | Life, DON!!, Bo1 by default |
+| One Piece TCG | `op` | Life, DON!!, Bo1 by default, ROK Layout |
 | Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3 |
 | Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH |
 | Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, ROK Layout |
@@ -251,7 +251,7 @@ Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no cust
 
 Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
-**ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, Riftbound, and SWU have the same frame with their own card backs.
+**ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, One Piece, Riftbound, and SWU have the same frame with their own card backs.
 
 **Play Layout** is the default PTCG scorebug — a table-cam overlay in **ROK colors** (charcoal rails, silver borders, red chips, gold ability labels). Full-height rails on both sides (Active illustration, five bench slots, prizes inline with the player name on the inner edge, W/L/D, country) with a transparent center for the overhead camera. Energy / Supporter / Retreat start ON. HP bars are green, turn orange at 30%, red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
 

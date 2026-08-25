@@ -13,6 +13,7 @@ export function rokCardBack(desk: DeskState): string {
   if (desk.gameId === "pokemon-tcg") return "/ptcg/card-back-v2.png";
   if (desk.gameId === "riftbound") return "/riftbound/card-back.png";
   if (desk.gameId === "swu") return "/swu/card-back.png";
+  if (desk.gameId === "one-piece") return "/op/card-back.png";
   return "/lorcana/card-back.png";
 }
 
@@ -22,7 +23,8 @@ export function rokDiamondCount(desk: DeskState): number {
     desk.gameId === "yugioh" ||
     desk.gameId === "pokemon-tcg" ||
     desk.gameId === "riftbound" ||
-    desk.gameId === "swu"
+    desk.gameId === "swu" ||
+    desk.gameId === "one-piece"
   ) {
     return Math.max(1, desk.bestOf);
   }
@@ -65,6 +67,7 @@ function RokSide({
   const ptcg = desk.gameId === "pokemon-tcg";
   const riftbound = desk.gameId === "riftbound";
   const swu = desk.gameId === "swu";
+  const op = desk.gameId === "one-piece";
   const hasInit = swu && desk.initiativeSide === side;
   const max = resourceLimit(desk);
   const needed = rokDiamondCount(desk);
@@ -100,6 +103,11 @@ function RokSide({
           {swu ? (
             <div className="mb-3">
               <LifeMeter label="Base HP" value={player.resource} />
+            </div>
+          ) : null}
+          {op ? (
+            <div className="mb-3">
+              <LifeMeter label="DON!!" value={player.secondary} />
             </div>
           ) : null}
           <div className="mx-auto w-[9.2rem] bg-ov-fg px-2.5 py-1 text-center">
@@ -146,7 +154,7 @@ function RokSide({
         </div>
       </div>
 
-      {lorcana || ptcg || riftbound ? (
+      {lorcana || ptcg || riftbound || op ? (
         <div className="flex w-[2.65rem] shrink-0 flex-col">
           <div className="invisible pt-3">
             <NamePlate name={player.name} />
@@ -154,6 +162,8 @@ function RokSide({
           <div className="w-full" style={{ height: `calc(${WELL} * 5 / 4)` }}>
             {ptcg ? (
               <PrizeBallBar remaining={Math.min(max, Math.max(0, player.resource))} max={max} />
+            ) : op ? (
+              <OpLifeBar remaining={Math.min(max, Math.max(0, player.resource))} max={max} />
             ) : (
               <LoreLadder value={Math.min(max, Math.max(0, player.resource))} max={max} />
             )}
@@ -202,6 +212,24 @@ function MtgMeters({ life, poison }: { life: number; poison: number }) {
         </p>
       </div>
     </div>
+  );
+}
+
+function OpLifeBar({ remaining, max }: { remaining: number; max: number }) {
+  const count = Math.max(1, max);
+  return (
+    <ol className="flex h-full w-full flex-col bg-[#8b1e22]">
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i} className="flex min-h-0 flex-1 items-center justify-center border border-black/45">
+          <span
+            className={cn(
+              "inline-block size-5 rounded-full border-2",
+              i < remaining ? "border-[#e4c56a] bg-[#e4c56a]" : "border-[#e4c56a]/55 bg-transparent",
+            )}
+          />
+        </li>
+      ))}
+    </ol>
   );
 }
 

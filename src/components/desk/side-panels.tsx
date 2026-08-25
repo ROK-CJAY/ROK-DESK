@@ -599,6 +599,8 @@ export function ShowPanel() {
                       ? "Cameras, point ladder, W/L/D, Best-of diamonds, clock, Riftbound card well."
                       : desk.gameId === "swu"
                         ? "Cameras, base HP, initiative, W/L/D, Best-of diamonds, clock, SWU card well."
+                        : desk.gameId === "one-piece"
+                          ? "Cameras, life pips, DON!!, W/L/D, Best-of diamonds, clock, One Piece card well."
                       : "Cameras, lore ladder, inks, W/L/D, diamonds, clock, card well."}
             </p>
           ) : desk.scorebugStyle === "play" ? (

@@ -141,7 +141,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Saka · Luffy · Yamato",
     scoreLabel: "Games",
     defaultBestOf: 1,
-    defaultScorebug: "bar",
+    defaultScorebug: "rok",
     formats: [
       { id: "standard", label: "Standard", bestOf: 1 },
       { id: "extra", label: "Extra (all cards)", bestOf: 1 },
@@ -510,6 +510,7 @@ const ROK_LAYOUT_GAMES: GameId[] = [
   "riftbound",
   "swu",
   "mtg",
+  "one-piece",
 ];
 
 export function supportsRokLayout(desk: { gameId: GameId; formatName?: string }): boolean {
