@@ -1,6 +1,6 @@
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
-import { cardImageUrl } from "@/lib/card-lookup";
+import { RemoteArt } from "@/components/ui/remote-art";
 import type { DeskState } from "@/lib/desk-types";
 
 export function CardSpotlightView({
@@ -11,7 +11,7 @@ export function CardSpotlightView({
   edit?: OverlayEdit | null;
 }) {
   const card = desk.cardSpotlight;
-  const show = Boolean(card?.visible && card.image);
+  const show = Boolean(card?.visible && (card.image || card.id));
   if (!show && !edit) return null;
 
   return (
@@ -19,13 +19,10 @@ export function CardSpotlightView({
       <Placed id="cardSpotlight">
         {show ? (
           <figure className="w-[26rem]">
-            <img
-              src={cardImageUrl(card.image, "high")}
-              alt=""
+            <RemoteArt
+              image={card.image}
+              id={card.id}
               className="w-full rounded-xl shadow-[0_24px_60px_rgb(0_0_0_/_0.45)]"
-              onError={(event) => {
-                event.currentTarget.style.display = "none";
-              }}
             />
             <figcaption className="mt-3 rounded-lg bg-ov-panel/90 px-3 py-2">
               <p className="font-display text-2xl leading-none font-semibold tracking-wide text-ov-fg uppercase">
