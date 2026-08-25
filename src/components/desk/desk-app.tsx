@@ -77,7 +77,7 @@ export function DeskApp() {
           <div className="order-1 flex flex-col gap-4 lg:order-2">
             <MatchControl />
             {lookupCatalog ? (
-              <CardLookup compact catalog={lookupCatalog} formatName={desk.formatName} />
+              <CardLookup key={lookupCatalog} compact catalog={lookupCatalog} formatName={desk.formatName} />
             ) : null}
             <PtcgBoardPanel />
             <TeamPanel />

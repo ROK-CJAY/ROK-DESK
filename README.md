@@ -171,12 +171,12 @@ Open from Production or Tournament so the URL is pinned to that **game and match
 
 ### Judge tablet
 
-How-to guide on first open. Start / pause / add or remove time / reset **this table’s match clock**. Game / Match report to the desk and, when linked, the bracket. Per-player **judge notes** (warnings, slow play, deck check) stay with that player for the event.
+How-to guide on first open. Start / pause / add or remove time / reset **this table’s match clock**. Game / Match report to the desk and, when linked, the bracket. Per-player **judge notes** (warnings, slow play, deck check) stay with that player for the event. PTCG judges get the same **PTCG board** card as Production (Active / bench / HP / Swap / KO / Clear).
 
 | Game | Pad | Lookup |
 | --- | --- | --- |
 | VGC | Remaining Pokémon from the team sheet (tap to KO) | — |
-| PTCG | Prize balls, Energy / Supporter / Retreat, Active / bench, Swap / KO in | TCGdex — Show P1 / Show P2 / Clear, Set Active, Set Bench |
+| PTCG | Prize balls, Energy / Supporter / Retreat, full PTCG board card (Active / bench / HP / Swap / KO) | TCGdex — Show P1 / Show P2 / Clear, Set Active, Set Bench |
 | MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall |
 | SWU | Base HP, initiative | SWU-DB |
 | YGO | 8000 LP, typed ticks | YGOPRODeck |
@@ -347,6 +347,11 @@ npm run dist
 ---
 
 ## Changelog
+
+### HOTFIX — 25 Aug 2026 · PTCG lookup & judge board
+
+- Card lookup (search, selected card, on-stream spotlight) clears when you switch games in Production
+- PTCG judge tablet now has the full **PTCG board** card from Production (Active / bench / HP / Swap / KO / Clear)
 
 ### v1.2.3-beta — 25 Aug 2026 · hotfix: per-table clocks
 

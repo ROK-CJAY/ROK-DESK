@@ -122,6 +122,14 @@ export function CardLookup({
     };
   }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat]);
 
+  useEffect(() => {
+    setQuery("");
+    setResults([]);
+    setSelected(null);
+    setStatus("idle");
+    setLiveOnly(true);
+  }, [catalog]);
+
   const detailOf = async (card: LookupCard) => {
     if ((card.attacks && card.attacks.length) || (card.abilities && card.abilities.length) || card.hp) return card;
     try {

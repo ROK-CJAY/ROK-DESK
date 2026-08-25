@@ -398,6 +398,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       timerPresetSeconds: 0,
       timerRunning: false,
       timerEndsAt: null,
+      cardSpotlight: emptySpotlight(),
       gameClocks: {
         ...prev.gameClocks,
         [prev.gameId]: { remaining: remainingSeconds(prev), preset: prev.timerPresetSeconds },

@@ -3,7 +3,7 @@ import { type SideId, resourceLimit } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { CardLookup } from "@/components/tablet/card-lookup";
-import { PtcgJudgeBoard } from "@/components/desk/ptcg-board-panel";
+import { PtcgBoardPanel } from "@/components/desk/ptcg-board-panel";
 import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
@@ -118,7 +118,8 @@ export function TcgJudgeTablet() {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3">
+        <PtcgBoardPanel />
         <CardLookup />
       </div>
       <TabletGuide kind="tcg" open={guide.open} onClose={guide.close} />
@@ -196,7 +197,6 @@ function TcgSide({
         </Button>
       </div>
       <PtcgTurnFlags side={side === "p2" ? "p2" : "p1"} align={align} />
-      <PtcgJudgeBoard side={side === "p2" ? "p2" : "p1"} />
       <JudgeNotes seat={side === "p2" ? "p2" : "p1"} />
     </div>
   );
