@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.3.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.3.1-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -231,7 +231,7 @@ Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
 **ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, Riftbound, and SWU have the same frame with their own card backs.
 
-**Play Layout** is the default PTCG scorebug — a Play! Pokémon-style table-cam overlay. Full-height rails on both sides (Active illustration, five bench slots, prizes, W/L/D, country) with a transparent center for the overhead camera. Energy / Supporter / Retreat start ON. HP bars are green, turn orange at 30%, red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
+**Play Layout** is the default PTCG scorebug — a table-cam overlay in **ROK colors** (charcoal rails, silver borders, red chips, gold ability labels). Full-height rails on both sides (Active illustration, five bench slots, prizes inline with the player name on the inner edge, W/L/D, country) with a transparent center for the overhead camera. Energy / Supporter / Retreat start ON. HP bars are green, turn orange at 30%, red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
 
 Empty card / sponsor / event-logo sources stay fully transparent.
 
@@ -321,6 +321,16 @@ npm run dist
 ---
 
 ## Changelog
+
+### v1.3.1-beta — 25 Aug 2026 · Play Layout polish
+
+Graphical pass on the PTCG Play Layout and Production resource numbers.
+
+**Changed**
+- Play Layout uses ROK colors (charcoal rails, silver borders, red Energy / Supporter / Retreat, gold ability labels)
+- Prize balls sit horizontal, inline with the player name, on the inner edge of each rail
+- Larger player name, country, and W/L/D on Play Layout
+- Production life / HP / LP totals are a bit larger
 
 ### v1.3.0-beta — 25 Aug 2026 · Stream / Floor tables
 
@@ -422,4 +432,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.3.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; Stream / Floor tables are 1.3. Expect polish.
+This build is **v1.3.1-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; Stream / Floor tables are 1.3. Expect polish.

@@ -6,7 +6,9 @@ import { cn } from "@/lib/cn";
 
 const RAIL_W = "21.25rem";
 const SLOT =
-  "rounded-lg border border-[#7ec8ff]/45 bg-[#0a2d72]/90 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.06)]";
+  "rounded-lg border border-white/20 bg-[#16191e]/95 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.45)]";
+const ABILITY = "text-[#e4c56a]";
+const ABILITY_NAME = "text-[#f0d78a]";
 
 /**
  * Landscape illustration window of a printed TCG card.
@@ -23,7 +25,7 @@ function CardIllustration({
 }) {
   const src = cardImageUrl(image, size);
   return (
-    <div className={cn("relative overflow-hidden bg-[#061530]", className)} style={{ aspectRatio: "5 / 3" }}>
+    <div className={cn("relative overflow-hidden bg-[#0b0c0e]", className)} style={{ aspectRatio: "5 / 3" }}>
       {src ? (
         <img
           src={src}
@@ -90,15 +92,15 @@ function ActiveCard({ mon }: { mon: PtcgMon }) {
     <div className="flex shrink-0 flex-col gap-2">
       <div className={cn("relative overflow-hidden", SLOT)}>
         <CardIllustration image={mon.image} className="w-full" />
-        <p className="pointer-events-none absolute top-2 right-2 rounded-md bg-[#071a40]/85 px-2 py-0.5 font-display text-[1.15rem] leading-none font-semibold tracking-wide text-white uppercase">
+        <p className="pointer-events-none absolute top-2 right-2 rounded-sm bg-[#f4f4f1] px-2 py-0.5 font-display text-[1.15rem] leading-none font-semibold tracking-wide text-[#101215] uppercase">
           {mon.name}
         </p>
       </div>
       <HpBar now={mon.hpNow} max={mon.hp} />
       {mon.abilities[0] ? (
         <p className="text-[0.92rem] leading-tight">
-          <span className="font-semibold tracking-wide text-[#ff6b9a] uppercase">Ability</span>
-          <span className="ml-2 text-[#ff9fbe]">{mon.abilities[0].name}</span>
+          <span className={cn("font-semibold tracking-wide uppercase", ABILITY)}>Ability</span>
+          <span className={cn("ml-2", ABILITY_NAME)}>{mon.abilities[0].name}</span>
         </p>
       ) : null}
       <div className="space-y-1">
@@ -119,7 +121,7 @@ function ActiveCard({ mon }: { mon: PtcgMon }) {
 function BenchRow({ mon }: { mon: PtcgMon | null }) {
   if (!mon) {
     return (
-      <div className={cn("grid min-h-[5.25rem] flex-1 place-items-center", SLOT, "bg-[#08245c]/90")}>
+      <div className={cn("grid min-h-[5.25rem] flex-1 place-items-center", SLOT, "bg-[#14161a]/90")}>
         <span className="text-[0.85rem] font-semibold tracking-[0.28em] text-white/40 uppercase">Empty</span>
       </div>
     );
@@ -133,8 +135,8 @@ function BenchRow({ mon }: { mon: PtcgMon | null }) {
         </p>
         {mon.abilities[0] ? (
           <p className="truncate text-[0.78rem]">
-            <span className="font-semibold tracking-wide text-[#ff6b9a] uppercase">Ability</span>
-            <span className="ml-1.5 text-[#ff9fbe]">{mon.abilities[0].name}</span>
+            <span className={cn("font-semibold tracking-wide uppercase", ABILITY)}>Ability</span>
+            <span className={cn("ml-1.5", ABILITY_NAME)}>{mon.abilities[0].name}</span>
           </p>
         ) : null}
         {mon.attacks[0] ? (
@@ -159,7 +161,7 @@ function SpotlightOverBench({ mon }: { mon: PtcgMon }) {
       </div>
       <p className="font-display text-center text-lg font-semibold tracking-wide text-white uppercase">{mon.name}</p>
       {mon.abilities[0] ? (
-        <p className="text-center text-[0.8rem] text-[#ff9fbe]">{mon.abilities[0].name}</p>
+        <p className={cn("text-center text-[0.8rem]", ABILITY_NAME)}>{mon.abilities[0].name}</p>
       ) : null}
       {mon.attacks.slice(0, 2).map((atk) => (
         <p key={atk.name} className="flex items-center justify-between text-[0.9rem] text-white">
@@ -180,8 +182,8 @@ function TurnChips({ board }: { board: PtcgSideBoard }) {
       className={cn(
         "flex-1 rounded-md border px-1 py-1.5 text-center text-[0.68rem] font-semibold tracking-[0.14em] uppercase",
         on
-          ? "border-[#7ec8ff]/70 bg-[#3ec6ff] text-[#04204a]"
-          : "border-white/10 bg-black/30 text-white/35 line-through",
+          ? "border-[#d4534c] bg-[#d4534c] text-white"
+          : "border-white/10 bg-black/40 text-white/35 line-through",
       )}
     >
       {label}
@@ -217,41 +219,40 @@ function Rail({
         align === "left" ? "left-0" : "right-0",
       )}
       style={{
-        background:
-          align === "left"
-            ? "linear-gradient(180deg, #0b2f6e 0%, #082552 100%)"
-            : "linear-gradient(180deg, #0b3b86 0%, #082a60 100%)",
-        boxShadow: align === "right" ? "inset 0 0 0 1px #3ec6ff88, 0 0 24px #2ad0ff55" : "inset 0 0 0 1px #1a4a9a",
+        background: "linear-gradient(180deg, #16191e 0%, #0b0c0e 100%)",
+        boxShadow: align === "right" ? "inset 0 0 0 1px #c5ccd688, 0 0 18px #d4534c33" : "inset 0 0 0 1px #2a2e35",
         width: RAIL_W,
       }}
     >
       <header className="mb-2 flex shrink-0 items-start justify-between gap-2">
-        <div className={cn("min-w-0", align === "right" && "order-2 text-right")}>
-          <div className={cn("flex items-center gap-1.5", align === "right" && "justify-end")}>
-            <span className="rounded-sm bg-white/12 px-1 py-0.5 font-mono text-[0.62rem] tracking-wider text-white/80">
+        <div className={cn("min-w-0 flex-1", align === "right" && "order-2 text-right")}>
+          <div className={cn("flex items-center gap-2", align === "right" && "justify-end")}>
+            <span className="rounded-sm bg-white/12 px-1.5 py-0.5 font-mono text-[0.95rem] leading-none tracking-wider text-white/90">
               {player.country || "—"}
             </span>
-            <span className="font-mono text-[0.68rem] tabular-nums text-white/70">
+            <span className="font-mono text-[1.05rem] leading-none tabular-nums text-white/80">
               {player.recordW}/{player.recordL}/{player.recordD}
             </span>
           </div>
-          <p className="font-display truncate text-[1.35rem] leading-tight font-semibold tracking-wide text-white uppercase">
-            {player.name || (align === "left" ? "Player 1" : "Player 2")}
-          </p>
+          <div className={cn("mt-0.5 flex items-center gap-2", align === "right" && "flex-row-reverse")}>
+            <p className="font-display min-w-0 flex-1 truncate text-[2rem] leading-tight font-semibold tracking-wide text-white uppercase">
+              {player.name || (align === "left" ? "Player 1" : "Player 2")}
+            </p>
+            <div className="flex shrink-0 gap-0.5">
+              {Array.from({ length: max }, (_, i) => (
+                <PokeballIcon key={i} filled={i < prizes} className="size-5" />
+              ))}
+            </div>
+          </div>
         </div>
         <p className={cn("font-display text-[2.35rem] leading-none font-semibold text-white", align === "right" && "order-1")}>
           {player.score}
         </p>
       </header>
-      <div className={cn("mb-2 flex shrink-0 gap-1", align === "right" && "justify-end")}>
-        {Array.from({ length: max }, (_, i) => (
-          <PokeballIcon key={i} filled={i < prizes} className="size-4" />
-        ))}
-      </div>
       {board.active ? (
         <ActiveCard mon={board.active} />
       ) : (
-        <div className={cn("grid aspect-[5/3] shrink-0 place-items-center", SLOT, "bg-[#08245c]/90")}>
+        <div className={cn("grid aspect-[5/3] shrink-0 place-items-center", SLOT, "bg-[#14161a]/90")}>
           <span className="text-[0.8rem] font-semibold tracking-[0.28em] text-white/35 uppercase">Active</span>
         </div>
       )}
@@ -279,15 +280,15 @@ export function PtcgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; no
         style={{ left: RAIL_W, right: RAIL_W }}
       >
         <div
-          className="rounded-t-md border border-[#7ec8ff] px-6 py-1.5"
+          className="rounded-t-md border border-white/25 px-6 py-1.5"
           style={{
-            background: "#071a40",
-            boxShadow: "0 0 18px #071a40, 0 0 0 1px #0b2f6e",
+            background: "#0b0c0e",
+            boxShadow: "0 0 18px #0b0c0e, 0 0 0 1px #2a2e35",
           }}
         >
-          <p className="font-display text-center text-[1.1rem] tracking-[0.08em] text-white uppercase">
+          <p className="font-display text-center text-[1.1rem] tracking-[0.08em] text-[#f4f4f1] uppercase">
             {title}
-            <span className="mx-2 text-[#3ec6ff]">—</span>
+            <span className="mx-2 text-[#d4534c]">—</span>
             <span className="font-mono tabular-nums">{clock}</span>
           </p>
         </div>

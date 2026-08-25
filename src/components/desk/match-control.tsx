@@ -209,7 +209,7 @@ function SeatCard({
       <div className="mt-4">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs text-muted">Life</span>
-          <span className="font-display text-3xl font-semibold tabular-nums">{player.resource}</span>
+          <span className="font-display text-4xl font-semibold tabular-nums">{player.resource}</span>
         </div>
         <DeltaPad onDelta={onResource} className={cn(rtl && "lg:justify-end")} />
         <div className={cn("mt-2 flex flex-wrap gap-1.5", rtl && "lg:justify-end")}>
@@ -401,7 +401,7 @@ function PlayerColumn({
       <div className="mt-4">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-xs text-muted">{game.resource.label}</span>
-          <span className="font-mono text-xs tabular-nums text-fg">{player.resource}</span>
+          <span className="font-display text-2xl font-semibold tabular-nums text-fg">{player.resource}</span>
         </div>
         {game.resource.pipStyle === "team" ? (
           <div className={cn("flex flex-wrap", rtl && "lg:justify-end")}>
@@ -479,7 +479,7 @@ function PlayerColumn({
             <Button variant="outline" size="score" onClick={() => onResource(-game.resource.step)}>
               −
             </Button>
-            <span className="font-display min-w-14 text-center text-3xl font-semibold tabular-nums">
+            <span className="font-display min-w-14 text-center text-4xl font-semibold tabular-nums">
               {player.resource}
             </span>
             <Button variant="outline" size="score" onClick={() => onResource(game.resource.step)}>
