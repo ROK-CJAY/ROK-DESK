@@ -357,6 +357,7 @@ Ops pass: commentary pad, saved decklists, per-player judge notes, and a Product
 - Completing a tournament downloads the export zip
 - Stream-match **full-screen clock** (`/{game}/overlay/stream-clock`) like the floor clock
 - Commander / Partner **Scryfall search** on sign-up, roster, and Production
+- **ROK Layout** for One Piece TCG (life pips, DON!!, official card back) — now the default OP scorebug
 
 **Changed**
 - Format dropdown follows the selected game
