@@ -4,6 +4,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -203,6 +204,7 @@ function LoreSide({
           Match
         </Button>
       </div>
+      <JudgeNotes seat={side === "p2" ? "p2" : "p1"} />
     </div>
   );
 }

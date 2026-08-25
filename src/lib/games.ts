@@ -385,6 +385,10 @@ export function playerTabletPath(gameId: GameId, slot: 1 | 2 | 3 = 1): string {
   return `${tabletPath(gameId, slot)}?role=player`;
 }
 
+export function casterTabletPath(gameId: GameId, slot: 1 | 2 | 3 = 1): string {
+  return `${tabletPath(gameId, slot)}?role=caster`;
+}
+
 export function formatFamilyOf(preset?: FormatPreset): FormatFamily {
   return preset?.family ?? "constructed";
 }
@@ -405,9 +409,16 @@ export function formatsInFamily(game: GameDef, family: FormatFamily): FormatPres
 export function extraFieldFor(gameId: GameId, formatName: string): { label: string; placeholder: string } {
   const game = gameOf(gameId);
   if (isCommanderLane({ gameId, formatName })) {
-    return { label: "Commander", placeholder: "Atraxa · Kinnan · Kenrith" };
+    return { label: "Commander", placeholder: "Search Atraxa, Kinnan…" };
   }
   return { label: game.extraLabel, placeholder: game.extraPlaceholder };
+}
+
+export function formatCommanderLine(commander: string, partner = ""): string {
+  const a = commander.trim();
+  const b = partner.trim();
+  if (a && b) return `${a} / ${b}`;
+  return a || b;
 }
 
 export type PlayerIdField = {

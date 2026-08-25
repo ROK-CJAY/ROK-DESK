@@ -29,7 +29,7 @@ export function FloorLinks() {
   return (
     <section className="mt-8 rounded-xl border border-border bg-surface p-5">
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">This PC</p>
-      <h2 className="font-display mt-1 text-xl font-semibold uppercase">Tablets, OBS, floor clock</h2>
+      <h2 className="font-display mt-1 text-xl font-semibold uppercase">Tablets, OBS, clocks</h2>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         On this computer use localhost. On iPads and OBS on the same Wi‑Fi, use the LAN address.
         Windows may ask to allow ROK Desk on private networks — allow it or tablets cannot connect.

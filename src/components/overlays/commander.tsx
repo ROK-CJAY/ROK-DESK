@@ -1,4 +1,4 @@
-import { gameOf, isCommanderLane } from "@/lib/games";
+import { formatCommanderLine, gameOf, isCommanderLane } from "@/lib/games";
 import {
   isCommanderTable,
   seatsFor,
@@ -72,7 +72,7 @@ function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
             {player.name || "TBD"}
           </p>
           <p className="mt-0.5 truncate text-xs text-ov-muted">
-            {player.archetype || "Commander"}
+            {formatCommanderLine(player.archetype, player.extra) || "Commander"}
             {out ? " · Out" : lethal ? " · Lethal" : ""}
           </p>
         </div>
@@ -141,7 +141,7 @@ export function CommanderVersus({ desk }: { desk: DeskState }) {
                 <h2 className="font-display text-5xl leading-none font-semibold tracking-tight text-ov-fg uppercase">
                   {player.name || "TBD"}
                 </h2>
-                <p className="mt-2 text-xl text-ov-muted">{player.archetype || "Commander"}</p>
+                <p className="mt-2 text-xl text-ov-muted">{formatCommanderLine(player.archetype, player.extra) || "Commander"}</p>
               </div>
             );
           })}

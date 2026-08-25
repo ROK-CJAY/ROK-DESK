@@ -5,6 +5,7 @@ import { spriteFallbackUrl, spriteUrl, TERA_LABEL, type TeamMon } from "@/lib/po
 import { TeraBadge, TypeIcon } from "@/components/overlays/type-icon";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -201,6 +202,7 @@ function JudgeSide({
           <JudgeMon key={`${mon.species}-${i}`} mon={mon} down={Boolean(player.down?.[i])} onToggle={() => onToggle(side, i)} />
         ))}
       </div>
+      <JudgeNotes seat={side === "p2" ? "p2" : "p1"} />
     </section>
   );
 }

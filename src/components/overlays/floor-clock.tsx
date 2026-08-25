@@ -4,12 +4,16 @@ import { gameOf } from "@/lib/games";
 import { currentSponsor, liveSponsors } from "@/lib/sponsors";
 import type { TournamentState } from "@/lib/tournament-types";
 
+const IDLE_CLOCK = { timerRunning: false, timerEndsAt: null, timerSeconds: 0 };
+
 export function FloorClockOverlay({
   tournament,
   desk,
+  variant = "floor",
 }: {
   tournament: TournamentState;
   desk?: DeskState | null;
+  variant?: "floor" | "stream";
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -17,11 +21,15 @@ export function FloorClockOverlay({
     return () => window.clearInterval(id);
   }, []);
 
-  const left = remainingSeconds(tournament, now);
+  const clock = variant === "stream" ? (desk ?? IDLE_CLOCK) : tournament;
+  const left = remainingSeconds(clock, now);
+  const running = Boolean(clock.timerRunning);
+  const preset = variant === "stream" ? (desk?.timerPresetSeconds ?? 0) : tournament.timerPresetSeconds;
   const game = gameOf(tournament.gameId);
-  const status = left === 0 ? "Time" : tournament.timerRunning ? "Running" : "Paused";
+  const status = left === 0 ? "Time" : running ? "Running" : "Paused";
   const sponsor = desk ? currentSponsor(desk.sponsors, now, desk.sponsorSeconds) : null;
   const sponsorCount = desk ? liveSponsors(desk.sponsors).length : 0;
+  const stream = variant === "stream";
 
   return (
     <div data-game={tournament.gameId} className="relative h-full w-full overflow-hidden bg-ov-bg">
@@ -46,7 +54,9 @@ export function FloorClockOverlay({
             </div>
           </div>
           <div className="text-right">
-            <p className="font-mono text-[clamp(0.65rem,1vw,0.85rem)] tracking-[0.22em] text-ov-muted uppercase">Floor clock</p>
+            <p className="font-mono text-[clamp(0.65rem,1vw,0.85rem)] tracking-[0.22em] text-ov-muted uppercase">
+              {stream ? "Stream clock" : "Floor clock"}
+            </p>
             <p className="font-display text-[clamp(1.2rem,2.4vw,2rem)] font-semibold text-ov-fg uppercase">
               {tournament.bracketType === "swiss" ? "Swiss" : tournament.bracketType === "double" ? "Double elim" : "Single elim"}
               {" · "}
@@ -66,7 +76,7 @@ export function FloorClockOverlay({
           </p>
           <p
             className={`font-mono mt-[2vh] text-[clamp(1rem,2vw,1.6rem)] tracking-[0.32em] uppercase ${
-              left === 0 ? "text-live" : tournament.timerRunning ? "text-ok" : "text-ov-muted"
+              left === 0 ? "text-live" : running ? "text-ok" : "text-ov-muted"
             }`}
           >
             {status}
@@ -75,7 +85,7 @@ export function FloorClockOverlay({
 
         <footer className="flex items-end justify-between gap-6">
           <p className="font-mono text-[clamp(0.6rem,1vw,0.8rem)] tracking-[0.2em] text-ov-muted uppercase">
-            All tables except the featured match
+            {stream ? "Featured / streamed match" : "All tables except the featured match"}
           </p>
           {sponsor ? (
             <div className="flex min-w-0 flex-col items-end">
@@ -104,7 +114,7 @@ export function FloorClockOverlay({
             </div>
           ) : (
             <p className="font-mono text-[clamp(0.6rem,1vw,0.8rem)] tracking-[0.2em] text-ov-muted uppercase">
-              Set {formatClock(tournament.timerPresetSeconds)}
+              Set {formatClock(preset)}
             </p>
           )}
         </footer>

@@ -13,6 +13,7 @@ export type TabletGuideKind =
   | "lorcana"
   | "lorcana-player"
   | "table"
+  | "caster"
   | "cards"
   | "mtg-cards"
   | "swu-cards"
@@ -48,6 +49,10 @@ const COPY: Record<
         title: "Run the clock",
         body: "This clock is the streamed match only. Type a time and Set, then Start / Pause. +1m / +3m / −1m adjust it. The floor clock lives on Tournament control.",
       },
+      {
+        title: "Judge notes",
+        body: "Each player has a notes box for warnings, slow play, and deck checks. It stays with that player for the rest of the event and shows on the commentary tablet.",
+      },
     ],
   },
   tcg: {
@@ -70,6 +75,10 @@ const COPY: Record<
       {
         title: "Card lookup is for rulings",
         body: "Search the box at the bottom. Tap a result to read the card. Use Show on stream when you want the art on air, then Clear when the ruling is done.",
+      },
+      {
+        title: "Judge notes",
+        body: "Each player has a notes box for warnings, slow play, and deck checks. It stays with that player for the rest of the event and shows on the commentary tablet.",
       },
     ],
   },
@@ -97,6 +106,10 @@ const COPY: Record<
       {
         title: "Card lookup is Scryfall",
         body: "Search at the bottom. Filter to this format or All printings. Show on stream puts the art on the Card overlay. Clear takes it off.",
+      },
+      {
+        title: "Judge notes",
+        body: "Each player has a notes box for warnings, slow play, and deck checks. It stays with that player for the rest of the event and shows on the commentary tablet.",
       },
     ],
   },
@@ -372,6 +385,37 @@ const COPY: Record<
       {
         title: "Same seats as the stream",
         body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream.",
+      },
+    ],
+  },
+  caster: {
+    kicker: "Commentary tablet",
+    title: "How this caster pad works",
+    lead: "This is a read-only cheat sheet for the featured table. It does not punch scores — Production and the judge tablet do that.",
+    steps: [
+      {
+        title: "It follows one table",
+        body: "Open it from Production on Stream, Floor 1, or Floor 2. The URL stays on that table even if Production switches games on another monitor.",
+      },
+      {
+        title: "Names, decks, and records",
+        body: "Each seat shows name, handle, country, pronouns, deck or commander (and partner), photo if one is set, game count, and W/L/D. Limitless / notes come from sign-up, the TO roster, or Production. Judge notes from the floor pad show here too.",
+      },
+      {
+        title: "Game-specific boards",
+        body: "VGC lists the six Pokémon with types, Tera, ability, item, and moves (grey = KO). PTCG shows Active, bench, HP, prizes, and Energy / Supporter / Retreat. Other titles show life, lore, LP, poison, commander damage, inks, or initiative.",
+      },
+      {
+        title: "Bracket path",
+        body: "Each seat shows seed, tournament record, who they already played (W / L / D), this match, and Win → / Lose → (next round, losers bracket, or eliminated). Send the pair from Tournament so the path lines up. Swiss also shows place, match points, and OMW.",
+      },
+      {
+        title: "H2H, staff, and up next",
+        body: "If these players already met in the event, H2H sits under the header. Event staff (head judge, feature judge, producer) list from Tournament. Up next is the Production queue.",
+      },
+      {
+        title: "Watch the clock",
+        body: "The time at the top is the stream clock for this table. Judges and Production start and pause it.",
       },
     ],
   },

@@ -4,6 +4,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { PtcgJudgeBoard } from "@/components/desk/ptcg-board-panel";
+import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { RoundClock } from "@/components/desk/round-clock";
@@ -196,6 +197,7 @@ function TcgSide({
       </div>
       <PtcgTurnFlags side={side === "p2" ? "p2" : "p1"} align={align} />
       <PtcgJudgeBoard side={side === "p2" ? "p2" : "p1"} />
+      <JudgeNotes seat={side === "p2" ? "p2" : "p1"} />
     </div>
   );
 }

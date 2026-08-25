@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 import { ClipboardList, Flag, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
+import { CommanderSearchField } from "@/components/desk/commander-search";
 import { FloorClock } from "@/components/tournament/floor-clock";
 import { overlayPath } from "@/components/desk/sources";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, GAME_LIST, gameOf, isCommanderPodFormat, playerIdField, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, playerIdField, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
+import { catalogForGame } from "@/lib/card-lookup";
+import { DecklistEditor } from "@/components/signup/decklist-editor";
+import { decklistCount } from "@/lib/decklist";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
@@ -18,6 +22,7 @@ import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
+import { exportTournamentFiles } from "@/lib/tournament-export";
 import { StaffPanel } from "@/components/tournament/staff-panel";
 import {
   DRAW_ID,
@@ -107,7 +112,6 @@ function EventResultCard({
   standings: ReturnType<typeof computeStandings>;
 }) {
   const t = useTournamentStore((s) => s.tournament);
-  const completeTournament = useTournamentStore((s) => s.completeTournament);
   const swiss = t.bracketType === "swiss";
   if (t.phase === "complete") {
     const podium = swiss ? standings.slice(0, 3) : [];
@@ -147,7 +151,7 @@ function EventResultCard({
         <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Swiss leader</p>
         <p className="font-display mt-2 text-2xl font-semibold tracking-tight uppercase">{leader?.name ?? "—"}</p>
         <p className="text-sm text-muted">No grand final. Complete the event to lock 1st from the table.</p>
-        <Button className="mt-3 w-full" variant="secondary" onClick={completeTournament}>
+        <Button className="mt-3 w-full" variant="secondary" onClick={finishTournament}>
           <Flag className="size-3.5" />
           Complete tournament
         </Button>
@@ -163,10 +167,13 @@ function SetupPanel() {
   const setGame = useTournamentStore((s) => s.setGame);
   const generate = useTournamentStore((s) => s.generate);
   const resetBracket = useTournamentStore((s) => s.resetBracket);
-  const completeTournament = useTournamentStore((s) => s.completeTournament);
   const reopenTournament = useTournamentStore((s) => s.reopenTournament);
   const loadTestMode = useTournamentStore((s) => s.loadTestMode);
   const game = gameOf(t.gameId);
+  const formatOptions = game.formats;
+  const formatValue = formatOptions.some((f) => f.label === t.formatName)
+    ? t.formatName
+    : (formatOptions[0]?.label ?? t.formatName);
   const [sizeDraft, setSizeDraft] = useState(String(t.size));
   const setShape = (partial: Partial<typeof t>) => {
     patch({
@@ -200,15 +207,16 @@ function SetupPanel() {
         </Field>
         <Field label="Format">
           <NativeSelect
-            value={t.formatName}
+            key={t.gameId}
+            value={formatValue}
             onChange={(e) => {
               const formatName = e.target.value;
-              const preset = game.formats.find((f) => f.label === formatName);
+              const preset = formatOptions.find((f) => f.label === formatName);
               patch({ formatName, ...(preset?.bestOf ? { bestOf: preset.bestOf } : {}) });
             }}
           >
-            {game.formats.map((f) => (
-              <option key={f.id} value={f.label}>
+            {formatOptions.map((f) => (
+              <option key={`${t.gameId}-${f.id}`} value={f.label}>
                 {f.label}
               </option>
             ))}
@@ -320,6 +328,17 @@ function SetupPanel() {
             ))}
           </NativeSelect>
         </Field>
+        {catalogForGame(t.gameId) ? (
+          <label className="flex items-start justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2.5">
+            <span>
+              <span className="block text-sm font-medium">Request decklist</span>
+              <span className="block text-xs text-muted">
+                Walk-up sign-up must search and add cards with quantities. Saved lists feed judge lookup and the export.
+              </span>
+            </span>
+            <Switch checked={Boolean(t.requireDecklist)} onCheckedChange={(on) => patch({ requireDecklist: on === true })} />
+          </label>
+        ) : null}
         <FloorClock />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="flex-1" asChild>
@@ -351,7 +370,7 @@ function SetupPanel() {
           ) : null}
         </div>
         {t.matches.length > 0 && t.phase !== "complete" ? (
-          <Button variant="secondary" onClick={completeTournament}>
+          <Button variant="secondary" onClick={finishTournament}>
             <Flag className="size-3.5" />
             Complete tournament
           </Button>
@@ -378,6 +397,14 @@ function SetupPanel() {
   );
 }
 
+function finishTournament() {
+  useTournamentStore.getState().completeTournament();
+  const t = useTournamentStore.getState().tournament;
+  void exportTournamentFiles(t, useDeskStore.getState().desk).catch(() => {
+    window.location.assign("/api/tournament/export");
+  });
+}
+
 function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
   const t = useTournamentStore.getState().tournament;
   const match = t.matches.find((m) => m.id === matchId);
@@ -392,6 +419,10 @@ function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
       pronouns: e?.pronouns ?? "",
       archetype: e?.deck ?? "",
       extra: e?.extra ?? "",
+      photoUrl: e?.photoUrl ?? "",
+      note: e?.note ?? "",
+      judgeNote: e?.judgeNote ?? "",
+      decklist: e?.decklist ?? [],
       team: vgc ? (teamHasMons(e?.team) ? e!.team : emptyTeam()) : undefined,
       ink1: e?.ink1 ?? "",
       ink2: e?.ink2 ?? "",
@@ -539,8 +570,9 @@ function RosterPanel({
   const reorderEntrants = useTournamentStore((s) => s.reorderEntrants);
   const game = gameOf(t.gameId);
   const extra = extraFieldFor(t.gameId, t.formatName);
+  const commander = isCommanderLane(t);
   const idField = playerIdField(t.gameId);
-  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", country: "US", ink1: "", ink2: "" });
+  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: "US", ink1: "", ink2: "" });
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
@@ -551,11 +583,14 @@ function RosterPanel({
       tag: draft.tag.trim(),
       playerId: draft.playerId.trim(),
       deck: draft.deck.trim(),
+      extra: commander ? draft.extra.trim() : "",
+      note: draft.note.trim(),
+      photoUrl: draft.photoUrl.trim(),
       country: draft.country,
       ink1: draft.ink1,
       ink2: draft.ink2,
     });
-    setDraft({ name: "", tag: "", playerId: "", deck: "", country: draft.country, ink1: "", ink2: "" });
+    setDraft({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: draft.country, ink1: "", ink2: "" });
   };
 
   return (
@@ -612,11 +647,26 @@ function RosterPanel({
           value={draft.playerId}
           onChange={(e) => setDraft((d) => ({ ...d, playerId: e.target.value }))}
         />
-        <Input
-          placeholder={extra.placeholder}
-          value={draft.deck}
-          onChange={(e) => setDraft((d) => ({ ...d, deck: e.target.value }))}
-        />
+        {commander ? (
+          <div className="grid gap-2">
+            <CommanderSearchField
+              value={draft.deck}
+              onChange={(deck) => setDraft((d) => ({ ...d, deck }))}
+              placeholder="Commander"
+            />
+            <CommanderSearchField
+              value={draft.extra}
+              onChange={(extra) => setDraft((d) => ({ ...d, extra }))}
+              placeholder="Partner (optional)"
+            />
+          </div>
+        ) : (
+          <Input
+            placeholder={extra.placeholder}
+            value={draft.deck}
+            onChange={(e) => setDraft((d) => ({ ...d, deck: e.target.value }))}
+          />
+        )}
         <NativeSelect value={draft.country} onChange={(e) => setDraft((d) => ({ ...d, country: e.target.value }))}>
           {COUNTRIES.map((c) => (
             <option key={c.code} value={c.code}>
@@ -639,6 +689,18 @@ function RosterPanel({
           />
         </div>
       ) : null}
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <Input
+          placeholder="Limitless / notes"
+          value={draft.note}
+          onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
+        />
+        <Input
+          placeholder="Photo URL"
+          value={draft.photoUrl}
+          onChange={(e) => setDraft((d) => ({ ...d, photoUrl: e.target.value }))}
+        />
+      </div>
 
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[640px] text-left text-sm">
@@ -650,7 +712,9 @@ function RosterPanel({
               <th className="pb-2 font-medium">Handle</th>
               <th className="pb-2 font-medium">{idField.label}</th>
               <th className="pb-2 font-medium">{extra.label}</th>
+              {commander ? <th className="pb-2 font-medium">Partner</th> : null}
               {t.gameId === "lorcana" ? <th className="pb-2 font-medium">Inks</th> : null}
+              <th className="pb-2 font-medium">Notes</th>
               <th className="pb-2 font-medium">CC</th>
               <th className="pb-2 font-medium" />
             </tr>
@@ -680,6 +744,9 @@ function RosterPanel({
                   }}
                   showTeam={t.gameId === "pokemon-vgc"}
                   showInks={t.gameId === "lorcana"}
+                  catalog={catalogForGame(t.gameId)}
+                  formatName={t.formatName}
+                  commander={commander}
                   idLabel={idField.label}
                   sheetActive={sheetPlayerId === e.id}
                   onOpenSheet={onOpenSheet}
@@ -704,6 +771,9 @@ function EntrantRow({
   onDragEnd,
   showTeam,
   showInks,
+  catalog,
+  formatName,
+  commander,
   idLabel,
   sheetActive,
   onOpenSheet,
@@ -719,12 +789,18 @@ function EntrantRow({
   onDragEnd: () => void;
   showTeam: boolean;
   showInks?: boolean;
+  catalog?: ReturnType<typeof catalogForGame>;
+  formatName?: string;
+  commander?: boolean;
   idLabel: string;
   sheetActive: boolean;
   onOpenSheet: (id: string) => void;
 }) {
   const filled = countFilledMons(entrant.team);
+  const [deckOpen, setDeckOpen] = useState(false);
+  const cards = decklistCount(entrant.decklist);
   return (
+    <>
     <tr
       onDragOver={(event) => {
         event.preventDefault();
@@ -786,12 +862,31 @@ function EntrantRow({
         />
       </td>
       <td className="py-2 pr-2">
-        <Input
-          value={entrant.deck}
-          onChange={(e) => onChange(entrant.id, { deck: e.target.value })}
-          className="h-8"
-        />
+        {commander ? (
+          <CommanderSearchField
+            value={entrant.deck}
+            onChange={(deck) => onChange(entrant.id, { deck })}
+            placeholder="Commander"
+            className="h-8"
+          />
+        ) : (
+          <Input
+            value={entrant.deck}
+            onChange={(e) => onChange(entrant.id, { deck: e.target.value })}
+            className="h-8"
+          />
+        )}
       </td>
+      {commander ? (
+        <td className="py-2 pr-2">
+          <CommanderSearchField
+            value={entrant.extra}
+            onChange={(extra) => onChange(entrant.id, { extra })}
+            placeholder="Partner"
+            className="h-8"
+          />
+        </td>
+      ) : null}
       {showInks ? (
         <td className="py-2 pr-2">
           <InkPicker
@@ -802,6 +897,22 @@ function EntrantRow({
           />
         </td>
       ) : null}
+      <td className="py-2 pr-2">
+        <div className="grid gap-1">
+          <Input
+            value={entrant.note}
+            onChange={(e) => onChange(entrant.id, { note: e.target.value })}
+            className="h-8"
+            placeholder="Limitless / notes"
+          />
+          <Input
+            value={entrant.photoUrl}
+            onChange={(e) => onChange(entrant.id, { photoUrl: e.target.value })}
+            className="h-8"
+            placeholder="Photo URL"
+          />
+        </div>
+      </td>
       <td className="py-2 pr-2">
         <NativeSelect
           value={entrant.country}
@@ -838,12 +949,37 @@ function EntrantRow({
               </a>
             </Button>
           ) : null}
+          {catalog ? (
+            <Button
+              variant={deckOpen ? "secondary" : "ghost"}
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => setDeckOpen((open) => !open)}
+              aria-label="Edit decklist"
+            >
+              <ClipboardList className={cn("size-3.5", cards > 0 && "text-ok")} />
+              <span className="font-mono text-[0.65rem] tabular-nums">{cards}</span>
+            </Button>
+          ) : null}
           <Button variant="ghost" size="icon" className="size-8" onClick={() => onRemove(entrant.id)} aria-label="Remove">
             <Trash2 className="size-3.5" />
           </Button>
         </div>
       </td>
     </tr>
+    {catalog && deckOpen ? (
+      <tr>
+        <td colSpan={12} className="bg-surface-2/60 px-3 py-3">
+          <DecklistEditor
+            catalog={catalog}
+            formatName={formatName}
+            value={entrant.decklist ?? []}
+            onChange={(decklist) => onChange(entrant.id, { decklist })}
+          />
+        </td>
+      </tr>
+    ) : null}
+    </>
   );
 }
 
@@ -885,7 +1021,7 @@ function BracketBoard() {
           </Button>
         ) : null}
         {t.bracketType === "swiss" && t.phase !== "complete" && round > 0 ? (
-          <Button size="sm" variant="secondary" onClick={() => useTournamentStore.getState().completeTournament()}>
+          <Button size="sm" variant="secondary" onClick={finishTournament}>
             <Flag className="size-3.5" />
             Complete tournament
           </Button>
@@ -1013,7 +1149,9 @@ function StandingsTable({
                     <p className="font-mono text-[0.68rem] text-muted">{e.playerId}</p>
                   ) : null}
                 </td>
-                <td className="py-1.5 pr-3 text-muted">{e?.deck || "—"}</td>
+                <td className="py-1.5 pr-3 text-muted">
+                  {formatCommanderLine(e?.deck ?? "", e?.extra ?? "") || e?.deck || "—"}
+                </td>
                 <td className="py-1.5 pr-3 font-mono tabular-nums">
                   {row.wins}–{row.losses}–{row.draws}
                 </td>

@@ -1,4 +1,5 @@
 import { emptyTeam, type TeamMon } from "@/lib/pokemon-vgc";
+import { emptyDecklist, type DeckCard } from "@/lib/decklist";
 
 export type SignupDraft = {
   name: string;
@@ -6,6 +7,7 @@ export type SignupDraft = {
   pronouns: string;
   country: string;
   deck: string;
+  partner: string;
   playerId: string;
   trainerName: string;
   switchProfile: string;
@@ -15,6 +17,9 @@ export type SignupDraft = {
   idPrivacy: boolean;
   ink1: string;
   ink2: string;
+  note: string;
+  photoUrl: string;
+  decklist: DeckCard[];
 };
 
 export const emptySignupDraft = (): SignupDraft => ({
@@ -23,6 +28,7 @@ export const emptySignupDraft = (): SignupDraft => ({
   pronouns: "",
   country: "US",
   deck: "",
+  partner: "",
   playerId: "",
   trainerName: "",
   switchProfile: "",
@@ -32,4 +38,7 @@ export const emptySignupDraft = (): SignupDraft => ({
   idPrivacy: false,
   ink1: "",
   ink2: "",
+  note: "",
+  photoUrl: "",
+  decklist: emptyDecklist(),
 });

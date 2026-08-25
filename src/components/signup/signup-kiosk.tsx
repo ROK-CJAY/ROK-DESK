@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronRight } from "lucide-react";
 import { Field, NativeSelect } from "@/components/desk/field";
+import { CommanderSearchField } from "@/components/desk/commander-search";
 import { OfficialVgcForm } from "@/components/signup/official-vgc-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, gameOf, playerIdField, slugOf, type GameId } from "@/lib/games";
+import { extraFieldFor, gameOf, isCommanderLane, playerIdField, slugOf, type GameId } from "@/lib/games";
+import { catalogForGame } from "@/lib/card-lookup";
+import { decklistCount } from "@/lib/decklist";
+import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { emptySignupDraft, type SignupDraft } from "@/components/signup/signup-types";
 import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
@@ -48,9 +52,12 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
 
   const game = gameOf(t.gameId);
   const extra = extraFieldFor(t.gameId, t.formatName);
+  const commander = isCommanderLane(t);
   const idField = playerIdField(t.gameId);
   const closed = t.phase === "complete";
   const vgc = t.gameId === "pokemon-vgc";
+  const catalog = catalogForGame(t.gameId);
+  const needDeck = Boolean(t.requireDecklist && catalog);
 
   const submit = async () => {
     const name = draft.name.trim();
@@ -60,6 +67,10 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
     }
     if (draft.playerId.trim() && !draft.idPrivacy) {
       setError("Check the Player ID privacy notice to continue.");
+      return;
+    }
+    if (needDeck && decklistCount(draft.decklist) === 0) {
+      setError("This event requires a decklist. Search and add your cards.");
       return;
     }
     setBusy(true);
@@ -74,6 +85,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
           pronouns: draft.pronouns.trim(),
           country: draft.country,
           deck: draft.deck.trim(),
+          extra: commander ? draft.partner.trim() : "",
           playerId: draft.playerId.trim(),
           trainerName: draft.trainerName.trim(),
           switchProfile: draft.switchProfile.trim(),
@@ -82,6 +94,8 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
           team: vgc ? draft.team : undefined,
           ink1: t.gameId === "lorcana" ? draft.ink1 : undefined,
           ink2: t.gameId === "lorcana" ? draft.ink2 : undefined,
+          note: draft.note.trim(),
+          decklist: draft.decklist,
           game: slugOf(t.gameId),
         }),
       });
@@ -139,7 +153,10 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                 ? ". Fill the official Video Game Team List — player info plus all six Pokémon — then submit."
                 : t.gameId === "lorcana"
                   ? `. Enter your name, ${idField.label}, deck, and up to two inks for ${game.name}.`
-                  : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
+                  : commander
+                    ? `. Enter your name, ${idField.label}, commander, and partner if you have one.`
+                    : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
+              {needDeck ? " The TO asked for a full decklist — search each card and set the quantity." : ""}
             </p>
             <ul className="mt-5 grid gap-2 text-sm text-muted">
               <li className="rounded-lg bg-surface-2 px-3 py-3">One player at a time. When you’re done, hand it back.</li>
@@ -237,13 +254,33 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                     />
                     <p className="mt-1 text-[0.7rem] text-muted">{idField.hint}</p>
                   </Field>
-                  <Field label={extra.label}>
-                    <Input
-                      value={draft.deck}
-                      onChange={(e) => setDraft((d) => ({ ...d, deck: e.target.value }))}
-                      placeholder={extra.placeholder}
-                    />
-                  </Field>
+                  {commander ? (
+                    <>
+                      <Field label="Commander">
+                        <CommanderSearchField
+                          value={draft.deck}
+                          onChange={(deck) => setDraft((d) => ({ ...d, deck }))}
+                          placeholder="Search your commander"
+                        />
+                      </Field>
+                      <Field label="Partner">
+                        <CommanderSearchField
+                          value={draft.partner}
+                          onChange={(partner) => setDraft((d) => ({ ...d, partner }))}
+                          placeholder="Optional — Partner, Background…"
+                        />
+                        <p className="mt-1 text-[0.7rem] text-muted">Leave blank if you only have one commander.</p>
+                      </Field>
+                    </>
+                  ) : (
+                    <Field label={extra.label}>
+                      <Input
+                        value={draft.deck}
+                        onChange={(e) => setDraft((d) => ({ ...d, deck: e.target.value }))}
+                        placeholder={extra.placeholder}
+                      />
+                    </Field>
+                  )}
                 </div>
 
                 {t.gameId === "lorcana" ? (
@@ -253,6 +290,28 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                       ink1={draft.ink1}
                       ink2={draft.ink2}
                       onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
+                    />
+                  </div>
+                ) : null}
+
+                <div className="mt-4">
+                  <Field label="Limitless / notes">
+                    <Input
+                      value={draft.note}
+                      onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
+                      placeholder="Season record, accomplishments — optional"
+                    />
+                  </Field>
+                </div>
+
+                {needDeck && catalog ? (
+                  <div className="mt-4">
+                    <DecklistEditor
+                      catalog={catalog}
+                      formatName={t.formatName}
+                      value={draft.decklist}
+                      onChange={(decklist) => setDraft((d) => ({ ...d, decklist }))}
+                      required
                     />
                   </div>
                 ) : null}

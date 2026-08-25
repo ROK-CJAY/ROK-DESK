@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { type BestOf, type GameId, GAME_LIST, coerceGameId, gameOf } from "@/lib/games";
 import { mergeTeam, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
+import { mergeDecklist, type DeckCard } from "@/lib/decklist";
 
 export type BracketType = "single" | "double" | "swiss";
 export type BracketSize = number;
@@ -69,6 +70,10 @@ export type Entrant = {
   birthDate: string;
   ink1: string;
   ink2: string;
+  photoUrl: string;
+  note: string;
+  judgeNote: string;
+  decklist: DeckCard[];
 };
 
 export type AgeDivision = "" | "juniors" | "seniors" | "masters";
@@ -155,6 +160,7 @@ export type GameDesk = {
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
   staff: StaffMember[];
+  requireDecklist: boolean;
 };
 
 export type TournamentState = {
@@ -181,6 +187,7 @@ export type TournamentState = {
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
   staff: StaffMember[];
+  requireDecklist: boolean;
 };
 
 const slotSchema = z.object({
@@ -209,6 +216,10 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
   birthDate: z.string().optional().transform((v) => v ?? ""),
   ink1: z.string().optional().transform((v) => v ?? ""),
   ink2: z.string().optional().transform((v) => v ?? ""),
+  photoUrl: z.string().optional().transform((v) => v ?? ""),
+  note: z.string().optional().transform((v) => v ?? ""),
+  judgeNote: z.string().optional().transform((v) => v ?? ""),
+  decklist: z.unknown().optional().transform((rows) => mergeDecklist(rows)),
 });
 
 const staffSchema: z.ZodType<StaffMember> = z.object({
@@ -255,6 +266,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   staff: z.array(staffSchema).optional().transform((v) => v ?? []),
+  requireDecklist: z.boolean().optional().transform((v) => Boolean(v)),
 });
 
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
@@ -281,6 +293,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   staff: z.array(staffSchema).optional().transform((v) => v ?? []),
+  requireDecklist: z.boolean().optional().transform((v) => Boolean(v)),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -301,8 +314,12 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     birthDate: "",
     ink1: "",
     ink2: "",
+    photoUrl: "",
+    note: "",
     ...overrides,
     team: mergeTeam(overrides.team),
+    decklist: mergeDecklist(overrides.decklist),
+    judgeNote: overrides.judgeNote ?? "",
   };
 }
 
@@ -334,6 +351,7 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     testMode: t.testMode,
     testSnapshot: t.testSnapshot,
     staff: t.staff ?? [],
+    requireDecklist: Boolean(t.requireDecklist),
   };
 }
 
@@ -369,6 +387,7 @@ export function emptyDesk(gameId: GameId): GameDesk {
     testMode: false,
     testSnapshot: null,
     staff: [],
+    requireDecklist: false,
   };
 }
 
@@ -387,11 +406,18 @@ export function switchGame(t: TournamentState, gameId: GameId): TournamentState 
     [t.gameId]: snapshotDesk(t),
   };
   const next = desks[gameId] ?? emptyDesk(gameId);
+  const game = gameOf(gameId);
+  const format = game.formats.find((f) => f.label === next.formatName) ?? game.formats[0];
+  const clamped: GameDesk = {
+    ...next,
+    formatName: format?.label ?? game.name,
+    bestOf: format?.bestOf ?? next.bestOf ?? game.defaultBestOf,
+  };
   return {
     ...t,
     gameId,
-    ...next,
-    desks: { ...desks, [gameId]: next },
+    ...clamped,
+    desks: { ...desks, [gameId]: clamped },
   };
 }
 

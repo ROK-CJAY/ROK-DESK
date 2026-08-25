@@ -1,5 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { Clapperboard, ClipboardList, Clock, MonitorPlay, Tablet, Trophy } from "lucide-react";
+import {
+  Clapperboard,
+  ClipboardList,
+  Clock,
+  Globe,
+  Mic,
+  MonitorPlay,
+  Tablet,
+  Trophy,
+} from "lucide-react";
 import { FloorLinks } from "@/components/app/floor-links";
 import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
 import { GAME_LIST } from "@/lib/games";
@@ -9,27 +18,27 @@ const STEPS = [
   {
     n: "01",
     title: "Set up the event",
-    body: "Open Tournament Organizer. Name the show, pick the game and format, then add players — or send people to walk-up sign-up.",
+    body: "Open Tournament Organizer. Name the show, pick the game and format, then add players — or send people to walk-up sign-up (commander search, Limitless notes, VGC team sheet).",
   },
   {
     n: "02",
     title: "Start pairings",
-    body: "Choose single elim, double elim, or Swiss. Start the bracket. Staff, player IDs, and team sheets live here for the archive.",
+    body: "Choose single elim, double elim, or Swiss. Start the bracket. Staff, player IDs, photos, and team sheets live here for the archive.",
   },
   {
     n: "03",
-    title: "Send a match to stream",
-    body: "From a ready pairing, send the match to Production. That desk drives the scorebug, clock, casters, and look.",
+    title: "Send a match to a table",
+    body: "From a ready pairing, send it to Stream Match, Floor 1, or Floor 2. Each table has its own overlays, tablets, and clock so the featured game and the rest of the room can run at different times.",
   },
   {
     n: "04",
     title: "Key the overlays",
-    body: "In OBS or vMix, add 1920×1080 browser sources from the overlay list. Use the per-game URL so two titles on one host stay separate.",
+    body: "In OBS or vMix, add 1920×1080 browser sources from the overlay list. Prefer /{game}/overlay/… so two titles on one host stay separate. PTCG Play Layout and ROK Layout are both on the source list.",
   },
   {
     n: "05",
-    title: "Floor devices",
-    body: "Open the judge tablet on a floor iPad — it follows the featured match. Commander and Lorcana also have a player tablet for the table. The floor clock is a full-page timer for the rest of the room.",
+    title: "Floor and comms",
+    body: "Judge tablet on a floor iPad. Commander and Lorcana also have a player pad. Casters get a read-only commentary tablet — teams, path, H2H, notes. Stream clock at the featured table; floor clock for the room.",
   },
 ];
 
@@ -65,8 +74,8 @@ export function Landing() {
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
           ROK Desk runs the tournament and the broadcast from the same event. Pairings,
-          walk-up sign-up, judge tablets, and 1920×1080 overlays for Pokémon VGC, PTCG,
-          One Piece, Yu-Gi-Oh!, Magic, Lorcana, Star Wars Unlimited, and Riftbound.
+          walk-up sign-up, judge / player / commentary tablets, and 1920×1080 overlays for
+          Pokémon VGC, PTCG, One Piece, Yu-Gi-Oh!, Magic, Lorcana, Star Wars Unlimited, and Riftbound.
         </p>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
@@ -77,7 +86,7 @@ export function Landing() {
             <Trophy className="size-5 text-muted group-hover:text-fg" />
             <p className="font-display mt-4 text-2xl font-semibold uppercase">Tournament Organizer</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Roster, bracket or Swiss, staff, player IDs, floor clock, export. Start the event here.
+              Roster, bracket or Swiss, staff, player IDs, notes, floor clock, export. Start the event here.
             </p>
             <p className="mt-4 text-sm font-medium">Open organizer →</p>
           </Link>
@@ -88,7 +97,7 @@ export function Landing() {
             <Clapperboard className="size-5 text-muted group-hover:text-fg" />
             <p className="font-display mt-4 text-2xl font-semibold uppercase">Production Control</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Featured match, scorebug, stream clock, casters, look, and overlay preview.
+              Stream / Floor tables, scorebug, commentary tablet, look, and overlay preview.
             </p>
             <p className="mt-4 text-sm font-medium">Open production →</p>
           </Link>
@@ -114,13 +123,13 @@ export function Landing() {
 
         <section className="mt-12">
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Also on this desk</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <Link to="/tablet" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
               <Tablet className="mt-0.5 size-4 shrink-0 text-muted" />
               <div>
                 <p className="font-medium">Judge tablet</p>
                 <p className="mt-1 text-sm text-muted">
-                  Per-game floor pad. Open from Production or Tournament so it stays on that event.
+                  Per-game floor pad. Open from Production on Stream, Floor 1, or Floor 2.
                 </p>
               </div>
             </Link>
@@ -133,7 +142,20 @@ export function Landing() {
               <div>
                 <p className="font-medium">Player tablet</p>
                 <p className="mt-1 text-sm text-muted">
-                  Commander table pad, or Lorcana lore / games / clock — open from Production for the live title.
+                  Commander life pad, or Lorcana lore / games / clock for the table.
+                </p>
+              </div>
+            </Link>
+            <Link
+              to="/tablet"
+              search={{ role: "caster" }}
+              className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40"
+            >
+              <Mic className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Commentary tablet</p>
+                <p className="mt-1 text-sm text-muted">
+                  Read-only caster desk — teams, path, H2H, notes, staff, up next.
                 </p>
               </div>
             </Link>
@@ -158,6 +180,20 @@ export function Landing() {
                 <p className="mt-1 text-sm text-muted">Full-page room timer. Open from Tournament for the right game.</p>
               </div>
             </a>
+            <a href="/ptcg/overlay/stream-clock" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
+              <Clock className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Stream clock</p>
+                <p className="mt-1 text-sm text-muted">Full-page timer for a monitor at the streamed table. Open from Production.</p>
+              </div>
+            </a>
+            <Link to="/browser" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
+              <Globe className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Browser</p>
+                <p className="mt-1 text-sm text-muted">In-app Chromium for pairings, downloads, and card databases.</p>
+              </div>
+            </Link>
           </div>
         </section>
 

@@ -21,7 +21,8 @@ import {
   ygoFormatFor,
   type LookupCard,
 } from "@/lib/card-lookup";
-import { emptySpotlight } from "@/lib/desk-types";
+import { emptySpotlight, type SeatId } from "@/lib/desk-types";
+import { lookupFromDeck, type DeckCard } from "@/lib/decklist";
 import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
@@ -40,6 +41,11 @@ export function CardLookup({
   const patch = useDeskStore((s) => s.patch);
   const spotlight = useDeskStore((s) => s.desk.cardSpotlight);
   const ptcgBoard = useDeskStore((s) => s.desk.ptcgBoard);
+  const p1 = useDeskStore((s) => s.desk.p1);
+  const p2 = useDeskStore((s) => s.desk.p2);
+  const p3 = useDeskStore((s) => s.desk.p3);
+  const p4 = useDeskStore((s) => s.desk.p4);
+  const tableSize = useDeskStore((s) => s.desk.tableSize);
   const hydrate = useDeskStore((s) => s.hydrate);
   const ready = useDeskStore((s) => s.ready);
   const [query, setQuery] = useState("");
@@ -263,6 +269,12 @@ export function CardLookup({
           className="pl-9"
         />
       </div>
+      <MatchDeckStrip
+        players={{ p1, p2, p3, p4, tableSize }}
+        query={query}
+        selectedId={selected?.id}
+        onPick={(card) => void openCard(lookupFromDeck(card))}
+      />
       {selected ? (
         <CardDetail
           card={selected}
@@ -347,6 +359,77 @@ export function CardLookup({
         onClose={guide.close}
       />
     </section>
+  );
+}
+
+function MatchDeckStrip({
+  players,
+  query,
+  selectedId,
+  onPick,
+}: {
+  players: {
+    p1: { name: string; decklist?: DeckCard[] };
+    p2: { name: string; decklist?: DeckCard[] };
+    p3: { name: string; decklist?: DeckCard[] };
+    p4: { name: string; decklist?: DeckCard[] };
+    tableSize: number;
+  };
+  query: string;
+  selectedId?: string;
+  onPick: (card: DeckCard) => void;
+}) {
+  const q = query.trim().toLowerCase();
+  const seats = (["p1", "p2", "p3", "p4"] as const).slice(0, Math.max(2, players.tableSize));
+  const groups = seats
+    .map((seat, i) => {
+      const player = players[seat];
+      const cards = (player.decklist ?? []).filter((card) =>
+        q.length < 1
+          ? true
+          : card.name.toLowerCase().includes(q) || card.set.toLowerCase().includes(q) || card.number.toLowerCase().includes(q),
+      );
+      if (!cards.length && !(player.decklist ?? []).length) return null;
+      return { seat, label: player.name || `Player ${i + 1}`, cards };
+    })
+    .filter((row): row is { seat: SeatId; label: string; cards: DeckCard[] } => Boolean(row));
+  if (!groups.length) return null;
+
+  return (
+    <div className="mt-3 rounded-lg border border-border/70 bg-surface-2/50 p-2">
+      <p className="font-mono text-[0.58rem] tracking-[0.14em] text-muted uppercase">Saved decklists</p>
+      <div className="mt-1.5 grid gap-2">
+        {groups.map((group) => (
+          <div key={group.seat}>
+            <p className="truncate text-xs text-muted">
+              {group.label}
+              <span className="font-mono"> · {group.cards.length}</span>
+            </p>
+            {group.cards.length ? (
+              <ul className="mt-1 flex flex-wrap gap-1">
+                {group.cards.slice(0, 24).map((card) => (
+                  <li key={`${group.seat}-${card.id}`}>
+                    <button
+                      type="button"
+                      onClick={() => onPick(card)}
+                      className={cn(
+                        "rounded-md px-2 py-1 text-left text-xs",
+                        selectedId === card.id ? "bg-accent/20 text-fg" : "bg-surface hover:bg-surface-2",
+                      )}
+                      title={`${card.qty}× ${card.name}`}
+                    >
+                      <span className="font-mono tabular-nums">{card.qty}×</span> {card.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[0.7rem] text-subtle">No cards match this search.</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

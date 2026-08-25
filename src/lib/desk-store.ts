@@ -119,7 +119,7 @@ function startDeskPoll() {
         if (!parsed) return;
         const incoming = clearLegacyDesk(parsed);
         const local = useDeskStore.getState().desk;
-        if (incoming.version >= local.version) {
+        if (incoming.version > local.version) {
           useDeskStore.setState({ desk: incoming });
         }
       } catch {
@@ -263,8 +263,13 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   setPlayer: (side, partial) => {
     const prev = get().desk;
+    const current = prev[side];
+    const nextPlayer = { ...current, ...partial };
+    if ((Object.keys(partial) as Array<keyof typeof partial>).every((key) => current[key] === nextPlayer[key])) {
+      return;
+    }
     const desk = nextVersion(prev, {
-      [side]: { ...prev[side], ...partial },
+      [side]: nextPlayer,
     });
     persist(desk);
     set({ desk });

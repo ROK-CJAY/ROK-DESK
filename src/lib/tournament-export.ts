@@ -11,6 +11,9 @@ import {
   type TournamentState,
 } from "@/lib/tournament-types";
 import { countFilledMons } from "@/lib/pokemon-vgc";
+import { decklistCount } from "@/lib/decklist";
+import { withDeskJudgeNotes } from "@/lib/judge-notes-sync";
+import type { DeskState } from "@/lib/desk-types";
 import { zipStore } from "@/lib/zip-store";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 
@@ -52,6 +55,7 @@ export type TournamentExport = {
     players: Array<{ name: string; playerId: string; score: number; seed: number }>;
   }>;
   standings: Array<Standing & { name: string; playerId: string; deck: string; seed: number }>;
+  judgeNotes: Array<{ name: string; playerId: string; seed: number; note: string }>;
 };
 
 function csvCell(value: unknown): string {
@@ -188,6 +192,15 @@ export function buildTournamentExport(t: TournamentState): TournamentExport {
         seed: e?.seed ?? 0,
       };
     }),
+    judgeNotes: t.entrants
+      .filter((e) => e.judgeNote?.trim())
+      .sort((a, b) => a.seed - b.seed)
+      .map((e) => ({
+        name: e.name,
+        playerId: e.playerId,
+        seed: e.seed,
+        note: e.judgeNote.trim(),
+      })),
   };
 }
 
@@ -215,8 +228,8 @@ export function exportFileBase(t: TournamentState): string {
   return `rok-desk-${slug(game.short)}-${tag}${slug(t.name || "tournament")}-${stamp}`;
 }
 
-export function tournamentExportFiles(t: TournamentState): Array<{ name: string; body: string }> {
-  const data = buildTournamentExport(t);
+export function tournamentExportFiles(t: TournamentState, desk?: DeskState | null): Array<{ name: string; body: string }> {
+  const data = buildTournamentExport(withDeskJudgeNotes(t, desk));
   const extra = extraFieldFor(t.gameId, t.formatName);
   const idField = playerIdField(t.gameId);
   const files: Array<{ name: string; body: string }> = [
@@ -245,6 +258,9 @@ export function tournamentExportFiles(t: TournamentState): Array<{ name: string;
           age_division: p.ageDivision,
           birth_date: p.birthDate,
           team_size: p.teamSize,
+          decklist_cards: decklistCount(p.decklist),
+          note: p.note,
+          judge_notes: p.judgeNote,
         })),
       ),
     },
@@ -316,16 +332,44 @@ export function tournamentExportFiles(t: TournamentState): Array<{ name: string;
       files.push({ name: "teams.csv", body: csv(teamRows) });
     }
   }
+  const listRows = data.players.flatMap((p) =>
+    (p.decklist ?? []).map((card) => ({
+      player: p.name,
+      player_id: p.playerId,
+      seed: p.seed,
+      qty: card.qty,
+      name: card.name,
+      set: card.set,
+      number: card.number,
+      type: card.type,
+      card_id: card.id,
+    })),
+  );
+  if (listRows.length) {
+    files.push({ name: "decklists.csv", body: csv(listRows) });
+  }
+  files.push({
+    name: "judge-notes.csv",
+    body: csv(
+      data.players.map((p) => ({
+        seed: p.seed,
+        name: p.name,
+        player_id: p.playerId,
+        judge_notes: p.judgeNote ?? "",
+      })),
+    ),
+  });
   return files;
 }
 
-export function tournamentExportZip(t: TournamentState): { filename: string; blob: Blob } {
-  const base = exportFileBase(t);
-  return { filename: `${base}.zip`, blob: zipStore(tournamentExportFiles(t)) };
+export function tournamentExportZip(t: TournamentState, desk?: DeskState | null): { filename: string; blob: Blob } {
+  const live = withDeskJudgeNotes(t, desk);
+  const base = exportFileBase(live);
+  return { filename: `${base}.zip`, blob: zipStore(tournamentExportFiles(live, desk)) };
 }
 
-export async function exportTournamentFiles(t: TournamentState): Promise<string> {
-  const { filename, blob } = tournamentExportZip(t);
+export async function exportTournamentFiles(t: TournamentState, desk?: DeskState | null): Promise<string> {
+  const { filename, blob } = tournamentExportZip(t, desk);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

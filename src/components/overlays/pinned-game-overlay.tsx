@@ -42,6 +42,7 @@ const SOURCES = new Set<string>([
   "upcoming",
   "bracket",
   "floor-clock",
+  "stream-clock",
   "roster",
   "card",
   "sponsors",
@@ -61,6 +62,9 @@ export function PinnedGameOverlay({
 
   if (source === "floor-clock") {
     return <PinnedFloorClock gameId={gameId} />;
+  }
+  if (source === "stream-clock") {
+    return <PinnedStreamClock gameId={gameId} />;
   }
   if (source === "bracket") {
     return <PinnedBracket gameId={gameId} />;
@@ -119,6 +123,19 @@ function PinnedFloorClock({ gameId }: { gameId: GameId }) {
     <div className="h-dvh w-dvw overflow-hidden bg-ov-bg">
       <OverlayLookRoot book={desk?.overlayLook} source="floor-clock">
         <FloorClockOverlay tournament={viewTournament(tournament, gameId)} desk={desk} />
+      </OverlayLookRoot>
+    </div>
+  );
+}
+
+function PinnedStreamClock({ gameId }: { gameId: GameId }) {
+  const tournament = useLiveTournament();
+  const desk = useLiveDesk(gameId, 400, 1);
+  if (!tournament) return null;
+  return (
+    <div className="h-dvh w-dvw overflow-hidden bg-ov-bg">
+      <OverlayLookRoot book={desk?.overlayLook} source="stream-clock">
+        <FloorClockOverlay tournament={viewTournament(tournament, gameId)} desk={desk} variant="stream" />
       </OverlayLookRoot>
     </div>
   );

@@ -1,3 +1,5 @@
+import type { GameId } from "@/lib/games";
+
 export type LookupAttack = {
   name: string;
   cost?: string[];
@@ -36,6 +38,45 @@ export const YGO_PROXY = "/api/ygo-cards";
 export const OP_PROXY = "/api/op-cards";
 export const RIFT_PROXY = "/api/rift-cards";
 export const LORCANA_PROXY = "/api/lorcana-cards";
+
+export type LookupCatalog = "ptcg" | "mtg" | "swu" | "ygo" | "op" | "rift" | "lorcana";
+
+export function catalogForGame(gameId: GameId): LookupCatalog | null {
+  switch (gameId) {
+    case "pokemon-tcg":
+      return "ptcg";
+    case "mtg":
+      return "mtg";
+    case "swu":
+      return "swu";
+    case "yugioh":
+      return "ygo";
+    case "one-piece":
+      return "op";
+    case "riftbound":
+      return "rift";
+    case "lorcana":
+      return "lorcana";
+    default:
+      return null;
+  }
+}
+
+export async function searchCatalogCards(
+  catalog: LookupCatalog,
+  query: string,
+  opts: { formatName?: string; liveOnly?: boolean } = {},
+): Promise<LookupCard[]> {
+  const liveOnly = opts.liveOnly ?? true;
+  const formatName = opts.formatName ?? "";
+  if (catalog === "mtg") return searchScryfallCards(query, scryfallLegalFor(formatName), !liveOnly);
+  if (catalog === "swu") return searchSwuCards(query);
+  if (catalog === "ygo") return searchYgoCards(query, liveOnly ? ygoFormatFor(formatName) : null);
+  if (catalog === "op") return searchOpCards(query);
+  if (catalog === "rift") return searchRiftCards(query);
+  if (catalog === "lorcana") return searchLorcanaCards(query);
+  return searchLookupCards(query, liveOnly);
+}
 
 export function cardLookupReady(): boolean {
   return true;
@@ -142,6 +183,25 @@ export async function searchScryfallCards(query: string, legal: string | null = 
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (res.status === 404) return [];
   if (!res.ok) throw new Error(`Scryfall lookup failed (${res.status})`);
+  const data = (await res.json()) as unknown;
+  if (!isRecord(data) || !Array.isArray(data.data)) return [];
+  return data.data.flatMap((row) => {
+    if (!isRecord(row)) return [];
+    const card = normalizeScryfall(row);
+    return card.name ? [card] : [];
+  });
+}
+
+export async function searchCommanderCards(query: string): Promise<LookupCard[]> {
+  const q = query.trim().replace(/[:"()]/g, " ").replace(/\s+/g, " ").trim();
+  if (q.length < 2) return [];
+  const url = new URL(`${SCRYFALL_BASE}/cards/search`);
+  url.searchParams.set("q", `${q} (is:commander OR t:background)`);
+  url.searchParams.set("unique", "cards");
+  url.searchParams.set("order", "name");
+  const res = await fetch(url.toString(), { cache: "no-store" });
+  if (res.status === 404) return [];
+  if (!res.ok) throw new Error(`Scryfall commander lookup failed (${res.status})`);
   const data = (await res.json()) as unknown;
   if (!isRecord(data) || !Array.isArray(data.data)) return [];
   return data.data.flatMap((row) => {

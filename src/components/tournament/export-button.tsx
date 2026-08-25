@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { exportTournamentFiles } from "@/lib/tournament-export";
+import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 
@@ -19,7 +20,7 @@ export function ExportTournamentButton({
   const run = async () => {
     setStatus("busy");
     try {
-      await exportTournamentFiles(t);
+      await exportTournamentFiles(t, useDeskStore.getState().desk);
       setStatus("ok");
     } catch {
       try {
@@ -45,9 +46,10 @@ export function ExportTournamentButton({
       </Button>
       {full ? (
         <p className="text-[0.65rem] leading-relaxed text-subtle">
-          One zip: JSON plus CSVs (players, matches, standings
+          One zip: JSON plus CSVs (players, matches, standings, judge notes
           {t.staff?.length ? ", staff" : ""}
-          {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}).
+          {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}
+          ). Completing the event also downloads this pack.
           {demo ? " Test mode — this is the demo field." : " Includes player IDs; keep it with event staff."}
         </p>
       ) : null}

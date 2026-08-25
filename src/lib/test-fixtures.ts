@@ -9,6 +9,7 @@ export type TestPlayer = {
   pronouns: string;
   country: string;
   deck: string;
+  extra?: string;
   team?: TeamMon[];
 };
 
@@ -89,15 +90,17 @@ const DECKS: Record<GameId, string[]> = {
 };
 
 const COMMANDERS = [
-  "Atraxa",
-  "Kinnan",
-  "Kenrith",
-  "Tymna / Kraum",
-  "Winota",
-  "Najeela",
-  "Korvold",
-  "Yoshimaru / Bruse",
+  "Atraxa, Praetors' Voice",
+  "Kinnan, Bonder Prodigy",
+  "Kenrith, the Returned King",
+  "Tymna the Weaver",
+  "Winota, Joiner of Forces",
+  "Najeela, the Blade-Blossom",
+  "Korvold, Fae-Cursed King",
+  "Yoshimaru, Ever Faithful",
 ];
+
+const COMMANDER_PARTNERS = ["", "", "", "Kraum, Ludevic's Opus", "", "", "", "Bruse Tarl, Boorish Herder"];
 
 export function emptyCasters(): [Caster, Caster] {
   return [
@@ -119,6 +122,7 @@ export function testPlayersFor(gameId: GameId, formatName: string): TestPlayer[]
   return PEOPLE.map((person, i) => ({
     ...person,
     deck: decks[i] ?? `Seat ${i + 1}`,
+    extra: commander ? (COMMANDER_PARTNERS[i] ?? "") : "",
     team: gameId === "pokemon-vgc" ? (i === 0 ? sampleTeamA() : i === 1 ? sampleTeamB() : undefined) : undefined,
   }));
 }
@@ -131,6 +135,7 @@ export function testEntrants(gameId: GameId, formatName: string): Entrant[] {
       pronouns: row.pronouns,
       country: row.country,
       deck: row.deck,
+      extra: row.extra ?? "",
       seed: i + 1,
       team: row.team,
     }),
@@ -178,6 +183,7 @@ export function applyTestDesk(desk: DeskState): Partial<DeskState> {
       pronouns: row?.pronouns ?? "",
       country: row?.country ?? "US",
       archetype: row?.deck ?? "",
+      extra: row?.extra ?? "",
       resource: fallbackResource,
       team: row?.team,
       recordW: desk.gameId === "lorcana" ? 5 - seat : 0,

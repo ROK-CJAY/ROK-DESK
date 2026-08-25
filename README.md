@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.1-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.2-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -51,10 +51,12 @@ Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switc
 | Production Control | `/production` | Stream op — featured match, overlays, look |
 | Judge tablet | `/{game}/tablet` · Floor 1: `/{game}/2/tablet` · Floor 2: `/{game}/3/tablet` | Floor judge for that table |
 | Player tablet | `/{game}/tablet?role=player` | Commander or Lorcana table pad |
+| Commentary tablet | `/{game}/tablet?role=caster` | Casters — full player info, read-only |
 | Walk-up signup | `/{game}/signup` | Players at the door |
 | VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon form |
 | Overlay index | `/overlay` | Browser-source list |
 | Floor clock | `/{game}/overlay/floor-clock` | Room monitor |
+| Stream clock | `/{game}/overlay/stream-clock` | Monitor at the streamed table |
 | Browser | `/browser` | In-app Chromium for pairings, downloads, card DBs |
 
 Header on Production / Tournament: **Home · Production · Tournament**, plus **Browser · Donate · Feedback**. Feedback goes to the [ROK Desk form](https://forms.gle/Re5mt8RXU7qNEN8W9).
@@ -70,10 +72,11 @@ Every title — including VGC — has **three** independent tables:
 | Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` | `/{game}/3/overlay/scorebug` |
 | Judge tablet | `/{game}/tablet` | `/{game}/2/tablet` | `/{game}/3/tablet` |
 | Player tablet | `/{game}/tablet?role=player` | `/{game}/2/tablet?role=player` | `/{game}/3/tablet?role=player` |
+| Commentary tablet | `/{game}/tablet?role=caster` | `/{game}/2/tablet?role=caster` | `/{game}/3/tablet?role=caster` |
 
 On Production, **Stream | Floor 1 | Floor 2** sits under the game chips. Each slot has its own players, scores, clock, winners, card spotlight, and tablets. Switching slots (or games) keeps the other tables.
 
-**Floor clock** and **bracket** stay per-game (`/{game}/overlay/floor-clock`, `/{game}/overlay/bracket`) — one tournament overlay for the room, not a copy per table.
+**Floor clock**, **stream clock**, and **bracket** stay per-game (`/{game}/overlay/floor-clock`, `/{game}/overlay/stream-clock`, `/{game}/overlay/bracket`) — one tournament overlay for the room, not a copy per table.
 
 From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor 1**, or **Floor 2**. Each on-air card has **Remove** if it was sent by mistake. That unassigns the pairing and clears that slot’s names on Production.
 
@@ -94,8 +97,9 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Per-game. Switching titles does not share players
 - Name, handle, country, pronouns, deck / commander / extra
 - Organized-play **Player ID** (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, SWU-Stats, Riot ID) with a required privacy checkbox. IDs stay on the roster and export, never on stream
+- **Decklists** (optional per event): TO toggles Request decklist; players search/add cards with qty; export includes `decklists.csv` plus a count on `players.csv`
 - Lorcana: deck plus up to two official inks
-- Commander / cEDH / Duel Commander: commander field
+- Commander / cEDH / Duel Commander: searchable commander (Scryfall) plus an optional Partner field
 - VGC: full team sheet (species, Tera, ability, item, four moves)
 
 **Pairings & results**
@@ -115,7 +119,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 
 **Staff & archive**
 - Staff roles: Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other — archive only
-- **Export tournament** — zip of JSON plus CSVs (players, matches, standings, staff, VGC teams), including in test mode
+- **Export tournament** — zip of JSON plus CSVs (players, matches, standings, staff, VGC teams, decklists, judge notes). Completing the event also downloads this pack.
 - VGC **print team list** — two pages per player in the Play! Pokémon VG team-list layout (staff page with stats, opponent page without)
 
 ---
@@ -140,6 +144,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 **Stream clock**
 - Starts at `00:00`. Type a time, start / pause, + / − while running or paused, reset
 - Independent from the Tournament floor clock. Judge tablets follow **this** clock so the feature table can start late
+- **Open stream clock** pops a full-screen page (`/{game}/overlay/stream-clock`) for a monitor at that table
 
 **Show control**
 - Hold slates: Starting soon / BRB / Thanks / Tech (hidden = fully transparent)
@@ -165,7 +170,7 @@ Open from Production or Tournament so the URL is pinned to that **game and match
 
 ### Judge tablet
 
-How-to guide on first open. Start / pause / add or remove time / reset the **stream clock**. Game / Match report to the desk and, when linked, the bracket.
+How-to guide on first open. Start / pause / add or remove time / reset the **stream clock**. Game / Match report to the desk and, when linked, the bracket. Per-player **judge notes** (warnings, slow play, deck check) stay with that player for the event.
 
 | Game | Pad | Lookup |
 | --- | --- | --- |
@@ -178,7 +183,7 @@ How-to guide on first open. Start / pause / add or remove time / reset the **str
 | Lorcana | Lore 0–20 | Lorcast |
 | Riftbound | Points 1–8 | Riftcodex |
 
-Card overlay: **On Stream** is red while a card is up. With nothing selected the source is transparent.
+Card overlay: **On Stream** is red while a card is up. With nothing selected the source is transparent. If the pair submitted decklists, those cards sit above search so judges can pull them without retyping.
 
 ### Player tablet
 
@@ -186,6 +191,19 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 
 - **MTG Commander / cEDH / Duel Commander** — life, poison, commander damage
 - **Lorcana** — split lore pads, +8 / −8 chips, game diamonds plus large **+ / −** for games, match clock
+
+### Commentary tablet
+
+`/{game}/tablet?role=caster` — open from Production (**Commentary** card). Read-only cheat sheet for casters on that table.
+
+- Names, handle, country, pronouns, deck / commander + partner, W/L/D, game count, resource
+- VGC: six Pokémon with types, Tera, ability, item, moves (grey = KO)
+- PTCG: Active, bench, HP, prizes, Energy / Supporter / Retreat
+- Stream clock for that table
+- Bracket path: seed, record, completed matches, this pairing, Win → / Lose → (Swiss also shows place / match points / OMW)
+- Head-to-head if the seats already played in this event
+- Player photo, Limitless / notes, and **judge notes** (from the floor pad; read-only here)
+- Event staff (head judge, judges, producer) and the Production up-next queue
 
 ---
 
@@ -195,6 +213,9 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 
 - Name, handle, country, pronouns
 - Deck / leader / commander when that format needs it
+- Commander / cEDH / Duel Commander: Scryfall search for the commander, plus an optional Partner (or Background)
+- Limitless / notes (optional season record or accomplishments)
+- Decklist when the TO turns on **Request decklist** — search a card, tap to add, set quantity. Uses the same APIs as judge lookup (TCGdex, Scryfall, SWU-DB, YGOPRODeck, OP, Lorcast, Riftcodex)
 - Lorcana inks (up to two)
 - VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls
 - Player ID + privacy checkbox
@@ -226,6 +247,7 @@ Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no cust
 | VGC roster | `/{game}/overlay/roster` | `/{game}/2/overlay/roster` | `/{game}/3/overlay/roster` |
 | Bracket | `/{game}/overlay/bracket` | per game, not per table | per game, not per table |
 | Floor clock | `/{game}/overlay/floor-clock` | per game, not per table | per game, not per table |
+| Stream clock | `/{game}/overlay/stream-clock` | per game, not per table | per game, not per table |
 
 Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
@@ -262,10 +284,12 @@ There are **two timers** on purpose.
 
 | Clock | Driven from | Shown on | Typical use |
 | --- | --- | --- | --- |
-| Stream clock | Production (and judge / player tablets) | Scorebug, HUD, tablet | Featured match, which often starts late |
-| Floor clock | Tournament | Full-screen `/overlay/floor-clock` | The rest of the round in the room |
+| Stream clock | Production (and judge / player tablets) | Scorebug, HUD, tablet, full-screen `/{game}/overlay/stream-clock` | Featured match, which often starts late — put this on a monitor at that table |
+| Floor clock | Tournament | Full-screen `/{game}/overlay/floor-clock` | The rest of the round in the room |
 
 Both default to `00:00`. Type the round length, then start. Add or remove time while running or paused. Reset returns to `00:00` (stream) or the last typed floor time.
+
+**Open stream clock** lives on Production next to the stream timer. **Open floor clock** lives on Tournament.
 
 ---
 
@@ -321,6 +345,26 @@ npm run dist
 ---
 
 ## Changelog
+
+### v1.2.2-beta — 25 Aug 2026 · caster, decklists, judge notes
+
+Ops pass: commentary pad, saved decklists, per-player judge notes, and a Production crash fix.
+
+**Added**
+- **Commentary / casting tablet** (`/{game}/tablet?role=caster`) — read-only names, decks, teams, board, clock, bracket path, H2H, staff, and up-next
+- **Request decklist** on Tournament setup — walk-up and roster search/add cards with qty; judge lookup lists those cards first; export writes `decklists.csv`
+- **Judge notes** per player on every judge tablet (and Production) — stay with the player, show on the caster pad, export as `judge-notes.csv`
+- Completing a tournament downloads the export zip
+- Stream-match **full-screen clock** (`/{game}/overlay/stream-clock`) like the floor clock
+- Commander / Partner **Scryfall search** on sign-up, roster, and Production
+
+**Changed**
+- Format dropdown follows the selected game
+- Overlay preview sits in a fixed 16:9 box so it cannot fight the page scrollbar
+
+**Fixed**
+- Production Control crashed on open (`Maximum update depth exceeded`) — card lookup was rebuilding desk state every render
+- Format staying on the previous title after a game change
 
 ### v1.2.1-beta — 25 Aug 2026 · Play Layout polish
 
@@ -432,4 +476,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.1-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.2-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

@@ -139,7 +139,7 @@ export function OverlayPreview() {
   const current = OVERLAY_SOURCES.find((s) => s.id === source)!;
   const pathFor = (id: OverlaySourceId) => overlayPath(desk.gameId, id, desk.matchSlot ?? 1);
   const url = origin ? `${origin}${pathFor(source)}` : pathFor(source);
-  const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock";
+  const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock" && source !== "stream-clock";
   const atDefault = isDefaultLayout(desk.layout);
 
   const edit = useMemo<OverlayEdit | null>(() => {
@@ -221,6 +221,7 @@ export function OverlayPreview() {
           className="absolute inset-0 h-full w-full object-cover opacity-90"
         />
         <div className="absolute inset-0 bg-ov-bg/25" />
+        <div className="absolute inset-0">
         <ScaleFrame>
           <OverlayLookRoot book={desk.overlayLook} source={source}>
           {source === "hud" ? <HudView desk={desk} now={now} /> : null}
@@ -236,12 +237,16 @@ export function OverlayPreview() {
           {source === "upcoming" ? <UpcomingView desk={desk} /> : null}
           {source === "bracket" && tourneyReady ? <BracketOverlay tournament={tournament} /> : null}
           {source === "floor-clock" && tourneyReady ? <FloorClockOverlay tournament={tournament} desk={desk} /> : null}
+          {source === "stream-clock" && tourneyReady ? (
+            <FloorClockOverlay tournament={tournament} desk={desk} variant="stream" />
+          ) : null}
           {source === "roster" ? <RosterView desk={desk} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} /> : null}
           {source === "card" ? <CardSpotlightView desk={desk} /> : null}
           {source === "sponsors" ? <SponsorsView desk={desk} now={now} /> : null}
           {source === "event-logo" ? <EventLogoView desk={desk} /> : null}
           </OverlayLookRoot>
         </ScaleFrame>
+        </div>
       </div>
 
       <div>

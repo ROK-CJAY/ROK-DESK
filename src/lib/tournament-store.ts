@@ -22,6 +22,7 @@ import {
 import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } from "@/lib/test-fixtures";
 import { remainingSeconds } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
+import { withDeskJudgeNotes } from "@/lib/judge-notes-sync";
 
 type TournamentStore = {
   tournament: TournamentState;
@@ -67,7 +68,7 @@ function startTournamentPoll() {
         if (!parsed) return;
         const incoming = clearLegacyTournament(parsed);
         const local = useTournamentStore.getState().tournament;
-        if (incoming.version >= local.version) {
+        if (incoming.version > local.version) {
           useTournamentStore.setState({ tournament: incoming });
         }
       } catch {
@@ -146,7 +147,14 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   setGame: (gameId) => {
     const prev = get().tournament;
     if (prev.gameId === gameId) return;
-    const tournament = { ...switchGame(prev, gameId), version: prev.version + 1 };
+    const switched = switchGame(prev, gameId);
+    const tournament = nextVersion(
+      { ...switched, version: prev.version },
+      {
+        formatName: switched.formatName,
+        bestOf: switched.bestOf,
+      },
+    );
     persist(tournament);
     set({ tournament });
   },
@@ -166,8 +174,14 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
 
   updateEntrant: (id, partial) => {
     const prev = get().tournament;
+    const current = prev.entrants.find((e) => e.id === id);
+    if (!current) return;
+    const next = { ...current, ...partial };
+    if (next === current || (Object.keys(partial) as Array<keyof typeof partial>).every((key) => current[key] === next[key])) {
+      return;
+    }
     const tournament = nextVersion(prev, {
-      entrants: prev.entrants.map((e) => (e.id === id ? { ...e, ...partial } : e)),
+      entrants: prev.entrants.map((e) => (e.id === id ? next : e)),
     });
     persist(tournament);
     set({ tournament });
@@ -277,7 +291,9 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   completeTournament: () => {
     const prev = get().tournament;
     if (prev.phase === "complete") return;
-    const tournament = nextVersion(prev, { phase: "complete" });
+    const desk = useDeskStore.getState().desk;
+    const withNotes = withDeskJudgeNotes(prev, desk);
+    const tournament = nextVersion(withNotes, { phase: "complete" });
     persist(tournament);
     set({ tournament });
   },

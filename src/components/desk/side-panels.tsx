@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, playerTabletPath, signupPath, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, casterTabletPath, playerTabletPath, signupPath, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -37,6 +37,9 @@ export function EventPanel() {
   const game = gameOf(desk.gameId);
   const family = currentFamily(desk);
   const formatOptions = desk.gameId === "mtg" ? formatsInFamily(game, family) : game.formats;
+  const formatValue = formatOptions.some((f) => f.label === desk.formatName)
+    ? desk.formatName
+    : (formatOptions[0]?.label ?? desk.formatName);
   const commander = isCommanderLane(desk);
 
   return (
@@ -65,7 +68,8 @@ export function EventPanel() {
         </div>
         <Field label="Format">
           <NativeSelect
-            value={desk.formatName}
+            key={desk.gameId}
+            value={formatValue}
             onChange={(e) => {
               const preset = game.formats.find((f) => f.label === e.target.value);
               if (preset) applyFormat(preset);
@@ -73,7 +77,7 @@ export function EventPanel() {
             }}
           >
             {formatOptions.map((f) => (
-              <option key={f.id} value={f.label}>
+              <option key={`${desk.gameId}-${f.id}`} value={f.label}>
                 {f.label}
               </option>
             ))}
@@ -171,6 +175,25 @@ export function EventPanel() {
           <Switch checked={deskLooksLikeTest(desk)} onCheckedChange={() => loadTestMode()} aria-label="Toggle test mode" />
         </div>
         <RoundClock />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" className="flex-1" asChild>
+            <a href={overlayPath(desk.gameId, "stream-clock")} target="_blank" rel="noreferrer">
+              Open stream clock
+            </a>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => {
+              void navigator.clipboard.writeText(
+                `${window.location.origin}${overlayPath(desk.gameId, "stream-clock")}`,
+              );
+            }}
+          >
+            Copy stream clock URL
+          </Button>
+        </div>
       </div>
     </section>
   );
@@ -882,6 +905,47 @@ export function PodPanel() {
             </a>
           </Button>
         ) : null}
+      </div>
+    </section>
+  );
+}
+
+export function CastingPanel() {
+  const desk = useDeskStore((s) => s.desk);
+  const [copied, setCopied] = useState(false);
+  const slot = desk.matchSlot ?? 1;
+  const path = casterTabletPath(desk.gameId, slot);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${path}`);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1400);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
+        Commentary · {MATCH_SLOT_SHORT[slot]}
+      </p>
+      <p className="mt-1 text-sm text-muted">
+        Casting tablet — names, decks, teams, records, and the match clock for this table. Read-only; casters cannot punch scores.
+      </p>
+      <p className="mt-2 text-xs text-ok">
+        VGC shows the sixes with moves. PTCG shows Active / bench / prizes. Other titles show life, lore, LP, commander, inks, and initiative.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm" className="flex-1" onClick={() => void copy()}>
+          {copied ? "Copied" : "Copy URL"}
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <a href={path} target="_blank" rel="noreferrer">
+            Open caster tablet
+          </a>
+        </Button>
       </div>
     </section>
   );

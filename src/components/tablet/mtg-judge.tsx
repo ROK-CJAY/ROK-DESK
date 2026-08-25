@@ -5,7 +5,8 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
-import { extraFieldFor, gameOf, isCommanderLane, playerTabletPath } from "@/lib/games";
+import { JudgeNotes } from "@/components/tablet/judge-notes";
+import { extraFieldFor, formatCommanderLine, gameOf, isCommanderLane, playerTabletPath } from "@/lib/games";
 import {
   SEAT_LABELS,
   isCommanderTable,
@@ -224,7 +225,7 @@ function MtgSeat({
           </p>
           <p className="font-display truncate text-lg font-semibold uppercase">{player.name || "Open"}</p>
           <p className="truncate text-sm text-muted">
-            {player.archetype || extraLabel}
+            {commander ? formatCommanderLine(player.archetype, player.extra) || extraLabel : player.archetype || extraLabel}
           </p>
         </div>
         {pod && onWin ? (
@@ -294,6 +295,7 @@ function MtgSeat({
           </div>
         </div>
       ) : null}
+      <JudgeNotes seat={seat} />
     </section>
   );
 }

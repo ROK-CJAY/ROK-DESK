@@ -4,6 +4,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { extraFieldFor, gameOf } from "@/lib/games";
 import { type SideId } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
@@ -189,6 +190,7 @@ function YgoSeat({
           </Button>
         </div>
       </div>
+      <JudgeNotes seat={side} />
     </section>
   );
 }

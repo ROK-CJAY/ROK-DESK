@@ -1,6 +1,7 @@
 import { ArrowLeftRight, Eraser, RotateCcw, Trophy } from "lucide-react";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { Field, NativeSelect } from "@/components/desk/field";
+import { CommanderSearchField } from "@/components/desk/commander-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
@@ -199,10 +200,38 @@ function SeatCard({
           />
         </Field>
         <Field label="Commander">
-          <Input
+          <CommanderSearchField
             value={player.archetype}
-            placeholder="Atraxa · Kinnan · Kenrith"
-            onChange={(e) => onChange({ archetype: e.target.value })}
+            onChange={(archetype) => onChange({ archetype })}
+            placeholder="Search commander"
+          />
+        </Field>
+        <Field label="Partner">
+          <CommanderSearchField
+            value={player.extra}
+            onChange={(extra) => onChange({ extra })}
+            placeholder="Optional — Partner, Background…"
+          />
+        </Field>
+        <Field label="Limitless / notes">
+          <Input
+            value={player.note}
+            placeholder="Limitless 47–12"
+            onChange={(e) => onChange({ note: e.target.value })}
+          />
+        </Field>
+        <Field label="Judge notes">
+          <Input
+            value={player.judgeNote ?? ""}
+            placeholder="Warnings, slow play…"
+            onChange={(e) => onChange({ judgeNote: e.target.value })}
+          />
+        </Field>
+        <Field label="Photo URL">
+          <Input
+            value={player.photoUrl}
+            placeholder="https://…"
+            onChange={(e) => onChange({ photoUrl: e.target.value })}
           />
         </Field>
       </div>
@@ -271,7 +300,7 @@ function PlayerColumn({
   const max = resourceLimit(desk);
   const rtl = align === "right";
   const extraLabel = commander ? "Commander" : game.extraLabel;
-  const extraPlaceholder = commander ? "Atraxa · Yoshimaru" : game.extraPlaceholder;
+  const extraPlaceholder = commander ? "Search commander" : game.extraPlaceholder;
 
   return (
     <div className={cn("min-w-0 rounded-lg bg-surface-2 p-4", rtl && "lg:text-right")} data-game={desk.gameId}>
@@ -331,21 +360,69 @@ function PlayerColumn({
             </NativeSelect>
           </Field>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={extraLabel}>
-            <Input
-              value={player.archetype}
-              placeholder={extraPlaceholder}
-              onChange={(e) => onChange({ archetype: e.target.value })}
-            />
-          </Field>
-          <Field label="Pronouns">
-            <Input
-              value={player.pronouns}
-              onChange={(e) => onChange({ pronouns: e.target.value })}
-            />
-          </Field>
-        </div>
+        {commander ? (
+          <>
+            <Field label="Commander">
+              <CommanderSearchField
+                value={player.archetype}
+                onChange={(archetype) => onChange({ archetype })}
+                placeholder="Search commander"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Partner">
+                <CommanderSearchField
+                  value={player.extra}
+                  onChange={(extra) => onChange({ extra })}
+                  placeholder="Optional"
+                />
+              </Field>
+              <Field label="Pronouns">
+                <Input
+                  value={player.pronouns}
+                  onChange={(e) => onChange({ pronouns: e.target.value })}
+                />
+              </Field>
+            </div>
+          </>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label={extraLabel}>
+              <Input
+                value={player.archetype}
+                placeholder={extraPlaceholder}
+                onChange={(e) => onChange({ archetype: e.target.value })}
+              />
+            </Field>
+            <Field label="Pronouns">
+              <Input
+                value={player.pronouns}
+                onChange={(e) => onChange({ pronouns: e.target.value })}
+              />
+            </Field>
+          </div>
+        )}
+        <Field label="Photo URL">
+          <Input
+            value={player.photoUrl}
+            placeholder="https://…"
+            onChange={(e) => onChange({ photoUrl: e.target.value })}
+          />
+        </Field>
+        <Field label="Limitless / notes">
+          <Input
+            value={player.note}
+            placeholder="Limitless 47–12 · Top 8 Regionals"
+            onChange={(e) => onChange({ note: e.target.value })}
+          />
+        </Field>
+        <Field label="Judge notes">
+          <Input
+            value={player.judgeNote ?? ""}
+            placeholder="Warnings, slow play…"
+            onChange={(e) => onChange({ judgeNote: e.target.value })}
+          />
+        </Field>
         {desk.gameId === "lorcana" ? (
           <>
             <div className="grid grid-cols-3 gap-2">

@@ -43,6 +43,7 @@ import { Route as OverlayRosterRouteImport } from './routes/overlay/roster'
 import { Route as OverlayScorebugRouteImport } from './routes/overlay/scorebug'
 import { Route as OverlaySlateRouteImport } from './routes/overlay/slate'
 import { Route as OverlaySponsorsRouteImport } from './routes/overlay/sponsors'
+import { Route as OverlayStreamClockRouteImport } from './routes/overlay/stream-clock'
 import { Route as OverlayTimerRouteImport } from './routes/overlay/timer'
 import { Route as OverlayUpcomingRouteImport } from './routes/overlay/upcoming'
 import { Route as OverlayVersusRouteImport } from './routes/overlay/versus'
@@ -225,6 +226,11 @@ const OverlaySponsorsRoute = OverlaySponsorsRouteImport.update({
   path: '/sponsors',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const OverlayStreamClockRoute = OverlayStreamClockRouteImport.update({
+  id: '/stream-clock',
+  path: '/stream-clock',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
 const OverlayTimerRoute = OverlayTimerRouteImport.update({
   id: '/timer',
   path: '/timer',
@@ -315,6 +321,7 @@ export interface FileRoutesByFullPath {
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
   '/overlay/sponsors': typeof OverlaySponsorsRoute
+  '/overlay/stream-clock': typeof OverlayStreamClockRoute
   '/overlay/timer': typeof OverlayTimerRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
@@ -361,6 +368,7 @@ export interface FileRoutesByTo {
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
   '/overlay/sponsors': typeof OverlaySponsorsRoute
+  '/overlay/stream-clock': typeof OverlayStreamClockRoute
   '/overlay/timer': typeof OverlayTimerRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
@@ -409,6 +417,7 @@ export interface FileRoutesById {
   '/overlay/scorebug': typeof OverlayScorebugRoute
   '/overlay/slate': typeof OverlaySlateRoute
   '/overlay/sponsors': typeof OverlaySponsorsRoute
+  '/overlay/stream-clock': typeof OverlayStreamClockRoute
   '/overlay/timer': typeof OverlayTimerRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
@@ -458,6 +467,7 @@ export interface FileRouteTypes {
     | '/overlay/scorebug'
     | '/overlay/slate'
     | '/overlay/sponsors'
+    | '/overlay/stream-clock'
     | '/overlay/timer'
     | '/overlay/upcoming'
     | '/overlay/versus'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/overlay/scorebug'
     | '/overlay/slate'
     | '/overlay/sponsors'
+    | '/overlay/stream-clock'
     | '/overlay/timer'
     | '/overlay/upcoming'
     | '/overlay/versus'
@@ -551,6 +562,7 @@ export interface FileRouteTypes {
     | '/overlay/scorebug'
     | '/overlay/slate'
     | '/overlay/sponsors'
+    | '/overlay/stream-clock'
     | '/overlay/timer'
     | '/overlay/upcoming'
     | '/overlay/versus'
@@ -833,6 +845,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlaySponsorsRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/overlay/stream-clock': {
+      id: '/overlay/stream-clock'
+      path: '/stream-clock'
+      fullPath: '/overlay/stream-clock'
+      preLoaderRoute: typeof OverlayStreamClockRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
     '/overlay/timer': {
       id: '/overlay/timer'
       path: '/timer'
@@ -927,6 +946,7 @@ interface OverlayRouteRouteChildren {
   OverlayScorebugRoute: typeof OverlayScorebugRoute
   OverlaySlateRoute: typeof OverlaySlateRoute
   OverlaySponsorsRoute: typeof OverlaySponsorsRoute
+  OverlayStreamClockRoute: typeof OverlayStreamClockRoute
   OverlayTimerRoute: typeof OverlayTimerRoute
   OverlayUpcomingRoute: typeof OverlayUpcomingRoute
   OverlayVersusRoute: typeof OverlayVersusRoute
@@ -948,6 +968,7 @@ const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayScorebugRoute: OverlayScorebugRoute,
   OverlaySlateRoute: OverlaySlateRoute,
   OverlaySponsorsRoute: OverlaySponsorsRoute,
+  OverlayStreamClockRoute: OverlayStreamClockRoute,
   OverlayTimerRoute: OverlayTimerRoute,
   OverlayUpcomingRoute: OverlayUpcomingRoute,
   OverlayVersusRoute: OverlayVersusRoute,

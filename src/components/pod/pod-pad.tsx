@@ -10,15 +10,15 @@ import { YgoJudgeTablet } from "@/components/tablet/ygo-judge";
 import { OpJudgeTablet } from "@/components/tablet/op-judge";
 import { RiftJudgeTablet } from "@/components/tablet/rift-judge";
 import { LorcanaJudgeTablet } from "@/components/tablet/lorcana-judge";
-import { LorcanaPlayerTablet } from "@/components/tablet/lorcana-player";
+import { CasterTablet } from "@/components/tablet/caster-tablet";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
-import { isCommanderLane } from "@/lib/games";
+import { formatCommanderLine, isCommanderLane } from "@/lib/games";
 import { cn } from "@/lib/cn";
 
 const TABLE_ORDER: SeatId[] = ["p3", "p4", "p2", "p1"];
 
-export function PodPad({ role = "judge" }: { role?: "judge" | "player" }) {
+export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "caster" }) {
   const ready = useDeskStore((s) => s.ready);
   const hydrate = useDeskStore((s) => s.hydrate);
   const desk = useDeskStore((s) => s.desk);
@@ -57,6 +57,10 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" }) {
     return (
       <div className="grid h-dvh place-items-center bg-bg text-muted">Loading tablet…</div>
     );
+  }
+
+  if (role === "caster") {
+    return <CasterTablet />;
   }
 
   if (role !== "player") {
@@ -193,7 +197,11 @@ function SeatPad({
             <p className="font-display truncate text-xl leading-none font-semibold uppercase">
               {player.name || "Open"}
             </p>
-            <p className="truncate text-xs text-muted">{player.archetype || (commander ? "Commander" : "Open")}</p>
+            <p className="truncate text-xs text-muted">
+              {commander
+                ? formatCommanderLine(player.archetype, player.extra) || "Commander"
+                : player.archetype || "Open"}
+            </p>
           </div>
           {out || lethal ? <Skull className="size-4 text-live" /> : null}
         </div>

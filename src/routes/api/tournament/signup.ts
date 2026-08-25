@@ -3,6 +3,7 @@ import { z } from "zod";
 import { blankEntrant, emptyDesk, snapshotDesk } from "@/lib/tournament-types";
 import { loadTournament, saveTournament } from "@/lib/tournament-server";
 import { mergeTeam } from "@/lib/pokemon-vgc";
+import { mergeDecklist } from "@/lib/decklist";
 import { gameIdFromSlug } from "@/lib/games";
 import { sanitizeInk } from "@/lib/lorcana";
 
@@ -15,8 +16,8 @@ const signupSchema = z.object({
   tag: z.string().trim().max(40).optional().default(""),
   pronouns: z.string().trim().max(40).optional().default(""),
   country: z.string().trim().max(8).optional().default("US"),
-  deck: z.string().trim().max(80).optional().default(""),
-  extra: z.string().trim().max(80).optional().default(""),
+  deck: z.string().trim().max(120).optional().default(""),
+  extra: z.string().trim().max(120).optional().default(""),
   playerId: z.string().trim().max(40).optional().default(""),
   trainerName: z.string().trim().max(80).optional().default(""),
   switchProfile: z.string().trim().max(80).optional().default(""),
@@ -29,6 +30,9 @@ const signupSchema = z.object({
   game: z.string().trim().max(40).optional(),
   ink1: z.string().trim().max(20).optional().default(""),
   ink2: z.string().trim().max(20).optional().default(""),
+  note: z.string().trim().max(160).optional().default(""),
+  photoUrl: z.string().trim().max(400).optional().default(""),
+  decklist: z.unknown().optional(),
 });
 
 export const Route = createFileRoute("/api/tournament/signup")({
@@ -58,6 +62,10 @@ export const Route = createFileRoute("/api/tournament/signup")({
           return Response.json({ error: "This tournament is closed" }, { status: 409, headers: noStore });
         }
 
+        if (lane.requireDecklist && mergeDecklist(parsed.data.decklist).length === 0) {
+          return Response.json({ error: "Decklist is required for this event" }, { status: 400, headers: noStore });
+        }
+
         const seed = lane.entrants.reduce((max, e) => Math.max(max, e.seed), 0) + 1;
         const entrant = blankEntrant({
           name: parsed.data.name,
@@ -75,6 +83,9 @@ export const Route = createFileRoute("/api/tournament/signup")({
           team: mergeTeam(parsed.data.team),
           ink1: sanitizeInk(parsed.data.ink1),
           ink2: sanitizeInk(parsed.data.ink2),
+          note: parsed.data.note,
+          photoUrl: parsed.data.photoUrl,
+          decklist: mergeDecklist(parsed.data.decklist),
         });
         const nextLane = { ...lane, entrants: [...lane.entrants, entrant] };
         const next = live

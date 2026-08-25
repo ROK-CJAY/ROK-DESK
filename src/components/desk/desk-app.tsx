@@ -5,6 +5,7 @@ import { OverlayPreview } from "@/components/desk/overlay-preview";
 import {
   BracketPanel,
   CasterPanel,
+  CastingPanel,
   EventPanel,
   GameStrip,
   PodPanel,
@@ -62,8 +63,15 @@ export function DeskApp() {
             {showTablet ? (
               <div className="lg:hidden">
                 <PodPanel />
+                <div className="mt-4">
+                  <CastingPanel />
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="lg:hidden">
+                <CastingPanel />
+              </div>
+            )}
           </div>
 
           <div className="order-1 flex flex-col gap-4 lg:order-2">
@@ -82,6 +90,9 @@ export function DeskApp() {
                 <PodPanel />
               </div>
             ) : null}
+            <div className="max-lg:hidden">
+              <CastingPanel />
+            </div>
             <CasterPanel />
             <SponsorPanel />
             <QueuePanel />

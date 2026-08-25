@@ -5,6 +5,7 @@ import { reportMatchToBracket } from "@/lib/report-stream";
 import { extraFieldFor, gameOf } from "@/lib/games";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
@@ -218,6 +219,7 @@ function OpSeat({
           </Button>
         </div>
       </div>
+      <JudgeNotes seat={side} />
     </section>
   );
 }

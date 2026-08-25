@@ -9,6 +9,7 @@ import {
   type TeamMon,
 } from "@/lib/pokemon-vgc";
 import { emptyPtcgBoard, parsePtcgBoard, type PtcgBoard } from "@/lib/ptcg-board";
+import { emptyDecklist, mergeDecklist, type DeckCard } from "@/lib/decklist";
 
 export type GameClock = {
   remaining: number;
@@ -82,6 +83,8 @@ export type PlayerSide = {
   archetype: string;
   extra: string;
   photoUrl: string;
+  note: string;
+  judgeNote: string;
   cmdDamage: number;
   cmdFrom: CmdFrom;
   team: TeamMon[];
@@ -91,6 +94,7 @@ export type PlayerSide = {
   recordD: number;
   ink1: string;
   ink2: string;
+  decklist: DeckCard[];
 };
 
 export type Caster = {
@@ -183,7 +187,9 @@ const playerSchema: z.ZodType<PlayerSide> = z.object({
   secondary: z.number(),
   archetype: z.string(),
   extra: z.string(),
-  photoUrl: z.string(),
+  photoUrl: z.string().optional().transform((v) => v ?? ""),
+  note: z.string().optional().transform((v) => v ?? ""),
+  judgeNote: z.string().optional().transform((v) => v ?? ""),
   cmdDamage: z.number(),
   cmdFrom: z.object({
     p1: z.number(),
@@ -214,6 +220,7 @@ const playerSchema: z.ZodType<PlayerSide> = z.object({
   recordD: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
   ink1: z.string().optional().transform((v) => v ?? ""),
   ink2: z.string().optional().transform((v) => v ?? ""),
+  decklist: z.unknown().optional().transform((rows) => mergeDecklist(rows)),
 });
 
 const casterSchema: z.ZodType<Caster> = z.object({
@@ -341,6 +348,8 @@ export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
     archetype: "",
     extra: "",
     photoUrl: "",
+    note: "",
+    judgeNote: "",
     cmdDamage: 0,
     ...overrides,
     cmdFrom: { ...emptyCmdFrom(), ...overrides.cmdFrom },
@@ -351,6 +360,7 @@ export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
     recordD: overrides.recordD ?? 0,
     ink1: overrides.ink1 ?? "",
     ink2: overrides.ink2 ?? "",
+    decklist: mergeDecklist(overrides.decklist ?? emptyDecklist()),
   };
 }
 
@@ -622,6 +632,7 @@ function mergePlayer(base: PlayerSide, raw: unknown): PlayerSide {
     },
     team: mergeTeam(incoming.team ?? base.team),
     down: normalizeDown(Array.isArray(incoming.down) ? incoming.down : base.down),
+    decklist: mergeDecklist(incoming.decklist ?? base.decklist),
   };
 }
 
