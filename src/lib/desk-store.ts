@@ -16,7 +16,6 @@ import {
   stripLane,
   laneKey,
   parseMatchSlot,
-  supportsMatchSlots,
   type DeskState,
   type MatchSlot,
   type PlayerSide,
@@ -131,7 +130,7 @@ function startDeskPoll() {
 }
 
 function persist(desk: DeskState, immediate = false) {
-  const slot = supportsMatchSlots(desk.gameId) ? (desk.matchSlot ?? 1) : 1;
+  const slot = desk.matchSlot ?? 1;
   const next = {
     ...desk,
     matchSlot: slot,
@@ -358,8 +357,8 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   applyGame: (gameId) => {
     const prev = get().desk;
     if (prev.gameId === gameId) return;
-    const fromSlot = supportsMatchSlots(prev.gameId) ? (prev.matchSlot ?? 1) : 1;
-    const nextSlot = supportsMatchSlots(gameId) ? fromSlot : 1;
+    const fromSlot = prev.matchSlot ?? 1;
+    const nextSlot = fromSlot;
     const lanes = { ...prev.lanes, [laneKey(prev.gameId, fromSlot)]: stripLane({ ...prev, matchSlot: fromSlot }) };
     const saved = lanes[laneKey(gameId, nextSlot)] ? parseDesk(lanes[laneKey(gameId, nextSlot)]) : null;
     if (saved && saved.gameId === gameId) {
@@ -408,7 +407,6 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   applyMatchSlot: (slot) => {
     const prev = get().desk;
-    if (!supportsMatchSlots(prev.gameId)) return;
     const current = prev.matchSlot ?? 1;
     if (current === slot) return;
     const lanes = { ...prev.lanes, [laneKey(prev.gameId, current)]: stripLane({ ...prev, matchSlot: current }) };
@@ -487,7 +485,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     if (get().desk.gameId !== payload.gameId) {
       get().applyGame(payload.gameId);
     }
-    const wantedSlot = supportsMatchSlots(payload.gameId) ? (payload.matchSlot ?? 1) : 1;
+    const wantedSlot = payload.matchSlot ?? 1;
     if ((get().desk.matchSlot ?? 1) !== wantedSlot) {
       get().applyMatchSlot(wantedSlot);
     }
@@ -621,7 +619,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   clearStreamSlot: (gameId, slot) => {
     const prev = get().desk;
-    const current = supportsMatchSlots(prev.gameId) ? (prev.matchSlot ?? 1) : 1;
+    const current = prev.matchSlot ?? 1;
     if (prev.gameId === gameId && current === slot) {
       get().resetInfo();
       return;

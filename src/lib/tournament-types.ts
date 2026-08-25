@@ -144,6 +144,7 @@ export type GameDesk = {
   overlayView: BracketViewId;
   streamMatchId: string | null;
   streamMatchId2: string | null;
+  streamMatchId3: string | null;
   swissRounds: number;
   entrants: Entrant[];
   matches: BracketMatch[];
@@ -168,6 +169,7 @@ export type TournamentState = {
   overlayView: BracketViewId;
   streamMatchId: string | null;
   streamMatchId2: string | null;
+  streamMatchId3: string | null;
   swissRounds: number;
   entrants: Entrant[];
   matches: BracketMatch[];
@@ -242,6 +244,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
   streamMatchId: z.string().nullable(),
   streamMatchId2: z.string().nullable().optional().transform((v) => v ?? null),
+  streamMatchId3: z.string().nullable().optional().transform((v) => v ?? null),
   swissRounds: z.number(),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
@@ -266,6 +269,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
   streamMatchId: z.string().nullable(),
   streamMatchId2: z.string().nullable().optional().transform((v) => v ?? null),
+  streamMatchId3: z.string().nullable().optional().transform((v) => v ?? null),
   swissRounds: z.number(),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
@@ -319,6 +323,7 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     overlayView: t.overlayView,
     streamMatchId: t.streamMatchId,
     streamMatchId2: t.streamMatchId2 ?? null,
+    streamMatchId3: t.streamMatchId3 ?? null,
     swissRounds: t.swissRounds,
     entrants: t.entrants,
     matches: t.matches,
@@ -353,6 +358,7 @@ export function emptyDesk(gameId: GameId): GameDesk {
     overlayView: "full",
     streamMatchId: null,
     streamMatchId2: null,
+    streamMatchId3: null,
     swissRounds: 3,
     entrants: [],
     matches: [],

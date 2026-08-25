@@ -12,8 +12,9 @@ import {
   remainingFromDown,
   resourceLimit,
   seatsFor,
-  supportsMatchSlots,
+  MATCH_SLOT_LABEL,
   toggleMonDown,
+  type MatchSlot,
   type PlayerSide,
   type SeatId,
   type SideId,
@@ -49,7 +50,9 @@ export function MatchControl() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
-            {commanderTable ? "Live pod" : supportsMatchSlots(desk.gameId) ? `Live match ${desk.matchSlot ?? 1}` : "Live match"}
+            {commanderTable
+              ? "Live pod"
+              : MATCH_SLOT_LABEL[(desk.matchSlot ?? 1) as MatchSlot] ?? "Live match"}
           </p>
           <h2 className="font-display text-2xl font-semibold tracking-tight uppercase">
             {desk.roundName}

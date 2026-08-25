@@ -21,7 +21,8 @@ import {
   seatsFor,
   isCommanderTable,
   resourceLimit,
-  supportsMatchSlots,
+  MATCH_SLOTS,
+  MATCH_SLOT_SHORT,
   type MatchSlot,
 } from "@/lib/desk-types";
 import { useEffect, useState } from "react";
@@ -630,7 +631,6 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
   const applyMtgLane = useDeskStore((s) => s.applyMtgLane);
   const applyMatchSlot = useDeskStore((s) => s.applyMatchSlot);
   const commander = isCommanderLane(desk);
-  const dual = supportsMatchSlots(desk.gameId);
   const slot = (desk.matchSlot ?? 1) as MatchSlot;
 
   return (
@@ -655,9 +655,8 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
           );
         })}
       </div>
-      {dual ? (
-        <div className="flex gap-1.5">
-          {([1, 2] as MatchSlot[]).map((n) => (
+      <div className="flex flex-wrap gap-1.5">
+          {MATCH_SLOTS.map((n) => (
             <button
               key={n}
               type="button"
@@ -668,11 +667,10 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
                   : "border-border bg-surface-2 text-muted hover:text-fg"
               }`}
             >
-              Match {n}
+              {MATCH_SLOT_SHORT[n]}
             </button>
           ))}
         </div>
-      ) : null}
       {desk.gameId === "mtg" ? (
         <div className="flex gap-1.5">
           <button
@@ -802,7 +800,7 @@ export function PodPanel() {
   const op = desk.gameId === "one-piece";
   const rift = desk.gameId === "riftbound";
   const lorcana = desk.gameId === "lorcana";
-  const slot = supportsMatchSlots(desk.gameId) ? (desk.matchSlot ?? 1) : 1;
+  const slot = desk.matchSlot ?? 1;
   const path = tabletPath(desk.gameId, slot);
   const playerPath = playerTabletPath(desk.gameId, slot);
   const copyPath = mtg && commander ? playerPath : path;
@@ -820,7 +818,7 @@ export function PodPanel() {
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
-        Tablet{supportsMatchSlots(desk.gameId) ? ` · match ${desk.matchSlot ?? 1}` : ""}
+        Tablet · {MATCH_SLOT_SHORT[slot]}
       </p>
       <p className="mt-1 text-sm text-muted">
         {vgc

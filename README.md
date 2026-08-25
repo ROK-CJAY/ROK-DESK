@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.3.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -16,12 +16,12 @@ On a typical show:
 
 1. **Tournament Organizer** names the event, picks the game and format, and takes the field — typed in, imported from walk-up sign-up, or loaded as an 8-player test roster.
 2. Pairings go out as **single elim**, **double elim**, or **Swiss**. Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
-3. A ready pairing is **sent to stream** onto **Match 1 (A)** or **Match 2 (B)**. Production receives names, decks, inks, and teams.
+3. A ready pairing is **sent** onto **Stream Match**, **Floor Match 1**, or **Floor Match 2**. Production receives names, decks, inks, and teams.
 4. **Production Control** drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
 5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share the **stream clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander and Lorcana.
 6. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**, which is a separate timer from the feature match.
 
-Two TCG feature tables can run on **one host**. Two *titles* at once (PTCG on one side of the hall, Commander on the other) still means two hosts — each machine is one event.
+Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at once (PTCG on one side of the hall, Commander on the other) still means two hosts — each machine is one event.
 
 ---
 
@@ -49,7 +49,7 @@ Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switc
 | Home | `/` | Landing and Get Started |
 | Tournament Organizer | `/tournament` | TO — roster, bracket, floor clock, staff, export |
 | Production Control | `/production` | Stream op — featured match, overlays, look |
-| Judge tablet | `/{game}/tablet` · Match 2: `/{game}/2/tablet` | Floor judge for that table |
+| Judge tablet | `/{game}/tablet` · Floor 1: `/{game}/2/tablet` · Floor 2: `/{game}/3/tablet` | Floor judge for that table |
 | Player tablet | `/{game}/tablet?role=player` | Commander or Lorcana table pad |
 | Walk-up signup | `/{game}/signup` | Players at the door |
 | VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon form |
@@ -61,21 +61,21 @@ Header on Production / Tournament: **Home · Production · Tournament**, plus **
 
 ---
 
-## Dual matches (TCG)
+## Dual matches (tables)
 
-Every TCG title has **Match 1** and **Match 2**. VGC stays a single featured match.
+Every title — including VGC — has **three** independent tables:
 
-On Production, **Match 1 | Match 2** sits under the game chips. Each slot has its own players, scores, clock, winners, card spotlight, and tablets. Switching slots (or games) keeps the other table.
+| | Stream Match | Floor Match 1 | Floor Match 2 |
+| --- | --- | --- | --- |
+| Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` | `/{game}/3/overlay/scorebug` |
+| Judge tablet | `/{game}/tablet` | `/{game}/2/tablet` | `/{game}/3/tablet` |
+| Player tablet | `/{game}/tablet?role=player` | `/{game}/2/tablet?role=player` | `/{game}/3/tablet?role=player` |
 
-| | Match 1 (A) | Match 2 (B) |
-| --- | --- | --- |
-| Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` |
-| Judge tablet | `/{game}/tablet` | `/{game}/2/tablet` |
-| Player tablet | `/{game}/tablet?role=player` | `/{game}/2/tablet?role=player` |
+On Production, **Stream | Floor 1 | Floor 2** sits under the game chips. Each slot has its own players, scores, clock, winners, card spotlight, and tablets. Switching slots (or games) keeps the other tables.
 
 **Floor clock** and **bracket** stay per-game (`/{game}/overlay/floor-clock`, `/{game}/overlay/bracket`) — one tournament overlay for the room, not a copy per table.
 
-From Tournament **Stream match**, send a ready pairing to **Match 1 · A** or **Match 2 · B**. Each on-air card has **Remove from stream** if it was sent by mistake. That unassigns the pairing and clears that slot’s names on Production.
+From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor 1**, or **Floor 2**. Each on-air card has **Remove** if it was sent by mistake. That unassigns the pairing and clears that slot’s names on Production.
 
 ---
 
@@ -105,7 +105,7 @@ From Tournament **Stream match**, send a ready pairing to **Match 1 · A** or **
 - Champion / Top 3 on the result card
 
 **Stream**
-- Ready pairings list with send-to-Match 1 / Match 2 (TCG) or a single Send (VGC)
+- Ready pairings list with send-to-Stream / Floor 1 / Floor 2
 - Remove from stream per slot
 - Judge / player tablet links for the right table
 
@@ -207,25 +207,25 @@ Players land on that game’s Tournament roster. Account sign-in is off until mu
 
 Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no custom CSS. Prefer the **per-game** URL so two titles never share a bug. For a second TCG table, use the `/2/` path.
 
-| Source | Match 1 | Match 2 (TCG) |
-| --- | --- | --- |
-| HUD pack | `/{game}/overlay/hud` | `/{game}/2/overlay/hud` |
-| Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` |
-| Versus | `/{game}/overlay/versus` | `/{game}/2/overlay/versus` |
-| Hold slate | `/{game}/overlay/slate` | `/{game}/2/overlay/slate` |
-| Casters | `/{game}/overlay/casters` | `/{game}/2/overlay/casters` |
-| Lower third | `/{game}/overlay/lower-third` | `/{game}/2/overlay/lower-third` |
-| Match win | `/{game}/overlay/winner` | `/{game}/2/overlay/winner` |
-| Game win | `/{game}/overlay/game-win` | `/{game}/2/overlay/game-win` |
-| Round clock | `/{game}/overlay/timer` | `/{game}/2/overlay/timer` |
-| Resource plates | `/{game}/overlay/resource` | `/{game}/2/overlay/resource` |
-| Up next | `/{game}/overlay/upcoming` | `/{game}/2/overlay/upcoming` |
-| Card | `/{game}/overlay/card` | `/{game}/2/overlay/card` |
-| Sponsors | `/{game}/overlay/sponsors` | `/{game}/2/overlay/sponsors` |
-| Event logo | `/{game}/overlay/event-logo` | `/{game}/2/overlay/event-logo` |
-| VGC roster | `/{game}/overlay/roster` | — |
-| Bracket | `/{game}/overlay/bracket` | per game, not per table |
-| Floor clock | `/{game}/overlay/floor-clock` | per game, not per table |
+| Source | Stream | Floor 1 | Floor 2 |
+| --- | --- | --- | --- |
+| HUD pack | `/{game}/overlay/hud` | `/{game}/2/overlay/hud` | `/{game}/3/overlay/hud` |
+| Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` | `/{game}/3/overlay/scorebug` |
+| Versus | `/{game}/overlay/versus` | `/{game}/2/overlay/versus` | `/{game}/3/overlay/versus` |
+| Hold slate | `/{game}/overlay/slate` | `/{game}/2/overlay/slate` | `/{game}/3/overlay/slate` |
+| Casters | `/{game}/overlay/casters` | `/{game}/2/overlay/casters` | `/{game}/3/overlay/casters` |
+| Lower third | `/{game}/overlay/lower-third` | `/{game}/2/overlay/lower-third` | `/{game}/3/overlay/lower-third` |
+| Match win | `/{game}/overlay/winner` | `/{game}/2/overlay/winner` | `/{game}/3/overlay/winner` |
+| Game win | `/{game}/overlay/game-win` | `/{game}/2/overlay/game-win` | `/{game}/3/overlay/game-win` |
+| Round clock | `/{game}/overlay/timer` | `/{game}/2/overlay/timer` | `/{game}/3/overlay/timer` |
+| Resource plates | `/{game}/overlay/resource` | `/{game}/2/overlay/resource` | `/{game}/3/overlay/resource` |
+| Up next | `/{game}/overlay/upcoming` | `/{game}/2/overlay/upcoming` | `/{game}/3/overlay/upcoming` |
+| Card | `/{game}/overlay/card` | `/{game}/2/overlay/card` | `/{game}/3/overlay/card` |
+| Sponsors | `/{game}/overlay/sponsors` | `/{game}/2/overlay/sponsors` | `/{game}/3/overlay/sponsors` |
+| Event logo | `/{game}/overlay/event-logo` | `/{game}/2/overlay/event-logo` | `/{game}/3/overlay/event-logo` |
+| VGC roster | `/{game}/overlay/roster` | `/{game}/2/overlay/roster` | `/{game}/3/overlay/roster` |
+| Bracket | `/{game}/overlay/bracket` | per game, not per table | per game, not per table |
+| Floor clock | `/{game}/overlay/floor-clock` | per game, not per table | per game, not per table |
 
 Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
@@ -292,7 +292,7 @@ SmartScreen may say “unknown publisher” until the Windows build is code-sign
 
 This build is a **local desk** (TSH-style): one process, one event, devices on the LAN.
 
-- One PC can run **two TCG feature tables** plus the floor clock
+- One PC can run **one streamed table plus two floor tables** plus the floor clock
 - Overlay URLs are scoped by **game** and **match slot**, so two OBS machines pulling scorebugs from the same host do not mix tables
 - Two titles in one venue (PTCG streamed on one PC, Commander on another) = **two hosts**
 - Login / multi-account isolation is not in this beta. Do not share one running instance across unrelated organizers
@@ -321,6 +321,20 @@ npm run dist
 ---
 
 ## Changelog
+
+### v1.3.0-beta — 25 Aug 2026 · Stream / Floor tables
+
+Three independent tables on every title, including VGC.
+
+**Added**
+- **Floor Match 2** (`/{game}/3/overlay/…`, `/{game}/3/tablet`)
+- VGC now has the same three tables as the TCG titles
+
+**Changed**
+- Match 1 / Match 2 renamed to **Stream Match**, **Floor Match 1**, **Floor Match 2**
+- Production chips: Stream · Floor 1 · Floor 2
+- Tournament send / remove / tablet links follow those names
+- Existing Match 2 data stays on Floor Match 1 (`/2/`)
 
 ### v1.2.0-beta — 21 Aug 2026 · PTCG Play Layout
 
@@ -408,4 +422,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.3.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; Stream / Floor tables are 1.3. Expect polish.

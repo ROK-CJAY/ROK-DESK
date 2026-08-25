@@ -45,7 +45,7 @@ type TournamentStore = {
   resetBracket: () => void;
   report: (matchId: string, winnerId: string) => void;
   setScore: (matchId: string, slot: SlotId, score: number) => void;
-  setStreamMatch: (matchId: string | null, slot?: 1 | 2) => void;
+  setStreamMatch: (matchId: string | null, slot?: 1 | 2 | 3) => void;
   toggleFloorTimer: () => void;
   setFloorClock: (seconds: number) => void;
   addFloorSeconds: (delta: number) => void;
@@ -259,6 +259,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       phase: "running",
       streamMatchId: null,
       streamMatchId2: null,
+      streamMatchId3: null,
     });
     persist(tournament);
     set({ tournament });
@@ -296,6 +297,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       phase: "setup",
       streamMatchId: null,
       streamMatchId2: null,
+      streamMatchId3: null,
     });
     persist(tournament);
     set({ tournament });
@@ -315,17 +317,18 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
 
   setStreamMatch: (matchId, slot = 1) => {
     const prev = get().tournament;
-    const patch =
-      slot === 2
-        ? {
-            streamMatchId2: matchId,
-            streamMatchId: prev.streamMatchId === matchId ? null : prev.streamMatchId,
-          }
-        : {
-            streamMatchId: matchId,
-            streamMatchId2: prev.streamMatchId2 === matchId ? null : prev.streamMatchId2,
-          };
-    const tournament = nextVersion(prev, patch);
+    const ids = {
+      streamMatchId: prev.streamMatchId,
+      streamMatchId2: prev.streamMatchId2,
+      streamMatchId3: prev.streamMatchId3 ?? null,
+    };
+    if (ids.streamMatchId === matchId) ids.streamMatchId = null;
+    if (ids.streamMatchId2 === matchId) ids.streamMatchId2 = null;
+    if (ids.streamMatchId3 === matchId) ids.streamMatchId3 = null;
+    if (slot === 2) ids.streamMatchId2 = matchId;
+    else if (slot === 3) ids.streamMatchId3 = matchId;
+    else ids.streamMatchId = matchId;
+    const tournament = nextVersion(prev, ids);
     persist(tournament);
     set({ tournament });
   },

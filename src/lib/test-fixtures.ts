@@ -146,6 +146,7 @@ export function applyTestTournament(t: TournamentState): Partial<TournamentState
     matches: [],
     streamMatchId: null,
     streamMatchId2: null,
+    streamMatchId3: null,
     entrants: testEntrants(t.gameId, t.formatName),
     testMode: true,
   };

@@ -18,10 +18,23 @@ export type GameClock = {
 export type SeatId = "p1" | "p2" | "p3" | "p4";
 export type SideId = SeatId;
 export type TableSize = 2 | 3 | 4;
-export type MatchSlot = 1 | 2;
+export type MatchSlot = 1 | 2 | 3;
 export type RosterSide = "hidden" | "p1" | "p2" | "both";
 export type CmdFrom = Record<SeatId, number>;
 
+export const MATCH_SLOTS: MatchSlot[] = [1, 2, 3];
+
+export const MATCH_SLOT_LABEL: Record<MatchSlot, string> = {
+  1: "Stream Match",
+  2: "Floor Match 1",
+  3: "Floor Match 2",
+};
+
+export const MATCH_SLOT_SHORT: Record<MatchSlot, string> = {
+  1: "Stream",
+  2: "Floor 1",
+  3: "Floor 2",
+};
 export const SEAT_IDS: SeatId[] = ["p1", "p2", "p3", "p4"];
 export const SEAT_LABELS: Record<SeatId, string> = {
   p1: "Seat 1",
@@ -212,7 +225,7 @@ const casterSchema: z.ZodType<Caster> = z.object({
 export const deskSchema: z.ZodType<DeskState> = z.object({
   version: z.number(),
   gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
-  matchSlot: z.union([z.literal(1), z.literal(2)]).optional().transform((v) => (v === 2 ? 2 : 1)),
+  matchSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().transform((v) => (v === 2 || v === 3 ? v : 1)),
   eventName: z.string(),
   eventPhase: z.string(),
   roundName: z.string(),
@@ -484,7 +497,7 @@ export function parseDesk(raw: unknown): DeskState | null {
     ...base,
     ...incoming,
     gameId: coerceGameId(incoming.gameId, base.gameId),
-    matchSlot: incoming.matchSlot === 2 ? 2 : 1,
+    matchSlot: incoming.matchSlot === 2 || incoming.matchSlot === 3 ? incoming.matchSlot : 1,
     p1: mergePlayer(base.p1, incoming.p1),
     p2: mergePlayer(base.p2, incoming.p2),
     p3: mergePlayer(base.p3, incoming.p3),
@@ -513,15 +526,17 @@ export function parseDesk(raw: unknown): DeskState | null {
 }
 
 export function parseMatchSlot(raw: unknown): MatchSlot {
-  return raw === 2 || raw === "2" ? 2 : 1;
+  if (raw === 3 || raw === "3") return 3;
+  if (raw === 2 || raw === "2") return 2;
+  return 1;
 }
 
-export function supportsMatchSlots(gameId: GameId): boolean {
-  return gameOf(gameId).category === "TCG";
+export function supportsMatchSlots(_gameId?: GameId): boolean {
+  return true;
 }
 
 export function laneKey(gameId: GameId, slot: MatchSlot = 1): string {
-  return slot === 1 ? gameId : `${gameId}:2`;
+  return slot === 1 ? gameId : `${gameId}:${slot}`;
 }
 
 export function stripLane(desk: DeskState): Record<string, unknown> {

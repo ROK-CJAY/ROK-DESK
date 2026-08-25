@@ -9,6 +9,6 @@ export const Route = createFileRoute("/$game/$slot/overlay/$source")({
 
 function SlotOverlaySource() {
   const { game: slug, slot, source } = Route.useParams();
-  if (slot !== "1" && slot !== "2") throw notFound();
+  if (slot !== "1" && slot !== "2" && slot !== "3") throw notFound();
   return <PinnedGameOverlay gameId={gameIdFromSlug(slug)} source={source} slot={parseMatchSlot(slot)} />;
 }

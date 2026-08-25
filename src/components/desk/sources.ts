@@ -1,4 +1,5 @@
 import { slugOf, type GameId } from "@/lib/games";
+import type { MatchSlot } from "@/lib/desk-types";
 
 export type OverlaySourceId =
   | "hud"
@@ -149,10 +150,10 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
   },
 ];
 
-export function overlayPath(gameId: GameId, source: OverlaySourceId, slot: 1 | 2 = 1): string {
+export function overlayPath(gameId: GameId, source: OverlaySourceId, slot: MatchSlot = 1): string {
   if (source === "floor-clock" || source === "bracket") {
     return `/${slugOf(gameId)}/overlay/${source}`;
   }
-  if (slot === 2) return `/${slugOf(gameId)}/2/overlay/${source}`;
+  if (slot !== 1) return `/${slugOf(gameId)}/${slot}/overlay/${source}`;
   return `/${slugOf(gameId)}/overlay/${source}`;
 }

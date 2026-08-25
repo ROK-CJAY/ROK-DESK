@@ -38,7 +38,7 @@ import {
   type SlotId,
 } from "@/lib/tournament-types";
 import { cn } from "@/lib/cn";
-import { supportsMatchSlots } from "@/lib/desk-types";
+import { MATCH_SLOT_LABEL, MATCH_SLOTS, MATCH_SLOT_SHORT, type MatchSlot } from "@/lib/desk-types";
 
 export function TournamentApp() {
   const hydrate = useTournamentStore((s) => s.hydrate);
@@ -378,15 +378,15 @@ function SetupPanel() {
   );
 }
 
-function sendMatchToStream(matchId: string, slot: 1 | 2 = 1) {
+function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
   const t = useTournamentStore.getState().tournament;
   const match = t.matches.find((m) => m.id === matchId);
   if (!match) return;
-  const seat = (id: string | null | undefined) => {
-    const e = entrantById(t, id ?? null);
+  const seat = (entrantId: string | null | undefined) => {
+    const e = entrantId ? t.entrants.find((row) => row.id === entrantId) : null;
     const vgc = t.gameId === "pokemon-vgc";
     return {
-      name: e?.name ?? "TBD",
+      name: e?.name ?? "",
       tag: e?.tag ?? "",
       country: e?.country ?? "US",
       pronouns: e?.pronouns ?? "",
@@ -398,7 +398,7 @@ function sendMatchToStream(matchId: string, slot: 1 | 2 = 1) {
     };
   };
   const pod = isPodMatch(match);
-  const deskSlot = supportsMatchSlots(t.gameId) ? slot : 1;
+  const deskSlot = slot;
   useTournamentStore.getState().setStreamMatch(matchId, deskSlot);
   useDeskStore.getState().loadStreamMatch({
     eventName: t.name,
@@ -431,62 +431,44 @@ function namesForMatch(t: import("@/lib/tournament-types").TournamentState, matc
   return names[0] ?? "TBD";
 }
 
-function removeMatchFromStream(slot: 1 | 2) {
+function removeMatchFromStream(slot: MatchSlot) {
   const t = useTournamentStore.getState().tournament;
   useTournamentStore.getState().setStreamMatch(null, slot);
   useDeskStore.getState().clearStreamSlot(t.gameId, slot);
 }
 
+function liveForSlot(t: import("@/lib/tournament-types").TournamentState, slot: MatchSlot) {
+  const id = slot === 2 ? t.streamMatchId2 : slot === 3 ? t.streamMatchId3 : t.streamMatchId;
+  return t.matches.find((m) => m.id === id) ?? null;
+}
+
 function StreamPanel() {
   const t = useTournamentStore((s) => s.tournament);
   const ready = readyMatches(t);
-  const live1 = t.matches.find((m) => m.id === t.streamMatchId);
-  const live2 = t.matches.find((m) => m.id === t.streamMatchId2);
-  const dual = supportsMatchSlots(t.gameId);
+  const lives = MATCH_SLOTS.map((slot) => ({ slot, match: liveForSlot(t, slot) }));
+  const anyLive = lives.some((row) => row.match);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Stream match</p>
-      {live1 || live2 ? (
+      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Assigned tables</p>
+      {anyLive ? (
         <div className="mt-3 grid gap-2">
-          {live1 ? (
-            <div className="rounded-lg border border-live/40 bg-live/10 px-3 py-2">
-              <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">
-                On air{dual ? " · Match 1 (A)" : ""}
-              </p>
-              <p className="text-sm text-fg">{namesForMatch(t, live1)}</p>
-              <p className="text-xs text-muted">{live1.label}</p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-2 w-full"
-                onClick={() => removeMatchFromStream(1)}
-              >
-                Remove from stream
-              </Button>
-            </div>
-          ) : null}
-          {dual && live2 ? (
-            <div className="rounded-lg border border-live/40 bg-live/10 px-3 py-2">
-              <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">On air · Match 2 (B)</p>
-              <p className="text-sm text-fg">{namesForMatch(t, live2)}</p>
-              <p className="text-xs text-muted">{live2.label}</p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-2 w-full"
-                onClick={() => removeMatchFromStream(2)}
-              >
-                Remove from stream
-              </Button>
-            </div>
-          ) : null}
+          {lives.map(({ slot, match }) =>
+            match ? (
+              <div key={slot} className="rounded-lg border border-live/40 bg-live/10 px-3 py-2">
+                <p className="font-mono text-[0.65rem] tracking-[0.16em] text-live uppercase">{MATCH_SLOT_LABEL[slot]}</p>
+                <p className="text-sm text-fg">{namesForMatch(t, match)}</p>
+                <p className="text-xs text-muted">{match.label}</p>
+                <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => removeMatchFromStream(slot)}>
+                  Remove
+                </Button>
+              </div>
+            ) : null,
+          )}
         </div>
       ) : (
         <p className="mt-3 text-sm text-muted">
-          {dual
-            ? "No match assigned. Send a ready pairing to Match 1 (A) or Match 2 (B)."
-            : "No match assigned. Pick a ready match to push names onto Production."}
+          No match assigned. Send a ready pairing to Stream Match, Floor Match 1, or Floor Match 2.
         </p>
       )}
       <ul className="mt-3 space-y-2">
@@ -494,88 +476,49 @@ function StreamPanel() {
           <li className="text-xs text-subtle">No ready matches.</li>
         ) : (
           ready.map((match) => {
-            const on1 = t.streamMatchId === match.id;
-            const on2 = t.streamMatchId2 === match.id;
+            const on: Record<MatchSlot, boolean> = {
+              1: t.streamMatchId === match.id,
+              2: t.streamMatchId2 === match.id,
+              3: t.streamMatchId3 === match.id,
+            };
             return (
               <li key={match.id} className="rounded-lg border border-border bg-surface-2 px-3 py-2">
                 <p className="text-xs text-muted">{match.label}</p>
                 <p className="text-sm">{namesForMatch(t, match)}</p>
-                {dual ? (
-                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  {MATCH_SLOTS.map((slot) => (
                     <Button
+                      key={slot}
                       size="sm"
-                      variant={on1 ? "live" : "secondary"}
-                      onClick={() => sendMatchToStream(match.id, 1)}
+                      variant={on[slot] ? "live" : "secondary"}
+                      onClick={() => sendMatchToStream(match.id, slot)}
                     >
-                      Match 1 · A
+                      {MATCH_SLOT_SHORT[slot]}
                     </Button>
-                    <Button
-                      size="sm"
-                      variant={on2 ? "live" : "secondary"}
-                      onClick={() => sendMatchToStream(match.id, 2)}
-                    >
-                      Match 2 · B
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant={on1 ? "live" : "secondary"}
-                    className="mt-2 w-full"
-                    onClick={() => sendMatchToStream(match.id, 1)}
-                  >
-                    Send to stream
-                  </Button>
-                )}
+                  ))}
+                </div>
               </li>
             );
           })
         )}
       </ul>
       <div className="mt-3 flex flex-col gap-2">
-        {dual ? (
-          <>
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <a href={tabletPath(t.gameId, 1)} target="_blank" rel="noreferrer">
-                Judge tablet · Match 1
-              </a>
-            </Button>
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <a href={tabletPath(t.gameId, 2)} target="_blank" rel="noreferrer">
-                Judge tablet · Match 2
-              </a>
-            </Button>
-            {t.gameId === "mtg" || t.gameId === "lorcana" ? (
-              <>
-                <Button variant="secondary" size="sm" className="w-full" asChild>
-                  <a href={playerTabletPath(t.gameId, 1)} target="_blank" rel="noreferrer">
-                    Player tablet · Match 1
-                  </a>
-                </Button>
-                <Button variant="secondary" size="sm" className="w-full" asChild>
-                  <a href={playerTabletPath(t.gameId, 2)} target="_blank" rel="noreferrer">
-                    Player tablet · Match 2
-                  </a>
-                </Button>
-              </>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <Button variant="outline" size="sm" className="w-full" asChild>
-              <a href={tabletPath(t.gameId)} target="_blank" rel="noreferrer">
-                Open judge tablet
-              </a>
-            </Button>
-            {t.gameId === "mtg" || t.gameId === "lorcana" ? (
-              <Button variant="secondary" size="sm" className="w-full" asChild>
-                <a href={playerTabletPath(t.gameId)} target="_blank" rel="noreferrer">
-                  Open player tablet
+        {MATCH_SLOTS.map((slot) => (
+          <Button key={`judge-${slot}`} variant="outline" size="sm" className="w-full" asChild>
+            <a href={tabletPath(t.gameId, slot)} target="_blank" rel="noreferrer">
+              Judge tablet · {MATCH_SLOT_SHORT[slot]}
+            </a>
+          </Button>
+        ))}
+        {t.gameId === "mtg" || t.gameId === "lorcana"
+          ? MATCH_SLOTS.map((slot) => (
+              <Button key={`player-${slot}`} variant="secondary" size="sm" className="w-full" asChild>
+                <a href={playerTabletPath(t.gameId, slot)} target="_blank" rel="noreferrer">
+                  Player tablet · {MATCH_SLOT_SHORT[slot]}
                 </a>
               </Button>
-            ) : null}
-          </>
-        )}
+            ))
+          : null}
       </div>
     </section>
   );
@@ -967,7 +910,7 @@ function BracketBoard() {
                   <p className="mb-2 truncate text-xs text-subtle">{col.label}</p>
                   <div className="flex flex-col gap-2">
                     {col.matches.map((match) => {
-                      const live = t.streamMatchId === match.id || t.streamMatchId2 === match.id;
+                      const live = t.streamMatchId === match.id || t.streamMatchId2 === match.id || t.streamMatchId3 === match.id;
                       const skip = match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId;
                       if (skip) return null;
                       const seats = matchSlots(match).filter(

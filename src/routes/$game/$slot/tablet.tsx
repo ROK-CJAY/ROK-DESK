@@ -27,15 +27,15 @@ function SlotTablet() {
   const hydrate = useDeskStore((s) => s.hydrate);
 
   useLayoutEffect(() => {
-    if (gameId && (slot === "1" || slot === "2")) {
+    if (gameId && (slot === "1" || slot === "2" || slot === "3")) {
       useDeskStore.setState({ pinnedGameId: gameId, pinnedSlot: matchSlot });
     }
   }, [gameId, slot, matchSlot]);
 
   useEffect(() => {
-    if (gameId && (slot === "1" || slot === "2")) void hydrate(gameId, matchSlot);
+    if (gameId && (slot === "1" || slot === "2" || slot === "3")) void hydrate(gameId, matchSlot);
   }, [gameId, matchSlot, slot, hydrate]);
 
-  if (!gameId || (slot !== "1" && slot !== "2")) throw notFound();
+  if (!gameId || (slot !== "1" && slot !== "2" && slot !== "3")) throw notFound();
   return <PodPad role={role === "player" ? "player" : "judge"} />;
 }
