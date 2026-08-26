@@ -16,6 +16,7 @@ import { RosterView } from "@/components/overlays/roster";
 import { CardSpotlightView } from "@/components/overlays/card";
 import { EventLogoMark, EventLogoView } from "@/components/overlays/event-logo";
 import { SponsorsView } from "@/components/overlays/sponsors";
+import { VgcVersusView } from "@/components/overlays/vgc-versus";
 
 const SLATE_COPY: Record<Exclude<SlateKind, "hidden">, { kicker: string; title: string; image: string }> = {
   starting: { kicker: "Live shortly", title: "Starting Soon", image: "/slates/starting.jpg" },
@@ -45,6 +46,9 @@ function Shell({
 export function VersusView({ desk }: { desk: DeskState }) {
   if (useCommanderOverlay(desk)) {
     return <CommanderVersus desk={desk} />;
+  }
+  if (desk.gameId === "pokemon-vgc") {
+    return <VgcVersusView desk={desk} />;
   }
   const game = gameOf(desk.gameId);
   return (
@@ -414,7 +418,11 @@ export function HudView({
   const rok = desk.scorebugStyle === "rok";
   const play =
     desk.scorebugStyle === "play" &&
-    (desk.gameId === "pokemon-tcg" || desk.gameId === "yugioh");
+    (desk.gameId === "pokemon-tcg" ||
+      desk.gameId === "yugioh" ||
+      desk.gameId === "pokemon-vgc" ||
+      desk.gameId === "one-piece" ||
+      desk.gameId === "lorcana");
   return (
     <div className={`pointer-events-none absolute inset-0 ${edit ? "layout-grid" : ""}`}>
       <ScorebugView desk={desk} now={now} edit={edit} />

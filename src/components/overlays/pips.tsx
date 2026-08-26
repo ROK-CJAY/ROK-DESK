@@ -36,7 +36,7 @@ export function ResourcePips({
           <span
             key={i}
             className={cn(
-              "rounded-full border transition-opacity duration-150",
+              "rounded-full border transition-[opacity,background-color,border-color] duration-300 ease-out",
               dim,
               filled
                 ? "border-game bg-game"
@@ -97,7 +97,7 @@ export function TeamPips({
           </>
         );
         const shell = cn(
-          "grid shrink-0 place-items-center overflow-hidden rounded-full border transition duration-150",
+          "grid shrink-0 place-items-center overflow-hidden rounded-full border transition-[opacity,filter,transform] duration-300 ease-out",
           dim,
           tone === "desk" ? "border-border bg-surface-2" : "border-ov-fg/15 bg-ov-fg/10",
           !alive && "opacity-35 grayscale",

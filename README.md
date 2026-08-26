@@ -20,7 +20,7 @@ On a typical show:
 2. Pairings go out as **single elim**, **double elim**, or **Swiss**. Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
 3. A ready pairing is **sent** onto **Stream Match**, **Floor Match 1**, or **Floor Match 2**. Production receives names, decks, inks, and teams.
 4. **Production Control** drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
-5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share **that table’s match clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander and Lorcana.
+5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share **that table’s match clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander, Lorcana, and YGO.
 6. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**, which is a separate timer from the feature match.
 
 Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at once (PTCG on one side of the hall, Commander on the other) still means two hosts — each machine is one event.
@@ -31,12 +31,12 @@ Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at o
 
 | Title | Slug | What the desk tracks |
 | --- | --- | --- |
-| Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games |
+| Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games, **Play Layout** |
 | Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3, **Play Layout** board |
-| One Piece TCG | `op` | Life, DON!!, Bo1 by default, ROK Layout |
+| One Piece TCG | `op` | Life, DON!!, Bo1 by default, **Play Layout** |
 | Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3, **Play Layout** |
 | Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH |
-| Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, ROK Layout |
+| Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, **Play Layout** |
 | Star Wars Unlimited | `swu` | Base HP, initiative |
 | Riftbound | `rb` | First-to-8 points |
 
@@ -137,7 +137,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG and YGO have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**
 - PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
@@ -154,14 +154,14 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Lower third: player, caster, or custom
 - Casters (play-by-play and color)
 - Up-next queue
-- Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on PTCG and YGO)
+- Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on VGC, PTCG, YGO, OP, and Lorcana)
 - Arrange widgets on the HUD pack; undo / redo / default look
 - Per-overlay **look editor** — colors, fonts, scale. Saves per source, not globally. Instructions for saving sit on the editor
 - OBS and vMix setup notes (browser sources as a dropdown)
 
 **Branding**
-- Event logo — Versus, slates, HUD, Event logo overlay, floor clock
-- Sponsors — rotating logos on Sponsors overlay, HUD, and floor clock
+- Event logo — Versus (VGC spine), VGC / Lorcana / OP Play Layout, slates, HUD, Event logo overlay, floor clock
+- Sponsors — rotating logos on Sponsors overlay, HUD, floor clock, and OP Play Layout (bottom left)
 
 **Test mode** matches Tournament: 8 demo players, toggle off restores the real field, tablets see the same data.
 
@@ -182,8 +182,8 @@ How-to guide on first open. Start / pause / add or remove time / reset **this ta
 | MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall |
 | SWU | Base HP, initiative | SWU-DB |
 | YGO | 8000 LP, typed ticks | YGOPRODeck — Show P1 / Show P2 / Clear |
-| OP | Life circles, DON!! | Official English cards |
-| Lorcana | Lore 0–20 | Lorcast |
+| OP | Life circles, DON!! | Official English cards — Show P1 / Show P2 / Clear |
+| Lorcana | Lore 0–20 | Lorcast — Show P1 / Show P2 / Clear |
 | Riftbound | Points 1–8 | Riftcodex |
 
 Card overlay: **On Stream** is red while a card is up. With nothing selected the source is transparent. If the pair submitted decklists, those cards sit above search so judges can pull them without retyping.
@@ -194,6 +194,7 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 
 - **MTG Commander / cEDH / Duel Commander** — life, poison, commander damage
 - **Lorcana** — split lore pads, +8 / −8 chips, game diamonds plus large **+ / −** for games, match clock
+- **YGO** — split LP pads, typed ticks (default 100), −100 / −500 / −800 / −1000 / −2000 chips, game diamonds, match clock
 
 ### Commentary tablet
 
@@ -259,8 +260,13 @@ Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
 **Play Layout** is the table-cam overlay in **ROK colors** (charcoal rails, silver / red accents, gold clock). Transparent center for the overhead camera. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
 
+- **VGC** (default): top bar with **names, games, and W/L/D on top** and both teams underneath. Rounded transparent player cams on the ends (put player cams under the overlay in OBS). Event logo in the spine (ROK mark until you upload one), round under the logo. Bar / split remain available.
+- **OP** (default): table cam in the middle. Side player cams (transparent wells) with names, life / DON!! / games, and a card well (official card back until **Show P1 / Show P2**). Round and clock in the top corners. **Sponsors** bottom left, **event logo** bottom right. ROK Layout remains available.
+- **Lorcana** (default): square full-height rails. Transparent player cams, name, reserved ink slots (fill when chosen), game diamonds, W/L/D, lore track 20–1 (WIN / START), card well (official back until **Show P1 / Show P2**). Event logo + **phase · round** + clock at the top center. ROK Layout remains available.
 - **PTCG** (default): full-height rails with Active illustration, five bench slots, prizes inline with the player name, W/L/D, country. Energy / Supporter / Retreat start ON. HP bars go green → orange at 30% → red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench.
 - **YGO** (default): full-height rails with **Feature Duelist** spine, **rounded transparent player camera wells** (put player cams under the overlay in OBS), deck type, extra-deck-style card well. Top bar is games · LP · clock · LP · games. Bottom ticker is event · format · round. **Show P1 / Show P2** from card search fills that player’s well — the two wells are independent. No music / now-playing chrome. ROK Layout remains available.
+
+**Versus** (`/{game}/overlay/versus`) on **VGC** is the split-cam intro: rounded transparent player wells, both teams in the center spine with **VS**, event logo on top (ROK mark until you upload one), names and round on cream plates. Other titles keep the photo / name intro. Put player cams under the overlay in OBS.
 
 Empty card / sponsor / event-logo sources stay fully transparent.
 
@@ -355,11 +361,17 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
-### Unreleased — YGO Play Layout
+### Unreleased — Play Layouts (VGC, OP, Lorcana) · YGO tablet · fades
 
 **Added**
 - **Play Layout** for Yu-Gi-Oh! (now the default YGO scorebug): Feature Duelist rails, rounded transparent player camera wells, deck type, extra-deck card well, LP / games / clock bar, event ticker. No now-playing chrome. ROK Layout remains available.
-- **Show P1 / Show P2** on YGO card lookup — each Play Layout well holds its own card
+- **Show P1 / Show P2** on YGO, OP, and Lorcana card lookup — each Play Layout well holds its own card
+- **YGO player tablet** — life points (typed ticks + damage chips), games, match clock. Judge tablet still looks up cards and reports the match.
+- Overlay scores, LP, and resource ticks fade instead of snapping (game 0→1, life, prizes)
+- **VGC Versus** — split player cams, both teams beside VS, event logo in the spine (ROK mark until you upload one)
+- **VGC Play Layout** (default VGC scorebug) — names / games / W/L/D on top, both teams underneath, side cams, event logo. Sits at the top of the frame.
+- **OP Play Layout** (default OP scorebug) — table cam, side player cams, life / DON!! / games, official card-back wells, sponsors bottom left, event logo bottom right. Show P1 / Show P2.
+- **Lorcana Play Layout** (default Lorcana scorebug) — square rails, player cams, reserved ink slots, diamonds, W/L/D, lore 20–1, card wells. Phase next to round. Show P1 / Show P2.
 
 ### v1.2.5-beta — 25 Aug 2026 · hotfix: tablet scroll
 

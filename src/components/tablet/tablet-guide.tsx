@@ -12,6 +12,7 @@ export type TabletGuideKind =
   | "rift"
   | "lorcana"
   | "lorcana-player"
+  | "ygo-player"
   | "table"
   | "caster"
   | "cards"
@@ -159,7 +160,7 @@ const COPY: Record<
       },
       {
         title: "Card lookup is YGOPRODeck",
-        body: "Search at the bottom. Tap a result to read the card text. Show P1 / Show P2 puts the art in that player’s well on Play Layout. Clear takes both off.",
+        body: "Search at the bottom. Tap a result to read the card text. Show P1 / Show P2 puts the art in that player’s well on Play Layout. Clear takes both off. Players can run LP on the player tablet so this pad stays on rulings and Game / Match.",
       },
     ],
   },
@@ -276,8 +277,8 @@ const COPY: Record<
         body: "Parallels are hidden so you get one printing of each card. Art comes from the official card list.",
       },
       {
-        title: "Show on stream when you need it",
-        body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+        title: "Show P1 or Show P2",
+        body: "The tablet keeps the printed text. Show P1 / Show P2 sends the art to that player’s well on Play Layout — each side is independent. Empty wells show the official card back. Clear takes both off. Add the Card source in OBS or vMix for the last card you showed, or use HUD pack.",
       },
     ],
   },
@@ -360,8 +361,8 @@ const COPY: Record<
         body: "Cost and inks show with the type. Strength, willpower, and the card’s lore value sit in the meta line.",
       },
       {
-        title: "Show on stream when you need it",
-        body: "The tablet keeps the printed text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+        title: "Show P1 or Show P2",
+        body: "The tablet keeps the printed text. Show P1 / Show P2 sends the art to that player’s well on Play Layout — each side is independent. Empty wells show the Lorcana card back. Clear takes both off. Add the Card source in OBS or vMix for the last card you showed, or use HUD pack.",
       },
     ],
   },
@@ -377,6 +378,33 @@ const COPY: Record<
       {
         title: "Tap the diamonds for games",
         body: "Filled diamonds are games won in the match. Tap one to mark a game win. Tap the last filled diamond to take it back.",
+      },
+      {
+        title: "Watch the clock",
+        body: "The time at the top is the streamed match clock. Judges and Production start, pause, and add time. This pad only shows it.",
+      },
+      {
+        title: "Same seats as the stream",
+        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream.",
+      },
+    ],
+  },
+  "ygo-player": {
+    kicker: "Player tablet",
+    title: "How this YGO table pad works",
+    lead: "This tablet sits with the players. Life points, games, and the match clock are the same ones Production and the stream see.",
+    steps: [
+      {
+        title: "Type damage, then −",
+        body: "Life points start at 8000. The box defaults to 100. Type 800 or 2000 and hit − to apply that damage. Hit + if a card gains LP.",
+      },
+      {
+        title: "Quick chips for common hits",
+        body: "−100 / −500 / −800 / −1000 / −2000 sit on the outer edge. Punch one to subtract that amount. Anything else goes through the typed box.",
+      },
+      {
+        title: "Tap the diamonds for games",
+        body: "Filled diamonds are games won in the match. Tap + / − to mark a game. The judge tablet still reports Match into the bracket.",
       },
       {
         title: "Watch the clock",

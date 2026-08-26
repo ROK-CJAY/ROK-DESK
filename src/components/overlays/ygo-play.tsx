@@ -1,4 +1,5 @@
 import { useCardImageSrc } from "@/components/ui/remote-art";
+import { FadeValue } from "@/components/overlays/fade-value";
 import { formatClock, remainingSeconds, emptySpotlight, type DeskState, type SideId } from "@/lib/desk-types";
 import { cn } from "@/lib/cn";
 
@@ -138,7 +139,7 @@ function Rail({ desk, side, align }: { desk: DeskState; side: "p1" | "p2"; align
         >
           <div className={cn("flex items-center gap-2", right && "flex-row-reverse")}>
             <span className="font-mono text-[0.92rem] leading-none tabular-nums tracking-wide text-white/80">
-              {recordLine(player.recordW, player.recordL, player.recordD)}
+              <FadeValue value={recordLine(player.recordW, player.recordL, player.recordD)} />
             </span>
             {player.country ? (
               <span
@@ -177,7 +178,7 @@ function GameChip({ value, accent }: { value: number; accent: string }) {
       className="grid size-11 shrink-0 place-items-center rounded-sm font-display text-[1.85rem] leading-none font-semibold tabular-nums text-[#0b0c0e]"
       style={{ background: accent }}
     >
-      {value}
+      <FadeValue value={value} />
     </span>
   );
 }
@@ -205,7 +206,7 @@ function TopBar({ desk, clock }: { desk: DeskState; clock: string }) {
               desk.p1.resource <= 0 ? "text-[#d4534c]" : "text-white",
             )}
           >
-            {desk.p1.resource}
+            <FadeValue value={desk.p1.resource} />
           </p>
         </div>
       </div>
@@ -224,7 +225,7 @@ function TopBar({ desk, clock }: { desk: DeskState; clock: string }) {
               desk.p2.resource <= 0 ? "text-[#d4534c]" : "text-white",
             )}
           >
-            {desk.p2.resource}
+            <FadeValue value={desk.p2.resource} />
           </p>
         </div>
         <GameChip value={desk.p2.score} accent={RED} />

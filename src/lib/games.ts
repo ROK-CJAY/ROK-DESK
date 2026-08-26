@@ -83,7 +83,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Sun · Balance · Rain",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "split",
+    defaultScorebug: "play",
     formats: [
       { id: "reg-i", label: "VGC 2026 Regulation I" },
       { id: "reg-h", label: "VGC 2026 Regulation H" },
@@ -141,7 +141,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Saka · Luffy · Yamato",
     scoreLabel: "Games",
     defaultBestOf: 1,
-    defaultScorebug: "rok",
+    defaultScorebug: "play",
     formats: [
       { id: "standard", label: "Standard", bestOf: 1 },
       { id: "extra", label: "Extra (all cards)", bestOf: 1 },
@@ -256,7 +256,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Ruby Aggro · Amber/Steel midrange",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "rok",
+    defaultScorebug: "play",
     formats: [
       { id: "core", label: "Core Constructed" },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
@@ -514,7 +514,13 @@ const ROK_LAYOUT_GAMES: GameId[] = [
 ];
 
 export function supportsPlayLayout(desk: { gameId: GameId }): boolean {
-  return desk.gameId === "pokemon-tcg" || desk.gameId === "yugioh";
+  return (
+    desk.gameId === "pokemon-tcg" ||
+    desk.gameId === "yugioh" ||
+    desk.gameId === "pokemon-vgc" ||
+    desk.gameId === "one-piece" ||
+    desk.gameId === "lorcana"
+  );
 }
 
 export function supportsRokLayout(desk: { gameId: GameId; formatName?: string }): boolean {

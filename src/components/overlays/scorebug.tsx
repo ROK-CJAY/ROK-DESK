@@ -4,12 +4,16 @@ import { ResourcePips } from "@/components/overlays/pips";
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { CommanderScorebug, useCommanderOverlay } from "@/components/overlays/commander";
+import { FadeValue } from "@/components/overlays/fade-value";
 import { isCommanderLane } from "@/lib/games";
 import { cn } from "@/lib/cn";
 import { InitiativeMark } from "@/components/desk/initiative";
 import { RokLayoutView } from "@/components/overlays/rok-layout";
 import { PtcgPlayLayout } from "@/components/overlays/ptcg-play";
 import { YgoPlayLayout } from "@/components/overlays/ygo-play";
+import { VgcPlayLayout } from "@/components/overlays/vgc-play";
+import { OpPlayLayout } from "@/components/overlays/op-play";
+import { LorcanaPlayLayout } from "@/components/overlays/lorcana-play";
 
 function Flag({ code }: { code: string }) {
   if (!code) return null;
@@ -52,9 +56,19 @@ function TeamRow({
   }
   return (
     <p className={cn("mt-1 font-mono text-[0.95rem] tabular-nums text-ov-fg", align === "right" && "text-right")}>
-      {game.resource.shortLabel} {player.resource}
-      {game.secondary ? ` · ${game.secondary.label} ${player.secondary}` : ""}
-      {isCommanderLane(desk) ? ` · CMD ${player.cmdDamage}` : ""}
+      {game.resource.shortLabel} <FadeValue value={player.resource} />
+      {game.secondary ? (
+        <>
+          {" · "}
+          {game.secondary.label} <FadeValue value={player.secondary} />
+        </>
+      ) : null}
+      {isCommanderLane(desk) ? (
+        <>
+          {" · CMD "}
+          <FadeValue value={player.cmdDamage} />
+        </>
+      ) : null}
     </p>
   );
 }
@@ -120,7 +134,7 @@ function SplitPlate({ desk, side }: { desk: DeskState; side: "p1" | "p2" }) {
         <InitiativeMark live={hasInit} />
         <Flag code={player.country} />
         <span className="font-display ml-auto text-3xl leading-none font-semibold tabular-nums text-ov-fg">
-          {player.score}
+          <FadeValue value={player.score} />
         </span>
       </div>
       <TeamRow desk={desk} side={side} align={align} size="md" />
@@ -151,6 +165,27 @@ export function ScorebugView({
       </OverlayEditProvider>
     );
   }
+  if (desk.scorebugStyle === "play" && desk.gameId === "pokemon-vgc") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <VgcPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "play" && desk.gameId === "one-piece") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <OpPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "play" && desk.gameId === "lorcana") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <LorcanaPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
   if (desk.scorebugStyle === "play" && desk.gameId === "yugioh") {
     return (
       <OverlayEditProvider desk={desk} edit={edit}>
@@ -174,9 +209,13 @@ export function ScorebugView({
         Bo{desk.bestOf}
       </div>
       <div className="font-display mt-0.5 flex items-center gap-2.5 text-[2.7rem] leading-none font-semibold tabular-nums text-ov-fg [text-shadow:0_1px_10px_rgb(0_0_0_/_0.45)]">
-        <span className="min-w-10 text-center">{desk.p1.score}</span>
+        <span className="min-w-10 text-center">
+          <FadeValue value={desk.p1.score} />
+        </span>
         <span className="text-[1.6rem] text-ov-fg/45">–</span>
-        <span className="min-w-10 text-center">{desk.p2.score}</span>
+        <span className="min-w-10 text-center">
+          <FadeValue value={desk.p2.score} />
+        </span>
       </div>
       <div className="mt-0.5 font-mono text-[1.05rem] tabular-nums tracking-wide text-ov-fg">
         {clock}

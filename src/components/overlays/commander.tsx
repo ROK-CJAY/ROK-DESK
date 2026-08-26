@@ -7,6 +7,7 @@ import {
 } from "@/lib/desk-types";
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
+import { FadeValue } from "@/components/overlays/fade-value";
 
 const SEAT_WIDGET: Record<SeatId, "scorebugP1" | "scorebugP2" | "scorebugP3" | "scorebugP4"> = {
   p1: "scorebugP1",
@@ -77,7 +78,7 @@ function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
           </p>
         </div>
         <p className="font-display text-3xl leading-none font-semibold tabular-nums text-ov-fg">
-          {player.resource}
+          <FadeValue value={player.resource} />
         </p>
       </div>
       <p
@@ -85,9 +86,13 @@ function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
           right ? "" : ""
         }`}
       >
-        <span className={player.secondary > 0 ? "text-ov-fg" : ""}>Poi {player.secondary}</span>
+        <span className={player.secondary > 0 ? "text-ov-fg" : ""}>
+          Poi <FadeValue value={player.secondary} />
+        </span>
         <span className="text-ov-fg/25"> · </span>
-        <span className={player.cmdDamage > 0 ? "text-ov-fg" : ""}>Cmd {player.cmdDamage}</span>
+        <span className={player.cmdDamage > 0 ? "text-ov-fg" : ""}>
+          Cmd <FadeValue value={player.cmdDamage} />
+        </span>
       </p>
     </div>
   );

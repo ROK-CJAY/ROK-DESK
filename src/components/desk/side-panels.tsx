@@ -611,7 +611,13 @@ export function ShowPanel() {
             <p className="self-center text-[0.7rem] text-muted">
               {desk.gameId === "yugioh"
                 ? "Table cam in the middle. Rails: player cam, deck, card well. Show P1 / P2 in each well."
-                : "Side rails: prizes, active, bench. Energy / Supporter / Retreat. Show P1 / P2 over the bench."}
+                : desk.gameId === "pokemon-vgc"
+                  ? "Top bar: names, games, and W/L/D on top, both teams underneath. Side cams. Event logo in the spine."
+                  : desk.gameId === "one-piece"
+                    ? "Table cam in the middle. Side player cams, life / DON!! / games, card well (Show P1 / P2). Sponsors bottom left, event logo bottom right."
+                    : desk.gameId === "lorcana"
+                      ? "Table cam in the middle. Square rails: player cam, inks, diamonds, W/L/D, lore track 20–1, card well. Phase next to round. Show P1 / P2."
+                      : "Side rails: prizes, active, bench. Energy / Supporter / Retreat. Show P1 / P2 over the bench."}
             </p>
           ) : (
             <NativeSelect
@@ -863,7 +869,7 @@ export function PodPanel() {
               : swu
                 ? "Judge tablet — base HP, score, clock, and SWU-DB card lookup."
                 : ygo
-                  ? "Judge tablet — life points, score, clock, and YGOPRODeck card lookup."
+                  ? "Two tablets: the player pad sits with the table for LP. The judge tablet keeps YGOPRODeck and match report."
                   : op
                     ? "Judge tablet — life, DON!!, score, clock, and official OP card lookup."
                     : rift
@@ -885,7 +891,10 @@ export function PodPanel() {
       ) : swu ? (
         <p className="mt-2 text-xs text-ok">Type damage then + / −. Game and Match report to the desk and bracket.</p>
       ) : ygo ? (
-        <p className="mt-2 text-xs text-ok">Life points default to 100 ticks. Game and Match report to the desk and bracket.</p>
+        <p className="mt-2 text-xs text-ok">
+          Player tablet: type damage then −, or punch −100 / −500 / −800 / −1000 / −2000. Judge tablet still looks up
+          cards and reports the match.
+        </p>
       ) : op ? (
         <p className="mt-2 text-xs text-ok">Tap life. Type DON!! then + / −. Game and Match report to the desk and bracket.</p>
       ) : rift ? (
@@ -906,8 +915,8 @@ export function PodPanel() {
             Open judge tablet
           </a>
         </Button>
-        {mtg || lorcana ? (
-          <Button variant={commander || lorcana ? "default" : "outline"} size="sm" asChild>
+        {mtg || lorcana || ygo ? (
+          <Button variant={commander || lorcana || ygo ? "default" : "outline"} size="sm" asChild>
             <a href={playerPath} target="_blank" rel="noreferrer">
               Open player tablet
             </a>

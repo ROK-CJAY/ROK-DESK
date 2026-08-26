@@ -1,4 +1,5 @@
 import { InitiativeMark } from "@/components/desk/initiative";
+import { FadeValue } from "@/components/overlays/fade-value";
 import { useCardImageSrc } from "@/components/ui/remote-art";
 import { formatClock, remainingSeconds, resourceLimit, type DeskState, type SideId } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
@@ -115,7 +116,7 @@ function RokSide({
           ) : null}
           <div className="mx-auto w-[9.2rem] bg-ov-fg px-2.5 py-1 text-center">
             <p className="font-display text-[1.4rem] leading-none font-semibold tabular-nums text-ov-bg">
-              {formatRecord(player.recordW, player.recordL, player.recordD)}
+              <FadeValue value={formatRecord(player.recordW, player.recordL, player.recordD)} />
             </p>
           </div>
           <div className="mt-2.5 flex justify-center gap-2.5">
@@ -123,8 +124,10 @@ function RokSide({
               <span
                 key={i}
                 className={cn(
-                  "inline-block size-5 rotate-45 border-2",
-                  i < player.score ? "border-[#e4c56a] bg-[#e4c56a]" : "border-[#e4c56a]/80 bg-transparent",
+                  "inline-block size-5 rotate-45 border-2 transition-[background-color,border-color,box-shadow] duration-300 ease-out",
+                  i < player.score
+                    ? "border-[#e4c56a] bg-[#e4c56a] shadow-[0_0_10px_rgb(228_197_106_/_0.45)]"
+                    : "border-[#e4c56a]/80 bg-transparent",
                 )}
               />
             ))}
@@ -192,7 +195,9 @@ function LifeMeter({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-sm border border-ov-fg/20 px-2 py-1.5 text-center">
       <p className="font-mono text-[0.62rem] tracking-[0.16em] text-ov-fg/65 uppercase">{label}</p>
-      <p className="font-display text-[2.55rem] leading-none font-semibold tabular-nums text-ov-fg">{value}</p>
+      <p className="font-display text-[2.55rem] leading-none font-semibold tabular-nums text-ov-fg">
+        <FadeValue value={value} />
+      </p>
     </div>
   );
 }
@@ -202,7 +207,9 @@ function MtgMeters({ life, poison }: { life: number; poison: number }) {
     <div className="mb-3 grid grid-cols-2 gap-2">
       <div className="rounded-sm border border-ov-fg/20 px-2 py-1.5 text-center">
         <p className="font-mono text-[0.62rem] tracking-[0.16em] text-ov-fg/65 uppercase">Life</p>
-        <p className="font-display text-[2.35rem] leading-none font-semibold tabular-nums text-ov-fg">{life}</p>
+        <p className="font-display text-[2.35rem] leading-none font-semibold tabular-nums text-ov-fg">
+          <FadeValue value={life} />
+        </p>
       </div>
       <div className="rounded-sm border border-ov-fg/20 px-2 py-1.5 text-center">
         <p className="font-mono text-[0.62rem] tracking-[0.16em] text-ov-fg/65 uppercase">Poison</p>
@@ -212,7 +219,7 @@ function MtgMeters({ life, poison }: { life: number; poison: number }) {
             poison >= 10 ? "text-[#e05a5a]" : "text-ov-fg",
           )}
         >
-          {poison}
+          <FadeValue value={poison} />
         </p>
       </div>
     </div>
@@ -227,7 +234,7 @@ function OpLifeBar({ remaining, max }: { remaining: number; max: number }) {
         <li key={i} className="flex min-h-0 flex-1 items-center justify-center border border-black/45">
           <span
             className={cn(
-              "inline-block size-5 rounded-full border-2",
+              "inline-block size-5 rounded-full border-2 transition-[background-color,border-color] duration-300 ease-out",
               i < remaining ? "border-[#e4c56a] bg-[#e4c56a]" : "border-[#e4c56a]/55 bg-transparent",
             )}
           />
@@ -262,9 +269,9 @@ function LoreLadder({ value, max }: { value: number; max: number }) {
           <li
             key={n}
             className={cn(
-              "flex min-h-0 flex-1 items-center justify-center border border-black/50 text-[0.82rem] font-bold tabular-nums",
+              "flex min-h-0 flex-1 items-center justify-center border border-black/50 text-[0.82rem] font-bold tabular-nums transition-[background-color,color,box-shadow] duration-300",
               zero ? "bg-[#e2b13a] text-[#2a1a04]" : "bg-[#8b1e22] text-[#f3d6d4]",
-              current && "ring-2 ring-ov-fg ring-inset",
+              current && "ring-2 ring-ov-fg ring-inset transition-[box-shadow,background-color] duration-300",
             )}
           >
             {n}

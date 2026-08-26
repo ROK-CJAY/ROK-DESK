@@ -10,6 +10,13 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 - **Play Layout** for Yu-Gi-Oh! — table-cam overlay (rounded transparent player cams, deck type, card well, LP / games / clock bar) in ROK colors. Default YGO scorebug.
 - **Show P1 / Show P2** on YGO card lookup — each Play Layout well holds its own card
+- **YGO player tablet** — life points (typed ticks + −100 / −500 / −800 / −1000 / −2000), games, match clock
+- Overlay scores, LP, and resource ticks fade instead of snapping (game 0→1, life, prizes)
+- **VGC Versus** — split player cams, both teams beside VS, event logo in the spine (ROK mark until you upload one)
+- **VGC Play Layout** (default VGC scorebug) — names, games, and W/L/D on top, both teams underneath, side cams, event logo in the spine. Sits at the top of the frame.
+- **OP Play Layout** (default OP scorebug) — table cam, side player cams, life / DON!! / games, official card-back wells, sponsors bottom left, event logo bottom right
+- **Show P1 / Show P2** on OP card lookup — each Play Layout well holds its own card
+- **Lorcana Play Layout** (default Lorcana scorebug) — square rails, player cams, reserved ink slots, diamonds, W/L/D, lore track 20–1, official card-back wells. Phase next to round. Show P1 / Show P2
 
 ## v1.2.5-beta — 2026-08-25
 

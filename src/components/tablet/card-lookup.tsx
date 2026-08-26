@@ -157,7 +157,7 @@ export function CardLookup({
       const live = useDeskStore.getState().desk.ptcgBoard;
       patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: mon } } });
     }
-    if (catalog === "ygo" && side) {
+    if ((catalog === "ygo" || catalog === "op" || catalog === "lorcana") && side) {
       const live = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
       patch({ sideSpotlight: { ...live, [side]: spotlightCard } });
     }
@@ -182,7 +182,7 @@ export function CardLookup({
       });
       return;
     }
-    if (catalog === "ygo") {
+    if (catalog === "ygo" || catalog === "op" || catalog === "lorcana") {
       if (side) {
         const live = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
         const other = side === "p1" ? live.p2 : live.p1;
@@ -244,7 +244,7 @@ export function CardLookup({
             {compact
               ? catalog === "ptcg"
                 ? "Search a Pokémon, set Active / Bench, then Show P1 or Show P2 over the bench."
-                : catalog === "ygo"
+                : catalog === "ygo" || catalog === "op" || catalog === "lorcana"
                   ? "Search a card, then Show P1 or Show P2 in that player’s well."
                   : "Search, pick a card, then Show on stream."
               : mtg
@@ -254,11 +254,11 @@ export function CardLookup({
                 : ygo
                   ? "YGOPRODeck search. Read the card text, then Show P1 or Show P2 in that player’s well."
                   : op
-                    ? "Official OP card data. Read the text, then Show on stream if you want the art on air."
+                    ? "Official OP card data. Read the text, then Show P1 or Show P2 in that player’s well."
                     : rift
                       ? "Riftcodex search. Read the printed text, then Show on stream if you want the art on air."
                       : lorcana
-                        ? "Lorcast search. Read the printed text, then Show on stream if you want the art on air."
+                        ? "Lorcast search. Read the printed text, then Show P1 or Show P2 in that player’s well."
                         : "Search a card to read it. Show on stream when you want the art on air."}
           </p>
         </div>
@@ -309,15 +309,15 @@ export function CardLookup({
         <CardDetail
           card={selected}
           ptcg={catalog === "ptcg"}
-          splitWells={catalog === "ptcg" || catalog === "ygo"}
+          splitWells={catalog === "ptcg" || catalog === "ygo" || catalog === "op" || catalog === "lorcana"}
           onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
           onAirP1={
-            ygo
+            ygo || op || lorcana
               ? Boolean(sideSpotlight?.p1.visible && sideSpotlight.p1.id === selected.id)
               : Boolean(ptcgBoard.p1.spotlight && ptcgBoard.p1.spotlight.id === selected.id)
           }
           onAirP2={
-            ygo
+            ygo || op || lorcana
               ? Boolean(sideSpotlight?.p2.visible && sideSpotlight.p2.id === selected.id)
               : Boolean(ptcgBoard.p2.spotlight && ptcgBoard.p2.spotlight.id === selected.id)
           }

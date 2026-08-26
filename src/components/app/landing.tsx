@@ -33,7 +33,7 @@ const STEPS = [
   {
     n: "04",
     title: "Key the overlays",
-    body: "In OBS or vMix, add 1920×1080 browser sources from the overlay list. Prefer /{game}/overlay/… so two titles on one host stay separate. PTCG and YGO Play Layout, plus ROK Layout on the other titles, are on the source list.",
+    body: "In OBS or vMix, add 1920×1080 browser sources from the overlay list. Prefer /{game}/overlay/… so two titles on one host stay separate. VGC, PTCG, YGO, OP, and Lorcana Play Layout, plus ROK Layout on the other titles, are on the source list.",
   },
   {
     n: "05",

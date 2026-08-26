@@ -1,4 +1,5 @@
 import { useCardImageSrc } from "@/components/ui/remote-art";
+import { FadeValue } from "@/components/overlays/fade-value";
 import { formatClock, remainingSeconds, resourceLimit, type DeskState } from "@/lib/desk-types";
 import { emptyPtcgSide, energyColor, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { PokeballIcon } from "@/components/overlays/pips";
@@ -85,7 +86,7 @@ function HpBar({ now, max, compact = false }: { now: number; max: number; compac
         className={cn("font-mono shrink-0 tabular-nums", compact ? "text-[0.78rem]" : "text-[0.95rem]")}
         style={{ color: fill }}
       >
-        {now}/{max || now}
+        <FadeValue value={`${now}/${max || now}`} />
       </span>
     </div>
   );
@@ -235,7 +236,7 @@ function Rail({
               {player.country || "—"}
             </span>
             <span className="font-mono text-[1.05rem] leading-none tabular-nums text-white/80">
-              {player.recordW}/{player.recordL}/{player.recordD}
+              <FadeValue value={`${player.recordW}/${player.recordL}/${player.recordD}`} />
             </span>
           </div>
           <div className={cn("mt-0.5 flex items-center gap-2", align === "right" && "flex-row-reverse")}>
@@ -250,7 +251,7 @@ function Rail({
           </div>
         </div>
         <p className={cn("font-display text-[2.35rem] leading-none font-semibold text-white", align === "right" && "order-1")}>
-          {player.score}
+          <FadeValue value={player.score} />
         </p>
       </header>
       {board.active ? (

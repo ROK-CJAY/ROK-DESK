@@ -541,7 +541,7 @@ function StreamPanel() {
             </a>
           </Button>
         ))}
-        {t.gameId === "mtg" || t.gameId === "lorcana"
+        {t.gameId === "mtg" || t.gameId === "lorcana" || t.gameId === "yugioh"
           ? MATCH_SLOTS.map((slot) => (
               <Button key={`player-${slot}`} variant="secondary" size="sm" className="w-full" asChild>
                 <a href={playerTabletPath(t.gameId, slot)} target="_blank" rel="noreferrer">
