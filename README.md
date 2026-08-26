@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.5-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.6-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -310,7 +310,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.2.5-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.5-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
+1. Download **v1.2.6-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.6-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -361,7 +361,7 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
-### Unreleased — Play Layouts (VGC, OP, Lorcana) · YGO tablet · fades
+### v1.2.6-beta — 26 Aug 2026 · Play Layouts (VGC, OP, Lorcana)
 
 **Added**
 - **Play Layout** for Yu-Gi-Oh! (now the default YGO scorebug): Feature Duelist rails, rounded transparent player camera wells, deck type, extra-deck card well, LP / games / clock bar, event ticker. No now-playing chrome. ROK Layout remains available.
@@ -536,4 +536,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.5-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.6-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

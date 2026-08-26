@@ -6,6 +6,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+## v1.2.6-beta — 2026-08-26
+
+Play Layouts for VGC, One Piece, and Lorcana. YGO player tablet. Overlay score fades.
+
 ### Added
 
 - **Play Layout** for Yu-Gi-Oh! — table-cam overlay (rounded transparent player cams, deck type, card well, LP / games / clock bar) in ROK colors. Default YGO scorebug.
