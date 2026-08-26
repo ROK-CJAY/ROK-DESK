@@ -6,6 +6,14 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+## v1.2.5-beta — 2026-08-25
+
+Hotfix: judge and commentary tablets scroll.
+
+### Fixed
+
+- Judge and commentary tablets were locked to the screen height, so the board, card lookup, and notes sat below the fold with no way to reach them
+
 ## v1.2.4-beta — 2026-08-25
 
 Hotfix: PTCG card art, lookup reset, judge board.

@@ -69,7 +69,7 @@ export function RiftJudgeTablet() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-bg text-fg" data-game={desk.gameId}>
+    <div className="flex min-h-dvh flex-col bg-bg text-fg" data-game={desk.gameId}>
       <header className="shrink-0 border-b border-border px-3 py-2.5 sm:px-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
@@ -162,7 +162,7 @@ export function RiftJudgeTablet() {
           </div>
         )}
       </header>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
+      <div className="flex-1 p-3">
         <CardLookup catalog="rift" formatName={desk.formatName} />
       </div>
       <TabletGuide kind="rift" open={guide.open} onClose={guide.close} />

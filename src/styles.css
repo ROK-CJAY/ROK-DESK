@@ -131,11 +131,14 @@
   .pod-body {
     background: var(--color-bg);
     color: var(--color-fg);
-    overflow: hidden;
-    height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    min-height: 100dvh;
+    height: auto;
     touch-action: manipulation;
     user-select: none;
     -webkit-user-select: none;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

@@ -65,7 +65,7 @@ export function VgcJudgeTablet() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-bg text-fg" data-game={desk.gameId}>
+    <div className="flex min-h-dvh flex-col bg-bg text-fg" data-game={desk.gameId}>
       <header className="shrink-0 border-b border-border px-3 py-2.5 sm:px-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">
@@ -113,7 +113,7 @@ export function VgcJudgeTablet() {
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-auto px-3 py-3">
+      <div className="flex-1 px-3 py-3">
         <div className="grid min-h-full gap-3 lg:grid-cols-2">
           <JudgeSide player={desk.p1} side="p1" onToggle={toggle} />
           <JudgeSide player={desk.p2} side="p2" onToggle={toggle} />
