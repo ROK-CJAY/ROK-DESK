@@ -9,6 +9,7 @@ import { cn } from "@/lib/cn";
 import { InitiativeMark } from "@/components/desk/initiative";
 import { RokLayoutView } from "@/components/overlays/rok-layout";
 import { PtcgPlayLayout } from "@/components/overlays/ptcg-play";
+import { YgoPlayLayout } from "@/components/overlays/ygo-play";
 
 function Flag({ code }: { code: string }) {
   if (!code) return null;
@@ -147,6 +148,13 @@ export function ScorebugView({
     return (
       <OverlayEditProvider desk={desk} edit={edit}>
         <PtcgPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "play" && desk.gameId === "yugioh") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <YgoPlayLayout desk={desk} now={now} />
       </OverlayEditProvider>
     );
   }

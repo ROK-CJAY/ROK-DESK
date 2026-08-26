@@ -412,7 +412,9 @@ export function HudView({
 }) {
   const commander = useCommanderOverlay(desk);
   const rok = desk.scorebugStyle === "rok";
-  const play = desk.scorebugStyle === "play";
+  const play =
+    desk.scorebugStyle === "play" &&
+    (desk.gameId === "pokemon-tcg" || desk.gameId === "yugioh");
   return (
     <div className={`pointer-events-none absolute inset-0 ${edit ? "layout-grid" : ""}`}>
       <ScorebugView desk={desk} now={now} edit={edit} />

@@ -10,6 +10,7 @@ import { YgoJudgeTablet } from "@/components/tablet/ygo-judge";
 import { OpJudgeTablet } from "@/components/tablet/op-judge";
 import { RiftJudgeTablet } from "@/components/tablet/rift-judge";
 import { LorcanaJudgeTablet } from "@/components/tablet/lorcana-judge";
+import { LorcanaPlayerTablet } from "@/components/tablet/lorcana-player";
 import { CasterTablet } from "@/components/tablet/caster-tablet";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";

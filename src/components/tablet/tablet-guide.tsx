@@ -159,7 +159,7 @@ const COPY: Record<
       },
       {
         title: "Card lookup is YGOPRODeck",
-        body: "Search at the bottom. Tap a result to read the card text. Show on stream puts the art on the Card overlay. Clear takes it off.",
+        body: "Search at the bottom. Tap a result to read the card text. Show P1 / Show P2 puts the art in that player’s well on Play Layout. Clear takes both off.",
       },
     ],
   },
@@ -257,8 +257,8 @@ const COPY: Record<
         body: "The first chip filters to TCG / Goat when that format is known. All printings searches the full YGOPRODeck catalog.",
       },
       {
-        title: "Show on stream when you need it",
-        body: "The tablet keeps the card text. Show on stream sends the art to the Card overlay. Clear takes it off. Add the Card source in OBS or vMix, or use HUD pack.",
+        title: "Show P1 or Show P2",
+        body: "The tablet keeps the card text. Show P1 / Show P2 sends the art to that player’s extra-deck well on Play Layout — each side is independent. Clear takes both off. Add the Card source in OBS or vMix for the last card you showed, or use HUD pack.",
       },
     ],
   },

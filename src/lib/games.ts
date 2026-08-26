@@ -169,7 +169,7 @@ export const GAME_LIST: GameDef[] = [
     extraPlaceholder: "Tenpai · Yubel · Snake-Eye",
     scoreLabel: "Games",
     defaultBestOf: 3,
-    defaultScorebug: "rok",
+    defaultScorebug: "play",
     formats: [
       { id: "tcg", label: "TCG Advanced" },
       { id: "md", label: "Master Duel" },
@@ -512,6 +512,10 @@ const ROK_LAYOUT_GAMES: GameId[] = [
   "mtg",
   "one-piece",
 ];
+
+export function supportsPlayLayout(desk: { gameId: GameId }): boolean {
+  return desk.gameId === "pokemon-tcg" || desk.gameId === "yugioh";
+}
 
 export function supportsRokLayout(desk: { gameId: GameId; formatName?: string }): boolean {
   if (!ROK_LAYOUT_GAMES.includes(desk.gameId)) return false;

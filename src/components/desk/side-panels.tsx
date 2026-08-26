@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, casterTabletPath, playerTabletPath, signupPath, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, casterTabletPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -587,7 +587,7 @@ export function ShowPanel() {
             {supportsRokLayout(desk) ? (
               <option value="rok">ROK Layout</option>
             ) : null}
-            {desk.gameId === "pokemon-tcg" ? (
+            {supportsPlayLayout(desk) ? (
               <option value="play">Play Layout</option>
             ) : null}
           </NativeSelect>
@@ -609,7 +609,9 @@ export function ShowPanel() {
             </p>
           ) : desk.scorebugStyle === "play" ? (
             <p className="self-center text-[0.7rem] text-muted">
-              Side rails: prizes, active, bench. Energy / Supporter / Retreat. Show P1 / P2 over the bench.
+              {desk.gameId === "yugioh"
+                ? "Table cam in the middle. Rails: player cam, deck, card well. Show P1 / P2 in each well."
+                : "Side rails: prizes, active, bench. Energy / Supporter / Retreat. Show P1 / P2 over the bench."}
             </p>
           ) : (
             <NativeSelect

@@ -34,7 +34,7 @@ Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at o
 | Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games |
 | Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3, **Play Layout** board |
 | One Piece TCG | `op` | Life, DON!!, Bo1 by default, ROK Layout |
-| Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3 |
+| Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3, **Play Layout** |
 | Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH |
 | Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, ROK Layout |
 | Star Wars Unlimited | `swu` | Base HP, initiative |
@@ -137,7 +137,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG also has **Show P1 / Show P2** (card over that player’s bench), **Set Active**, and **Set Bench 1–5**
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG and YGO have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**
 - PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
@@ -154,7 +154,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Lower third: player, caster, or custom
 - Casters (play-by-play and color)
 - Up-next queue
-- Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on PTCG)
+- Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on PTCG and YGO)
 - Arrange widgets on the HUD pack; undo / redo / default look
 - Per-overlay **look editor** — colors, fonts, scale. Saves per source, not globally. Instructions for saving sit on the editor
 - OBS and vMix setup notes (browser sources as a dropdown)
@@ -181,7 +181,7 @@ How-to guide on first open. Start / pause / add or remove time / reset **this ta
 | PTCG | Prize balls, Energy / Supporter / Retreat, full PTCG board card (Active / bench / HP / Swap / KO) | TCGdex — Show P1 / Show P2 / Clear, Set Active, Set Bench |
 | MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall |
 | SWU | Base HP, initiative | SWU-DB |
-| YGO | 8000 LP, typed ticks | YGOPRODeck |
+| YGO | 8000 LP, typed ticks | YGOPRODeck — Show P1 / Show P2 / Clear |
 | OP | Life circles, DON!! | Official English cards |
 | Lorcana | Lore 0–20 | Lorcast |
 | Riftbound | Points 1–8 | Riftcodex |
@@ -257,7 +257,10 @@ Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
 **ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, One Piece, Riftbound, and SWU have the same frame with their own card backs.
 
-**Play Layout** is the default PTCG scorebug — a table-cam overlay in **ROK colors** (charcoal rails, silver borders, red chips, gold ability labels). Full-height rails on both sides (Active illustration, five bench slots, prizes inline with the player name on the inner edge, W/L/D, country) with a transparent center for the overhead camera. Energy / Supporter / Retreat start ON. HP bars are green, turn orange at 30%, red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
+**Play Layout** is the table-cam overlay in **ROK colors** (charcoal rails, silver / red accents, gold clock). Transparent center for the overhead camera. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
+
+- **PTCG** (default): full-height rails with Active illustration, five bench slots, prizes inline with the player name, W/L/D, country. Energy / Supporter / Retreat start ON. HP bars go green → orange at 30% → red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench.
+- **YGO** (default): full-height rails with **Feature Duelist** spine, **rounded transparent player camera wells** (put player cams under the overlay in OBS), deck type, extra-deck-style card well. Top bar is games · LP · clock · LP · games. Bottom ticker is event · format · round. **Show P1 / Show P2** from card search fills that player’s well — the two wells are independent. No music / now-playing chrome. ROK Layout remains available.
 
 Empty card / sponsor / event-logo sources stay fully transparent.
 
@@ -351,6 +354,12 @@ npm run dist
 ## Changelog
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### Unreleased — YGO Play Layout
+
+**Added**
+- **Play Layout** for Yu-Gi-Oh! (now the default YGO scorebug): Feature Duelist rails, rounded transparent player camera wells, deck type, extra-deck card well, LP / games / clock bar, event ticker. No now-playing chrome. ROK Layout remains available.
+- **Show P1 / Show P2** on YGO card lookup — each Play Layout well holds its own card
 
 ### v1.2.5-beta — 25 Aug 2026 · hotfix: tablet scroll
 

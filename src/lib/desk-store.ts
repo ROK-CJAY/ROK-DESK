@@ -6,6 +6,7 @@ import {
   seatsFor,
   emptyCmdFrom,
   emptySpotlight,
+  emptySideSpotlight,
   incomingCmd,
   normalizeDown,
   remainingFromDown,
@@ -399,6 +400,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       timerRunning: false,
       timerEndsAt: null,
       cardSpotlight: emptySpotlight(),
+      sideSpotlight: emptySideSpotlight(),
       gameClocks: {
         ...prev.gameClocks,
         [prev.gameId]: { remaining: remainingSeconds(prev), preset: prev.timerPresetSeconds },
@@ -433,6 +435,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       gameWinnerSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      sideSpotlight: emptySideSpotlight(),
       roundName: "",
       timerSeconds: 0,
       timerPresetSeconds: 0,
@@ -546,6 +549,10 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         p1: prev.p2,
         p2: prev.p1,
         ptcgBoard: { p1: prev.ptcgBoard.p2, p2: prev.ptcgBoard.p1 },
+        sideSpotlight: {
+          p1: prev.sideSpotlight?.p2 ?? emptySpotlight(),
+          p2: prev.sideSpotlight?.p1 ?? emptySpotlight(),
+        },
         winnerSide:
           prev.winnerSide === "p1" ? "p2" : prev.winnerSide === "p2" ? "p1" : prev.winnerSide,
         gameWinnerSide:
@@ -582,6 +589,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         p1: { ...prev.ptcgBoard.p1, energy: true, supporter: true, retreat: true, spotlight: null },
         p2: { ...prev.ptcgBoard.p2, energy: true, supporter: true, retreat: true, spotlight: null },
       },
+      sideSpotlight: emptySideSpotlight(),
     });
     persist(desk);
     set({ desk });
@@ -596,6 +604,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       gameWinnerSide: null,
       initiativeSide: null,
       ptcgBoard: emptyPtcgBoard(),
+      sideSpotlight: emptySideSpotlight(),
     });
     persist(desk);
     set({ desk });
@@ -615,6 +624,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       initiativeSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      sideSpotlight: emptySideSpotlight(),
       ptcgBoard: emptyPtcgBoard(),
       lowerThird: { ...prev.lowerThird, visible: false },
     });
@@ -644,6 +654,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       gameWinnerSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      sideSpotlight: emptySideSpotlight(),
     };
     const desk = nextVersion(prev, {
       lanes: { ...prev.lanes, [key]: stripLane(cleaned) },

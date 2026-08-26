@@ -42,7 +42,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/scorebug",
     name: "Scorebug",
     size: "1920 × 1080",
-    note: "Always-on names, score, resources. PTCG Play Layout: table cam in the middle, rails for active / bench / prizes. ROK Layout on other titles.",
+    note: "Always-on names, score, resources. PTCG / YGO Play Layout: table cam in the middle, rails for the players. ROK Layout on other titles.",
   },
   {
     id: "versus",
@@ -140,7 +140,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/card",
     name: "Card",
     size: "1920 × 1080",
-    note: "Judge card from the PTCG, MTG, SWU, YGO, OP, Riftbound, or Lorcana tablet. Search, then Show on stream.",
+    note: "Judge card from the PTCG, MTG, SWU, YGO, OP, Riftbound, or Lorcana tablet. Search, then Show on stream. PTCG and YGO Play Layout: Show P1 / Show P2 for each side.",
   },
   {
     id: "sponsors",

@@ -177,6 +177,7 @@ export type DeskState = {
   layout: LayoutMap;
   overlayLook: OverlayLookBook;
   cardSpotlight: SpotlightCard;
+  sideSpotlight: SideSpotlight;
   ptcgBoard: PtcgBoard;
   lanes: Record<string, Record<string, unknown>>;
   testMode: boolean;
@@ -312,6 +313,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     .optional()
     .transform((v) => v ?? emptySpotlight()),
   ptcgBoard: z.any().optional().transform((v) => parsePtcgBoard(v)),
+  sideSpotlight: z.any().optional().transform((v) => parseSideSpotlight(v)),
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   layout: z.object({
@@ -340,6 +342,38 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
 
 export function emptySpotlight(): SpotlightCard {
   return { visible: false, id: "", name: "", set: "", number: "", image: "", type: "" };
+}
+
+export type SideSpotlight = {
+  p1: SpotlightCard;
+  p2: SpotlightCard;
+};
+
+export function emptySideSpotlight(): SideSpotlight {
+  return { p1: emptySpotlight(), p2: emptySpotlight() };
+}
+
+export function parseSideSpotlight(raw: unknown): SideSpotlight {
+  if (!raw || typeof raw !== "object") return emptySideSpotlight();
+  const row = raw as Record<string, unknown>;
+  return {
+    p1: mergeSpotlight(row.p1),
+    p2: mergeSpotlight(row.p2),
+  };
+}
+
+function mergeSpotlight(raw: unknown): SpotlightCard {
+  if (!raw || typeof raw !== "object") return emptySpotlight();
+  const row = raw as Record<string, unknown>;
+  return {
+    visible: Boolean(row.visible),
+    id: String(row.id ?? ""),
+    name: String(row.name ?? ""),
+    set: String(row.set ?? ""),
+    number: String(row.number ?? ""),
+    image: String(row.image ?? ""),
+    type: String(row.type ?? ""),
+  };
 }
 
 export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
@@ -420,6 +454,7 @@ export function defaultDesk(): DeskState {
     layout: { ...DEFAULT_LAYOUT },
     overlayLook: { ...DEFAULT_LOOK_BOOK, sources: {} },
     cardSpotlight: emptySpotlight(),
+    sideSpotlight: emptySideSpotlight(),
     ptcgBoard: emptyPtcgBoard(),
     lanes: {},
     testMode: false,
@@ -528,6 +563,7 @@ export function parseDesk(raw: unknown): DeskState | null {
       ...emptySpotlight(),
       ...(isRecord(incoming.cardSpotlight) ? incoming.cardSpotlight : {}),
     },
+    sideSpotlight: parseSideSpotlight(incoming.sideSpotlight),
     ptcgBoard: parsePtcgBoard(incoming.ptcgBoard),
     rosterSide:
       incoming.rosterSide === "p1" ||

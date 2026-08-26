@@ -20,7 +20,7 @@ import {
   ygoFormatFor,
   type LookupCard,
 } from "@/lib/card-lookup";
-import { emptySpotlight, type SeatId } from "@/lib/desk-types";
+import { emptySpotlight, emptySideSpotlight, type SeatId } from "@/lib/desk-types";
 import { lookupFromDeck, type DeckCard } from "@/lib/decklist";
 import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
@@ -40,6 +40,7 @@ export function CardLookup({
 }) {
   const patch = useDeskStore((s) => s.patch);
   const spotlight = useDeskStore((s) => s.desk.cardSpotlight);
+  const sideSpotlight = useDeskStore((s) => s.desk.sideSpotlight);
   const ptcgBoard = useDeskStore((s) => s.desk.ptcgBoard);
   const p1 = useDeskStore((s) => s.desk.p1);
   const p2 = useDeskStore((s) => s.desk.p2);
@@ -142,20 +143,23 @@ export function CardLookup({
   const pushToStream = async (card: LookupCard, side?: "p1" | "p2") => {
     const full = catalog === "ptcg" ? await detailOf(card) : card;
     const mon = monFromLookup(full);
-    patch({
-      cardSpotlight: {
-        visible: true,
-        id: full.id,
-        name: full.name,
-        set: full.set ?? "",
-        number: full.number ?? "",
-        image: full.image ?? "",
-        type: full.type ?? "",
-      },
-    });
+    const spotlightCard = {
+      visible: true,
+      id: full.id,
+      name: full.name,
+      set: full.set ?? "",
+      number: full.number ?? "",
+      image: full.image ?? "",
+      type: full.type ?? "",
+    };
+    patch({ cardSpotlight: spotlightCard });
     if (catalog === "ptcg" && side) {
       const live = useDeskStore.getState().desk.ptcgBoard;
       patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: mon } } });
+    }
+    if (catalog === "ygo" && side) {
+      const live = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
+      patch({ sideSpotlight: { ...live, [side]: spotlightCard } });
     }
   };
 
@@ -175,6 +179,22 @@ export function CardLookup({
           p1: { ...live.p1, spotlight: null },
           p2: { ...live.p2, spotlight: null },
         },
+      });
+      return;
+    }
+    if (catalog === "ygo") {
+      if (side) {
+        const live = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
+        const other = side === "p1" ? live.p2 : live.p1;
+        patch({
+          sideSpotlight: { ...live, [side]: emptySpotlight() },
+          ...(other?.visible ? {} : { cardSpotlight: emptySpotlight() }),
+        });
+        return;
+      }
+      patch({
+        cardSpotlight: emptySpotlight(),
+        sideSpotlight: emptySideSpotlight(),
       });
       return;
     }
@@ -224,13 +244,15 @@ export function CardLookup({
             {compact
               ? catalog === "ptcg"
                 ? "Search a Pokémon, set Active / Bench, then Show P1 or Show P2 over the bench."
-                : "Search, pick a card, then Show on stream."
+                : catalog === "ygo"
+                  ? "Search a card, then Show P1 or Show P2 in that player’s well."
+                  : "Search, pick a card, then Show on stream."
               : mtg
               ? "Scryfall search. Read the oracle text, then Show on stream if you want the art on air."
               : swu
                 ? "SWU-DB search. Read the printed text, then Show on stream if you want the art on air."
                 : ygo
-                  ? "YGOPRODeck search. Read the card text, then Show on stream if you want the art on air."
+                  ? "YGOPRODeck search. Read the card text, then Show P1 or Show P2 in that player’s well."
                   : op
                     ? "Official OP card data. Read the text, then Show on stream if you want the art on air."
                     : rift
@@ -287,9 +309,18 @@ export function CardLookup({
         <CardDetail
           card={selected}
           ptcg={catalog === "ptcg"}
+          splitWells={catalog === "ptcg" || catalog === "ygo"}
           onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
-          onAirP1={Boolean(ptcgBoard.p1.spotlight && ptcgBoard.p1.spotlight.id === selected.id)}
-          onAirP2={Boolean(ptcgBoard.p2.spotlight && ptcgBoard.p2.spotlight.id === selected.id)}
+          onAirP1={
+            ygo
+              ? Boolean(sideSpotlight?.p1.visible && sideSpotlight.p1.id === selected.id)
+              : Boolean(ptcgBoard.p1.spotlight && ptcgBoard.p1.spotlight.id === selected.id)
+          }
+          onAirP2={
+            ygo
+              ? Boolean(sideSpotlight?.p2.visible && sideSpotlight.p2.id === selected.id)
+              : Boolean(ptcgBoard.p2.spotlight && ptcgBoard.p2.spotlight.id === selected.id)
+          }
           onShow={() => void pushToStream(selected)}
           onShowP1={() => void pushToStream(selected, "p1")}
           onShowP2={() => void pushToStream(selected, "p2")}
@@ -464,6 +495,7 @@ function FilterChip({
 function CardDetail({
   card,
   ptcg = false,
+  splitWells = false,
   onAir,
   onAirP1,
   onAirP2,
@@ -480,6 +512,7 @@ function CardDetail({
 }: {
   card: LookupCard;
   ptcg?: boolean;
+  splitWells?: boolean;
   onAir: boolean;
   onAirP1?: boolean;
   onAirP2?: boolean;
@@ -511,7 +544,7 @@ function CardDetail({
                 .join(" · ")}
             </p>
           </div>
-          {ptcg ? (
+          {splitWells ? (
             <div className="flex flex-wrap gap-2">
               <Button variant={onAirP1 ? "live" : "default"} size="sm" type="button" onClick={onShowP1}>
                 {onAirP1 ? "P1 on stream" : "Show P1"}

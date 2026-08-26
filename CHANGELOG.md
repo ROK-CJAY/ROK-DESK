@@ -6,6 +6,11 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+### Added
+
+- **Play Layout** for Yu-Gi-Oh! — table-cam overlay (rounded transparent player cams, deck type, card well, LP / games / clock bar) in ROK colors. Default YGO scorebug.
+- **Show P1 / Show P2** on YGO card lookup — each Play Layout well holds its own card
+
 ## v1.2.5-beta — 2026-08-25
 
 Hotfix: judge and commentary tablets scroll.
