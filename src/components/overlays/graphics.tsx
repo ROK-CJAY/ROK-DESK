@@ -430,7 +430,7 @@ export function HudView({
       desk.gameId === "one-piece" ||
       desk.gameId === "lorcana");
   return (
-    <div className={`pointer-events-none absolute inset-0 ${edit ? "layout-grid" : ""}`}>
+    <div className="pointer-events-none absolute inset-0">
       <ScorebugView desk={desk} now={now} edit={edit} />
       {rok || play ? null : <TimerView desk={desk} now={now} edit={edit} />}
       {commander || rok || play ? null : <ResourceView desk={desk} edit={edit} />}

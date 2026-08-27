@@ -20,7 +20,17 @@ import {
   ygoFormatFor,
   type LookupCard,
 } from "@/lib/card-lookup";
-import { emptySpotlight, emptySideSpotlight, type SeatId } from "@/lib/desk-types";
+import {
+  CARD_STACK_MAX,
+  clearSpotlight,
+  emptySpotlight,
+  emptySideSpotlight,
+  layerSpotlight,
+  popSpotlight,
+  replaceSpotlight,
+  visibleCardStack,
+  type SeatId,
+} from "@/lib/desk-types";
 import { lookupFromDeck, type DeckCard } from "@/lib/decklist";
 import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
@@ -40,6 +50,7 @@ export function CardLookup({
 }) {
   const patch = useDeskStore((s) => s.patch);
   const spotlight = useDeskStore((s) => s.desk.cardSpotlight);
+  const cardStack = useDeskStore((s) => s.desk.cardStack);
   const sideSpotlight = useDeskStore((s) => s.desk.sideSpotlight);
   const ptcgBoard = useDeskStore((s) => s.desk.ptcgBoard);
   const p1 = useDeskStore((s) => s.desk.p1);
@@ -140,9 +151,10 @@ export function CardLookup({
     }
   };
 
+  const stack = visibleCardStack({ cardSpotlight: spotlight, cardStack });
+
   const pushToStream = async (card: LookupCard, side?: "p1" | "p2") => {
     const full = catalog === "ptcg" ? await detailOf(card) : card;
-    const mon = monFromLookup(full);
     const spotlightCard = {
       visible: true,
       id: full.id,
@@ -152,10 +164,15 @@ export function CardLookup({
       image: full.image ?? "",
       type: full.type ?? "",
     };
-    patch({ cardSpotlight: spotlightCard });
+    if (catalog === "mtg") {
+      const live = useDeskStore.getState().desk;
+      patch(layerSpotlight(live, spotlightCard));
+    } else {
+      patch({ cardSpotlight: spotlightCard, cardStack: [spotlightCard] });
+    }
     if (catalog === "ptcg" && side) {
       const live = useDeskStore.getState().desk.ptcgBoard;
-      patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: mon } } });
+      patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: monFromLookup(full) } } });
     }
     if ((catalog === "ygo" || catalog === "op" || catalog === "lorcana") && side) {
       const live = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
@@ -163,18 +180,33 @@ export function CardLookup({
     }
   };
 
+  const replaceStream = async (card: LookupCard) => {
+    const full = catalog === "ptcg" ? await detailOf(card) : card;
+    patch(
+      replaceSpotlight({
+        visible: true,
+        id: full.id,
+        name: full.name,
+        set: full.set ?? "",
+        number: full.number ?? "",
+        image: full.image ?? "",
+        type: full.type ?? "",
+      }),
+    );
+  };
+
   const clearStream = (side?: "p1" | "p2") => {
     if (catalog === "ptcg" && side) {
       const live = useDeskStore.getState().desk.ptcgBoard;
       patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: null } } });
       const other = side === "p1" ? live.p2.spotlight : live.p1.spotlight;
-      if (!other) patch({ cardSpotlight: emptySpotlight() });
+      if (!other) patch(clearSpotlight());
       return;
     }
     if (catalog === "ptcg") {
       const live = useDeskStore.getState().desk.ptcgBoard;
       patch({
-        cardSpotlight: emptySpotlight(),
+        ...clearSpotlight(),
         ptcgBoard: {
           p1: { ...live.p1, spotlight: null },
           p2: { ...live.p2, spotlight: null },
@@ -188,17 +220,17 @@ export function CardLookup({
         const other = side === "p1" ? live.p2 : live.p1;
         patch({
           sideSpotlight: { ...live, [side]: emptySpotlight() },
-          ...(other?.visible ? {} : { cardSpotlight: emptySpotlight() }),
+          ...(other?.visible ? {} : clearSpotlight()),
         });
         return;
       }
       patch({
-        cardSpotlight: emptySpotlight(),
+        ...clearSpotlight(),
         sideSpotlight: emptySideSpotlight(),
       });
       return;
     }
-    patch({ cardSpotlight: emptySpotlight() });
+    patch(clearSpotlight());
   };
 
   const setActive = async (card: LookupCard, side: "p1" | "p2") => {
@@ -248,7 +280,7 @@ export function CardLookup({
                   ? "Search a card, then Show P1 or Show P2 in that player’s well."
                   : "Search, pick a card, then Show on stream."
               : mtg
-              ? "Scryfall search. Read the oracle text, then Show on stream if you want the art on air."
+              ? "Search a card, Show on stream, then pick the next piece and hit Layer. Each layer sits slightly lower on top."
               : swu
                 ? "SWU-DB search. Read the printed text, then Show on stream if you want the art on air."
                 : ygo
@@ -299,6 +331,13 @@ export function CardLookup({
           className="pl-9"
         />
       </div>
+      {mtg ? (
+        <ComboStrip
+          stack={stack}
+          onPop={() => patch(popSpotlight(useDeskStore.getState().desk))}
+          onClear={() => patch(clearSpotlight())}
+        />
+      ) : null}
       <MatchDeckStrip
         players={{ p1, p2, p3, p4, tableSize }}
         query={query}
@@ -310,6 +349,16 @@ export function CardLookup({
           card={selected}
           ptcg={catalog === "ptcg"}
           splitWells={catalog === "ptcg" || catalog === "ygo" || catalog === "op" || catalog === "lorcana"}
+          combo={
+            mtg
+              ? {
+                  count: stack.length,
+                  full: stack.length >= CARD_STACK_MAX,
+                  onReplace: () => void replaceStream(selected),
+                  onPop: () => patch(popSpotlight(useDeskStore.getState().desk)),
+                }
+              : undefined
+          }
           onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
           onAirP1={
             ygo || op || lorcana
@@ -340,12 +389,12 @@ export function CardLookup({
       ) : results.length > 0 ? (
         <ul className={cn("mt-3 min-h-0 flex-1 space-y-1 overflow-auto", compact && "max-h-72")}>
           {results.map((card) => (
-            <li key={card.id}>
+            <li key={card.id} className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => void openCard(card)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-md px-2 py-2 text-left",
+                  "flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 text-left",
                   selected?.id === card.id ? "bg-accent/15 text-fg" : "hover:bg-surface-2",
                 )}
               >
@@ -363,6 +412,18 @@ export function CardLookup({
                   </span>
                 </span>
               </button>
+              {mtg ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={stack.length ? "secondary" : "default"}
+                  className="mr-1 shrink-0"
+                  disabled={stack.length >= CARD_STACK_MAX}
+                  onClick={() => void pushToStream(card)}
+                >
+                  {stack.length >= CARD_STACK_MAX ? "Full" : stack.length ? "Layer" : "Show"}
+                </Button>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -398,6 +459,62 @@ export function CardLookup({
         onClose={guide.close}
       />
     </section>
+  );
+}
+
+function ComboStrip({
+  stack,
+  onPop,
+  onClear,
+}: {
+  stack: { id: string; name: string; image?: string }[];
+  onPop: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="mt-3 rounded-lg border border-border bg-surface-2 p-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-mono text-[0.58rem] tracking-[0.14em] text-muted uppercase">
+          {stack.length ? `On stream · ${stack.length}` : "Combo stack"}
+        </p>
+        {stack.length ? (
+          <div className="flex gap-1.5">
+            {stack.length > 1 ? (
+              <Button type="button" variant="outline" size="sm" onClick={onPop}>
+                Pop last
+              </Button>
+            ) : null}
+            <Button type="button" variant="outline" size="sm" onClick={onClear}>
+              Clear
+            </Button>
+          </div>
+        ) : null}
+      </div>
+      {stack.length ? (
+        <ol className="mt-2 flex items-end gap-1">
+          {stack.map((card, index) => (
+            <li key={`${card.id}-${index}`} className="min-w-0">
+              {card.image || card.id ? (
+                <RemoteArt
+                  image={card.image}
+                  id={card.id}
+                  size="low"
+                  className={cn("h-16 w-12 rounded-sm object-cover shadow-md", index ? "-ml-2.5" : "")}
+                />
+              ) : (
+                <span className="grid h-16 w-12 place-items-center rounded-sm bg-surface text-[0.6rem] text-muted">
+                  {index + 1}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="mt-1 text-xs text-muted">
+          Show a card, search the next one, then Layer. Up to {CARD_STACK_MAX} cards.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -496,6 +613,7 @@ function CardDetail({
   card,
   ptcg = false,
   splitWells = false,
+  combo,
   onAir,
   onAirP1,
   onAirP2,
@@ -513,6 +631,7 @@ function CardDetail({
   card: LookupCard;
   ptcg?: boolean;
   splitWells?: boolean;
+  combo?: { count: number; full: boolean; onReplace: () => void; onPop: () => void };
   onAir: boolean;
   onAirP1?: boolean;
   onAirP2?: boolean;
@@ -556,6 +675,25 @@ function CardDetail({
                 Clear
               </Button>
             </div>
+          ) : combo ? (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={onShow} disabled={combo.full && combo.count > 0}>
+                {combo.count === 0 ? "Show on stream" : combo.full ? "Stack full" : "Layer on stream"}
+              </Button>
+              {combo.count > 0 ? (
+                <Button variant="outline" size="sm" onClick={combo.onReplace}>
+                  Replace
+                </Button>
+              ) : null}
+              {combo.count > 1 ? (
+                <Button variant="outline" size="sm" onClick={combo.onPop}>
+                  Pop last
+                </Button>
+              ) : null}
+              <Button variant="outline" size="sm" onClick={onClear} disabled={combo.count === 0}>
+                Clear
+              </Button>
+            </div>
           ) : (
           <div className="flex flex-wrap gap-2">
             {onAir ? (
@@ -573,6 +711,13 @@ function CardDetail({
           </div>
           )}
         </div>
+        {combo && combo.count > 0 ? (
+          <p className="mt-1.5 text-xs text-muted">
+            {combo.count} on stream. Search the next card and hit Layer — it stacks slightly lower on top.
+          </p>
+        ) : combo ? (
+          <p className="mt-1.5 text-xs text-muted">Show this card, then Layer the next one for a combo.</p>
+        ) : null}
         {ptcg ? (
           <div className="mt-2 flex flex-wrap gap-1.5">
             <Button type="button" variant="outline" size="sm" onClick={onActiveP1}>P1 active</Button>

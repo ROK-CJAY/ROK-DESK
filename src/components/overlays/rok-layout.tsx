@@ -1,7 +1,8 @@
 import { InitiativeMark } from "@/components/desk/initiative";
 import { FadeValue } from "@/components/overlays/fade-value";
+import { CardStackArt } from "@/components/overlays/card";
 import { useCardImageSrc } from "@/components/ui/remote-art";
-import { formatClock, remainingSeconds, resourceLimit, type DeskState, type SideId } from "@/lib/desk-types";
+import { formatClock, remainingSeconds, resourceLimit, visibleCardStack, type DeskState, type SideId } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { cn } from "@/lib/cn";
@@ -36,14 +37,15 @@ export function RokLayoutView({ desk, now = Date.now() }: { desk: DeskState; now
   const clock = formatClock(remainingSeconds(desk, now));
   const card = desk.cardSpotlight;
   const fallback = rokCardBack(desk);
-  const showCard = Boolean(card?.visible && (card.image || card.id));
+  const stack = visibleCardStack(desk);
+  const showCard = stack.length > 0 || Boolean(card?.visible && (card.image || card.id));
   const { src: liveSrc, onError: onCardError } = useCardImageSrc(showCard ? card.image : "", "high", showCard ? card.id : "");
   const cardSrc = showCard && liveSrc ? liveSrc : fallback;
 
   return (
     <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
-      <RokSide desk={desk} side="p1" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} />
-      <RokSide desk={desk} side="p2" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} />
+      <RokSide desk={desk} side="p1" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} stack={stack} />
+      <RokSide desk={desk} side="p2" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} stack={stack} />
     </div>
   );
 }
@@ -55,6 +57,7 @@ function RokSide({
   cardSrc,
   fallback,
   onCardError,
+  stack,
 }: {
   desk: DeskState;
   side: SideId;
@@ -62,6 +65,7 @@ function RokSide({
   cardSrc: string;
   fallback: string;
   onCardError: () => void;
+  stack: ReturnType<typeof visibleCardStack>;
 }) {
   const player = desk[side];
   const right = side === "p2";
@@ -146,6 +150,15 @@ function RokSide({
                   </p>
                 </div>
               </>
+            ) : mtg && stack.length > 1 ? (
+              <CardStackArt
+                stack={stack}
+                className="mx-auto"
+                cardClassName="w-[15.5rem] rounded-[0.7rem] border border-[#d4b46a]/50"
+                offsetX={18}
+                offsetY={26}
+                caption={false}
+              />
             ) : (
               <img
                 key={cardSrc}

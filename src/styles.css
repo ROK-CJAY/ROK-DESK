@@ -265,4 +265,7 @@
       transparent 1px
     );
   background-size: 80px 80px;
+  box-shadow:
+    inset -1px 0 0 color-mix(in oklab, var(--color-ov-fg) 8%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--color-ov-fg) 8%, transparent);
 }

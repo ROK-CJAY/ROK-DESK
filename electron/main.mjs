@@ -7,17 +7,25 @@ import { mkdir } from "node:fs/promises";
 import {
   addBookmark,
   attachDownloadHandler,
+  browserDataRoot,
   browserSession,
   clearBrowserData,
   clearHistory,
+  createProfile,
   downloadsPath,
+  listProfiles,
   loadBookmarks,
   loadHistory,
   loadSettings,
+  loadTabs,
   recordHistory,
   removeBookmark,
+  removeProfile,
   renameBookmark,
+  renameProfile,
   saveSettings,
+  saveTabs,
+  switchProfile,
 } from "./browser-session.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -214,6 +222,18 @@ function makeGuestView(win) {
   return view;
 }
 
+function destroyGuest(win, view) {
+  if (!view) return;
+  detachGuest(win, view);
+  try {
+    if (typeof view.webContents.destroy === "function") view.webContents.destroy();
+    else view.webContents.close();
+  } catch {
+    /* ignore */
+  }
+  guests.delete(win.webContents);
+}
+
 function wireBrowserView(win) {
   let view = null;
 
@@ -258,6 +278,10 @@ function wireBrowserView(win) {
     if (!fromThisWindow(event) || !view) return;
     view.webContents.print({ silent: false, printBackground: true });
   };
+  const rebuild = () => {
+    destroyGuest(win, view);
+    view = null;
+  };
 
   ipcMain.on("rok:browser-attach", onAttach);
   ipcMain.on("rok:browser-detach", onDetach);
@@ -266,6 +290,7 @@ function wireBrowserView(win) {
   ipcMain.on("rok:browser-forward", onForward);
   ipcMain.on("rok:browser-reload", onReload);
   ipcMain.on("rok:browser-print", onPrint);
+  win.__rokRebuildBrowser = rebuild;
 
   win.on("closed", () => {
     ipcMain.removeListener("rok:browser-attach", onAttach);
@@ -366,9 +391,33 @@ if (!gotLock) {
     ipcMain.handle("rok:browser-clear-data", (_e, opts) => clearBrowserData(opts || {}));
     ipcMain.handle("rok:browser-settings", () => loadSettings());
     ipcMain.handle("rok:browser-settings-save", (_e, partial) => saveSettings(partial || {}));
+    ipcMain.handle("rok:browser-tabs", () => loadTabs());
+    ipcMain.handle("rok:browser-tabs-save", (_e, payload) => saveTabs(payload || {}));
+    ipcMain.handle("rok:browser-profiles", () => listProfiles());
+    ipcMain.handle("rok:browser-profile-create", (event, name) => {
+      const payload = createProfile(name);
+      BrowserWindow.fromWebContents(event.sender)?.__rokRebuildBrowser?.();
+      return payload;
+    });
+    ipcMain.handle("rok:browser-profile-rename", (_e, payload) => renameProfile(payload?.id, payload?.name));
+    ipcMain.handle("rok:browser-profile-remove", (event, id) => {
+      const payload = removeProfile(id);
+      BrowserWindow.fromWebContents(event.sender)?.__rokRebuildBrowser?.();
+      return payload;
+    });
+    ipcMain.handle("rok:browser-profile-switch", (event, id) => {
+      const payload = switchProfile(id);
+      BrowserWindow.fromWebContents(event.sender)?.__rokRebuildBrowser?.();
+      return payload;
+    });
     ipcMain.handle("rok:browser-downloads-path", () => downloadsPath());
     ipcMain.handle("rok:browser-open-downloads", () => {
       void shell.openPath(downloadsPath());
+      return true;
+    });
+    ipcMain.handle("rok:browser-data-path", () => browserDataRoot());
+    ipcMain.handle("rok:browser-open-data", () => {
+      void shell.openPath(browserDataRoot());
       return true;
     });
     ipcMain.handle("rok:browser-new-window", async (_event, url) => {

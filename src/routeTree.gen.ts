@@ -20,6 +20,7 @@ import { Route as TabletRouteImport } from './routes/tablet'
 import { Route as TournamentRouteImport } from './routes/tournament'
 import { Route as GameSignupRouteImport } from './routes/$game/signup'
 import { Route as GameTabletRouteImport } from './routes/$game/tablet'
+import { Route as ApiBrowserRouteImport } from './routes/api/browser'
 import { Route as ApiDeskRouteImport } from './routes/api/desk'
 import { Route as ApiHostInfoRouteImport } from './routes/api/host-info'
 import { Route as ApiLorcanaCardsRouteImport } from './routes/api/lorcana-cards'
@@ -110,6 +111,11 @@ const GameSignupRoute = GameSignupRouteImport.update({
 const GameTabletRoute = GameTabletRouteImport.update({
   id: '/$game/tablet',
   path: '/$game/tablet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBrowserRoute = ApiBrowserRouteImport.update({
+  id: '/api/browser',
+  path: '/api/browser',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiDeskRoute = ApiDeskRouteImport.update({
@@ -305,6 +311,7 @@ export interface FileRoutesByFullPath {
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/$game/tablet': typeof GameTabletRoute
+  '/api/browser': typeof ApiBrowserRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/host-info': typeof ApiHostInfoRoute
   '/api/lorcana-cards': typeof ApiLorcanaCardsRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByTo {
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/$game/tablet': typeof GameTabletRoute
+  '/api/browser': typeof ApiBrowserRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/host-info': typeof ApiHostInfoRoute
   '/api/lorcana-cards': typeof ApiLorcanaCardsRoute
@@ -403,6 +411,7 @@ export interface FileRoutesById {
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/$game/tablet': typeof GameTabletRoute
+  '/api/browser': typeof ApiBrowserRoute
   '/api/desk': typeof ApiDeskRoute
   '/api/host-info': typeof ApiHostInfoRoute
   '/api/lorcana-cards': typeof ApiLorcanaCardsRoute
@@ -454,6 +463,7 @@ export interface FileRouteTypes {
     | '/tournament'
     | '/$game/signup'
     | '/$game/tablet'
+    | '/api/browser'
     | '/api/desk'
     | '/api/host-info'
     | '/api/lorcana-cards'
@@ -502,6 +512,7 @@ export interface FileRouteTypes {
     | '/tournament'
     | '/$game/signup'
     | '/$game/tablet'
+    | '/api/browser'
     | '/api/desk'
     | '/api/host-info'
     | '/api/lorcana-cards'
@@ -551,6 +562,7 @@ export interface FileRouteTypes {
     | '/tournament'
     | '/$game/signup'
     | '/$game/tablet'
+    | '/api/browser'
     | '/api/desk'
     | '/api/host-info'
     | '/api/lorcana-cards'
@@ -601,6 +613,7 @@ export interface RootRouteChildren {
   TournamentRoute: typeof TournamentRoute
   GameSignupRoute: typeof GameSignupRoute
   GameTabletRoute: typeof GameTabletRoute
+  ApiBrowserRoute: typeof ApiBrowserRoute
   ApiDeskRoute: typeof ApiDeskRoute
   ApiHostInfoRoute: typeof ApiHostInfoRoute
   ApiLorcanaCardsRoute: typeof ApiLorcanaCardsRoute
@@ -695,6 +708,13 @@ declare module '@tanstack/react-router' {
       path: '/$game/tablet'
       fullPath: '/$game/tablet'
       preLoaderRoute: typeof GameTabletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/browser': {
+      id: '/api/browser'
+      path: '/api/browser'
+      fullPath: '/api/browser'
+      preLoaderRoute: typeof ApiBrowserRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/desk': {
@@ -1026,6 +1046,7 @@ const rootRouteChildren: RootRouteChildren = {
   TournamentRoute: TournamentRoute,
   GameSignupRoute: GameSignupRoute,
   GameTabletRoute: GameTabletRoute,
+  ApiBrowserRoute: ApiBrowserRoute,
   ApiDeskRoute: ApiDeskRoute,
   ApiHostInfoRoute: ApiHostInfoRoute,
   ApiLorcanaCardsRoute: ApiLorcanaCardsRoute,

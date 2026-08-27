@@ -139,7 +139,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
 - PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
@@ -157,7 +157,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Casters (play-by-play and color)
 - Up-next queue
 - Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on VGC, PTCG, YGO, OP, and Lorcana)
-- Arrange widgets on the HUD pack; undo / redo / default look
+- Arrange widgets on the selected overlay (Casters, Clock, HUD pack, …); undo / redo / default look
 - Per-overlay **look editor** — colors, fonts, scale. Saves per source, not globally. Instructions for saving sit on the editor
 - OBS and vMix setup notes (browser sources as a dropdown)
 
@@ -181,7 +181,7 @@ How-to guide on first open. Start / pause / add or remove time / reset **this ta
 | --- | --- | --- |
 | VGC | Remaining Pokémon from the team sheet (tap to KO) | — |
 | PTCG | Prize balls, Energy / Supporter / Retreat, full PTCG board card (Active / bench / HP / Swap / KO) | TCGdex — Show P1 / Show P2 / Clear, Set Active, Set Bench |
-| MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall |
+| MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall — Show, then Layer for a combo |
 | SWU | Base HP, initiative | SWU-DB |
 | YGO | 8000 LP, typed ticks | YGOPRODeck — Show P1 / Show P2 / Clear |
 | OP | Life circles, DON!! | Official English cards — Show P1 / Show P2 / Clear |
@@ -280,16 +280,16 @@ Overlay pages are chromeless. Production and Tournament stay opaque.
 
 `/browser` (also **Browser** next to Donate / Feedback) is a Chromium window inside the desk so TOs do not have to leave ROK Desk for pairings, PayPal, feedback, Scryfall, Limitless, or Pokémon DB.
 
-**Desktop `.exe`** is a real browser: cookies, cache, logins, downloads, and print persist on that PC (`persist:rok-browser`). **New tab** / **New window**, back / forward, a bookmark bar (star a page; right-click to rename or remove), history, zoom, and a Chrome-style **⋮** menu.
+**Desktop `.exe`** is a real browser: cookies, cache, logins, downloads, and print persist on that PC. Data is stored in a **ROK Desk Browser** folder next to (not inside) the app’s install data, so uninstalling the desk does not wipe profiles, bookmarks, or logins. Reinstall and they come back. **Profiles** (Desk by default, add Stream / Personal / etc.) isolate logins, cookies, bookmarks, and tabs. **New tab** / **New window**, back / forward, a bookmark bar (star a page; right-click to rename or remove), history, zoom, and a Chrome-style **⋮** menu. Leave Browser and come back: tabs, bookmarks, history, and the last page restore (**Continue where you left off** is the default).
 
 **⋮ menu**
 - New tab, New window
 - Zoom − / 100% / + (Ctrl/⌘ +, −, 0)
 - Bookmarks manager (Done to close)
 - History, Downloads, Print
-- Settings — privacy (clear history / cookies / cache), search engine, startup, printing, downloads
+- Settings — profiles, privacy (clear history / cookies / cache), search engine, startup, printing, downloads
 
-The web preview cannot embed Google (sites block iframes). It still saves bookmarks and history, and opens pages in a separate tab.
+The web preview cannot embed Google (sites block iframes). It still saves bookmarks, history, open tabs, and profiles (local + desk database), and opens pages in a separate tab. Login isolation is desktop-only.
 
 ---
 
@@ -369,10 +369,14 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 - Swiss **top cut** after Swiss rounds (Top 4 / 6 / 8 / 16 / 32 or custom, single or double elim)
 - **Import JSON** to restore a past tournament from an export
 - **Stream channel** (handle or URL) on Event — Live badge, starting-soon, floor clock
+- **Browser profiles** (Desk by default) and a session that continues where you left off. Desktop data lives in `ROK Desk Browser` so uninstall does not wipe logins
+- **MTG combo stack** — Show, then Layer (up to 5). Same size as the card back until a second card is added
+- Arrange opens the overlay you picked, not always the HUD pack
 
 **Fixed**
 - Tournament name is per game. Switching titles no longer carries the last show name
 - Export zip includes event.csv and the rest of the roster/match/team fields; other titles with a field are in their own folders
+- Arrange grid closes on the right; widgets stay on the 1920×1080 canvas
 
 ### v1.2.7-beta — 27 Aug 2026 · hotfix: clock titles
 

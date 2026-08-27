@@ -20,8 +20,17 @@ contextBridge.exposeInMainWorld("rokDesk", {
   clearData: (opts) => ipcRenderer.invoke("rok:browser-clear-data", opts),
   settings: () => ipcRenderer.invoke("rok:browser-settings"),
   saveSettings: (partial) => ipcRenderer.invoke("rok:browser-settings-save", partial),
+  tabsList: () => ipcRenderer.invoke("rok:browser-tabs"),
+  tabsSave: (payload) => ipcRenderer.invoke("rok:browser-tabs-save", payload),
+  profilesList: () => ipcRenderer.invoke("rok:browser-profiles"),
+  profileCreate: (name) => ipcRenderer.invoke("rok:browser-profile-create", name),
+  profileRename: (id, name) => ipcRenderer.invoke("rok:browser-profile-rename", { id, name }),
+  profileRemove: (id) => ipcRenderer.invoke("rok:browser-profile-remove", id),
+  profileSwitch: (id) => ipcRenderer.invoke("rok:browser-profile-switch", id),
   downloadsPath: () => ipcRenderer.invoke("rok:browser-downloads-path"),
   openDownloads: () => ipcRenderer.invoke("rok:browser-open-downloads"),
+  browserDataPath: () => ipcRenderer.invoke("rok:browser-data-path"),
+  openBrowserData: () => ipcRenderer.invoke("rok:browser-open-data"),
   onBrowserUrl: (cb) => {
     const listener = (_event, next) => cb(next);
     ipcRenderer.on("rok:browser-url", listener);

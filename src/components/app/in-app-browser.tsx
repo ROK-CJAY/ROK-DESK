@@ -1,28 +1,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ExternalLink, Globe, Minus, MoreVertical, Plus, RotateCw, Star, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, CircleUser, ExternalLink, Globe, Minus, MoreVertical, Plus, RotateCw, Star, Trash2, X } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
+  applyBundle,
+  DESK_PROFILE,
+  DESK_PROFILE_ID,
   localAddBookmark,
-  localBookmarks,
+  localBundle,
   localClearData,
-  localHistory,
+  localCreateProfile,
+  localProfiles,
   localRecordHistory,
   localRemoveBookmark,
+  localRemoveProfile,
   localRenameBookmark,
+  localRenameProfile,
   localSaveSettings,
+  localSaveTabs,
   localSettings,
+  localSnapshot,
+  localSwitchProfile,
+  makeTab,
+  MAX_PROFILES,
   nextZoom,
+  pullRemoteBundle,
+  pushRemoteBundle,
   searchUrl,
   SEARCH_ENGINES,
+  type BrowserTab,
 } from "@/lib/browser-memory";
 import {
   rokDesktop,
   type BrowserBookmark,
   type BrowserHistoryRow,
+  type BrowserProfile,
+  type BrowserSessionPayload,
   type BrowserSettings,
   type ClearDataOpts,
 } from "@/lib/rok-desktop";
@@ -52,12 +68,6 @@ function hostLabel(url: string) {
   }
 }
 
-type BrowserTab = { id: string; url: string; title: string };
-
-function makeTab(): BrowserTab {
-  return { id: `tab-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, url: "", title: "New Tab" };
-}
-
 export function InAppBrowser() {
   const desktop = typeof window !== "undefined" ? rokDesktop() : null;
   const [draft, setDraft] = useState("");
@@ -70,12 +80,24 @@ export function InAppBrowser() {
   const [menu, setMenu] = useState<{ x: number; y: number; mark: BrowserBookmark } | null>(null);
   const [rename, setRename] = useState<{ url: string; title: string } | null>(null);
   const [downloads, setDownloads] = useState("");
-  const [tabs, setTabs] = useState<BrowserTab[]>(() => [{ id: "tab-1", url: "", title: "New Tab" }]);
+  const [dataPath, setDataPath] = useState("");
+  const [tabs, setTabs] = useState<BrowserTab[]>(() => [makeTab({ id: "tab-1" })]);
   const [activeId, setActiveId] = useState("tab-1");
+  const [profiles, setProfiles] = useState<BrowserProfile[]>(() => localProfiles().profiles);
+  const [profileId, setProfileId] = useState(() => localProfiles().activeId);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileDraft, setProfileDraft] = useState("");
+  const [profileRename, setProfileRename] = useState<{ id: string; name: string } | null>(null);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const readyRef = useRef(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement | null>(null);
   const activeRef = useRef(activeId);
   activeRef.current = activeId;
+  const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
+  const sessionRef = useRef({ bookmarks, history, settings, tabs, activeId });
+  sessionRef.current = { bookmarks, history, settings, tabs, activeId };
   const [clear, setClear] = useState<Required<Pick<ClearDataOpts, "history" | "cookies" | "cache">> & { range: "hour" | "day" | "all" }>({
     range: "all",
     history: true,
@@ -138,17 +160,68 @@ export function InAppBrowser() {
   );
 
   useEffect(() => {
+    let cancelled = false;
+    const openActive = (
+      store: { tabs: BrowserTab[]; activeId: string },
+      startup: BrowserSettings["startup"],
+      homepage: string,
+    ) => {
+      const goTo = new URLSearchParams(window.location.search).get("go");
+      if (goTo) {
+        go(goTo);
+        return;
+      }
+      const tabsNow = store.tabs.length ? store.tabs : [makeTab({ id: "tab-1" })];
+      if (startup === "homepage" && homepage) {
+        go(homepage);
+        return;
+      }
+      if (startup === "newtab") {
+        const blank = makeTab();
+        const kept = tabsNow.filter((tab) => tab.url);
+        const next = [...kept, blank];
+        setTabs(next);
+        setActiveId(blank.id);
+        setUrl("");
+        setDraft("");
+        setTitle("New Tab");
+        return;
+      }
+      const current = tabsNow.find((tab) => tab.id === store.activeId) ?? tabsNow[0]!;
+      setTabs(tabsNow);
+      setActiveId(current.id);
+      if (current.url) {
+        setUrl(current.url);
+        setDraft(current.url);
+        setTitle(current.title || hostLabel(current.url));
+        if (desktop) {
+          desktop.browserLoad(current.url);
+          requestAnimationFrame(syncBounds);
+        }
+      }
+    };
+
     if (desktop) {
-      void desktop.bookmarksList().then(setBookmarks);
-      void desktop.historyList().then(setHistory);
-      void desktop.settings().then((next) => {
+      void Promise.all([
+        desktop.bookmarksList(),
+        desktop.historyList(),
+        desktop.settings(),
+        desktop.tabsList(),
+        desktop.downloadsPath(),
+        desktop.profilesList(),
+        desktop.browserDataPath(),
+      ]).then(([marks, hist, next, tabStore, pathName, registry, stored]) => {
+        if (cancelled) return;
+        setBookmarks(marks);
+        setHistory(hist);
         setSettings(next);
-        const goTo = new URLSearchParams(window.location.search).get("go");
-        if (goTo) go(goTo);
-        else if (next.startup === "continue" && next.lastUrl) go(next.lastUrl);
-        else if (next.startup === "homepage" && next.homepage) go(next.homepage);
+        setDownloads(pathName);
+        setDataPath(stored);
+        setProfiles(registry.profiles);
+        setProfileId(registry.activeId);
+        openActive(tabStore, next.startup, next.homepage);
+        readyRef.current = true;
       });
-      void desktop.downloadsPath().then(setDownloads);
       const offUrl = desktop.onBrowserUrl((next) => {
         setUrl(next);
         setDraft(next);
@@ -162,23 +235,69 @@ export function InAppBrowser() {
       });
       const offHist = desktop.onBrowserHistory(setHistory);
       return () => {
+        cancelled = true;
         offUrl();
         offTitle();
         offHist();
         desktop.browserDetach();
       };
     }
-    const local = localSettings();
-    setBookmarks(localBookmarks());
-    setHistory(localHistory());
-    setSettings(local);
-    const goTo = new URLSearchParams(window.location.search).get("go");
-    if (goTo) go(goTo);
-    else if (local.startup === "continue" && local.lastUrl) go(local.lastUrl);
-    else if (local.startup === "homepage" && local.homepage) go(local.homepage);
-    return undefined;
+
+    const local = localSnapshot();
+    const registry = localProfiles();
+    setProfiles(registry.profiles);
+    setProfileId(registry.activeId);
+    setBookmarks(local.bookmarks);
+    setHistory(local.history);
+    setSettings(local.settings);
+    openActive({ tabs: local.tabs, activeId: local.activeId }, local.settings.startup, local.settings.homepage);
+    void pullRemoteBundle().then((remote) => {
+      if (cancelled || !remote) {
+        readyRef.current = true;
+        return;
+      }
+      const current = localBundle();
+      if (remote.updatedAt >= current.updatedAt) {
+        applyBundle(remote);
+        const snap = remote.byId[remote.activeId] ?? remote.byId[DESK_PROFILE_ID];
+        if (snap) {
+          setProfiles(remote.profiles);
+          setProfileId(remote.activeId);
+          setBookmarks(snap.bookmarks);
+          setHistory(snap.history);
+          setSettings(snap.settings);
+          openActive({ tabs: snap.tabs, activeId: snap.activeId }, snap.settings.startup, snap.settings.homepage);
+        }
+      }
+      readyRef.current = true;
+    });
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- start once
   }, [desktop]);
+
+  useEffect(() => {
+    if (!readyRef.current) return;
+    localSaveTabs(tabs, activeId);
+    if (desktop) void desktop.tabsSave({ tabs, activeId });
+  }, [tabs, activeId, desktop]);
+
+  useEffect(() => {
+    if (!readyRef.current) return;
+    const handle = window.setTimeout(() => {
+      void pushRemoteBundle();
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [bookmarks, history, settings, tabs, activeId, profiles, profileId]);
+
+  useEffect(() => {
+    return () => {
+      const snap = sessionRef.current;
+      localSaveTabs(snap.tabs, snap.activeId);
+      void pushRemoteBundle();
+    };
+  }, []);
 
   useEffect(() => {
     if (!desktop) return undefined;
@@ -202,11 +321,13 @@ export function InAppBrowser() {
   }, [desktop, url, panel, syncBounds]);
 
   useEffect(() => {
-    if (!menu && !moreOpen) return undefined;
+    if (!menu && !moreOpen && !profileOpen) return undefined;
     const close = (event: Event) => {
       if (moreRef.current?.contains(event.target as Node)) return;
+      if (profileMenuRef.current?.contains(event.target as Node)) return;
       setMenu(null);
       setMoreOpen(false);
+      setProfileOpen(false);
     };
     window.addEventListener("click", close);
     window.addEventListener("scroll", close, true);
@@ -214,7 +335,7 @@ export function InAppBrowser() {
       window.removeEventListener("click", close);
       window.removeEventListener("scroll", close, true);
     };
-  }, [menu, moreOpen]);
+  }, [menu, moreOpen, profileOpen]);
 
   const toggleStar = async () => {
     if (!url) return;
@@ -297,6 +418,116 @@ export function InAppBrowser() {
     }
   };
 
+  const adoptSession = (payload: BrowserSessionPayload) => {
+    setProfiles(payload.profiles);
+    setProfileId(payload.activeId);
+    setBookmarks(payload.bookmarks);
+    setHistory(payload.history);
+    setSettings(payload.settings);
+    const store = { tabs: payload.tabs, activeId: payload.activeTabId };
+    const current = store.tabs.find((tab) => tab.id === store.activeId) ?? store.tabs[0];
+    setTabs(store.tabs.length ? store.tabs : [makeTab({ id: "tab-1" })]);
+    setActiveId(current?.id ?? "tab-1");
+    if (current?.url) {
+      setUrl(current.url);
+      setDraft(current.url);
+      setTitle(current.title || hostLabel(current.url));
+      if (desktop) {
+        desktop.browserLoad(current.url);
+        requestAnimationFrame(syncBounds);
+      }
+    } else {
+      setUrl("");
+      setDraft("");
+      setTitle("New Tab");
+      desktop?.browserDetach();
+    }
+    setProfileOpen(false);
+    setPanel(null);
+  };
+
+  const changeProfile = async (id: string) => {
+    if (id === profileId) {
+      setProfileOpen(false);
+      return;
+    }
+    localSaveTabs(tabs, activeId);
+    if (desktop) {
+      adoptSession(await desktop.profileSwitch(id));
+      return;
+    }
+    const next = localSwitchProfile(id);
+    const snap = next.snap;
+    adoptSession({
+      profiles: next.profiles,
+      activeId: next.activeId,
+      bookmarks: snap.bookmarks,
+      history: snap.history,
+      settings: snap.settings,
+      tabs: snap.tabs,
+      activeTabId: snap.activeId,
+    });
+    void pushRemoteBundle();
+  };
+
+  const addProfile = async () => {
+    const name = profileDraft.trim() || `Profile ${profiles.length + 1}`;
+    setProfileDraft("");
+    localSaveTabs(tabs, activeId);
+    if (desktop) {
+      adoptSession(await desktop.profileCreate(name));
+      return;
+    }
+    const next = localCreateProfile(name);
+    const switched = localSwitchProfile(next.activeId);
+    const snap = switched.snap;
+    adoptSession({
+      profiles: switched.profiles,
+      activeId: switched.activeId,
+      bookmarks: snap.bookmarks,
+      history: snap.history,
+      settings: snap.settings,
+      tabs: snap.tabs,
+      activeTabId: snap.activeId,
+    });
+    void pushRemoteBundle();
+  };
+
+  const deleteProfile = async (id: string) => {
+    if (id === DESK_PROFILE_ID) return;
+    localSaveTabs(tabs, activeId);
+    if (desktop) {
+      adoptSession(await desktop.profileRemove(id));
+      return;
+    }
+    const next = localRemoveProfile(id);
+    const switched = localSwitchProfile(next.activeId);
+    const snap = switched.snap;
+    adoptSession({
+      profiles: next.profiles,
+      activeId: next.activeId,
+      bookmarks: snap.bookmarks,
+      history: snap.history,
+      settings: snap.settings,
+      tabs: snap.tabs,
+      activeTabId: snap.activeId,
+    });
+    void pushRemoteBundle();
+  };
+
+  const saveProfileName = async () => {
+    if (!profileRename) return;
+    if (desktop) {
+      const registry = await desktop.profileRename(profileRename.id, profileRename.name);
+      setProfiles(registry.profiles);
+    } else {
+      const registry = localRenameProfile(profileRename.id, profileRename.name);
+      setProfiles(registry.profiles);
+      void pushRemoteBundle();
+    }
+    setProfileRename(null);
+  };
+
   const openNewWindow = () => {
     setMoreOpen(false);
     if (desktop) void desktop.newWindow();
@@ -372,6 +603,89 @@ export function InAppBrowser() {
         <button type="button" className="mb-1 rounded-md p-1.5 text-muted hover:bg-surface hover:text-fg" onClick={showNewTab} aria-label="New tab">
           <Plus className="size-3.5" />
         </button>
+        <div className="relative mb-1 ml-auto" ref={profileMenuRef}>
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs hover:bg-surface"
+            onClick={(event) => {
+              event.stopPropagation();
+              setProfileOpen((open) => !open);
+              setMoreOpen(false);
+            }}
+            aria-label="Browser profile"
+          >
+            <span className="size-2.5 rounded-full" style={{ background: profiles.find((row) => row.id === profileId)?.color ?? DESK_PROFILE.color }} />
+            <CircleUser className="size-3.5 text-muted" />
+            <span className="max-w-[7rem] truncate">{profiles.find((row) => row.id === profileId)?.name ?? "Desk"}</span>
+          </button>
+          {profileOpen ? (
+            <div className="absolute right-0 z-50 mt-1 w-64 rounded-md border border-border bg-surface py-1 shadow-lg">
+              <p className="font-mono px-3 py-1.5 text-[0.6rem] tracking-[0.16em] text-muted uppercase">Profiles</p>
+              {profiles.map((row) => (
+                <div key={row.id} className="flex items-center gap-1 px-1">
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-surface-2",
+                      row.id === profileId && "bg-surface-2",
+                    )}
+                    onClick={() => void changeProfile(row.id)}
+                  >
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ background: row.color }} />
+                    <span className="min-w-0 truncate">{row.name}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded p-1 text-muted hover:text-fg"
+                    aria-label={`Rename ${row.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setProfileRename({ id: row.id, name: row.name });
+                      setProfileOpen(false);
+                    }}
+                  >
+                    <MoreVertical className="size-3.5" />
+                  </button>
+                  {row.id !== DESK_PROFILE_ID ? (
+                    <button
+                      type="button"
+                      className="rounded p-1 text-muted hover:text-[#e05a5a]"
+                      aria-label={`Remove ${row.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void deleteProfile(row.id);
+                      }}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+              {profiles.length < MAX_PROFILES ? (
+                <form
+                  className="mt-1 flex gap-1 border-t border-border px-2 py-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void addProfile();
+                  }}
+                >
+                  <Input
+                    value={profileDraft}
+                    onChange={(e) => setProfileDraft(e.target.value)}
+                    placeholder="New profile name"
+                    className="h-8 text-sm"
+                  />
+                  <Button type="submit" size="sm">Add</Button>
+                </form>
+              ) : (
+                <p className="px-3 py-2 text-[0.7rem] text-muted">Maximum {MAX_PROFILES} profiles.</p>
+              )}
+              <p className="px-3 pb-2 text-[0.65rem] leading-relaxed text-subtle">
+                {desktop ? "Each profile has its own logins, cookies, bookmarks, and tabs." : "Bookmarks, history, and tabs are separate per profile. Logins stay shared in the web preview."}
+              </p>
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className="border-b border-border bg-surface px-4 py-2">
         <form
@@ -525,6 +839,25 @@ export function InAppBrowser() {
         </div>
       ) : null}
 
+      {profileRename ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <form
+            className="w-full max-w-sm rounded-xl border border-border bg-surface p-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void saveProfileName();
+            }}
+          >
+            <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Rename profile</p>
+            <Input className="mt-3" value={profileRename.name} onChange={(e) => setProfileRename({ ...profileRename, name: e.target.value })} autoFocus />
+            <div className="mt-3 flex justify-end gap-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setProfileRename(null)}>Cancel</Button>
+              <Button type="submit" size="sm">Save</Button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
       {panel === "history" ? (
         <div className="border-b border-border bg-surface-2 px-4 py-3">
           <div className="mx-auto max-w-[1600px]">
@@ -612,6 +945,32 @@ export function InAppBrowser() {
             </div>
 
             <section className="mt-8 rounded-xl border border-border bg-surface p-4">
+              <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Profiles</p>
+              <p className="mt-1 text-sm text-muted">
+                {desktop
+                  ? "Like Chrome: each profile keeps its own cookies, logins, bookmarks, and tabs. Desk is the default."
+                  : "Separate bookmarks, history, and tabs per profile. Full login isolation needs the desktop app."}
+              </p>
+              <p className="mt-2 text-sm">
+                Current: <span className="font-medium">{profiles.find((row) => row.id === profileId)?.name ?? "Desk"}</span>
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {profiles.map((row) => (
+                  <Button
+                    key={row.id}
+                    type="button"
+                    size="sm"
+                    variant={row.id === profileId ? "secondary" : "outline"}
+                    onClick={() => void changeProfile(row.id)}
+                  >
+                    <span className="mr-1.5 inline-block size-2 rounded-full" style={{ background: row.color }} />
+                    {row.name}
+                  </Button>
+                ))}
+              </div>
+            </section>
+
+            <section className="mt-4 rounded-xl border border-border bg-surface p-4">
               <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Appearance</p>
               <p className="mt-1 text-sm text-muted">Page zoom</p>
               <div className="mt-3 flex items-center gap-2">
@@ -718,6 +1077,22 @@ export function InAppBrowser() {
               {desktop ? (
                 <Button className="mt-3" variant="outline" size="sm" onClick={() => void desktop.openDownloads()}>
                   Open downloads
+                </Button>
+              ) : null}
+            </section>
+
+            <section className="mt-4 rounded-xl border border-border bg-surface p-4">
+              <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Saved data</p>
+              <p className="mt-1 text-sm text-muted">
+                Profiles, bookmarks, history, cookies, and logins live outside the app install. Uninstalling ROK Desk
+                does not delete this folder. Reinstall and it comes back.
+              </p>
+              <p className="mt-2 font-mono text-xs break-all text-muted">
+                {dataPath || "Desktop app: AppData / ROK Desk Browser"}
+              </p>
+              {desktop ? (
+                <Button className="mt-3" variant="outline" size="sm" onClick={() => void desktop.openBrowserData()}>
+                  Open data folder
                 </Button>
               ) : null}
             </section>

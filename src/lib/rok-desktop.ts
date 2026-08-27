@@ -25,6 +25,24 @@ export type BrowserSettings = {
   zoom: number;
 };
 
+export type BrowserProfile = {
+  id: string;
+  name: string;
+  color: string;
+};
+
+export type BrowserTabState = { id: string; url: string; title: string };
+
+export type BrowserSessionPayload = {
+  profiles: BrowserProfile[];
+  activeId: string;
+  bookmarks: BrowserBookmark[];
+  history: BrowserHistoryRow[];
+  settings: BrowserSettings;
+  tabs: BrowserTabState[];
+  activeTabId: string;
+};
+
 export type ClearDataOpts = {
   range?: "hour" | "day" | "all";
   history?: boolean;
@@ -52,8 +70,17 @@ export type RokDeskBridge = {
   clearData: (opts: ClearDataOpts) => Promise<{ ok: boolean; history?: BrowserHistoryRow[] }>;
   settings: () => Promise<BrowserSettings>;
   saveSettings: (partial: Partial<BrowserSettings>) => Promise<BrowserSettings>;
+  tabsList: () => Promise<{ tabs: BrowserTabState[]; activeId: string }>;
+  tabsSave: (payload: { tabs: BrowserTabState[]; activeId: string }) => Promise<{ tabs: BrowserTabState[]; activeId: string }>;
+  profilesList: () => Promise<{ profiles: BrowserProfile[]; activeId: string }>;
+  profileCreate: (name: string) => Promise<BrowserSessionPayload>;
+  profileRename: (id: string, name: string) => Promise<{ profiles: BrowserProfile[]; activeId: string }>;
+  profileRemove: (id: string) => Promise<BrowserSessionPayload>;
+  profileSwitch: (id: string) => Promise<BrowserSessionPayload>;
   downloadsPath: () => Promise<string>;
   openDownloads: () => Promise<boolean>;
+  browserDataPath: () => Promise<string>;
+  openBrowserData: () => Promise<boolean>;
   onBrowserUrl: (cb: (url: string) => void) => () => void;
   onBrowserTitle: (cb: (title: string) => void) => () => void;
   onBrowserHistory: (cb: (rows: BrowserHistoryRow[]) => void) => () => void;

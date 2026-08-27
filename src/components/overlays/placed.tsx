@@ -1,13 +1,13 @@
-import { createContext, useContext, useEffect, type PointerEvent, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, type PointerEvent, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
-import { WIDGET_LABELS, type WidgetId, type WidgetPos } from "@/lib/layout";
+import { CANVAS_H, CANVAS_W, WIDGET_LABELS, type WidgetId, type WidgetPos } from "@/lib/layout";
 import { useOverlayScale } from "@/components/overlays/scale-frame";
 import type { DeskState } from "@/lib/desk-types";
 
 export type OverlayEdit = {
   selected: WidgetId | null;
   select: (id: WidgetId) => void;
-  move: (id: WidgetId, pos: WidgetPos, commit: boolean) => void;
+  move: (id: WidgetId, pos: WidgetPos, commit: boolean, size?: { width: number; height: number }) => void;
 };
 
 const EditContext = createContext<OverlayEdit | null>(null);
@@ -59,6 +59,15 @@ export function Placed({
   const scale = useOverlayScale();
   const pos = desk?.layout[id] ?? { x: 0, y: 0 };
   const selected = edit?.selected === id;
+  const nodeRef = useRef<HTMLDivElement | null>(null);
+
+  const measure = () => {
+    const node = nodeRef.current;
+    if (!node) return undefined;
+    const ring = node.querySelector("[data-placed-body]") as HTMLElement | null;
+    const box = (ring ?? node).getBoundingClientRect();
+    return { width: box.width / scale, height: box.height / scale };
+  };
 
   useEffect(() => {
     if (!edit || !selected) return;
@@ -73,7 +82,7 @@ export function Placed({
       else if (event.key === "ArrowDown") y += step;
       else return;
       event.preventDefault();
-      edit.move(id, { x, y }, true);
+      edit.move(id, { x, y }, true, measure());
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -94,12 +103,12 @@ export function Placed({
     const onMove = (ev: globalThis.PointerEvent) => {
       const dx = axis === "y" ? 0 : (ev.clientX - startX) / scale;
       const dy = (ev.clientY - startY) / scale;
-      edit.move(id, { x: origin.x + dx, y: origin.y + dy }, false);
+      edit.move(id, { x: origin.x + dx, y: origin.y + dy }, false, measure());
     };
     const onUp = (ev: globalThis.PointerEvent) => {
       const dx = axis === "y" ? 0 : (ev.clientX - startX) / scale;
       const dy = (ev.clientY - startY) / scale;
-      edit.move(id, { x: origin.x + dx, y: origin.y + dy }, true);
+      edit.move(id, { x: origin.x + dx, y: origin.y + dy }, true, measure());
       node.releasePointerCapture(pointerId);
       node.removeEventListener("pointermove", onMove);
       node.removeEventListener("pointerup", onUp);
@@ -125,8 +134,11 @@ export function Placed({
         right: pin === "right" ? pinInset : "auto",
         top: pos.y,
         width: fullWidth ? "100%" : undefined,
+        maxWidth: pin || fullWidth ? undefined : CANVAS_W,
+        maxHeight: CANVAS_H,
       }}
       onPointerDown={onPointerDown}
+      ref={nodeRef}
       data-widget={id}
       data-editing={edit ? "1" : "0"}
       data-pin={pin ?? ""}
@@ -143,6 +155,7 @@ export function Placed({
         </div>
       ) : null}
       <div
+        data-placed-body
         className={cn(
           edit && "rounded-md ring-1 ring-ov-fg/25",
           selected && "ring-2 ring-accent",

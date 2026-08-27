@@ -92,7 +92,7 @@ type DeskStore = {
   setTimerClock: (seconds: number) => void;
   addTimerSeconds: (delta: number) => void;
   resetTimer: () => void;
-  moveWidget: (id: WidgetId, pos: WidgetPos, commit: boolean) => void;
+  moveWidget: (id: WidgetId, pos: WidgetPos, commit: boolean, size?: { width: number; height: number }) => void;
   applyLayout: (layout: LayoutMap) => void;
   resetLayout: () => void;
   snapScorebug: (edge: "top" | "bottom") => void;
@@ -401,6 +401,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       timerRunning: false,
       timerEndsAt: null,
       cardSpotlight: emptySpotlight(),
+      cardStack: [],
       sideSpotlight: emptySideSpotlight(),
       gameClocks: {
         ...prev.gameClocks,
@@ -436,6 +437,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       gameWinnerSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      cardStack: [],
       sideSpotlight: emptySideSpotlight(),
       roundName: "",
       timerSeconds: 0,
@@ -626,6 +628,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       initiativeSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      cardStack: [],
       sideSpotlight: emptySideSpotlight(),
       ptcgBoard: emptyPtcgBoard(),
       lowerThird: { ...prev.lowerThird, visible: false },
@@ -656,6 +659,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       gameWinnerSide: null,
       streamMatchId: null,
       cardSpotlight: emptySpotlight(),
+      cardStack: [],
       sideSpotlight: emptySideSpotlight(),
     };
     const desk = nextVersion(prev, {
@@ -788,9 +792,9 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     set({ desk });
   },
 
-  moveWidget: (id, pos, commit) => {
+  moveWidget: (id, pos, commit, size) => {
     const prev = get().desk;
-    const nextPos = clampPos(pos, id === "scorebugBar");
+    const nextPos = clampPos(pos, id === "scorebugBar" ? { fullWidth: true } : size);
     const layout = { ...prev.layout, [id]: nextPos };
     const scorebugPosition =
       id === "scorebugBar"

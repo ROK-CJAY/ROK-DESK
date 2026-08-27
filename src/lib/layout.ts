@@ -75,12 +75,23 @@ export const DEFAULT_LAYOUT: LayoutMap = {
   eventLogo: { x: 48, y: 132 },
 };
 
-export function clampPos(pos: WidgetPos, fullWidth = false): WidgetPos {
-  const maxX = fullWidth ? 0 : CANVAS_W - 80;
-  const maxY = fullWidth ? CANVAS_H - SCOREBUG_BAR_H : CANVAS_H - 40;
+export function clampPos(
+  pos: WidgetPos,
+  fullWidthOrSize: boolean | { fullWidth?: boolean; width?: number; height?: number } = false,
+): WidgetPos {
+  const opts =
+    typeof fullWidthOrSize === "boolean" ? { fullWidth: fullWidthOrSize } : fullWidthOrSize;
+  if (opts.fullWidth) {
+    return {
+      x: 0,
+      y: Math.round(Math.min(CANVAS_H - SCOREBUG_BAR_H, Math.max(0, pos.y))),
+    };
+  }
+  const width = Math.min(Math.max(opts.width ?? 80, 40), CANVAS_W);
+  const height = Math.min(Math.max(opts.height ?? 40, 24), CANVAS_H);
   return {
-    x: Math.round(Math.min(maxX, Math.max(0, pos.x))),
-    y: Math.round(Math.min(maxY, Math.max(0, pos.y))),
+    x: Math.round(Math.min(CANVAS_W - width, Math.max(0, pos.x))),
+    y: Math.round(Math.min(CANVAS_H - height, Math.max(0, pos.y))),
   };
 }
 

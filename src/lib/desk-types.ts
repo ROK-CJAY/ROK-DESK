@@ -178,6 +178,7 @@ export type DeskState = {
   layout: LayoutMap;
   overlayLook: OverlayLookBook;
   cardSpotlight: SpotlightCard;
+  cardStack: SpotlightCard[];
   sideSpotlight: SideSpotlight;
   ptcgBoard: PtcgBoard;
   lanes: Record<string, Record<string, unknown>>;
@@ -314,6 +315,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     })
     .optional()
     .transform((v) => v ?? emptySpotlight()),
+  cardStack: z.any().optional().transform((v) => parseCardStack(v)),
   ptcgBoard: z.any().optional().transform((v) => parsePtcgBoard(v)),
   sideSpotlight: z.any().optional().transform((v) => parseSideSpotlight(v)),
   testMode: z.boolean().optional().transform((v) => Boolean(v)),
@@ -344,6 +346,48 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
 
 export function emptySpotlight(): SpotlightCard {
   return { visible: false, id: "", name: "", set: "", number: "", image: "", type: "" };
+}
+
+export const CARD_STACK_MAX = 5;
+
+export function parseCardStack(raw: unknown): SpotlightCard[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(mergeSpotlight).filter((card) => card.visible && (card.image || card.id)).slice(0, CARD_STACK_MAX);
+}
+
+export function visibleCardStack(desk: Pick<DeskState, "cardSpotlight" | "cardStack">): SpotlightCard[] {
+  const stacked = parseCardStack(desk.cardStack);
+  if (stacked.length) return stacked;
+  const top = desk.cardSpotlight;
+  if (top?.visible && (top.image || top.id)) return [top];
+  return [];
+}
+
+export function layerSpotlight(desk: Pick<DeskState, "cardSpotlight" | "cardStack">, card: SpotlightCard): {
+  cardSpotlight: SpotlightCard;
+  cardStack: SpotlightCard[];
+} {
+  const live = { ...card, visible: true };
+  const next = [...visibleCardStack(desk), live].slice(-CARD_STACK_MAX);
+  return { cardSpotlight: live, cardStack: next };
+}
+
+export function replaceSpotlight(card: SpotlightCard): { cardSpotlight: SpotlightCard; cardStack: SpotlightCard[] } {
+  const live = { ...card, visible: true };
+  return { cardSpotlight: live, cardStack: [live] };
+}
+
+export function clearSpotlight(): { cardSpotlight: SpotlightCard; cardStack: SpotlightCard[] } {
+  return { cardSpotlight: emptySpotlight(), cardStack: [] };
+}
+
+export function popSpotlight(desk: Pick<DeskState, "cardSpotlight" | "cardStack">): {
+  cardSpotlight: SpotlightCard;
+  cardStack: SpotlightCard[];
+} {
+  const next = visibleCardStack(desk).slice(0, -1);
+  if (!next.length) return clearSpotlight();
+  return { cardSpotlight: next[next.length - 1]!, cardStack: next };
 }
 
 export type SideSpotlight = {
@@ -457,6 +501,7 @@ export function defaultDesk(): DeskState {
     layout: { ...DEFAULT_LAYOUT },
     overlayLook: { ...DEFAULT_LOOK_BOOK, sources: {} },
     cardSpotlight: emptySpotlight(),
+    cardStack: [],
     sideSpotlight: emptySideSpotlight(),
     ptcgBoard: emptyPtcgBoard(),
     lanes: {},
@@ -566,6 +611,7 @@ export function parseDesk(raw: unknown): DeskState | null {
       ...emptySpotlight(),
       ...(isRecord(incoming.cardSpotlight) ? incoming.cardSpotlight : {}),
     },
+    cardStack: parseCardStack(incoming.cardStack),
     sideSpotlight: parseSideSpotlight(incoming.sideSpotlight),
     ptcgBoard: parsePtcgBoard(incoming.ptcgBoard),
     rosterSide:

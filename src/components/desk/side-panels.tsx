@@ -557,12 +557,14 @@ export function ShowPanel() {
               <p className="text-sm">Card overlay</p>
               <p className="truncate text-xs text-muted">
                 {desk.cardSpotlight.visible && desk.cardSpotlight.name
-                  ? desk.cardSpotlight.name
+                  ? desk.cardStack?.length > 1
+                    ? desk.cardStack.map((card) => card.name).filter(Boolean).join(" → ")
+                    : desk.cardSpotlight.name
                   : "Tap a card on the judge tablet"}
               </p>
             </div>
             {desk.cardSpotlight.visible ? (
-              <Button variant="outline" size="sm" onClick={() => patch({ cardSpotlight: emptySpotlight() })}>
+              <Button variant="outline" size="sm" onClick={() => patch({ cardSpotlight: emptySpotlight(), cardStack: [] })}>
                 Clear
               </Button>
             ) : null}

@@ -140,7 +140,7 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     path: "/overlay/card",
     name: "Card",
     size: "1920 × 1080",
-    note: "Judge card from the PTCG, MTG, SWU, YGO, OP, Riftbound, or Lorcana tablet. Search, then Show on stream. PTCG, YGO, OP, and Lorcana Play Layout: Show P1 / Show P2 for each side.",
+    note: "Judge card from the PTCG, MTG, SWU, YGO, OP, Riftbound, or Lorcana tablet. Search, then Show on stream. MTG: Layer a second card on top for a combo. PTCG, YGO, OP, and Lorcana Play Layout: Show P1 / Show P2 for each side.",
   },
   {
     id: "sponsors",

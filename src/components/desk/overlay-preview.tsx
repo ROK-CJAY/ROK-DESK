@@ -157,11 +157,11 @@ export function OverlayPreview() {
     return {
       selected,
       select: setSelected,
-      move: (id, pos, commit) => {
+      move: (id, pos, commit, size) => {
         if (!gestureStart.current) {
           gestureStart.current = cloneLayout(useDeskStore.getState().desk.layout);
         }
-        moveWidget(id, pos, commit);
+        moveWidget(id, pos, commit, size);
         if (commit) {
           const start = gestureStart.current;
           gestureStart.current = null;
@@ -234,34 +234,7 @@ export function OverlayPreview() {
         <div className="absolute inset-0">
         <ScaleFrame>
           <OverlayLookRoot book={desk.overlayLook} source={source}>
-          {source === "hud" ? <HudView desk={desk} now={now} /> : null}
-          {source === "scorebug" ? <ScorebugView desk={desk} now={now} /> : null}
-          {source === "versus" ? <VersusView desk={desk} /> : null}
-          {source === "slate" ? <SlateView desk={desk} /> : null}
-          {source === "casters" ? <CastersView desk={desk} /> : null}
-          {source === "lower-third" ? <LowerThirdView desk={desk} /> : null}
-          {source === "winner" ? <WinnerView desk={desk} /> : null}
-          {source === "game-win" ? <GameWinView desk={desk} /> : null}
-          {source === "timer" ? <TimerView desk={desk} now={now} /> : null}
-          {source === "resource" ? <ResourceView desk={desk} /> : null}
-          {source === "upcoming" ? <UpcomingView desk={desk} /> : null}
-          {source === "bracket" && tourneyReady ? (
-            <BracketOverlay tournament={viewTournament(tournament, desk.gameId)} />
-          ) : null}
-          {source === "floor-clock" && tourneyReady ? (
-            <FloorClockOverlay tournament={viewTournament(tournament, desk.gameId)} desk={desk} />
-          ) : null}
-          {source === "stream-clock" && tourneyReady ? (
-            <FloorClockOverlay
-              tournament={viewTournament(tournament, desk.gameId)}
-              desk={desk}
-              variant="stream"
-            />
-          ) : null}
-          {source === "roster" ? <RosterView desk={desk} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} /> : null}
-          {source === "card" ? <CardSpotlightView desk={desk} /> : null}
-          {source === "sponsors" ? <SponsorsView desk={desk} now={now} /> : null}
-          {source === "event-logo" ? <EventLogoView desk={desk} /> : null}
+            <SourceCanvas desk={desk} now={now} source={source} />
           </OverlayLookRoot>
         </ScaleFrame>
         </div>
@@ -407,10 +380,10 @@ export function OverlayPreview() {
                     Layout stage
                   </p>
                   <h2 className="font-display text-2xl font-semibold tracking-tight uppercase">
-                    Arrange widgets
+                    Arrange {current.name}
                   </h2>
                   <p className="text-sm text-muted">
-                    Drag to place. Undo a move, or snap to the house default. Esc closes.
+                    Drag to place this overlay. Undo a move, or snap to the house default. Esc closes.
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -432,14 +405,16 @@ export function OverlayPreview() {
                   </Button>
                 </div>
               </div>
-              <div className="checker relative min-h-0 overflow-hidden rounded-xl border border-border contain-paint">
-                <PreviewBackdrop kind={previewBg} dim />
+              <div className="relative min-h-0 overflow-hidden rounded-xl border border-border bg-black contain-paint">
                 <ScaleFrame>
-                  <OverlayLookRoot book={desk.overlayLook} source="hud">
-                    <HudView desk={desk} now={now} edit={edit} />
+                  <PreviewBackdrop kind={previewBg} dim />
+                  <OverlayLookRoot book={desk.overlayLook} source={source}>
+                    <div className="layout-grid pointer-events-none absolute inset-0">
+                      <SourceCanvas desk={desk} now={now} source={source} edit={edit} />
+                    </div>
                   </OverlayLookRoot>
+                  {safeGuides ? <SafeGuides /> : null}
                 </ScaleFrame>
-                {safeGuides ? <SafeGuides /> : null}
               </div>
               <p className="mt-2 text-xs text-muted">
                 {selected ? (
@@ -464,6 +439,48 @@ export function OverlayPreview() {
         : null}
     </section>
   );
+}
+
+function SourceCanvas({
+  desk,
+  now,
+  source,
+  edit = null,
+}: {
+  desk: import("@/lib/desk-types").DeskState;
+  now: number;
+  source: OverlaySourceId;
+  edit?: OverlayEdit | null;
+}) {
+  const tournament = useTournamentStore((s) => s.tournament);
+  const tourneyReady = useTournamentStore((s) => s.ready);
+  if (source === "hud") return <HudView desk={desk} now={now} edit={edit} />;
+  if (source === "scorebug") return <ScorebugView desk={desk} now={now} edit={edit} />;
+  if (source === "versus") return <VersusView desk={desk} />;
+  if (source === "slate") return <SlateView desk={desk} />;
+  if (source === "casters") return <CastersView desk={desk} edit={edit} />;
+  if (source === "lower-third") return <LowerThirdView desk={desk} edit={edit} />;
+  if (source === "winner") return <WinnerView desk={desk} edit={edit} />;
+  if (source === "game-win") return <GameWinView desk={desk} edit={edit} />;
+  if (source === "timer") return <TimerView desk={desk} now={now} edit={edit} />;
+  if (source === "resource") return <ResourceView desk={desk} edit={edit} />;
+  if (source === "upcoming") return <UpcomingView desk={desk} edit={edit} />;
+  if (source === "bracket" && tourneyReady) {
+    return <BracketOverlay tournament={viewTournament(tournament, desk.gameId)} />;
+  }
+  if (source === "floor-clock" && tourneyReady) {
+    return <FloorClockOverlay tournament={viewTournament(tournament, desk.gameId)} desk={desk} />;
+  }
+  if (source === "stream-clock" && tourneyReady) {
+    return <FloorClockOverlay tournament={viewTournament(tournament, desk.gameId)} desk={desk} variant="stream" />;
+  }
+  if (source === "roster") {
+    return <RosterView desk={desk} edit={edit} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} />;
+  }
+  if (source === "card") return <CardSpotlightView desk={desk} edit={edit} />;
+  if (source === "sponsors") return <SponsorsView desk={desk} now={now} edit={edit} />;
+  if (source === "event-logo") return <EventLogoView desk={desk} edit={edit} />;
+  return null;
 }
 
 function PreviewBackdrop({ kind, dim = false }: { kind: PreviewBg; dim?: boolean }) {
