@@ -37,6 +37,19 @@ export type BracketViewId =
 
 export const DRAW_ID = "draw";
 
+export const CUT_PRESETS = [4, 6, 8, 16, 32] as const;
+export type CutType = "single" | "double";
+
+export function clampCutSize(n: number, field = 128): number {
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.max(2, Math.min(128, field, Math.round(n)));
+}
+
+export function cutLabel(size: number): string {
+  if (size <= 0) return "None";
+  return `Top ${size}`;
+}
+
 export const BRACKET_VIEWS: { id: BracketViewId; label: string; note: string; types: BracketType[] }[] = [
   { id: "full", label: "Full bracket", note: "Every match.", types: ["single", "double", "swiss"] },
   { id: "standings", label: "Standings", note: "Swiss table by match points.", types: ["swiss"] },
@@ -48,8 +61,16 @@ export const BRACKET_VIEWS: { id: BracketViewId; label: string; note: string; ty
   { id: "finals", label: "Finals", note: "Winners / losers / grand finals only.", types: ["single", "double"] },
 ];
 
-export function viewsFor(type: BracketType) {
-  return BRACKET_VIEWS.filter((v) => v.types.includes(type));
+export function viewsFor(
+  type: BracketType,
+  cut?: { cutSize?: number; cutType?: CutType; matches?: { side: string }[] },
+) {
+  const rows = BRACKET_VIEWS.filter((v) => v.types.includes(type));
+  if (type !== "swiss" || !cut || (cut.cutSize ?? 0) <= 0) return rows;
+  if (!cut.matches?.some((m) => m.side !== "swiss")) return rows;
+  const extra = BRACKET_VIEWS.filter((v) => v.types.includes(cut.cutType === "double" ? "double" : "single"));
+  const seen = new Set(rows.map((v) => v.id));
+  return [...rows, ...extra.filter((v) => !seen.has(v.id))];
 }
 
 export type Entrant = {
@@ -141,6 +162,8 @@ export type BracketMatch = {
 };
 
 export type GameDesk = {
+  name: string;
+  streamChannel: string;
   formatName: string;
   bracketType: BracketType;
   size: BracketSize;
@@ -151,6 +174,8 @@ export type GameDesk = {
   streamMatchId2: string | null;
   streamMatchId3: string | null;
   swissRounds: number;
+  cutSize: number;
+  cutType: CutType;
   entrants: Entrant[];
   matches: BracketMatch[];
   timerSeconds: number;
@@ -166,6 +191,7 @@ export type GameDesk = {
 export type TournamentState = {
   version: number;
   name: string;
+  streamChannel: string;
   gameId: GameId;
   formatName: string;
   bracketType: BracketType;
@@ -177,6 +203,8 @@ export type TournamentState = {
   streamMatchId2: string | null;
   streamMatchId3: string | null;
   swissRounds: number;
+  cutSize: number;
+  cutType: CutType;
   entrants: Entrant[];
   matches: BracketMatch[];
   desks: Partial<Record<GameId, GameDesk>>;
@@ -247,6 +275,8 @@ const matchSchema: z.ZodType<BracketMatch> = z.object({
 });
 
 const gameDeskSchema: z.ZodType<GameDesk> = z.object({
+  name: z.string().optional().transform((v) => v ?? ""),
+  streamChannel: z.string().optional().transform((v) => v ?? ""),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
   size: z.number().int().min(2).max(128),
@@ -257,6 +287,8 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   streamMatchId2: z.string().nullable().optional().transform((v) => v ?? null),
   streamMatchId3: z.string().nullable().optional().transform((v) => v ?? null),
   swissRounds: z.number(),
+  cutSize: z.number().optional().transform((v) => (typeof v === "number" && v > 0 ? v : 0)),
+  cutType: z.enum(["single", "double"]).optional().transform((v) => (v === "double" ? "double" : "single")),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
   timerSeconds: z.number().optional().transform((v) => v ?? 0),
@@ -272,6 +304,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   version: z.number(),
   name: z.string(),
+  streamChannel: z.string().optional().transform((v) => v ?? ""),
   gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
@@ -283,6 +316,8 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   streamMatchId2: z.string().nullable().optional().transform((v) => v ?? null),
   streamMatchId3: z.string().nullable().optional().transform((v) => v ?? null),
   swissRounds: z.number(),
+  cutSize: z.number().optional().transform((v) => (typeof v === "number" && v > 0 ? v : 0)),
+  cutType: z.enum(["single", "double"]).optional().transform((v) => (v === "double" ? "double" : "single")),
   entrants: z.array(entrantSchema),
   matches: z.array(matchSchema),
   desks: z.record(z.string(), gameDeskSchema).optional().transform((value) => (value ?? {}) as Partial<Record<GameId, GameDesk>>),
@@ -332,6 +367,8 @@ export function teamSheetLabel(team: TeamMon[] | undefined): string {
 
 export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk {
   return {
+    name: t.name ?? "",
+    streamChannel: t.streamChannel ?? "",
     formatName: t.formatName,
     bracketType: t.bracketType,
     size: t.size,
@@ -342,6 +379,8 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     streamMatchId2: t.streamMatchId2 ?? null,
     streamMatchId3: t.streamMatchId3 ?? null,
     swissRounds: t.swissRounds,
+    cutSize: t.cutSize ?? 0,
+    cutType: t.cutType === "double" ? "double" : "single",
     entrants: t.entrants,
     matches: t.matches,
     timerSeconds: t.timerSeconds,
@@ -368,6 +407,8 @@ export function viewTournament(t: TournamentState, gameId: GameId): TournamentSt
 export function emptyDesk(gameId: GameId): GameDesk {
   const game = gameOf(gameId);
   return {
+    name: "",
+    streamChannel: "",
     formatName: game.formats[0]?.label ?? game.name,
     bracketType: "single",
     size: 8,
@@ -378,6 +419,8 @@ export function emptyDesk(gameId: GameId): GameDesk {
     streamMatchId2: null,
     streamMatchId3: null,
     swissRounds: 3,
+    cutSize: 0,
+    cutType: "single",
     entrants: [],
     matches: [],
     timerSeconds: 0,
@@ -409,7 +452,10 @@ export function switchGame(t: TournamentState, gameId: GameId): TournamentState 
   const game = gameOf(gameId);
   const format = game.formats.find((f) => f.label === next.formatName) ?? game.formats[0];
   const clamped: GameDesk = {
+    ...emptyDesk(gameId),
     ...next,
+    name: typeof next.name === "string" ? next.name : "",
+    streamChannel: typeof next.streamChannel === "string" ? next.streamChannel : "",
     formatName: format?.label ?? game.name,
     bestOf: format?.bestOf ?? next.bestOf ?? game.defaultBestOf,
   };
@@ -426,7 +472,6 @@ export function defaultTournament(): TournamentState {
   const desk: GameDesk = emptyDesk("pokemon-tcg");
   return {
     version: 1,
-    name: "",
     gameId: "pokemon-tcg",
     ...desk,
     formatName: game.formats[0]?.label ?? "Standard",
@@ -446,6 +491,12 @@ export function parseTournament(raw: unknown): TournamentState | null {
       typeof incoming.swissRounds === "number" && incoming.swissRounds > 0
         ? incoming.swissRounds
         : base.swissRounds,
+    cutSize:
+      typeof incoming.cutSize === "number" && incoming.cutSize > 0
+        ? clampCutSize(incoming.cutSize)
+        : 0,
+    cutType: incoming.cutType === "double" ? "double" : "single",
+    streamChannel: typeof incoming.streamChannel === "string" ? incoming.streamChannel : "",
     overlayView:
       incoming.overlayView === "winners" ||
       incoming.overlayView === "losers" ||
@@ -525,14 +576,15 @@ export function isPodMatch(match: BracketMatch): boolean {
 }
 
 export function championOf(t: TournamentState): Entrant | null {
-  if (t.bracketType === "swiss") return null;
-  const grands = t.matches.filter((m) => m.side === "grand");
+  const elim = t.matches.filter((m) => m.side !== "swiss");
+  if (elim.length === 0) return null;
+  const grands = elim.filter((m) => m.side === "grand");
   const last = [...grands].reverse().find((m) => m.winnerId);
   if (last?.winnerId) return entrantById(t, last.winnerId);
-  const lastW = [...t.matches.filter((m) => m.side === "winners")].sort(
+  const lastW = [...elim.filter((m) => m.side === "winners")].sort(
     (a, b) => b.round - a.round || a.position - b.position,
   )[0];
-  if (t.bracketType === "single" && lastW?.winnerId) return entrantById(t, lastW.winnerId);
+  if (!elim.some((m) => m.side === "losers") && lastW?.winnerId) return entrantById(t, lastW.winnerId);
   return null;
 }
 

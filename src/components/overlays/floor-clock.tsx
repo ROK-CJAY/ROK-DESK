@@ -1,5 +1,6 @@
 import { MATCH_SLOT_CLOCK, formatClock, remainingSeconds, type DeskState, type MatchSlot } from "@/lib/desk-types";
 import { gameOf } from "@/lib/games";
+import { streamChannelLabel } from "@/lib/stream-channel";
 import { currentSponsor, liveSponsors } from "@/lib/sponsors";
 import type { TournamentState } from "@/lib/tournament-types";
 import { useClockNow } from "@/lib/use-clock-now";
@@ -50,6 +51,11 @@ export function FloorClockOverlay({
               <h1 className="font-display text-[clamp(2rem,5vw,4.5rem)] font-semibold tracking-tight text-ov-fg uppercase">
                 {desk?.eventName.trim() || tournament.name.trim() || game.name}
               </h1>
+              {(desk?.streamChannel || tournament.streamChannel)?.trim() ? (
+                <p className="font-mono mt-1 text-[clamp(0.7rem,1.1vw,0.95rem)] tracking-[0.18em] text-ov-muted uppercase">
+                  Live · {streamChannelLabel(desk?.streamChannel || tournament.streamChannel)}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className="text-right">
@@ -59,7 +65,13 @@ export function FloorClockOverlay({
                 : "Floor clock"}
             </p>
             <p className="font-display text-[clamp(1.2rem,2.4vw,2rem)] font-semibold text-ov-fg uppercase">
-              {tournament.bracketType === "swiss" ? "Swiss" : tournament.bracketType === "double" ? "Double elim" : "Single elim"}
+              {tournament.bracketType === "swiss"
+                ? tournament.cutSize > 0
+                  ? `Swiss · Top ${tournament.cutSize}`
+                  : "Swiss"
+                : tournament.bracketType === "double"
+                  ? "Double elim"
+                  : "Single elim"}
               {" · "}
               Bo{tournament.bestOf}
             </p>

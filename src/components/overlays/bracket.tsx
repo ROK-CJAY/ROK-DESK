@@ -1,8 +1,9 @@
 import { gameOf } from "@/lib/games";
-import { computeStandings, groupByRound, matchesForView } from "@/lib/tournament-bracket";
+import { computeStandings, groupByRound, matchesForView, topCutStarted, hasTopCut } from "@/lib/tournament-bracket";
 import {
   DRAW_ID,
   championOf,
+  cutLabel,
   entrantById,
   matchSlots,
   type BracketMatch,
@@ -11,6 +12,9 @@ import {
 import { cn } from "@/lib/cn";
 
 export function BracketOverlay({ tournament }: { tournament: TournamentState }) {
+  if (topCutStarted(tournament) && tournament.overlayView !== "standings") {
+    return <ElimOverlay tournament={tournament} />;
+  }
   if (tournament.bracketType === "swiss") {
     return <SwissOverlay tournament={tournament} />;
   }
@@ -19,12 +23,23 @@ export function BracketOverlay({ tournament }: { tournament: TournamentState }) 
 
 function viewTitle(tournament: TournamentState) {
   const view = tournament.overlayView;
+  if (topCutStarted(tournament) && view !== "standings") {
+    if (view === "winners") return "Winners side";
+    if (view === "losers") return "Losers side";
+    if (view === "finals") return "Finals";
+    if (view === "top16") return "Top 16";
+    if (view === "top8") return "Top 8";
+    if (view === "top4") return "Top 4";
+    return `${cutLabel(tournament.cutSize)} · ${tournament.cutType === "double" ? "Double elim" : "Single elim"}`;
+  }
   if (tournament.bracketType === "swiss") {
     if (view === "standings") return "Standings";
     if (view === "top8") return "Top 8";
     if (view === "top4") return "Top 4";
     if (view === "top16") return "Top 16";
-    return `Swiss · ${tournament.swissRounds} rounds`;
+    return hasTopCut(tournament)
+      ? `Swiss · ${tournament.swissRounds} rounds · then ${cutLabel(tournament.cutSize)}`
+      : `Swiss · ${tournament.swissRounds} rounds`;
   }
   if (view === "full") return tournament.bracketType === "double" ? "Full · Double elim" : "Full · Single elim";
   if (view === "winners") return "Winners side";
@@ -128,15 +143,20 @@ function SwissOverlay({ tournament }: { tournament: TournamentState }) {
 function ElimOverlay({ tournament }: { tournament: TournamentState }) {
   const view = tournament.overlayView;
   const matches = matchesForView(tournament, view);
-  const groups = groupByRound(matches);
   const game = gameOf(tournament.gameId);
   const champ = championOf(tournament);
+  const winners = matches.filter((m) => m.side === "winners" || m.side === "grand");
+  const losers = matches.filter((m) => m.side === "losers");
+  const winnerRounds = roundsOf(winners);
+  const loserRounds = roundsOf(losers);
 
   return (
-    <div data-game={tournament.gameId} className="absolute inset-0 overflow-hidden bg-ov-bg/92 px-10 py-8">
+    <div data-game={tournament.gameId} className="absolute inset-0 overflow-hidden bg-ov-bg/92 px-8 py-7">
       <header className="flex items-end justify-between">
         <div>
-          <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">{game.short} · {tournament.formatName}</p>
+          <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">
+            {game.short} · {tournament.formatName}
+          </p>
           <h1 className="font-display text-5xl font-semibold tracking-tight text-ov-fg uppercase">
             {tournament.name}
           </h1>
@@ -151,31 +171,115 @@ function ElimOverlay({ tournament }: { tournament: TournamentState }) {
         </div>
       </header>
 
-      <div className="mt-5 flex h-[860px] flex-col gap-4 overflow-hidden">
-        {groups.map((group) => {
-          const grow = group.side === "grand" ? "shrink-0" : "min-h-0 flex-1";
-          return (
-            <div key={group.side} className={grow}>
-              <p className="font-mono mb-1.5 text-[0.65rem] tracking-[0.2em] text-ov-muted uppercase">
-                {group.side === "winners" ? "Winners" : group.side === "losers" ? "Losers" : "Grand finals"}
-              </p>
-              <div className={`flex gap-3 ${group.side === "grand" ? "" : "h-[calc(100%-1.25rem)]"}`}>
-                {group.rounds.map((col) => (
-                  <div key={`${group.side}-${col.round}`} className="flex min-w-0 flex-1 flex-col">
-                    <p className="mb-1.5 truncate font-mono text-[0.6rem] tracking-[0.14em] text-ov-muted uppercase">
-                      {col.label}
-                    </p>
-                    <div className="flex flex-1 flex-col justify-evenly gap-1.5">
-                      {col.matches.map((match) => (
-                        <OverlayMatch key={match.id} tournament={tournament} match={match} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
+      <div className="mt-5 flex h-[860px] min-h-0 flex-col gap-5">
+        {winnerRounds.length ? (
+          <div className={cn("flex min-h-0 flex-col", loserRounds.length ? "flex-[1.15]" : "flex-1")}>
+            {loserRounds.length ? (
+              <p className="font-mono mb-1.5 text-[0.62rem] tracking-[0.2em] text-ov-muted uppercase">Winners</p>
+            ) : null}
+            <BracketTree tournament={tournament} rounds={winnerRounds} champ={champ} />
+          </div>
+        ) : null}
+        {loserRounds.length ? (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <p className="font-mono mb-1.5 text-[0.62rem] tracking-[0.2em] text-ov-muted uppercase">Losers</p>
+            <BracketTree tournament={tournament} rounds={loserRounds} />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function roundsOf(matches: BracketMatch[]) {
+  const visible = matches.filter((m) => !(m.id === "gf-2" && !m.p1.entrantId && !m.p2.entrantId));
+  const rounds = [...new Set(visible.map((m) => m.round))].sort((a, b) => a - b);
+  return rounds.map((round) => ({
+    round,
+    label: visible.find((m) => m.round === round)?.label ?? `Round ${round}`,
+    matches: visible.filter((m) => m.round === round).sort((a, b) => a.position - b.position),
+  }));
+}
+
+function BracketTree({
+  tournament,
+  rounds,
+  champ,
+}: {
+  tournament: TournamentState;
+  rounds: { round: number; label: string; matches: BracketMatch[] }[];
+  champ?: ReturnType<typeof championOf>;
+}) {
+  if (!rounds.length) return null;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0">
+        {rounds.map((col, i) => (
+          <div key={`h-${col.round}-${col.label}`} className="flex min-w-0 flex-1">
+            <p className="min-w-0 flex-1 truncate px-1 text-center font-mono text-[0.62rem] tracking-[0.16em] text-ov-muted uppercase">
+              {col.label}
+            </p>
+            {i < rounds.length - 1 ? <span className="w-9 shrink-0" /> : champ ? <span className="w-[11rem] shrink-0" /> : null}
+          </div>
+        ))}
+      </div>
+      <div className="mt-1.5 flex min-h-0 flex-1">
+        {rounds.map((col, i) => (
+          <div key={`${col.round}-${col.label}`} className="flex min-h-0 min-w-0 flex-1">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+              {col.matches.map((match) => (
+                <div key={match.id} className="flex min-h-0 flex-1 items-center px-1">
+                  <OverlayMatch tournament={tournament} match={match} />
+                </div>
+              ))}
             </div>
-          );
-        })}
+            {i < rounds.length - 1 ? (
+              <ConnectorColumn from={col.matches.length} to={rounds[i + 1]!.matches.length} />
+            ) : champ ? (
+              <ChampionPlaque name={champ.name} />
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ConnectorColumn({ from, to }: { from: number; to: number }) {
+  const dest = Math.max(1, to);
+  const src = Math.max(1, from);
+  const h = src * 100;
+  const pair = src / dest;
+  return (
+    <svg
+      className="h-full w-9 shrink-0 self-stretch text-ov-fg/30"
+      viewBox={`0 0 36 ${h}`}
+      preserveAspectRatio="none"
+      aria-hidden
+    >
+      {Array.from({ length: dest }, (_, i) => {
+        const yA = ((i * pair + 0.5) / src) * h;
+        const yB = pair >= 1.5 ? ((i * pair + pair - 0.5) / src) * h : yA;
+        const yM = ((i + 0.5) / dest) * h;
+        return (
+          <g key={i} fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d={`M 0 ${yA} H 18`} />
+            {Math.abs(yA - yB) > 1 ? <path d={`M 18 ${yA} V ${yB}`} /> : null}
+            <path d={`M 0 ${yB} H 18`} />
+            <path d={`M 18 ${yM} H 36`} />
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function ChampionPlaque({ name }: { name: string }) {
+  return (
+    <div className="flex w-[11rem] shrink-0 flex-col items-stretch justify-center pl-2">
+      <div className="rounded-md border border-[#e4c56a]/70 bg-[#e4c56a]/12 px-3 py-3 text-center">
+        <p className="font-mono text-[0.58rem] tracking-[0.2em] text-[#e4c56a] uppercase">Champion</p>
+        <p className="font-display mt-1 text-xl leading-tight font-semibold text-ov-fg uppercase">{name}</p>
       </div>
     </div>
   );
@@ -189,18 +293,22 @@ function OverlayMatch({
   match: BracketMatch;
 }) {
   if (match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId) return null;
-  const live = tournament.streamMatchId === match.id || tournament.streamMatchId2 === match.id || tournament.streamMatchId3 === match.id;
+  const live =
+    tournament.streamMatchId === match.id ||
+    tournament.streamMatchId2 === match.id ||
+    tournament.streamMatchId3 === match.id;
   const seats = matchSlots(match).filter((row) => row.slot.entrantId);
+  const rows = seats.length >= 3 ? seats : matchSlots(match).slice(0, 2);
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-md border bg-ov-panel/95",
-        live ? "border-game" : "border-ov-fg/10",
+        "w-full max-w-[22rem] overflow-hidden rounded-md border shadow-[0_8px_24px_rgb(0_0_0_/_0.28)]",
+        live ? "border-game bg-ov-panel" : "border-ov-fg/14 bg-ov-panel/95",
       )}
     >
-      {(seats.length ? seats : matchSlots(match).slice(0, 2)).map((row, i) => (
+      {rows.map((row, i) => (
         <div key={row.id}>
-          {i > 0 ? <div className="h-px bg-ov-fg/10" /> : null}
+          {i > 0 ? <div className="h-px bg-ov-fg/12" /> : null}
           <OverlaySeat tournament={tournament} match={match} slot={row.id} />
         </div>
       ))}
@@ -221,7 +329,7 @@ function OverlaySeat({
   const player = entrantById(tournament, side.entrantId);
   const won = match.winnerId === side.entrantId;
   return (
-    <div className={cn("flex items-center gap-2 px-2.5 py-1.5", won && "bg-game/20")}>
+    <div className={cn("flex items-center gap-2 px-2.5 py-2", won && "bg-game/20")}>
       <span className="w-4 font-mono text-[0.6rem] text-ov-muted">{player?.seed ?? ""}</span>
       <span className={cn("min-w-0 flex-1 truncate font-display text-base leading-tight font-semibold uppercase", won ? "text-ov-fg" : "text-ov-fg/85")}>
         {player?.name ?? (side.entrantId ? "—" : "TBD")}

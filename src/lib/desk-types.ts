@@ -143,6 +143,7 @@ export type DeskState = {
   gameId: GameId;
   matchSlot: MatchSlot;
   eventName: string;
+  streamChannel: string;
   eventPhase: string;
   roundName: string;
   bestOf: BestOf;
@@ -241,6 +242,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
   matchSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().transform((v) => (v === 2 || v === 3 ? v : 1)),
   eventName: z.string(),
+  streamChannel: z.string().optional().transform((v) => v ?? ""),
   eventPhase: z.string(),
   roundName: z.string(),
   bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
@@ -411,6 +413,7 @@ export function defaultDesk(): DeskState {
     gameId: "pokemon-tcg",
     matchSlot: 1,
     eventName: "",
+    streamChannel: "",
     eventPhase: "",
     roundName: "",
     bestOf: 3,
@@ -618,6 +621,7 @@ export function deskLaneOf(live: DeskState, gameId: GameId, slot: MatchSlot = 1)
     gameId,
     matchSlot: wanted,
     eventName: live.eventName,
+    streamChannel: live.streamChannel,
     eventLogo: live.eventLogo,
     sponsors: live.sponsors,
     sponsorSeconds: live.sponsorSeconds,

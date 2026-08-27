@@ -17,7 +17,7 @@ Version history: **[CHANGELOG.md](./CHANGELOG.md)**.
 On a typical show:
 
 1. **Tournament Organizer** names the event, picks the game and format, and takes the field — typed in, imported from walk-up sign-up, or loaded as an 8-player test roster.
-2. Pairings go out as **single elim**, **double elim**, or **Swiss**. Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
+2. Pairings go out as **single elim**, **double elim**, or **Swiss** (optional **top cut** into single or double elim). Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
 3. A ready pairing is **sent** onto **Stream Match**, **Floor Match 1**, or **Floor Match 2**. Production receives names, decks, inks, and teams.
 4. **Production Control** drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
 5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share **that table’s match clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander, Lorcana, and YGO.
@@ -89,8 +89,8 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 `/tournament` is the event of record.
 
 **Event setup**
-- Show name, game, format (including Pre-release on every title)
-- Bracket type: single elim, double elim, Swiss
+- Show name (per title), stream channel / handle, game, format (including Pre-release on every title)
+- Bracket type: single elim, double elim, Swiss. Swiss can add a **top cut** (Top 4 / 6 / 8 / 16 / 32 or custom) in single or double elim
 - Size: 4 / 8 / 16 / 32 or **Custom** 2–128. Elim brackets pad to the next power of two with byes
 - Best-of for the event
 - **Test mode** — 8 demo players. Off restores the last real field
@@ -105,9 +105,9 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - VGC: full team sheet (species, Tera, ability, item, four moves)
 
 **Pairings & results**
-- Generate bracket or pair the next Swiss round
+- Generate bracket or pair the next Swiss round. After the last Swiss round, **Start top cut** seeds the cut from standings
 - Report winners and game scores from the match cards
-- Swiss standings with OMW%. Complete the event without a grand final; 1st is standings. **Reopen** if a result still needs a fix
+- Swiss standings with OMW%. No cut: complete the event from standings. With a cut: the cut bracket decides the champion. **Reopen** if a result still needs a fix
 - Champion / Top 3 on the result card
 
 **Stream**
@@ -121,7 +121,8 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 
 **Staff & archive**
 - Staff roles: Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other — archive only
-- **Export tournament** — zip of JSON plus CSVs (players, matches, standings, staff, VGC teams, decklists, judge notes). Completing the event also downloads this pack.
+- **Export tournament** — zip of JSON plus CSVs (event, players, matches, standings, staff, VGC teams, decklists, judge notes). Other titles with a field go in their own folders. Completing the event also downloads this pack.
+- **Import JSON** — load a `tournament.json` from that zip (or a saved desk state) to bring a past event back. Other titles on the machine stay put.
 - VGC **print team list** — two pages per player in the Play! Pokémon VG team-list layout (staff page with stats, opponent page without)
 
 ---
@@ -360,6 +361,17 @@ npm run dist
 ## Changelog
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### Unreleased
+
+**Added**
+- Swiss **top cut** after Swiss rounds (Top 4 / 6 / 8 / 16 / 32 or custom, single or double elim)
+- **Import JSON** to restore a past tournament from an export
+- **Stream channel** (handle or URL) on Event — Live badge, starting-soon, floor clock
+
+**Fixed**
+- Tournament name is per game. Switching titles no longer carries the last show name
+- Export zip includes event.csv and the rest of the roster/match/team fields; other titles with a field are in their own folders
 
 ### v1.2.7-beta — 27 Aug 2026 · hotfix: clock titles
 

@@ -18,6 +18,7 @@ import {
   reportWinner,
   setMatchScore,
   defaultSwissRounds,
+  startTopCut,
 } from "@/lib/tournament-bracket";
 import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } from "@/lib/test-fixtures";
 import { remainingSeconds } from "@/lib/desk-types";
@@ -29,6 +30,7 @@ type TournamentStore = {
   ready: boolean;
   hydrate: () => Promise<void>;
   setTournament: (t: TournamentState) => void;
+  importArchive: (incoming: TournamentState) => void;
   patch: (partial: Partial<TournamentState>) => void;
   setGame: (gameId: GameId) => void;
   addEntrant: (partial?: Partial<Entrant>) => void;
@@ -41,6 +43,7 @@ type TournamentStore = {
   reorderEntrants: (fromId: string, toId: string) => void;
   generate: () => void;
   pairNext: () => void;
+  startCut: () => void;
   completeTournament: () => void;
   reopenTournament: () => void;
   resetBracket: () => void;
@@ -135,6 +138,28 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   },
 
   setTournament: (tournament) => {
+    persist(tournament);
+    set({ tournament });
+  },
+
+  importArchive: (incoming) => {
+    const prev = get().tournament;
+    const live = {
+      ...incoming,
+      streamMatchId: incoming.streamMatchId ?? null,
+      streamMatchId2: incoming.streamMatchId2 ?? null,
+      streamMatchId3: incoming.streamMatchId3 ?? null,
+    };
+    const tournament: TournamentState = {
+      ...live,
+      version: prev.version + 1,
+      desks: {
+        ...prev.desks,
+        [prev.gameId]: snapshotDesk(prev),
+        ...live.desks,
+        [live.gameId]: snapshotDesk(live),
+      },
+    };
     persist(tournament);
     set({ tournament });
   },
@@ -283,6 +308,15 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   pairNext: () => {
     const prev = get().tournament;
     const next = pairNextSwissRound(prev);
+    if (next === prev) return;
+    const tournament = nextVersion(next, {});
+    persist(tournament);
+    set({ tournament });
+  },
+
+  startCut: () => {
+    const prev = get().tournament;
+    const next = startTopCut(prev);
     if (next === prev) return;
     const tournament = nextVersion(next, {});
     persist(tournament);

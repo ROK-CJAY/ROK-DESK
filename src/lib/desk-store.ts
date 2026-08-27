@@ -60,6 +60,7 @@ type DeskStore = {
   applyMtgLane: (lane: FormatFamily) => void;
   loadStreamMatch: (payload: {
     eventName: string;
+    streamChannel?: string;
     roundName: string;
     eventPhase: string;
     bestOf: 1 | 3 | 5 | 7;
@@ -502,6 +503,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const tableSize = payload.tableSize ?? (payload.p3 || payload.p4 ? 4 : prev.tableSize);
     const desk = nextVersion(prev, {
       eventName: payload.eventName,
+      streamChannel: payload.streamChannel ?? prev.streamChannel,
       roundName: payload.roundName,
       eventPhase: payload.eventPhase,
       bestOf: payload.bestOf,

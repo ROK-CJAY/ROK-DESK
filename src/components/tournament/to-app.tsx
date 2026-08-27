@@ -16,19 +16,23 @@ import { decklistCount } from "@/lib/decklist";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
-import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventChampion, swissRoundComplete, defaultSwissRounds } from "@/lib/tournament-bracket";
+import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventChampion, swissRoundComplete, defaultSwissRounds, canStartTopCut, topCutStarted, hasTopCut } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
+import { ImportTournamentButton } from "@/components/tournament/import-button";
 import { exportTournamentFiles } from "@/lib/tournament-export";
 import { StaffPanel } from "@/components/tournament/staff-panel";
 import {
   DRAW_ID,
   PRESET_SIZES,
+  CUT_PRESETS,
   bracketSlots,
   clampBracketSize,
+  clampCutSize,
+  cutLabel,
   entrantById,
   isPodMatch,
   isPresetSize,
@@ -72,10 +76,15 @@ export function TournamentApp() {
               <span className="text-subtle">
                 {" "}
                 · {game.short} ·{" "}
-                {t.bracketType === "double" ? "Double elim" : t.bracketType === "swiss" ? "Swiss" : "Single elim"} · {t.size}
+                {t.bracketType === "double"
+                  ? "Double elim"
+                  : t.bracketType === "swiss"
+                    ? `Swiss${t.cutSize > 0 ? ` · ${cutLabel(t.cutSize)}` : ""}`
+                    : "Single elim"} · {t.size}
               </span>
             </p>
             <ExportTournamentButton />
+            <ImportTournamentButton />
           </div>
         }
       />
@@ -113,6 +122,18 @@ function EventResultCard({
 }) {
   const t = useTournamentStore((s) => s.tournament);
   const swiss = t.bracketType === "swiss";
+  const waitingCut = canStartTopCut(t);
+  if (waitingCut) {
+    return (
+      <section className="rounded-xl border border-border bg-surface p-4">
+        <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Swiss complete</p>
+        <p className="font-display mt-1 text-xl font-semibold uppercase">
+          Start {cutLabel(t.cutSize)} {t.cutType === "double" ? "double elim" : "single elim"}
+        </p>
+        <p className="mt-1 text-xs text-muted">Standings seed the cut. Top {t.cutSize} by match points, then OMW%.</p>
+      </section>
+    );
+  }
   if (t.phase === "complete") {
     const podium = swiss ? standings.slice(0, 3) : [];
     return (
@@ -191,7 +212,20 @@ function SetupPanel() {
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Event</p>
       <div className="mt-3 grid gap-3">
         <Field label="Tournament name">
-          <Input value={t.name} onChange={(e) => patch({ name: e.target.value })} />
+          <Input
+            value={t.name}
+            onChange={(e) => patch({ name: e.target.value })}
+            placeholder={`${game.short} event`}
+          />
+          <p className="mt-1 text-[0.65rem] text-subtle">This title only. Each game keeps its own name.</p>
+        </Field>
+        <Field label="Stream">
+          <Input
+            value={t.streamChannel}
+            onChange={(e) => patch({ streamChannel: e.target.value })}
+            placeholder="twitch.tv/rok or @rok"
+          />
+          <p className="mt-1 text-[0.65rem] text-subtle">Channel or handle. Shows on the Live badge and starting-soon slate.</p>
         </Field>
         <Field label="Game">
           <NativeSelect
@@ -232,6 +266,7 @@ function SetupPanel() {
                   bracketType,
                   swissRounds: defaultSwissRounds(t.size),
                   overlayView: bracketType === "swiss" ? "standings" : t.overlayView === "standings" ? "full" : t.overlayView,
+                  ...(bracketType === "swiss" ? {} : { cutSize: 0 }),
                 });
               }}
             >
@@ -301,6 +336,59 @@ function SetupPanel() {
             </NativeSelect>
           </Field>
         ) : null}
+        {t.bracketType === "swiss" ? (
+          <Field label="Top cut">
+            <NativeSelect
+              value={
+                t.cutSize <= 0
+                  ? "0"
+                  : (CUT_PRESETS as readonly number[]).includes(t.cutSize)
+                    ? String(t.cutSize)
+                    : "custom"
+              }
+              onChange={(e) => {
+                if (e.target.value === "custom") {
+                  patch({ cutSize: Math.min(8, t.size) });
+                  return;
+                }
+                patch({ cutSize: Number(e.target.value) });
+              }}
+            >
+              <option value="0">None — Swiss ends the event</option>
+              {CUT_PRESETS.map((n) => (
+                <option key={n} value={n}>
+                  Top {n}
+                </option>
+              ))}
+              <option value="custom">Custom</option>
+            </NativeSelect>
+          </Field>
+        ) : null}
+        {t.bracketType === "swiss" && t.cutSize > 0 && !(CUT_PRESETS as readonly number[]).includes(t.cutSize) ? (
+          <Field label="Cut size">
+            <Input
+              inputMode="numeric"
+              min={2}
+              max={128}
+              value={String(t.cutSize)}
+              onChange={(e) => {
+                const n = Number(e.target.value.replace(/[^\d]/g, ""));
+                if (Number.isFinite(n)) patch({ cutSize: clampCutSize(n, t.size) });
+              }}
+            />
+          </Field>
+        ) : null}
+        {t.bracketType === "swiss" && t.cutSize > 0 ? (
+          <Field label="Cut bracket">
+            <NativeSelect
+              value={t.cutType === "double" ? "double" : "single"}
+              onChange={(e) => patch({ cutType: e.target.value === "double" ? "double" : "single" })}
+            >
+              <option value="single">Single elim</option>
+              <option value="double">Double elim</option>
+            </NativeSelect>
+          </Field>
+        ) : null}
         {t.bracketType === "swiss" && isCommanderPodFormat(t.gameId, t.formatName) ? (
           <p className="text-xs text-muted">Commander Swiss pairs tables of 4.</p>
         ) : null}
@@ -321,7 +409,7 @@ function SetupPanel() {
             value={t.overlayView}
             onChange={(e) => patch({ overlayView: e.target.value as BracketViewId })}
           >
-            {viewsFor(t.bracketType).map((v) => (
+            {viewsFor(t.bracketType, t).map((v) => (
               <option key={v.id} value={v.id}>
                 {v.label}
               </option>
@@ -362,6 +450,27 @@ function SetupPanel() {
           </Button>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" size="sm" className="flex-1" asChild>
+            <a
+              href={overlayPath(t.gameId, "bracket")}
+              target={overlayWindowName(t.gameId, "bracket")}
+              rel="noreferrer"
+            >
+              Open bracket
+            </a>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1"
+            onClick={() => {
+              void navigator.clipboard.writeText(`${window.location.origin}${overlayPath(t.gameId, "bracket")}`);
+            }}
+          >
+            Copy bracket URL
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2">
           <Button onClick={generate} className="flex-1">
             <Trophy className="size-3.5" />
             {t.matches.length ? "Rebuild bracket" : "Start bracket"}
@@ -385,6 +494,7 @@ function SetupPanel() {
           </Button>
         ) : null}
         <ExportTournamentButton variant={t.phase === "complete" ? "default" : "outline"} full />
+        <ImportTournamentButton variant="outline" full />
         <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
           <div>
             <p className="text-sm font-medium">Test mode</p>
@@ -437,6 +547,7 @@ function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
   useTournamentStore.getState().setStreamMatch(matchId, deskSlot);
   useDeskStore.getState().loadStreamMatch({
     eventName: t.name,
+    streamChannel: t.streamChannel,
     roundName: match.label,
     eventPhase:
       t.bracketType === "double"
@@ -992,11 +1103,15 @@ function BracketBoard() {
   const report = useTournamentStore((s) => s.report);
   const setScore = useTournamentStore((s) => s.setScore);
   const pairNext = useTournamentStore((s) => s.pairNext);
+  const startCut = useTournamentStore((s) => s.startCut);
   const groups = groupByRound(t.matches);
   const standings = t.bracketType === "swiss" ? computeStandings(t) : [];
   const round = currentSwissRound(t);
+  const cutReady = canStartTopCut(t);
+  const inCut = topCutStarted(t);
   const canPair =
     t.bracketType === "swiss" &&
+    !inCut &&
     round > 0 &&
     round < t.swissRounds &&
     swissRoundComplete(t, round) &&
@@ -1017,19 +1132,33 @@ function BracketBoard() {
     <section className="rounded-xl border border-border bg-surface p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
-          {t.bracketType === "swiss" ? "Swiss" : "Bracket"}
+          {t.bracketType === "swiss"
+            ? inCut
+              ? `Top cut · ${cutLabel(t.cutSize)}`
+              : hasTopCut(t)
+                ? `Swiss · then ${cutLabel(t.cutSize)}`
+                : "Swiss"
+            : "Bracket"}
         </p>
+        <div className="flex flex-wrap gap-2">
         {canPair ? (
           <Button size="sm" onClick={pairNext}>
             Pair round {round + 1}
           </Button>
         ) : null}
-        {t.bracketType === "swiss" && t.phase !== "complete" && round > 0 ? (
+        {cutReady ? (
+          <Button size="sm" onClick={startCut}>
+            <Trophy className="size-3.5" />
+            Start {cutLabel(t.cutSize)} {t.cutType === "double" ? "double elim" : "single elim"}
+          </Button>
+        ) : null}
+        {t.bracketType === "swiss" && t.phase !== "complete" && round > 0 && !cutReady ? (
           <Button size="sm" variant="secondary" onClick={finishTournament}>
             <Flag className="size-3.5" />
             Complete tournament
           </Button>
         ) : null}
+        </div>
       </div>
       {t.bracketType === "swiss" ? <StandingsTable t={t} standings={standings} /> : null}
       <div className="mt-3 flex flex-col gap-6">

@@ -1,8 +1,10 @@
 import {
   DRAW_ID,
   championOf,
+  clampCutSize,
   emptySlot,
   matchEntrantIds,
+  matchSlots,
   bracketSlots,
   type BracketMatch,
   type BracketSize,
@@ -305,18 +307,23 @@ export function computeStandings(t: TournamentState): Standing[] {
       opponents.set(id, [...(opponents.get(id) ?? []), ...ids.filter((other) => other !== id)]);
     }
     if (!match.winnerId) continue;
+    const scores = new Map(matchSlots(match).map((seat) => [seat.slot.entrantId, seat.slot.score] as const));
     if (match.winnerId === DRAW_ID) {
       for (const id of ids) {
         const row = rows.get(id);
         if (!row) continue;
         row.draws += 1;
         row.matchPoints += 1;
+        row.gamesFor += scores.get(id) ?? 0;
+        row.gamesAgainst += ids.reduce((sum, other) => (other === id ? sum : sum + (scores.get(other) ?? 0)), 0);
       }
       continue;
     }
     for (const id of ids) {
       const row = rows.get(id);
       if (!row) continue;
+      row.gamesFor += scores.get(id) ?? 0;
+      row.gamesAgainst += ids.reduce((sum, other) => (other === id ? sum : sum + (scores.get(other) ?? 0)), 0);
       if (match.winnerId === id) {
         row.wins += 1;
         row.matchPoints += 3;
@@ -352,6 +359,47 @@ export function computeStandings(t: TournamentState): Standing[] {
   });
 }
 
+export function hasTopCut(t: { cutSize?: number }): boolean {
+  return (t.cutSize ?? 0) > 0;
+}
+
+export function topCutStarted(t: { matches: { side: string }[] }): boolean {
+  return t.matches.some((m) => m.side !== "swiss");
+}
+
+export function swissStageDone(t: TournamentState): boolean {
+  const round = currentSwissRound(t);
+  return round >= t.swissRounds && swissRoundComplete(t, t.swissRounds);
+}
+
+export function canStartTopCut(t: TournamentState): boolean {
+  return t.bracketType === "swiss" && hasTopCut(t) && !topCutStarted(t) && swissStageDone(t);
+}
+
+export function startTopCut(t: TournamentState): TournamentState {
+  if (topCutStarted(t) || !hasTopCut(t) || t.bracketType !== "swiss") return t;
+  if (!swissStageDone(t)) return t;
+  const table = computeStandings(t);
+  const n = clampCutSize(t.cutSize, table.length);
+  if (n < 2) return t;
+  const seeded = table
+    .slice(0, n)
+    .map((row, i) => {
+      const e = t.entrants.find((x) => x.id === row.entrantId);
+      return e ? { ...e, seed: i + 1, dropped: false } : null;
+    })
+    .filter((e): e is Entrant => Boolean(e));
+  if (seeded.length < 2) return t;
+  const cutType = t.cutType === "double" ? "double" : "single";
+  const extra = generateBracket(cutType, n, seeded);
+  return {
+    ...t,
+    matches: [...t.matches, ...extra],
+    overlayView: "full",
+    phase: "running",
+  };
+}
+
 export function currentSwissRound(t: TournamentState): number {
   return t.matches.reduce((max, m) => (m.side === "swiss" ? Math.max(max, m.round) : max), 0);
 }
@@ -370,7 +418,7 @@ export function pairNextSwissRound(t: TournamentState): TournamentState {
   }
   if (!swissRoundComplete(t, round)) return t;
   if (round >= t.swissRounds) {
-    return { ...t, phase: "complete" };
+    return { ...t, phase: hasTopCut(t) ? "running" : "complete" };
   }
   const nextRound = round + 1;
   if (t.matches.some((m) => m.side === "swiss" && m.round === nextRound)) return t;
@@ -654,12 +702,12 @@ export function reportWinner(t: TournamentState, matchId: string, winnerId: stri
   const ids = matchEntrantIds(match);
   if (winnerId !== DRAW_ID && !ids.includes(winnerId)) return t;
 
-  if (t.bracketType === "swiss") {
+  if (match.side === "swiss") {
     match.winnerId = winnerId;
     const next = { ...t, matches };
-    const round = match.round;
-    const finished = swissRoundComplete(next, t.swissRounds) && currentSwissRound(next) >= t.swissRounds;
-    return { ...next, phase: finished ? "complete" : "running" };
+    const swissDone = swissRoundComplete(next, t.swissRounds) && currentSwissRound(next) >= t.swissRounds;
+    const waitingCut = hasTopCut(t) && !topCutStarted(next);
+    return { ...next, phase: swissDone && !waitingCut ? "complete" : "running" };
   }
 
   if (match.winnerId && match.winnerId !== winnerId) {
@@ -698,14 +746,14 @@ function resolveChampion(t: TournamentState): string | null {
   if (gf2?.winnerId) return gf2.winnerId;
   const gf1 = t.matches.find((m) => m.id === "gf-1");
   if (gf1?.winnerId && gf1.winnerId === gf1.p1.entrantId) return gf1.winnerId;
-  if (t.bracketType === "single") {
+  if (t.bracketType === "single" || topCutStarted(t)) {
     const last = t.matches.find((m) => m.side === "grand" || (m.side === "winners" && !m.nextWinnerMatchId));
     return last?.winnerId ?? null;
   }
   if (t.bracketType === "swiss") {
     const table = computeStandings(t);
     const done = swissRoundComplete(t, t.swissRounds) && currentSwissRound(t) >= t.swissRounds;
-    return done ? table[0]?.entrantId ?? null : null;
+    return done && !hasTopCut(t) ? table[0]?.entrantId ?? null : null;
   }
   return null;
 }
@@ -728,6 +776,12 @@ export function matchesForView(t: TournamentState, view: BracketViewId): Bracket
   const all = t.matches;
   if (t.bracketType === "swiss") {
     if (view === "standings") return [];
+    if (topCutStarted(t)) {
+      const cut = all.filter((m) => m.side !== "swiss");
+      if (view === "full") return cut;
+      const fake: TournamentState = { ...t, bracketType: t.cutType === "double" ? "double" : "single", size: Math.max(2, t.cutSize), matches: cut };
+      return matchesForView(fake, view);
+    }
     const current = currentSwissRound(t);
     if (view === "full") return all;
     return all.filter((m) => m.round === current);
@@ -789,6 +843,7 @@ export function standingChampion(t: TournamentState): Entrant | null {
 }
 
 export function eventChampion(t: TournamentState): Entrant | null {
+  if (topCutStarted(t)) return championOf(t);
   if (t.bracketType === "swiss") {
     if (t.phase !== "complete") return null;
     return standingChampion(t);

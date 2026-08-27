@@ -52,6 +52,13 @@ export function EventPanel() {
             onChange={(e) => patch({ eventName: e.target.value })}
           />
         </Field>
+        <Field label="Stream">
+          <Input
+            value={desk.streamChannel}
+            onChange={(e) => patch({ streamChannel: e.target.value })}
+            placeholder="twitch.tv/rok or @rok"
+          />
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Phase">
             <Input

@@ -1,4 +1,5 @@
 import { gameOf } from "@/lib/games";
+import { streamChannelLabel } from "@/lib/stream-channel";
 import {
   formatClock,
   remainingSeconds,
@@ -164,6 +165,11 @@ export function SlateView({ desk }: { desk: DeskState }) {
           <p className="mt-1 text-lg text-ov-muted">
             {game.name} · {desk.formatName} · {desk.eventPhase}
           </p>
+          {desk.streamChannel.trim() ? (
+            <p className="font-mono mt-3 text-sm tracking-[0.18em] text-ov-fg/70 uppercase">
+              Live · {streamChannelLabel(desk.streamChannel)}
+            </p>
+          ) : null}
         </div>
         <div className="flex items-end justify-between">
           <div>

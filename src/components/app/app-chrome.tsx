@@ -3,6 +3,8 @@ import { Clapperboard, House, Trophy } from "lucide-react";
 import { SupportButtons } from "@/components/app/support-links";
 import { cn } from "@/lib/cn";
 import { APP_VERSION_LABEL } from "@/lib/version";
+import { useDeskStore } from "@/lib/desk-store";
+import { streamChannelLabel, streamChannelUrl } from "@/lib/stream-channel";
 
 export function AppChrome({
   view,
@@ -75,12 +77,7 @@ export function AppChrome({
                 Tournament
               </Link>
             </nav>
-            {view === "production" ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-live/15 px-2.5 py-1 text-[0.65rem] font-medium tracking-[0.16em] text-live uppercase">
-                <span className="live-dot size-1.5 rounded-full bg-live" />
-                Live
-              </span>
-            ) : null}
+            {view === "production" ? <LiveBadge /> : null}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {trailing}
@@ -91,4 +88,26 @@ export function AppChrome({
       </div>
     </header>
   );
+}
+
+function LiveBadge() {
+  const channel = useDeskStore((s) => s.desk.streamChannel);
+  const label = streamChannelLabel(channel);
+  const href = streamChannelUrl(channel);
+  const inner = (
+    <>
+      <span className="live-dot size-1.5 rounded-full bg-live" />
+      {label ? `Live · ${label}` : "Live"}
+    </>
+  );
+  const className =
+    "inline-flex items-center gap-1.5 rounded-full bg-live/15 px-2.5 py-1 text-[0.65rem] font-medium tracking-[0.16em] text-live uppercase";
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noreferrer" className={className} title={href}>
+        {inner}
+      </a>
+    );
+  }
+  return <span className={className}>{inner}</span>;
 }

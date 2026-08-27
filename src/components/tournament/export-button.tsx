@@ -46,7 +46,7 @@ export function ExportTournamentButton({
       </Button>
       {full ? (
         <p className="text-[0.65rem] leading-relaxed text-subtle">
-          One zip: JSON plus CSVs (players, matches, standings, judge notes
+          One zip: JSON (includes a restorable state) plus CSVs (event, players, matches, standings, judge notes
           {t.staff?.length ? ", staff" : ""}
           {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}
           ). Completing the event also downloads this pack.

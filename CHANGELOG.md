@@ -6,6 +6,19 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+### Added
+
+- **Swiss top cut** — after Swiss rounds, cut to Top 4 / 6 / 8 / 16 / 32 or a custom size in single or double elim. Standings seed the cut.
+- **Import JSON** — restore a past event from `tournament.json` (export zip or saved desk state)
+- **Stream channel** — handle or URL on Event. Live badge, starting-soon slate, and floor clock show it
+
+### Fixed
+
+- Tournament name is per game. Switching titles no longer carries the last show name
+- Export zip writes every CSV (event, staff, decklists, judge notes, full VGC teams) and includes other games that have a field
+
+
+
 ## v1.2.7-beta — 2026-08-27
 
 Hotfix: clock pop-outs keep their own show title.
