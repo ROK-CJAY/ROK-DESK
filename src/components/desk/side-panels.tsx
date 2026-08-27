@@ -11,7 +11,7 @@ import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors"
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewsFor, deskForGame, emptyDesk, type BracketViewId } from "@/lib/tournament-types";
-import { overlayPath } from "@/components/desk/sources";
+import { overlayPath, overlayWindowName } from "@/components/desk/sources";
 import {
   emptySpotlight,
   type LowerThirdMode,
@@ -179,7 +179,7 @@ export function EventPanel() {
           <Button variant="secondary" size="sm" className="flex-1" asChild>
             <a
               href={overlayPath(desk.gameId, "stream-clock", desk.matchSlot ?? 1)}
-              target="_blank"
+              target={overlayWindowName(desk.gameId, "stream-clock", desk.matchSlot ?? 1)}
               rel="noreferrer"
             >
               Open {MATCH_SLOT_SHORT[(desk.matchSlot ?? 1) as MatchSlot]} clock

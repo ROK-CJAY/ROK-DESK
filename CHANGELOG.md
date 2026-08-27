@@ -6,6 +6,14 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+## v1.2.7-beta — 2026-08-27
+
+Hotfix: clock pop-outs keep their own show title.
+
+### Fixed
+
+- Opening a floor or featured-match clock no longer caches the first show title across other clocks, tables, and games
+
 ## v1.2.6-beta — 2026-08-26
 
 Play Layouts for VGC, One Piece, and Lorcana. YGO player tablet. Overlay score fades.

@@ -48,7 +48,7 @@ export function FloorClockOverlay({
                 {game.short} · {tournament.formatName}
               </p>
               <h1 className="font-display text-[clamp(2rem,5vw,4.5rem)] font-semibold tracking-tight text-ov-fg uppercase">
-                {tournament.name || desk?.eventName || game.name}
+                {desk?.eventName.trim() || tournament.name.trim() || game.name}
               </h1>
             </div>
           </div>

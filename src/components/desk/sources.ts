@@ -165,3 +165,7 @@ export function overlayPath(gameId: GameId, source: OverlaySourceId, slot: Match
   if (slot !== 1) return `/${slugOf(gameId)}/${slot}/overlay/${source}`;
   return `/${slugOf(gameId)}/overlay/${source}`;
 }
+
+export function overlayWindowName(gameId: GameId, source: OverlaySourceId, slot: MatchSlot = 1): string {
+  return `rok-${slugOf(gameId)}-${slot}-${source}`;
+}

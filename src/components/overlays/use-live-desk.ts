@@ -2,12 +2,21 @@ import { useEffect, useState } from "react";
 import { parseDesk, type DeskState, type MatchSlot } from "@/lib/desk-types";
 import { slugOf, type GameId } from "@/lib/games";
 
+function sameDesk(prev: DeskState, next: DeskState): boolean {
+  return (
+    prev.version === next.version &&
+    prev.gameId === next.gameId &&
+    (prev.matchSlot ?? 1) === (next.matchSlot ?? 1)
+  );
+}
+
 export function useLiveDesk(gameId?: GameId, pollMs = 400, slot: MatchSlot = 1): DeskState | null {
   const [desk, setDesk] = useState<DeskState | null>(null);
 
   useEffect(() => {
     let timer = 0;
     let cancelled = false;
+    setDesk(null);
     const path = gameId
       ? `/api/desk?game=${encodeURIComponent(slugOf(gameId))}&slot=${slot}`
       : "/api/desk";
@@ -18,7 +27,7 @@ export function useLiveDesk(gameId?: GameId, pollMs = 400, slot: MatchSlot = 1):
         if (res.ok) {
           const parsed = parseDesk(await res.json());
           if (!cancelled && parsed) {
-            setDesk((prev) => (prev && prev.version === parsed.version ? prev : parsed));
+            setDesk((prev) => (prev && sameDesk(prev, parsed) ? prev : parsed));
           }
         }
       } catch {

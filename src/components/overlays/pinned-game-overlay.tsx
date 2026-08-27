@@ -122,7 +122,11 @@ function PinnedFloorClock({ gameId }: { gameId: GameId }) {
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-ov-bg">
       <OverlayLookRoot book={desk?.overlayLook} source="floor-clock">
-        <FloorClockOverlay tournament={viewTournament(tournament, gameId)} desk={desk} />
+        <FloorClockOverlay
+          key={`floor-${gameId}`}
+          tournament={viewTournament(tournament, gameId)}
+          desk={desk}
+        />
       </OverlayLookRoot>
     </div>
   );
@@ -135,7 +139,12 @@ function PinnedStreamClock({ gameId, slot = 1 }: { gameId: GameId; slot?: MatchS
   return (
     <div className="h-dvh w-dvw overflow-hidden bg-ov-bg">
       <OverlayLookRoot book={desk?.overlayLook} source="stream-clock">
-        <FloorClockOverlay tournament={viewTournament(tournament, gameId)} desk={desk} variant="stream" />
+        <FloorClockOverlay
+          key={`stream-${gameId}-${slot}`}
+          tournament={viewTournament(tournament, gameId)}
+          desk={desk}
+          variant="stream"
+        />
       </OverlayLookRoot>
     </div>
   );

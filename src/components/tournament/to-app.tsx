@@ -4,7 +4,7 @@ import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { CommanderSearchField } from "@/components/desk/commander-search";
 import { FloorClock } from "@/components/tournament/floor-clock";
-import { overlayPath } from "@/components/desk/sources";
+import { overlayPath, overlayWindowName } from "@/components/desk/sources";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -342,7 +342,11 @@ function SetupPanel() {
         <FloorClock />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="flex-1" asChild>
-            <a href={overlayPath(t.gameId, "floor-clock")} target="_blank" rel="noreferrer">
+            <a
+              href={overlayPath(t.gameId, "floor-clock")}
+              target={overlayWindowName(t.gameId, "floor-clock")}
+              rel="noreferrer"
+            >
               Open floor clock
             </a>
           </Button>

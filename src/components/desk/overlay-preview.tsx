@@ -17,9 +17,10 @@ import { ScorebugView } from "@/components/overlays/scorebug";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { Button } from "@/components/ui/button";
-import { OVERLAY_SOURCES, overlayPath, type OverlaySourceId } from "@/components/desk/sources";
+import { OVERLAY_SOURCES, overlayPath, overlayWindowName, type OverlaySourceId } from "@/components/desk/sources";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
+import { viewTournament } from "@/lib/tournament-types";
 import { BracketOverlay } from "@/components/overlays/bracket";
 import { FloorClockOverlay } from "@/components/overlays/floor-clock";
 import { OverlayLookRoot } from "@/components/overlays/overlay-look-root";
@@ -201,7 +202,11 @@ export function OverlayPreview() {
             Copy URL
           </Button>
           <Button variant="outline" size="sm" asChild>
-            <a href={pathFor(source)} target="_blank" rel="noreferrer">
+            <a
+              href={pathFor(source)}
+              target={overlayWindowName(desk.gameId, source, desk.matchSlot ?? 1)}
+              rel="noreferrer"
+            >
               <ExternalLink className="size-3.5" />
               Pop out
             </a>
@@ -231,10 +236,18 @@ export function OverlayPreview() {
           {source === "timer" ? <TimerView desk={desk} now={now} /> : null}
           {source === "resource" ? <ResourceView desk={desk} /> : null}
           {source === "upcoming" ? <UpcomingView desk={desk} /> : null}
-          {source === "bracket" && tourneyReady ? <BracketOverlay tournament={tournament} /> : null}
-          {source === "floor-clock" && tourneyReady ? <FloorClockOverlay tournament={tournament} desk={desk} /> : null}
+          {source === "bracket" && tourneyReady ? (
+            <BracketOverlay tournament={viewTournament(tournament, desk.gameId)} />
+          ) : null}
+          {source === "floor-clock" && tourneyReady ? (
+            <FloorClockOverlay tournament={viewTournament(tournament, desk.gameId)} desk={desk} />
+          ) : null}
           {source === "stream-clock" && tourneyReady ? (
-            <FloorClockOverlay tournament={tournament} desk={desk} variant="stream" />
+            <FloorClockOverlay
+              tournament={viewTournament(tournament, desk.gameId)}
+              desk={desk}
+              variant="stream"
+            />
           ) : null}
           {source === "roster" ? <RosterView desk={desk} force={desk.rosterSide === "hidden" ? "both" : desk.rosterSide} /> : null}
           {source === "card" ? <CardSpotlightView desk={desk} /> : null}
