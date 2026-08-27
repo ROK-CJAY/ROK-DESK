@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Flag, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
+import { ChevronDown, ChevronUp, ClipboardList, Flag, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { CommanderSearchField } from "@/components/desk/commander-search";
@@ -16,7 +16,7 @@ import { decklistCount } from "@/lib/decklist";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
 import { useDeskStore } from "@/lib/desk-store";
-import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventChampion, swissRoundComplete, defaultSwissRounds, canStartTopCut, topCutStarted, hasTopCut } from "@/lib/tournament-bracket";
+import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventChampion, swissRoundComplete, defaultSwissRounds, canStartTopCut, topCutStarted, hasTopCut, previewTournament, tieGroupKey } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
@@ -105,6 +105,7 @@ export function TournamentApp() {
           />
           <TeamSheetPanel playerId={sheetPlayerId} onSelectPlayer={setSheetPlayerId} />
           <BracketBoard />
+          <TiebreakPanel t={t} standings={standings} />
         </div>
       </main>
     </div>
@@ -1118,14 +1119,18 @@ function BracketBoard() {
     !t.matches.some((m) => m.side === "swiss" && m.round === round + 1);
 
   if (t.matches.length === 0) {
-    return (
-      <section className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
-        <p className="font-display text-2xl font-semibold uppercase">No bracket yet</p>
-        <p className="mt-2 text-sm text-muted">
-          Add players, drag to seed, then start the bracket. Ready matches can be sent straight to Production.
-        </p>
-      </section>
-    );
+    const preview = previewTournament(t);
+    if (preview.matches.length === 0) {
+      return (
+        <section className="rounded-xl border border-dashed border-border bg-surface p-8 text-center">
+          <p className="font-display text-2xl font-semibold uppercase">No bracket yet</p>
+          <p className="mt-2 text-sm text-muted">
+            Add players, drag to seed, then start the bracket. Pairings preview here as the field fills. Ready matches can be sent straight to Production.
+          </p>
+        </section>
+      );
+    }
+    return <PreviewBoard t={preview} />;
   }
 
   return (
@@ -1250,6 +1255,224 @@ function BracketBoard() {
   );
 }
 
+function PreviewBoard({ t }: { t: import("@/lib/tournament-types").TournamentState }) {
+  const generate = useTournamentStore((s) => s.generate);
+  const groups = groupByRound(t.matches);
+  return (
+    <section className="rounded-xl border border-dashed border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">
+            {t.bracketType === "swiss" ? "Preview · Round 1 pairings" : "Preview · Bracket"}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Live from seeds. Drag the roster to reshuffle. Start bracket to lock it in.
+          </p>
+        </div>
+        <Button size="sm" onClick={generate}>
+          <Trophy className="size-3.5" />
+          Start bracket
+        </Button>
+      </div>
+      <div className="mt-3 flex flex-col gap-6">
+        {groups.map((group) => (
+          <div key={group.side}>
+            <p className="font-mono mb-2 text-[0.65rem] tracking-[0.18em] text-muted uppercase">
+              {group.side === "winners"
+                ? "Winners"
+                : group.side === "losers"
+                  ? "Losers"
+                  : group.side === "swiss"
+                    ? "Round 1"
+                    : "Grand finals"}
+            </p>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {group.rounds.map((col) => (
+                <div key={`${group.side}-${col.round}`} className="w-[260px] shrink-0">
+                  <p className="mb-2 truncate text-xs text-subtle">{col.label}</p>
+                  <div className="flex flex-col gap-2">
+                    {col.matches.map((match) => {
+                      const skip = match.id === "gf-2" && !match.p1.entrantId && !match.p2.entrantId;
+                      if (skip) return null;
+                      const seats = matchSlots(match).filter(
+                        (row) => row.slot.entrantId || (!isPodMatch(match) && (row.id === "p1" || row.id === "p2")),
+                      );
+                      return (
+                        <div key={match.id} className="rounded-lg border border-border bg-surface-2 p-2">
+                          {seats.map((row) => {
+                            const player = entrantById(t, row.slot.entrantId);
+                            return (
+                              <div key={row.id} className="flex items-center gap-1.5 rounded-md px-1 py-0.5">
+                                <span className="w-4 font-mono text-[0.65rem] text-subtle">{player?.seed ?? ""}</span>
+                                <span className="min-w-0 flex-1 truncate text-sm">
+                                  {player?.name ?? (row.slot.entrantId ? "—" : "BYE")}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function TiebreakPanel({
+  t,
+  standings,
+}: {
+  t: import("@/lib/tournament-types").TournamentState;
+  standings: ReturnType<typeof computeStandings>;
+}) {
+  const patch = useTournamentStore((s) => s.patch);
+  const rankTied = useTournamentStore((s) => s.rankTied);
+  if (t.bracketType !== "swiss" || t.matches.length === 0 || standings.length === 0) return null;
+  const groups: Array<typeof standings> = [];
+  for (const row of standings) {
+    const key = tieGroupKey(t, row);
+    const last = groups[groups.length - 1];
+    if (last && tieGroupKey(t, last[0]!) === key) last.push(row);
+    else groups.push([row]);
+  }
+  const tied = groups.filter((g) => g.length > 1);
+  const cut = t.cutSize > 0 ? t.cutSize : 0;
+  const cutTie =
+    cut > 0 &&
+    standings[cut - 1] &&
+    standings[cut] &&
+    tieGroupKey(t, standings[cut - 1]!) === tieGroupKey(t, standings[cut]!);
+  const settled = Object.keys(t.tiebreaks ?? {}).length > 0;
+  const toMode = t.tiebreakMode === "to";
+
+  return (
+    <section className="rounded-xl border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Tiebreakers</p>
+          <p className="mt-1 max-w-xl text-sm text-muted">
+            {toMode
+              ? "Same match points: you rank them. OMW / GW / OGW are shown but ignored."
+              : "After points: OMW%, game-win%, opponents’ game-win%. Rank anyone still tied."}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-sm text-fg">
+            <Switch
+              checked={toMode}
+              onCheckedChange={(on) => patch({ tiebreakMode: on ? "to" : "auto", tiebreaks: {} })}
+              aria-label="TO ranks after points"
+            />
+            TO ranks after points
+          </label>
+          {settled ? (
+            <Button size="sm" variant="outline" onClick={() => patch({ tiebreaks: {} })}>
+              Clear ranks
+            </Button>
+          ) : null}
+        </div>
+      </div>
+      {cutTie ? (
+        <p className="mt-3 rounded-lg bg-live/10 px-3 py-2 text-sm text-fg">
+          Cut line is still tied. Rank those players before starting {cutLabel(t.cutSize)}.
+        </p>
+      ) : null}
+      {tied.length === 0 ? (
+        <p className="mt-3 text-sm text-subtle">No remaining ties to settle.</p>
+      ) : (
+        <div className="mt-3 grid gap-4">
+          {tied.map((group) => {
+            const firstPlace = standings.findIndex((row) => row.entrantId === group[0]!.entrantId) + 1;
+            const lastPlace = firstPlace + group.length - 1;
+            return (
+              <div key={group[0]!.entrantId} className="overflow-x-auto rounded-lg bg-surface-2 p-3">
+                <p className="font-mono mb-2 text-[0.65rem] tracking-[0.16em] text-muted uppercase">
+                  {group[0]!.matchPoints} pts · {group.length} tied · places {firstPlace}–{lastPlace}
+                </p>
+                <table className="w-full min-w-[560px] text-left text-sm">
+                  <thead className="font-mono text-[0.65rem] tracking-[0.16em] text-muted uppercase">
+                    <tr>
+                      <th className="pb-2 font-medium">#</th>
+                      <th className="pb-2 font-medium">Player</th>
+                      <th className="pb-2 font-medium">{extraFieldFor(t.gameId, t.formatName).label}</th>
+                      <th className="pb-2 font-medium">W–L–D</th>
+                      <th className="pb-2 font-medium">Pts</th>
+                      <th className="pb-2 font-medium">OMW</th>
+                      <th className="pb-2 font-medium">GW</th>
+                      <th className="pb-2 font-medium">OGW</th>
+                      <th className="pb-2 font-medium" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.map((row, i) => {
+                      const player = entrantById(t, row.entrantId);
+                      return (
+                        <tr key={row.entrantId} className="border-t border-border">
+                          <td className="py-2 pr-3 font-mono text-muted">{firstPlace + i}</td>
+                          <td className="py-2 pr-3">
+                            <p className="font-medium">{player?.name ?? "—"}</p>
+                            {player?.playerId ? (
+                              <p className="font-mono text-[0.68rem] text-muted">{player.playerId}</p>
+                            ) : null}
+                          </td>
+                          <td className="py-2 pr-3 text-muted">
+                            {formatCommanderLine(player?.deck ?? "", player?.extra ?? "") || player?.deck || "—"}
+                          </td>
+                          <td className="py-2 pr-3 font-mono tabular-nums">
+                            {row.wins}–{row.losses}–{row.draws}
+                          </td>
+                          <td className="py-2 pr-3 font-mono tabular-nums">{row.matchPoints}</td>
+                          <td className="py-2 pr-3 font-mono tabular-nums text-muted">
+                            {(row.oppMatchWin * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-2 pr-3 font-mono tabular-nums text-muted">
+                            {(row.gameWin * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-2 pr-3 font-mono tabular-nums text-muted">
+                            {(row.oppGameWin * 100).toFixed(1)}%
+                          </td>
+                          <td className="py-2">
+                            <div className="flex items-center gap-0.5">
+                              <button
+                                type="button"
+                                disabled={i === 0}
+                                onClick={() => rankTied(row.entrantId, -1)}
+                                className="rounded p-1 text-muted hover:text-fg disabled:opacity-30"
+                                aria-label="Rank up"
+                              >
+                                <ChevronUp className="size-4" />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={i === group.length - 1}
+                                onClick={() => rankTied(row.entrantId, 1)}
+                                className="rounded p-1 text-muted hover:text-fg disabled:opacity-30"
+                                aria-label="Rank down"
+                              >
+                                <ChevronDown className="size-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function StandingsTable({
   t,
   standings,
@@ -1257,9 +1480,16 @@ function StandingsTable({
   t: import("@/lib/tournament-types").TournamentState;
   standings: ReturnType<typeof computeStandings>;
 }) {
+  const rankTied = useTournamentStore((s) => s.rankTied);
+  const keys = standings.map((row) => tieGroupKey(t, row));
+  const cut = t.cutSize > 0 ? t.cutSize : 0;
+
   return (
     <div className="mt-3 overflow-x-auto">
-      <table className="w-full min-w-[480px] text-left text-sm">
+      <p className="mb-2 text-[0.65rem] leading-relaxed text-subtle">
+        Order: match points, then {t.tiebreakMode === "to" ? "your rank" : "OMW% / GW% / OGW%"}. Settle remaining ties in the Tiebreakers card.
+      </p>
+      <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="font-mono text-[0.65rem] tracking-[0.16em] text-muted uppercase">
           <tr>
             <th className="pb-2 font-medium">#</th>
@@ -1268,13 +1498,27 @@ function StandingsTable({
             <th className="pb-2 font-medium">W–L–D</th>
             <th className="pb-2 font-medium">Pts</th>
             <th className="pb-2 font-medium">OMW</th>
+            <th className="pb-2 font-medium">GW</th>
+            <th className="pb-2 font-medium">OGW</th>
+            <th className="pb-2 font-medium" />
           </tr>
         </thead>
         <tbody>
           {standings.map((row, i) => {
             const e = entrantById(t, row.entrantId);
+            const tied = keys.filter((k) => k === keys[i]).length > 1;
+            const first = i === 0 || keys[i] !== keys[i - 1];
+            const last = i === standings.length - 1 || keys[i] !== keys[i + 1];
+            const onCut = cut > 0 && i === cut;
             return (
-              <tr key={row.entrantId} className="border-t border-border">
+              <tr
+                key={row.entrantId}
+                className={cn(
+                  "border-t border-border",
+                  tied && "bg-surface-2/80",
+                  onCut && "border-t-live/60",
+                )}
+              >
                 <td className="py-1.5 pr-3 font-mono text-muted">{i + 1}</td>
                 <td className="py-1.5 pr-3">
                   <p>{e?.name ?? "—"}</p>
@@ -1289,8 +1533,38 @@ function StandingsTable({
                   {row.wins}–{row.losses}–{row.draws}
                 </td>
                 <td className="py-1.5 pr-3 font-mono tabular-nums">{row.matchPoints}</td>
-                <td className="py-1.5 font-mono tabular-nums text-muted">
+                <td className="py-1.5 pr-3 font-mono tabular-nums text-muted">
                   {(row.oppMatchWin * 100).toFixed(1)}%
+                </td>
+                <td className="py-1.5 pr-3 font-mono tabular-nums text-muted">
+                  {(row.gameWin * 100).toFixed(1)}%
+                </td>
+                <td className="py-1.5 pr-3 font-mono tabular-nums text-muted">
+                  {(row.oppGameWin * 100).toFixed(1)}%
+                </td>
+                <td className="py-1.5">
+                  {tied ? (
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        disabled={first}
+                        onClick={() => rankTied(row.entrantId, -1)}
+                        className="rounded p-0.5 text-muted hover:text-fg disabled:opacity-30"
+                        aria-label="Rank up"
+                      >
+                        <ChevronUp className="size-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={last}
+                        onClick={() => rankTied(row.entrantId, 1)}
+                        className="rounded p-0.5 text-muted hover:text-fg disabled:opacity-30"
+                        aria-label="Rank down"
+                      >
+                        <ChevronDown className="size-3.5" />
+                      </button>
+                    </div>
+                  ) : null}
                 </td>
               </tr>
             );

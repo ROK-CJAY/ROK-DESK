@@ -105,9 +105,10 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - VGC: full team sheet (species, Tera, ability, item, four moves)
 
 **Pairings & results**
+- **Preview** before Start: Round 1 (Swiss) or the seeded tree (elim) from current seeds. Drag the roster to reshuffle. The bracket overlay shows the same view (`Pairings · Not started`)
 - Generate bracket or pair the next Swiss round. After the last Swiss round, **Start top cut** seeds the cut from standings
 - Report winners and game scores from the match cards
-- Swiss standings with OMW%. No cut: complete the event from standings. With a cut: the cut bracket decides the champion. **Reopen** if a result still needs a fix
+- Swiss standings with OMW%, game-win%, opponents’ game-win%. **Tiebreakers** panel: rank remaining ties, or switch **TO ranks after points** to ignore OMW/GW. That order seeds the top cut. No cut: complete the event from standings. With a cut: the cut bracket decides the champion. **Reopen** if a result still needs a fix
 - Champion / Top 3 on the result card
 
 **Stream**

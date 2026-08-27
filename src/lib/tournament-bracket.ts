@@ -68,6 +68,8 @@ export type Standing = {
   oppMatchWin: number;
   gamesFor: number;
   gamesAgainst: number;
+  gameWin: number;
+  oppGameWin: number;
 };
 
 export function generateBracket(
@@ -120,6 +122,24 @@ export function generateBracket(
   autoAdvanceByes(matches);
   void swissRounds;
   return matches;
+}
+
+export function previewTournament(t: TournamentState): TournamentState {
+  if (t.matches.length > 0) return t;
+  const capped = t.entrants.filter((e) => !e.dropped).slice(0, t.size);
+  if (capped.length === 0) return t;
+  const swissRounds = t.swissRounds > 0 ? t.swissRounds : defaultSwissRounds(t.size);
+  return {
+    ...t,
+    matches: generateBracket(
+      t.bracketType,
+      t.size,
+      capped,
+      swissRounds,
+      isCommanderPodFormat(t.gameId, t.formatName),
+    ),
+    overlayView: t.bracketType === "swiss" ? "full" : t.overlayView === "standings" ? "full" : t.overlayView,
+  };
 }
 
 function swissPool(entrants: Entrant[], size: number): Entrant[] {
@@ -298,6 +318,8 @@ export function computeStandings(t: TournamentState): Standing[] {
       oppMatchWin: 0,
       gamesFor: 0,
       gamesAgainst: 0,
+      gameWin: 0.33,
+      oppGameWin: 0.33,
     });
   }
   const opponents = new Map<string, string[]>();
@@ -347,16 +369,64 @@ export function computeStandings(t: TournamentState): Standing[] {
     });
     row.oppMatchWin = pcts.reduce((s, n) => s + n, 0) / pcts.length;
   }
+  for (const row of rows.values()) {
+    const played = row.gamesFor + row.gamesAgainst;
+    row.gameWin = played === 0 ? 0.33 : Math.max(0.33, row.gamesFor / played);
+  }
+  for (const row of rows.values()) {
+    const opps = opponents.get(row.entrantId) ?? [];
+    if (opps.length === 0) {
+      row.oppGameWin = 0.33;
+      continue;
+    }
+    const pcts = opps.map((id) => rows.get(id)?.gameWin ?? 0.33);
+    row.oppGameWin = pcts.reduce((s, n) => s + n, 0) / pcts.length;
+  }
+  const ranks = t.tiebreaks ?? {};
+  const toOnly = t.tiebreakMode === "to";
   return [...rows.values()].sort((a, b) => {
     if (b.matchPoints !== a.matchPoints) return b.matchPoints - a.matchPoints;
-    if (b.oppMatchWin !== a.oppMatchWin) return b.oppMatchWin - a.oppMatchWin;
-    const ga = a.gamesFor - a.gamesAgainst;
-    const gb = b.gamesFor - b.gamesAgainst;
-    if (gb !== ga) return gb - ga;
+    if (!toOnly) {
+      if (b.oppMatchWin !== a.oppMatchWin) return b.oppMatchWin - a.oppMatchWin;
+      if (b.gameWin !== a.gameWin) return b.gameWin - a.gameWin;
+      if (b.oppGameWin !== a.oppGameWin) return b.oppGameWin - a.oppGameWin;
+    }
+    const ra = ranks[a.entrantId] ?? 0;
+    const rb = ranks[b.entrantId] ?? 0;
+    if (ra !== 0 || rb !== 0) return (ra || 999) - (rb || 999);
     const ea = t.entrants.find((e) => e.id === a.entrantId);
     const eb = t.entrants.find((e) => e.id === b.entrantId);
     return (ea?.seed ?? 99) - (eb?.seed ?? 99);
   });
+}
+
+export function autoTieKey(row: Standing): string {
+  return `${row.matchPoints}|${row.oppMatchWin.toFixed(5)}|${row.gameWin.toFixed(5)}|${row.oppGameWin.toFixed(5)}`;
+}
+
+export function tieGroupKey(t: TournamentState, row: Standing): string {
+  if (t.tiebreakMode === "to") return String(row.matchPoints);
+  return autoTieKey(row);
+}
+
+export function settleTiebreaks(t: TournamentState, entrantId: string, dir: -1 | 1): TournamentState {
+  const table = computeStandings(t);
+  const index = table.findIndex((row) => row.entrantId === entrantId);
+  if (index < 0) return t;
+  const key = tieGroupKey(t, table[index]!);
+  const group = table.filter((row) => tieGroupKey(t, row) === key);
+  const gi = group.findIndex((row) => row.entrantId === entrantId);
+  const swap = gi + dir;
+  if (swap < 0 || swap >= group.length) return t;
+  const order = group.map((row) => row.entrantId);
+  const hold = order[gi]!;
+  order[gi] = order[swap]!;
+  order[swap] = hold;
+  const tiebreaks = { ...(t.tiebreaks ?? {}) };
+  order.forEach((id, n) => {
+    tiebreaks[id] = n + 1;
+  });
+  return { ...t, tiebreaks };
 }
 
 export function hasTopCut(t: { cutSize?: number }): boolean {

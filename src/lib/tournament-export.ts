@@ -112,6 +112,8 @@ export function recordsFor(t: TournamentState): Standing[] {
       oppMatchWin: 0,
       gamesFor: 0,
       gamesAgainst: 0,
+      gameWin: 0.33,
+      oppGameWin: 0.33,
     });
   }
   for (const match of t.matches) {
@@ -144,6 +146,10 @@ export function recordsFor(t: TournamentState): Standing[] {
         row.losses += 1;
       }
     }
+  }
+  for (const row of rows.values()) {
+    const played = row.gamesFor + row.gamesAgainst;
+    row.gameWin = played === 0 ? 0.33 : Math.max(0.33, row.gamesFor / played);
   }
   return [...rows.values()].sort((a, b) => b.matchPoints - a.matchPoints || b.wins - a.wins || a.losses - b.losses);
 }
@@ -334,8 +340,11 @@ const STANDING_COLUMNS = [
   "draws",
   "match_points",
   "omw",
+  "gw",
+  "ogw",
   "games_for",
   "games_against",
+  "settled",
 ] as const;
 
 const TEAM_COLUMNS = [
@@ -483,8 +492,11 @@ function filesForGame(t: TournamentState, prefix = ""): Array<{ name: string; bo
           draws: row.draws,
           match_points: row.matchPoints,
           omw: Number(row.oppMatchWin.toFixed(4)),
+          gw: Number(row.gameWin.toFixed(4)),
+          ogw: Number(row.oppGameWin.toFixed(4)),
           games_for: row.gamesFor,
           games_against: row.gamesAgainst,
+          settled: t.tiebreaks?.[row.entrantId] ? t.tiebreaks[row.entrantId] : "",
         })),
         [...STANDING_COLUMNS],
       ),

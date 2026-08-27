@@ -1,5 +1,5 @@
 import { gameOf } from "@/lib/games";
-import { computeStandings, groupByRound, matchesForView, topCutStarted, hasTopCut } from "@/lib/tournament-bracket";
+import { computeStandings, groupByRound, matchesForView, topCutStarted, hasTopCut, previewTournament } from "@/lib/tournament-bracket";
 import {
   DRAW_ID,
   championOf,
@@ -12,16 +12,24 @@ import {
 import { cn } from "@/lib/cn";
 
 export function BracketOverlay({ tournament }: { tournament: TournamentState }) {
-  if (topCutStarted(tournament) && tournament.overlayView !== "standings") {
-    return <ElimOverlay tournament={tournament} />;
+  const preview = tournament.matches.length === 0;
+  const live = preview ? previewTournament(tournament) : tournament;
+  if (live.matches.length === 0) {
+    return <WaitingField tournament={tournament} />;
   }
-  if (tournament.bracketType === "swiss") {
-    return <SwissOverlay tournament={tournament} />;
+  if (topCutStarted(live) && live.overlayView !== "standings") {
+    return <ElimOverlay tournament={live} />;
   }
-  return <ElimOverlay tournament={tournament} />;
+  if (live.bracketType === "swiss") {
+    return <SwissOverlay tournament={live} preview={preview} />;
+  }
+  return <ElimOverlay tournament={live} preview={preview} />;
 }
 
-function viewTitle(tournament: TournamentState) {
+function viewTitle(tournament: TournamentState, preview = false) {
+  if (preview) {
+    return tournament.bracketType === "swiss" ? "Round 1 pairings" : "Bracket preview";
+  }
   const view = tournament.overlayView;
   if (topCutStarted(tournament) && view !== "standings") {
     if (view === "winners") return "Winners side";
@@ -50,14 +58,39 @@ function viewTitle(tournament: TournamentState) {
   return "Top 4";
 }
 
-function SwissOverlay({ tournament }: { tournament: TournamentState }) {
+function WaitingField({ tournament }: { tournament: TournamentState }) {
+  const game = gameOf(tournament.gameId);
+  return (
+    <div data-game={tournament.gameId} className="absolute inset-0 overflow-hidden bg-ov-bg/92 px-10 py-8">
+      <header className="flex items-end justify-between">
+        <div>
+          <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">
+            {game.short} · {tournament.formatName}
+          </p>
+          <h1 className="font-display text-5xl font-semibold tracking-tight text-ov-fg uppercase">
+            {tournament.name.trim() || game.name}
+          </h1>
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">Pairings</p>
+          <p className="font-display text-2xl font-semibold text-ov-fg uppercase">Waiting for field</p>
+        </div>
+      </header>
+      <p className="font-display mt-24 text-3xl font-semibold text-ov-muted uppercase">
+        Add players, then the bracket fills from seeds.
+      </p>
+    </div>
+  );
+}
+
+function SwissOverlay({ tournament, preview = false }: { tournament: TournamentState; preview?: boolean }) {
   const game = gameOf(tournament.gameId);
   const standings = computeStandings(tournament);
   const cut =
     tournament.overlayView === "top4" ? 4 : tournament.overlayView === "top8" ? 8 : tournament.overlayView === "top16" ? 16 : standings.length;
   const table = standings.slice(0, cut);
-  const showRounds = tournament.overlayView === "full";
-  const matches = matchesForView(tournament, tournament.overlayView);
+  const showRounds = preview || tournament.overlayView === "full";
+  const matches = matchesForView(tournament, preview ? "full" : tournament.overlayView);
   const groups = groupByRound(matches);
   const leader = standings[0] ? entrantById(tournament, standings[0].entrantId) : null;
 
@@ -71,23 +104,27 @@ function SwissOverlay({ tournament }: { tournament: TournamentState }) {
           <h1 className="font-display text-5xl font-semibold tracking-tight text-ov-fg uppercase">{tournament.name}</h1>
         </div>
         <div className="text-right">
-          <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">{viewTitle(tournament)}</p>
+          <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">{viewTitle(tournament, preview)}</p>
           <p className="font-display text-2xl font-semibold text-ov-fg uppercase">
-            {leader
-              ? `${tournament.phase === "complete" ? "Champion" : "Leader"} · ${leader.name}`
-              : `Bo${tournament.bestOf}`}
+            {preview
+              ? "Not started"
+              : leader
+                ? `${tournament.phase === "complete" ? "Champion" : "Leader"} · ${leader.name}`
+                : `Bo${tournament.bestOf}`}
           </p>
         </div>
       </header>
 
-      <div className={`mt-6 grid h-[860px] gap-6 ${showRounds ? "grid-cols-[1.1fr_0.9fr]" : ""}`}>
+      <div className={`mt-6 grid h-[860px] gap-6 ${showRounds && !preview ? "grid-cols-[1.1fr_0.9fr]" : ""}`}>
+        {preview ? null : (
         <div className="min-h-0 overflow-hidden">
           <p className="font-mono mb-2 text-[0.65rem] tracking-[0.2em] text-ov-muted uppercase">Standings</p>
           <div className="overflow-hidden rounded-lg border border-ov-fg/10">
-            <div className="grid grid-cols-[2.5rem_1fr_7rem_3.5rem] bg-ov-panel px-3 py-2 font-mono text-[0.6rem] tracking-[0.16em] text-ov-muted uppercase">
+            <div className="grid grid-cols-[2.5rem_1fr_7rem_4.5rem_3.5rem] bg-ov-panel px-3 py-2 font-mono text-[0.6rem] tracking-[0.16em] text-ov-muted uppercase">
               <span>#</span>
               <span>Player</span>
               <span>Record</span>
+              <span>OMW</span>
               <span className="text-right">Pts</span>
             </div>
             {table.map((row, i) => {
@@ -96,7 +133,7 @@ function SwissOverlay({ tournament }: { tournament: TournamentState }) {
                 <div
                   key={row.entrantId}
                   className={cn(
-                    "grid grid-cols-[2.5rem_1fr_7rem_3.5rem] items-center border-t border-ov-fg/10 px-3 py-2",
+                    "grid grid-cols-[2.5rem_1fr_7rem_4.5rem_3.5rem] items-center border-t border-ov-fg/10 px-3 py-2",
                     i === 0 && "bg-game/15",
                   )}
                 >
@@ -108,12 +145,14 @@ function SwissOverlay({ tournament }: { tournament: TournamentState }) {
                   <span className="font-mono tabular-nums text-ov-fg">
                     {row.wins}–{row.losses}–{row.draws}
                   </span>
+                  <span className="font-mono tabular-nums text-ov-muted">{(row.oppMatchWin * 100).toFixed(1)}%</span>
                   <span className="text-right font-mono text-lg tabular-nums text-ov-fg">{row.matchPoints}</span>
                 </div>
               );
             })}
           </div>
         </div>
+        )}
         {showRounds ? (
           <div className="min-h-0 overflow-hidden">
             {groups.map((group) => (
@@ -140,11 +179,11 @@ function SwissOverlay({ tournament }: { tournament: TournamentState }) {
   );
 }
 
-function ElimOverlay({ tournament }: { tournament: TournamentState }) {
+function ElimOverlay({ tournament, preview = false }: { tournament: TournamentState; preview?: boolean }) {
   const view = tournament.overlayView;
   const matches = matchesForView(tournament, view);
   const game = gameOf(tournament.gameId);
-  const champ = championOf(tournament);
+  const champ = preview ? null : championOf(tournament);
   const winners = matches.filter((m) => m.side === "winners" || m.side === "grand");
   const losers = matches.filter((m) => m.side === "losers");
   const winnerRounds = roundsOf(winners);
@@ -162,8 +201,10 @@ function ElimOverlay({ tournament }: { tournament: TournamentState }) {
           </h1>
         </div>
         <div className="text-right">
-          <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">{viewTitle(tournament)}</p>
-          {champ ? (
+          <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">{viewTitle(tournament, preview)}</p>
+          {preview ? (
+            <p className="font-display text-2xl font-semibold text-ov-fg uppercase">Not started</p>
+          ) : champ ? (
             <p className="font-display text-2xl font-semibold text-ov-fg uppercase">Champion · {champ.name}</p>
           ) : (
             <p className="font-display text-2xl font-semibold text-ov-fg uppercase">Bo{tournament.bestOf}</p>

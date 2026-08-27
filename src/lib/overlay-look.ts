@@ -24,6 +24,10 @@ export type OverlayLook = {
   bodyFont: OverlayFontId;
   monoFont: OverlayFontId;
   scale: number;
+  panelAlpha: number;
+  radius: number;
+  tracking: number;
+  uppercase: boolean;
 };
 
 export type OverlayLookBook = {
@@ -97,8 +101,20 @@ export const LOOK_PRESETS: { id: string; label: string; look: Partial<OverlayLoo
       accent: "#8a2e32",
       panel: "#efe6d8",
       live: "#b42318",
-      displayFont: "anton",
-      bodyFont: "source-sans",
+      monoFont: "ibm-plex",
+    },
+  },
+  {
+    id: "rok",
+    label: "ROK",
+    look: {
+      fg: "#f4f4f1",
+      muted: "#c5ccd6",
+      accent: "#e4c56a",
+      panel: "#10131a",
+      live: "#d4534c",
+      displayFont: "barlow",
+      bodyFont: "dm-sans",
       monoFont: "ibm-plex",
     },
   },
@@ -114,6 +130,10 @@ export const DEFAULT_LOOK: OverlayLook = {
   bodyFont: "dm-sans",
   monoFont: "ibm-plex",
   scale: 100,
+  panelAlpha: 100,
+  radius: 12,
+  tracking: 0,
+  uppercase: true,
 };
 
 export const DEFAULT_LOOK_BOOK: OverlayLookBook = { sources: {} };
@@ -130,6 +150,10 @@ export function mergeLook(raw: unknown): OverlayLook {
     bodyFont: isFont(incoming.bodyFont) ? incoming.bodyFont : DEFAULT_LOOK.bodyFont,
     monoFont: isFont(incoming.monoFont) ? incoming.monoFont : DEFAULT_LOOK.monoFont,
     scale: clampScale(typeof incoming.scale === "number" ? incoming.scale : DEFAULT_LOOK.scale),
+    panelAlpha: clampAlpha(typeof incoming.panelAlpha === "number" ? incoming.panelAlpha : DEFAULT_LOOK.panelAlpha),
+    radius: clampRadius(typeof incoming.radius === "number" ? incoming.radius : DEFAULT_LOOK.radius),
+    tracking: clampTracking(typeof incoming.tracking === "number" ? incoming.tracking : DEFAULT_LOOK.tracking),
+    uppercase: incoming.uppercase !== false,
   };
 }
 
@@ -171,7 +195,11 @@ export function looksEqual(a: OverlayLook, b: OverlayLook): boolean {
     a.displayFont === b.displayFont &&
     a.bodyFont === b.bodyFont &&
     a.monoFont === b.monoFont &&
-    a.scale === b.scale
+    a.scale === b.scale &&
+    a.panelAlpha === b.panelAlpha &&
+    a.radius === b.radius &&
+    a.tracking === b.tracking &&
+    a.uppercase === b.uppercase
   );
 }
 
@@ -181,10 +209,12 @@ export function fontStack(id: OverlayFontId): string {
 
 export function lookStyle(look: OverlayLook): Record<string, string> {
   const s = clampScale(look.scale) / 100;
+  const alpha = clampAlpha(look.panelAlpha) / 100;
+  const radius = clampRadius(look.radius);
   return {
     "--color-ov-fg": look.fg,
     "--color-ov-muted": look.muted,
-    "--color-ov-panel": look.panel,
+    "--color-ov-panel": hexAlpha(look.panel, alpha),
     "--color-game": look.accent,
     "--color-live": look.live,
     "--font-display": fontStack(look.displayFont),
@@ -196,6 +226,14 @@ export function lookStyle(look: OverlayLook): Record<string, string> {
     "--text-ov-kicker": `${0.78 * s}rem`,
     "--text-ov-hero": `${6.5 * s}rem`,
     "--ov-scale": String(s),
+    "--ov-tracking": `${clampTracking(look.tracking) / 100}em`,
+    "--ov-radius": `${radius}px`,
+    "--radius-xs": `${Math.max(2, Math.round(radius * 0.33))}px`,
+    "--radius-sm": `${Math.max(4, Math.round(radius * 0.66))}px`,
+    "--radius-md": `${radius}px`,
+    "--radius-lg": `${Math.round(radius * 1.33)}px`,
+    "--radius-xl": `${Math.round(radius * 2)}px`,
+    "--radius": `${radius}px`,
   };
 }
 
@@ -214,4 +252,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function clampScale(value: number): number {
   return Math.min(140, Math.max(70, Math.round(value)));
+}
+
+export function clampAlpha(value: number): number {
+  return Math.min(100, Math.max(40, Math.round(value)));
+}
+
+export function clampRadius(value: number): number {
+  return Math.min(28, Math.max(0, Math.round(value)));
+}
+
+export function clampTracking(value: number): number {
+  return Math.min(16, Math.max(0, Math.round(value)));
+}
+
+export function applyLookToAll(look: OverlayLook, ids: OverlaySourceId[]): OverlayLookBook {
+  const sources: OverlayLookBook["sources"] = {};
+  const next = mergeLook(look);
+  for (const id of ids) sources[id] = next;
+  return { sources };
+}
+
+function hexAlpha(hex: string, alpha: number): string {
+  const raw = hex.replace("#", "");
+  const full = raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw;
+  if (full.length !== 6) return hex;
+  const a = Math.round(Math.min(1, Math.max(0, alpha)) * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `#${full}${a}`;
 }

@@ -38,8 +38,18 @@ import {
 } from "@/lib/layout";
 import { cn } from "@/lib/cn";
 import { useClockNow } from "@/lib/use-clock-now";
+import { NativeSelect } from "@/components/desk/field";
+import { supportsPlayLayout, supportsRokLayout } from "@/lib/games";
+import { isCommanderTable } from "@/lib/desk-types";
 
 const HISTORY_LIMIT = 30;
+const PREVIEW_BGS = [
+  { id: "slate", label: "Slate" },
+  { id: "checker", label: "Checker" },
+  { id: "black", label: "Black" },
+  { id: "playmat", label: "Playmat" },
+] as const;
+type PreviewBg = (typeof PREVIEW_BGS)[number]["id"];
 
 export function OverlayPreview() {
   const desk = useDeskStore((s) => s.desk);
@@ -47,6 +57,7 @@ export function OverlayPreview() {
   const moveWidget = useDeskStore((s) => s.moveWidget);
   const applyLayout = useDeskStore((s) => s.applyLayout);
   const resetLayout = useDeskStore((s) => s.resetLayout);
+  const snapScorebug = useDeskStore((s) => s.snapScorebug);
   const tournament = useTournamentStore((s) => s.tournament);
   const tourneyReady = useTournamentStore((s) => s.ready);
   const hydrateTourney = useTournamentStore((s) => s.hydrate);
@@ -56,6 +67,8 @@ export function OverlayPreview() {
   const [origin, setOrigin] = useState("");
   const [arranging, setArranging] = useState(false);
   const [selected, setSelected] = useState<WidgetId | null>(null);
+  const [previewBg, setPreviewBg] = useState<PreviewBg>("slate");
+  const [safeGuides, setSafeGuides] = useState(false);
   const [past, setPast] = useState<LayoutMap[]>([]);
   const [future, setFuture] = useState<LayoutMap[]>([]);
   const gestureStart = useRef<LayoutMap | null>(null);
@@ -215,13 +228,9 @@ export function OverlayPreview() {
       </div>
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,52rem)_minmax(18rem,1fr)]">
+      <div>
       <div className="checker relative aspect-video overflow-hidden rounded-lg border border-border contain-paint">
-        <img
-          src="/slates/starting.jpg"
-          alt=""
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
-        />
-        <div className="absolute inset-0 bg-ov-bg/25" />
+        <PreviewBackdrop kind={previewBg} />
         <div className="absolute inset-0">
         <ScaleFrame>
           <OverlayLookRoot book={desk.overlayLook} source={source}>
@@ -256,6 +265,62 @@ export function OverlayPreview() {
           </OverlayLookRoot>
         </ScaleFrame>
         </div>
+        {safeGuides ? <SafeGuides /> : null}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <p className="font-mono text-[0.58rem] tracking-[0.16em] text-subtle uppercase">Preview</p>
+        {PREVIEW_BGS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setPreviewBg(item.id)}
+            className={cn(
+              "rounded-md border px-2 py-0.5 text-[0.7rem]",
+              previewBg === item.id
+                ? "border-accent bg-accent text-accent-fg"
+                : "border-border bg-surface-2 text-muted hover:text-fg",
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => setSafeGuides((on) => !on)}
+          className={cn(
+            "rounded-md border px-2 py-0.5 text-[0.7rem]",
+            safeGuides ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface-2 text-muted hover:text-fg",
+          )}
+        >
+          Safe area
+        </button>
+      </div>
+      {!isCommanderTable(desk) && (source === "hud" || source === "scorebug") ? (
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <NativeSelect
+            value={desk.scorebugStyle}
+            onChange={(e) => patch({ scorebugStyle: e.target.value as typeof desk.scorebugStyle })}
+          >
+            <option value="bar">Scorebug · bar</option>
+            <option value="split">Scorebug · split</option>
+            {supportsRokLayout(desk) ? <option value="rok">ROK Layout</option> : null}
+            {supportsPlayLayout(desk) ? <option value="play">Play Layout</option> : null}
+          </NativeSelect>
+          {desk.scorebugStyle === "bar" || desk.scorebugStyle === "split" ? (
+            <NativeSelect
+              value={desk.scorebugPosition}
+              onChange={(e) => snapScorebug(e.target.value as typeof desk.scorebugPosition)}
+            >
+              <option value="bottom">Bottom</option>
+              <option value="top">Top</option>
+            </NativeSelect>
+          ) : (
+            <p className="self-center text-[0.7rem] text-muted">
+              {desk.scorebugStyle === "play" ? "Play Layout" : "ROK Layout"}
+            </p>
+          )}
+        </div>
+      ) : null}
       </div>
 
       <div>
@@ -368,17 +433,13 @@ export function OverlayPreview() {
                 </div>
               </div>
               <div className="checker relative min-h-0 overflow-hidden rounded-xl border border-border contain-paint">
-                <img
-                  src="/slates/starting.jpg"
-                  alt=""
-                  className="absolute inset-0 h-full w-full object-cover opacity-80"
-                />
-                <div className="absolute inset-0 bg-ov-bg/20" />
+                <PreviewBackdrop kind={previewBg} dim />
                 <ScaleFrame>
                   <OverlayLookRoot book={desk.overlayLook} source="hud">
                     <HudView desk={desk} now={now} edit={edit} />
                   </OverlayLookRoot>
                 </ScaleFrame>
+                {safeGuides ? <SafeGuides /> : null}
               </div>
               <p className="mt-2 text-xs text-muted">
                 {selected ? (
@@ -402,5 +463,33 @@ export function OverlayPreview() {
           )
         : null}
     </section>
+  );
+}
+
+function PreviewBackdrop({ kind, dim = false }: { kind: PreviewBg; dim?: boolean }) {
+  if (kind === "checker") {
+    return <div className="absolute inset-0" />;
+  }
+  if (kind === "black") {
+    return <div className="absolute inset-0 bg-black" />;
+  }
+  const src = kind === "playmat" ? "/slates/playmat.jpg" : "/slates/starting.jpg";
+  return (
+    <>
+      <img src={src} alt="" className={cn("absolute inset-0 h-full w-full object-cover", dim ? "opacity-80" : "opacity-90")} />
+      <div className={cn("absolute inset-0", dim ? "bg-ov-bg/20" : "bg-ov-bg/25")} />
+    </>
+  );
+}
+
+function SafeGuides() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20">
+      <div className="absolute inset-[3.5%] rounded-sm border border-dashed border-white/35" />
+      <div className="absolute inset-[5%] rounded-sm border border-white/20" />
+      <p className="absolute top-2 right-2 rounded bg-black/50 px-1.5 py-0.5 font-mono text-[0.58rem] tracking-[0.14em] text-white/70 uppercase">
+        Title safe
+      </p>
+    </div>
   );
 }

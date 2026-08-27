@@ -39,6 +39,7 @@ export const DRAW_ID = "draw";
 
 export const CUT_PRESETS = [4, 6, 8, 16, 32] as const;
 export type CutType = "single" | "double";
+export type TiebreakMode = "auto" | "to";
 
 export function clampCutSize(n: number, field = 128): number {
   if (!Number.isFinite(n) || n <= 0) return 0;
@@ -186,6 +187,8 @@ export type GameDesk = {
   testSnapshot: Record<string, unknown> | null;
   staff: StaffMember[];
   requireDecklist: boolean;
+  tiebreaks: Record<string, number>;
+  tiebreakMode: TiebreakMode;
 };
 
 export type TournamentState = {
@@ -216,6 +219,8 @@ export type TournamentState = {
   testSnapshot: Record<string, unknown> | null;
   staff: StaffMember[];
   requireDecklist: boolean;
+  tiebreaks: Record<string, number>;
+  tiebreakMode: TiebreakMode;
 };
 
 const slotSchema = z.object({
@@ -299,6 +304,8 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   staff: z.array(staffSchema).optional().transform((v) => v ?? []),
   requireDecklist: z.boolean().optional().transform((v) => Boolean(v)),
+  tiebreaks: z.record(z.string(), z.number()).optional().transform((v) => v ?? {}),
+  tiebreakMode: z.enum(["auto", "to"]).optional().transform((v) => (v === "to" ? "to" : "auto")),
 });
 
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
@@ -329,6 +336,8 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   testSnapshot: z.record(z.string(), z.any()).nullable().optional().transform((v) => v ?? null),
   staff: z.array(staffSchema).optional().transform((v) => v ?? []),
   requireDecklist: z.boolean().optional().transform((v) => Boolean(v)),
+  tiebreaks: z.record(z.string(), z.number()).optional().transform((v) => v ?? {}),
+  tiebreakMode: z.enum(["auto", "to"]).optional().transform((v) => (v === "to" ? "to" : "auto")),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -391,6 +400,8 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     testSnapshot: t.testSnapshot,
     staff: t.staff ?? [],
     requireDecklist: Boolean(t.requireDecklist),
+    tiebreaks: t.tiebreaks ?? {},
+    tiebreakMode: t.tiebreakMode === "to" ? "to" : "auto",
   };
 }
 
@@ -431,6 +442,8 @@ export function emptyDesk(gameId: GameId): GameDesk {
     testSnapshot: null,
     staff: [],
     requireDecklist: false,
+    tiebreaks: {},
+    tiebreakMode: "auto",
   };
 }
 
@@ -497,6 +510,15 @@ export function parseTournament(raw: unknown): TournamentState | null {
         : 0,
     cutType: incoming.cutType === "double" ? "double" : "single",
     streamChannel: typeof incoming.streamChannel === "string" ? incoming.streamChannel : "",
+    tiebreaks:
+      incoming.tiebreaks && typeof incoming.tiebreaks === "object" && !Array.isArray(incoming.tiebreaks)
+        ? Object.fromEntries(
+            Object.entries(incoming.tiebreaks as Record<string, unknown>).filter(
+              (row): row is [string, number] => typeof row[1] === "number",
+            ),
+          )
+        : {},
+    tiebreakMode: incoming.tiebreakMode === "to" ? "to" : "auto",
     overlayView:
       incoming.overlayView === "winners" ||
       incoming.overlayView === "losers" ||

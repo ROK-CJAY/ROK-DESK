@@ -19,6 +19,7 @@ import {
   setMatchScore,
   defaultSwissRounds,
   startTopCut,
+  settleTiebreaks,
 } from "@/lib/tournament-bracket";
 import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } from "@/lib/test-fixtures";
 import { remainingSeconds } from "@/lib/desk-types";
@@ -44,6 +45,7 @@ type TournamentStore = {
   generate: () => void;
   pairNext: () => void;
   startCut: () => void;
+  rankTied: (entrantId: string, dir: -1 | 1) => void;
   completeTournament: () => void;
   reopenTournament: () => void;
   resetBracket: () => void;
@@ -300,6 +302,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       streamMatchId: null,
       streamMatchId2: null,
       streamMatchId3: null,
+      tiebreaks: {},
     });
     persist(tournament);
     set({ tournament });
@@ -317,6 +320,15 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   startCut: () => {
     const prev = get().tournament;
     const next = startTopCut(prev);
+    if (next === prev) return;
+    const tournament = nextVersion(next, {});
+    persist(tournament);
+    set({ tournament });
+  },
+
+  rankTied: (entrantId, dir) => {
+    const prev = get().tournament;
+    const next = settleTiebreaks(prev, entrantId, dir);
     if (next === prev) return;
     const tournament = nextVersion(next, {});
     persist(tournament);
@@ -349,6 +361,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       streamMatchId: null,
       streamMatchId2: null,
       streamMatchId3: null,
+      tiebreaks: {},
     });
     persist(tournament);
     set({ tournament });

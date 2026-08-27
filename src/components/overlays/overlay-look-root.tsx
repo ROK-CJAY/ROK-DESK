@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { OverlaySourceId } from "@/components/desk/sources";
 import { lookFor, lookStyle, type OverlayLookBook } from "@/lib/overlay-look";
+import { cn } from "@/lib/cn";
 
 export function OverlayLookRoot({
   book,
@@ -13,8 +14,13 @@ export function OverlayLookRoot({
   className?: string;
   children: ReactNode;
 }) {
+  const look = lookFor(book, source);
   return (
-    <div className={className ?? "h-full w-full"} style={lookStyle(lookFor(book, source)) as CSSProperties}>
+    <div
+      className={cn("h-full w-full", className)}
+      data-ov-case={look.uppercase ? "upper" : "normal"}
+      style={lookStyle(look) as CSSProperties}
+    >
       {children}
     </div>
   );

@@ -198,6 +198,14 @@
   animation: live-pulse 1.6s ease-in-out infinite;
 }
 
+[data-ov-case="normal"] .uppercase {
+  text-transform: none;
+}
+
+[data-ov-case] .font-display {
+  letter-spacing: var(--ov-tracking, 0em);
+}
+
 @keyframes number-in {
   from {
     opacity: 0;

@@ -6,7 +6,11 @@ import {
   DEFAULT_LOOK,
   FONT_OPTIONS,
   LOOK_PRESETS,
+  applyLookToAll,
+  clampAlpha,
+  clampRadius,
   clampScale,
+  clampTracking,
   lookFor,
   looksEqual,
   resetSourceLook,
@@ -14,6 +18,7 @@ import {
   type OverlayLook,
   type OverlayLookBook,
 } from "@/lib/overlay-look";
+import { Switch } from "@/components/ui/switch";
 
 export function LookEditor({
   book,
@@ -36,9 +41,18 @@ export function LookEditor({
     <div className="mt-3 grid gap-3 rounded-lg bg-surface-2 px-3 py-3">
       <div className="flex items-center justify-between gap-2">
         <p className="font-mono text-[0.62rem] tracking-[0.18em] text-muted uppercase">Look · {label}</p>
-        <Button variant="ghost" size="sm" disabled={atDefault} onClick={() => onChange(resetSourceLook(book, source))}>
-          Reset this overlay
-        </Button>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onChange(applyLookToAll(look, OVERLAY_SOURCES.map((s) => s.id)))}
+          >
+            Apply to all
+          </Button>
+          <Button variant="ghost" size="sm" disabled={atDefault} onClick={() => onChange(resetSourceLook(book, source))}>
+            Reset
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-1.5">
         {LOOK_PRESETS.map((preset) => (
@@ -101,17 +115,57 @@ export function LookEditor({
           className="w-full accent-accent"
         />
       </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Panel opacity · {look.panelAlpha}%
+        <input
+          type="range"
+          min={40}
+          max={100}
+          step={5}
+          value={look.panelAlpha}
+          onChange={(e) => set({ panelAlpha: clampAlpha(Number(e.target.value)) })}
+          className="w-full accent-accent"
+        />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Corners · {look.radius}px
+        <input
+          type="range"
+          min={0}
+          max={28}
+          step={2}
+          value={look.radius}
+          onChange={(e) => set({ radius: clampRadius(Number(e.target.value)) })}
+          className="w-full accent-accent"
+        />
+      </label>
+      <label className="grid gap-1 text-xs text-muted">
+        Name tracking · {look.tracking}
+        <input
+          type="range"
+          min={0}
+          max={16}
+          step={1}
+          value={look.tracking}
+          onChange={(e) => set({ tracking: clampTracking(Number(e.target.value)) })}
+          className="w-full accent-accent"
+        />
+      </label>
+      <label className="flex items-center justify-between gap-3 rounded-md bg-surface px-2.5 py-2">
+        <span className="text-xs text-fg">All-caps names</span>
+        <Switch checked={look.uppercase} onCheckedChange={(on) => set({ uppercase: on === true })} />
+      </label>
       <p className="rounded-md bg-surface px-2.5 py-2 text-[0.7rem] leading-relaxed text-muted">
-        Changes save on their own. Nothing to click — this overlay’s look stays on this game and the live source updates in a moment.
+        Changes save on their own. This overlay’s look stays on this game. Apply to all copies it onto every source.
       </p>
       <details className="rounded-md bg-surface px-2.5 py-2">
         <summary className="cursor-pointer text-xs text-fg">How saving works</summary>
         <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[0.7rem] leading-relaxed text-muted">
           <li>Select the overlay you want (Scorebug, Casters, Floor clock, and so on).</li>
-          <li>Change colors, fonts, or size. Each overlay keeps its own look.</li>
+          <li>Change colors, fonts, size, opacity, or corners. Each overlay keeps its own look.</li>
           <li>Leave it. The desk writes the look automatically — no Save button.</li>
           <li>The copied overlay URL for this game picks it up. Refresh OBS / vMix only if a source is cached.</li>
-          <li>Switching games keeps each game’s looks. Reset this overlay only clears the one you’re on.</li>
+          <li>Switching games keeps each game’s looks. Reset only clears the one you’re on.</li>
         </ol>
       </details>
     </div>
@@ -124,7 +178,7 @@ function Swatch({ label, value, onChange }: { label: string; value: string; onCh
       {label}
       <input
         type="color"
-        value={value.length === 7 ? value : "#f4f4f1"}
+        value={value.length >= 7 ? value.slice(0, 7) : "#f4f4f1"}
         onChange={(e) => onChange(e.target.value)}
         className="h-8 w-full cursor-pointer rounded-md border border-border bg-surface p-0.5"
         aria-label={label}

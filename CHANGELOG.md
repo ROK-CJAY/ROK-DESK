@@ -11,6 +11,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 - **Swiss top cut** — after Swiss rounds, cut to Top 4 / 6 / 8 / 16 / 32 or a custom size in single or double elim. Standings seed the cut.
 - **Import JSON** — restore a past event from `tournament.json` (export zip or saved desk state)
 - **Stream channel** — handle or URL on Event. Live badge, starting-soon slate, and floor clock show it
+- Overlay preview: backdrop (slate / checker / black / playmat), title-safe guides, scorebug style on the stage. Look adds panel opacity, corners, name tracking, all-caps, ROK preset, apply-to-all
+- **Pairings preview** — before Start, TO and the bracket overlay show Round 1 / the seeded tree from current seeds. Drag the roster to reshuffle. Empty field still says waiting.
+- **Tiebreakers** — Swiss order is points, OMW%, GW%, OGW%. Remaining ties can be ranked with arrows; that order seeds the top cut
+- **TO tiebreakers** — settle panel plus **TO ranks after points** when the math should not decide (playoff, judge call)
 
 ### Fixed
 
