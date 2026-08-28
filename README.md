@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.7-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.8-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -35,7 +35,8 @@ Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at o
 | Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3, **Play Layout** board |
 | One Piece TCG | `op` | Life, DON!!, Bo1 by default, **Play Layout** |
 | Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3, **Play Layout** |
-| Magic: The Gathering | `mtg` | Life, poison, commander damage; Constructed or Commander / cEDH |
+| Magic: The Gathering | `mtg` | Life, poison; Standard / Modern / Pioneer / Legacy / Pauper |
+| Commander | `edh` | Life, poison, commander damage; Commander / cEDH / Duel. Own overlays, separate from Constructed |
 | Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, **Play Layout** |
 | Star Wars Unlimited | `swu` | Base HP, initiative |
 | Riftbound | `rb` | First-to-8 points |
@@ -256,7 +257,7 @@ Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no cust
 | Match clock | `/{game}/overlay/stream-clock` | `/{game}/2/overlay/stream-clock` | `/{game}/3/overlay/stream-clock` |
 | Stream clock | `/{game}/overlay/stream-clock` | per game, not per table | per game, not per table |
 
-Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
+Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `edh`, `lorcana`, `swu`, `rb`.
 
 **ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, One Piece, Riftbound, and SWU have the same frame with their own card backs.
 
@@ -264,7 +265,7 @@ Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `lorcana`, `swu`, `rb`.
 
 - **VGC** (default): top bar with **names, games, and W/L/D on top** and both teams underneath. Rounded transparent player cams on the ends (put player cams under the overlay in OBS). Event logo in the spine (ROK mark until you upload one), round under the logo. Bar / split remain available.
 - **OP** (default): table cam in the middle. Side player cams (transparent wells) with names, life / DON!! / games, and a card well (official card back until **Show P1 / Show P2**). Round and clock in the top corners. **Sponsors** bottom left, **event logo** bottom right. ROK Layout remains available.
-- **Lorcana** (default): square full-height rails. Transparent player cams, name, reserved ink slots (fill when chosen), game diamonds, W/L/D, lore track 20–1 (WIN / START), card well (official back until **Show P1 / Show P2**). Event logo + **phase · round** + clock at the top center. ROK Layout remains available.
+- **Lorcana** (default): square full-height rails. **Transparent player cams** (silver frame only — put player cams under the overlay in OBS), name, reserved ink slots (fill when chosen), game diamonds, W/L/D, lore track 20–1 (WIN / START), card well (official back until **Show P1 / Show P2**). Event logo + **phase · round** + clock at the top center. ROK Layout remains available.
 - **PTCG** (default): full-height rails with Active illustration, five bench slots, prizes inline with the player name, W/L/D, country. Energy / Supporter / Retreat start ON. HP bars go green → orange at 30% → red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench.
 - **YGO** (default): full-height rails with **Feature Duelist** spine, **rounded transparent player camera wells** (put player cams under the overlay in OBS), deck type, extra-deck-style card well. Top bar is games · LP · clock · LP · games. Bottom ticker is event · format · round. **Show P1 / Show P2** from card search fills that player’s well — the two wells are independent. No music / now-playing chrome. ROK Layout remains available.
 
@@ -312,7 +313,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.2.7-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.7-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
+1. Download **v1.2.8-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.8-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -363,7 +364,7 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
-### Unreleased
+### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
 
 **Added**
 - Swiss **top cut** after Swiss rounds (Top 4 / 6 / 8 / 16 / 32 or custom, single or double elim)
@@ -372,11 +373,13 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 - **Browser profiles** (Desk by default) and a session that continues where you left off. Desktop data lives in `ROK Desk Browser` so uninstall does not wipe logins
 - **MTG combo stack** — Show, then Layer (up to 5). Same size as the card back until a second card is added
 - Arrange opens the overlay you picked, not always the HUD pack
+- **MTG vs Commander** — Constructed and Commander are separate titles (`/mtg` vs `/edh`) with their own overlays
 
 **Fixed**
 - Tournament name is per game. Switching titles no longer carries the last show name
 - Export zip includes event.csv and the rest of the roster/match/team fields; other titles with a field are in their own folders
 - Arrange grid closes on the right; widgets stay on the 1920×1080 canvas
+- Lorcana Play Layout camera wells are transparent
 
 ### v1.2.7-beta — 27 Aug 2026 · hotfix: clock titles
 
@@ -558,4 +561,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.7-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.8-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

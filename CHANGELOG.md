@@ -6,6 +6,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+## v1.2.8-beta — 2026-08-28
+
+Commander is its own title. Browser profiles. MTG combo stack. Arrange the overlay you picked.
+
 ### Added
 
 - **Swiss top cut** — after Swiss rounds, cut to Top 4 / 6 / 8 / 16 / 32 or a custom size in single or double elim. Standings seed the cut.
@@ -16,18 +20,18 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 - **Tiebreakers** — Swiss order is points, OMW%, GW%, OGW%. Remaining ties can be ranked with arrows; that order seeds the top cut
 - **TO tiebreakers** — settle panel plus **TO ranks after points** when the math should not decide (playoff, judge call)
 - **Browser session** — tabs, bookmarks, history, and settings persist when you leave Browser and come back (continue where you left off)
-- **Browser profiles** — Desk by default; add named profiles with isolated bookmarks/tabs. Desktop also isolates cookies and logins per profile
+- **Browser profiles** — Desk by default; add named profiles with isolated bookmarks/tabs. Desktop also isolates cookies and logins per profile. Chip is an avatar + name, not a native select
 - **Browser data survives uninstall** — profiles, cookies, and bookmarks live in a `ROK Desk Browser` folder outside the app install
 - **MTG combo stack** — Show a card, then Layer the next one on stream. Up to 5 cards, same size as the card back; cascade only after the second card. Replace / Pop last / Clear
 - **Arrange the selected overlay** — Arrange opens Casters, Clock, etc., not always the HUD pack
+- **MTG vs Commander** — Constructed (`/mtg`) and Commander / cEDH (`/edh`) are separate titles with their own overlays, lanes, and tournaments. Run both on one host.
 
 ### Fixed
 
 - Tournament name is per game. Switching titles no longer carries the last show name
 - Export zip writes every CSV (event, staff, decklists, judge notes, full VGC teams) and includes other games that have a field
 - Arrange grid has a right/bottom edge. Widgets clamp to the canvas so they cannot hang off the right
-
-
+- Lorcana Play Layout camera wells are transparent (silver frame only). Player cams sit under them in OBS
 
 ## v1.2.7-beta — 2026-08-27
 

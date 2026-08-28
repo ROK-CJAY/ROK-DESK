@@ -1,4 +1,4 @@
-import { coerceGameId } from "@/lib/games";
+import { coerceDeskGameId } from "@/lib/games";
 import {
   DRAW_ID,
   STAFF_ROLES,
@@ -65,7 +65,7 @@ function reconstructFromExport(row: Record<string, unknown>): TournamentState | 
   const players = asList(row.players);
   if (!event || players.length === 0 && asList(row.matches).length === 0 && !text(event.name)) return null;
   const base = defaultTournament();
-  const gameId = coerceGameId(event.gameId, base.gameId);
+  const gameId = coerceDeskGameId(event.gameId, event.formatName, base.gameId);
   const bracketType: BracketType =
     event.bracketType === "double" || event.bracketType === "swiss" ? event.bracketType : "single";
   const phase: TournamentPhase =

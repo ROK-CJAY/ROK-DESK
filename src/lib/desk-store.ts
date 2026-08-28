@@ -482,14 +482,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   },
 
   applyMtgLane: (lane) => {
-    const prev = get().desk;
-    if (prev.gameId !== "mtg") {
-      get().applyGame("mtg");
-    }
-    const game = gameOf("mtg");
-    const preset =
-      game.formats.find((f) => (f.family ?? "constructed") === lane) ?? game.formats[0];
-    if (preset) get().applyFormat(preset);
+    get().applyGame(lane === "commander" ? "mtg-commander" : "mtg");
   },
 
   loadStreamMatch: (payload) => {

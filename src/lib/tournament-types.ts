@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type BestOf, type GameId, GAME_LIST, coerceGameId, gameOf } from "@/lib/games";
+import { type BestOf, type GameId, GAME_LIST, coerceDeskGameId, gameOf } from "@/lib/games";
 import { mergeTeam, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
 import { mergeDecklist, type DeckCard } from "@/lib/decklist";
 
@@ -312,7 +312,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   version: z.number(),
   name: z.string(),
   streamChannel: z.string().optional().transform((v) => v ?? ""),
-  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
+  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
   size: z.number().int().min(2).max(128),
@@ -535,7 +535,7 @@ export function parseTournament(raw: unknown): TournamentState | null {
         ? incoming.bracketType
         : base.bracketType,
     size: typeof incoming.size === "number" ? clampBracketSize(incoming.size) : base.size,
-    gameId: coerceGameId(incoming.gameId, base.gameId),
+    gameId: coerceDeskGameId(incoming.gameId, incoming.formatName, base.gameId),
     entrants: Array.isArray(incoming.entrants) ? incoming.entrants : base.entrants,
     matches: Array.isArray(incoming.matches) ? incoming.matches : base.matches,
     staff: Array.isArray(incoming.staff) ? incoming.staff : base.staff,

@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, formatsInFamily, currentFamily, isCommanderLane, casterTabletPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, isCommanderLane, isMtgTitle, casterTabletPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -35,8 +35,7 @@ export function EventPanel() {
   const setResourceCap = useDeskStore((s) => s.setResourceCap);
   const loadTestMode = useDeskStore((s) => s.loadTestMode);
   const game = gameOf(desk.gameId);
-  const family = currentFamily(desk);
-  const formatOptions = desk.gameId === "mtg" ? formatsInFamily(game, family) : game.formats;
+  const formatOptions = game.formats;
   const formatValue = formatOptions.some((f) => f.label === desk.formatName)
     ? desk.formatName
     : (formatOptions[0]?.label ?? desk.formatName);
@@ -551,7 +550,7 @@ export function ShowPanel() {
             onCheckedChange={(showResources) => patch({ showResources })}
           />
         </div>
-        {desk.gameId === "pokemon-tcg" || desk.gameId === "mtg" ? (
+        {desk.gameId === "pokemon-tcg" || isMtgTitle(desk.gameId) ? (
           <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
             <div className="min-w-0">
               <p className="text-sm">Card overlay</p>
@@ -602,7 +601,7 @@ export function ShowPanel() {
           </NativeSelect>
           {desk.scorebugStyle === "rok" ? (
             <p className="self-center text-[0.7rem] text-muted">
-              {desk.gameId === "mtg"
+              {isMtgTitle(desk.gameId)
                 ? "Cameras, life, poison, W/L/D, Best-of diamonds, clock, Magic card well."
                 : desk.gameId === "yugioh"
                   ? "Cameras, LP, W/L/D, Best-of diamonds, clock, Yu-Gi-Oh! card well."
@@ -674,9 +673,7 @@ export function ShowPanel() {
 
 export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
   const desk = useDeskStore((s) => s.desk);
-  const applyMtgLane = useDeskStore((s) => s.applyMtgLane);
   const applyMatchSlot = useDeskStore((s) => s.applyMatchSlot);
-  const commander = isCommanderLane(desk);
   const slot = (desk.matchSlot ?? 1) as MatchSlot;
 
   return (
@@ -717,32 +714,6 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
             </button>
           ))}
         </div>
-      {desk.gameId === "mtg" ? (
-        <div className="flex gap-1.5">
-          <button
-            type="button"
-            onClick={() => applyMtgLane("constructed")}
-            className={`rounded-md border px-3 py-1 text-xs font-medium tracking-wide ${
-              !commander
-                ? "border-accent bg-accent text-accent-fg"
-                : "border-border bg-surface-2 text-muted hover:text-fg"
-            }`}
-          >
-            Constructed
-          </button>
-          <button
-            type="button"
-            onClick={() => applyMtgLane("commander")}
-            className={`rounded-md border px-3 py-1 text-xs font-medium tracking-wide ${
-              commander
-                ? "border-accent bg-accent text-accent-fg"
-                : "border-border bg-surface-2 text-muted hover:text-fg"
-            }`}
-          >
-            Commander
-          </button>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -840,7 +811,7 @@ export function PodPanel() {
   const commander = isCommanderTable(desk) || isCommanderLane(desk);
   const vgc = desk.gameId === "pokemon-vgc";
   const tcg = desk.gameId === "pokemon-tcg";
-  const mtg = desk.gameId === "mtg";
+  const mtg = isMtgTitle(desk.gameId);
   const swu = desk.gameId === "swu";
   const ygo = desk.gameId === "yugioh";
   const op = desk.gameId === "one-piece";

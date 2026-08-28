@@ -46,6 +46,7 @@ export function catalogForGame(gameId: GameId): LookupCatalog | null {
     case "pokemon-tcg":
       return "ptcg";
     case "mtg":
+    case "mtg-commander":
       return "mtg";
     case "swu":
       return "swu";

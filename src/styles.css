@@ -157,6 +157,9 @@
 [data-game="mtg"] {
   --color-game: var(--color-game-mtg);
 }
+[data-game="mtg-commander"] {
+  --color-game: var(--color-game-mtg);
+}
 [data-game="lorcana"] {
   --color-game: var(--color-game-lorcana);
 }

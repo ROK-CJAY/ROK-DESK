@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, playerIdField, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, playerIdField, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
 import { catalogForGame } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { decklistCount } from "@/lib/decklist";
@@ -657,7 +657,7 @@ function StreamPanel() {
             </a>
           </Button>
         ))}
-        {t.gameId === "mtg" || t.gameId === "lorcana" || t.gameId === "yugioh"
+        {isMtgTitle(t.gameId) || t.gameId === "lorcana" || t.gameId === "yugioh"
           ? MATCH_SLOTS.map((slot) => (
               <Button key={`player-${slot}`} variant="secondary" size="sm" className="w-full" asChild>
                 <a href={playerTabletPath(t.gameId, slot)} target="_blank" rel="noreferrer">

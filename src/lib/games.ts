@@ -4,6 +4,7 @@ export const GAME_IDS = [
   "one-piece",
   "yugioh",
   "mtg",
+  "mtg-commander",
   "lorcana",
   "swu",
   "riftbound",
@@ -207,6 +208,31 @@ export const GAME_LIST: GameDef[] = [
       { id: "legacy", label: "Legacy", family: "constructed" },
       { id: "pauper", label: "Pauper", family: "constructed" },
       { id: "prerelease", label: "Pre-release (Sealed)", family: "constructed", bestOf: 1 },
+    ],
+  },
+  {
+    id: "mtg-commander",
+    name: "Commander",
+    short: "EDH",
+    category: "TCG",
+    resource: {
+      kind: "life",
+      label: "Life",
+      shortLabel: "LIFE",
+      min: 0,
+      max: 999,
+      start: 40,
+      step: 1,
+      invertWin: true,
+      pips: false,
+    },
+    secondary: { label: "Poison", min: 0, max: 10, start: 0, step: 1 },
+    extraLabel: "Commander",
+    extraPlaceholder: "Search Atraxa, Kinnan…",
+    scoreLabel: "Games",
+    defaultBestOf: 1,
+    defaultScorebug: "bar",
+    formats: [
       {
         id: "commander",
         label: "Commander",
@@ -339,6 +365,7 @@ export const GAME_SLUG: Record<GameId, string> = {
   "one-piece": "op",
   yugioh: "ygo",
   mtg: "mtg",
+  "mtg-commander": "edh",
   lorcana: "lorcana",
   swu: "swu",
   riftbound: "rb",
@@ -350,6 +377,9 @@ const RETIRED_GAMES: Record<string, GameId> = {
   generic: "pokemon-tcg",
   ua: "pokemon-tcg",
   tt: "pokemon-tcg",
+  commander: "mtg-commander",
+  cedh: "mtg-commander",
+  edh: "mtg-commander",
 };
 
 const SLUG_TO_GAME = Object.fromEntries(
@@ -457,6 +487,7 @@ export function playerIdField(gameId: GameId): PlayerIdField {
         policyUrl: "https://legal.konami.com/kde/privacy/en-us/",
       };
     case "mtg":
+    case "mtg-commander":
       return {
         label: "Wizards / PlayMTG ID",
         placeholder: "Wizards account ID",
@@ -499,7 +530,28 @@ export function playerIdField(gameId: GameId): PlayerIdField {
   }
 }
 
+export function isMtgTitle(gameId: GameId): boolean {
+  return gameId === "mtg" || gameId === "mtg-commander";
+}
+
+const COMMANDER_FORMAT_LABELS = new Set(["Commander", "cEDH", "Duel Commander"]);
+
+export function coerceDeskGameId(value: unknown, formatName?: unknown, fallback: GameId = "pokemon-tcg"): GameId {
+  if (typeof value === "string") {
+    const key = value.trim().toLowerCase();
+    if (key === "edh" || key === "commander" || key === "cedh" || key === "mtg-commander") {
+      return "mtg-commander";
+    }
+  }
+  const id = coerceGameId(value, fallback);
+  if (id === "mtg" && typeof formatName === "string" && COMMANDER_FORMAT_LABELS.has(formatName)) {
+    return "mtg-commander";
+  }
+  return id;
+}
+
 export function isCommanderLane(desk: { gameId: GameId; formatName: string }): boolean {
+  if (desk.gameId === "mtg-commander") return true;
   return desk.gameId === "mtg" && currentFamily(desk) === "commander";
 }
 
@@ -525,14 +577,14 @@ export function supportsPlayLayout(desk: { gameId: GameId }): boolean {
 
 export function supportsRokLayout(desk: { gameId: GameId; formatName?: string }): boolean {
   if (!ROK_LAYOUT_GAMES.includes(desk.gameId)) return false;
-  if (desk.gameId === "mtg" && desk.formatName && isCommanderLane({ gameId: "mtg", formatName: desk.formatName })) {
+  if (desk.formatName && isCommanderLane({ gameId: desk.gameId, formatName: desk.formatName })) {
     return false;
   }
   return true;
 }
 
 export function isCommanderPodFormat(gameId: GameId, formatName: string): boolean {
-  if (gameId !== "mtg") return false;
+  if (!isMtgTitle(gameId)) return false;
   const preset = gameOf(gameId).formats.find((f) => f.label === formatName);
   return preset?.family === "commander" && (preset.seats ?? 2) >= 4;
 }

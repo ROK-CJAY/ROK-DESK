@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type BestOf, type GameId, type ScorebugStyle, coerceGameId, gameOf } from "@/lib/games";
+import { type BestOf, type GameId, type ScorebugStyle, coerceDeskGameId, gameOf } from "@/lib/games";
 import { DEFAULT_LAYOUT, mergeLayout, type LayoutMap } from "@/lib/layout";
 import { DEFAULT_LOOK_BOOK, mergeLookBook, type OverlayLookBook } from "@/lib/overlay-look";
 import { type Sponsor } from "@/lib/sponsors";
@@ -240,7 +240,7 @@ const casterSchema: z.ZodType<Caster> = z.object({
 
 export const deskSchema: z.ZodType<DeskState> = z.object({
   version: z.number(),
-  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "lorcana", "swu", "riftbound"]),
+  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
   matchSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().transform((v) => (v === 2 || v === 3 ? v : 1)),
   eventName: z.string(),
   streamChannel: z.string().optional().transform((v) => v ?? ""),
@@ -595,7 +595,7 @@ export function parseDesk(raw: unknown): DeskState | null {
   const merged = {
     ...base,
     ...incoming,
-    gameId: coerceGameId(incoming.gameId, base.gameId),
+    gameId: coerceDeskGameId(incoming.gameId, incoming.formatName, base.gameId),
     matchSlot: incoming.matchSlot === 2 || incoming.matchSlot === 3 ? incoming.matchSlot : 1,
     p1: mergePlayer(base.p1, incoming.p1),
     p2: mergePlayer(base.p2, incoming.p2),

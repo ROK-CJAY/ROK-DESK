@@ -26,8 +26,8 @@ function CameraWell({ player, seat }: { player: PlayerSide; seat: "P1" | "P2" })
         <img src={photo} alt="" className="absolute inset-0 size-full object-cover" />
       ) : null}
       <div
-        className="pointer-events-none absolute inset-0 bg-transparent"
-        style={{ border: `3px solid ${SILVER}`, background: "none" }}
+        className="pointer-events-none absolute inset-0"
+        style={{ border: `3px solid ${SILVER}`, background: "transparent" }}
       />
       <span
         className="absolute right-2 bottom-2 font-mono text-[0.72rem] tracking-[0.18em] text-white uppercase"
@@ -181,19 +181,21 @@ function Rail({
   const record = formatRecord(player.recordW, player.recordL, player.recordD);
   return (
     <div className={cn("absolute inset-y-0 flex", right ? "right-0 flex-row-reverse" : "left-0")}>
-      <div className="flex h-full flex-col overflow-hidden" style={{ width: INFO_W, background: RAIL_BG }}>
+      <div className="flex h-full flex-col overflow-hidden bg-transparent" style={{ width: INFO_W }}>
         <CameraWell player={player} seat={right ? "P2" : "P1"} />
-        <div className="flex shrink-0 flex-col items-center gap-1.5 px-3 pt-2 pb-1">
-          <p className="font-display w-full truncate text-center text-[2.05rem] leading-[1.05] font-semibold tracking-wide text-white uppercase">
-            {player.name || (right ? "Player 2" : "Player 1")}
-          </p>
-          <InkRow player={player} />
-          <Diamonds won={player.score} needed={needed} />
-          <p className="font-mono text-[0.95rem] tracking-[0.14em] text-white/70 uppercase">
-            <FadeValue value={record} />
-          </p>
+        <div className="flex min-h-0 flex-1 flex-col" style={{ background: RAIL_BG }}>
+          <div className="flex shrink-0 flex-col items-center gap-1.5 px-3 pt-2 pb-1">
+            <p className="font-display w-full truncate text-center text-[2.05rem] leading-[1.05] font-semibold tracking-wide text-white uppercase">
+              {player.name || (right ? "Player 2" : "Player 1")}
+            </p>
+            <InkRow player={player} />
+            <Diamonds won={player.score} needed={needed} />
+            <p className="font-mono text-[0.95rem] tracking-[0.14em] text-white/70 uppercase">
+              <FadeValue value={record} />
+            </p>
+          </div>
+          <CardSlot desk={desk} side={side} />
         </div>
-        <CardSlot desk={desk} side={side} />
       </div>
       <LoreTrack value={player.resource} max={max} />
     </div>

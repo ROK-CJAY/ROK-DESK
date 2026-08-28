@@ -18,7 +18,7 @@ import { PtcgBoardPanel } from "@/components/desk/ptcg-board-panel";
 import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
-import { gameOf, type GameId } from "@/lib/games";
+import { gameOf, isMtgTitle, type GameId } from "@/lib/games";
 
 export function DeskApp() {
   const hydrate = useDeskStore((s) => s.hydrate);
@@ -34,7 +34,7 @@ export function DeskApp() {
   const showTablet =
     desk.gameId === "pokemon-vgc" ||
     desk.gameId === "pokemon-tcg" ||
-    desk.gameId === "mtg" ||
+    isMtgTitle(desk.gameId) ||
     desk.gameId === "swu" ||
     desk.gameId === "yugioh" ||
     desk.gameId === "one-piece" ||
@@ -112,6 +112,7 @@ function catalogForGame(gameId: GameId) {
     case "pokemon-tcg":
       return "ptcg" as const;
     case "mtg":
+    case "mtg-commander":
       return "mtg" as const;
     case "swu":
       return "swu" as const;

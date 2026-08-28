@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, CircleUser, ExternalLink, Globe, Minus, MoreVertical, Plus, RotateCw, Star, Trash2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, ExternalLink, Globe, Minus, MoreVertical, Plus, RotateCw, Star, Trash2, X } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
@@ -572,6 +572,8 @@ export function InAppBrowser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [desktop, settings.zoom]);
 
+  const activeProfile = profiles.find((row) => row.id === profileId) ?? DESK_PROFILE;
+
   return (
     <div className="flex min-h-dvh flex-col bg-bg text-fg">
       <AppChrome view="browser" eyebrow={panel === "settings" ? "Settings" : title === "Browser" || title === "New Tab" ? "Browser" : title} />
@@ -613,10 +615,16 @@ export function InAppBrowser() {
               setMoreOpen(false);
             }}
             aria-label="Browser profile"
+            aria-expanded={profileOpen}
           >
-            <span className="size-2.5 rounded-full" style={{ background: profiles.find((row) => row.id === profileId)?.color ?? DESK_PROFILE.color }} />
-            <CircleUser className="size-3.5 text-muted" />
-            <span className="max-w-[7rem] truncate">{profiles.find((row) => row.id === profileId)?.name ?? "Desk"}</span>
+            <span
+              className="grid size-5 shrink-0 place-items-center rounded-full text-[0.65rem] font-semibold text-black"
+              style={{ background: activeProfile.color }}
+            >
+              {activeProfile.name.trim().charAt(0).toUpperCase() || "D"}
+            </span>
+            <span className="max-w-[7rem] truncate">{activeProfile.name}</span>
+            <ChevronDown className="size-3.5 text-muted" />
           </button>
           {profileOpen ? (
             <div className="absolute right-0 z-50 mt-1 w-64 rounded-md border border-border bg-surface py-1 shadow-lg">

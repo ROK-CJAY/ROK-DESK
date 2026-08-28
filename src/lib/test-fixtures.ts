@@ -55,6 +55,16 @@ const DECKS: Record<GameId, string[]> = {
     "Boros Energy",
     "Golgari Midrange",
   ],
+  "mtg-commander": [
+    "Atraxa, Praetors' Voice",
+    "Kinnan, Bonder Prodigy",
+    "Kenrith, the Returned King",
+    "Tymna the Weaver",
+    "Winota, Joiner of Forces",
+    "Najeela, the Blade-Blossom",
+    "Korvold, Fae-Cursed King",
+    "Yoshimaru, Ever Faithful",
+  ],
   yugioh: [
     "Snake-Eye",
     "Tenpai Dragon",
