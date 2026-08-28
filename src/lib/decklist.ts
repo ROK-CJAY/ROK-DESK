@@ -92,3 +92,20 @@ export function lookupFromDeck(card: DeckCard): LookupCard {
     type: card.type || undefined,
   };
 }
+
+export function filterDecklist(list: DeckCard[] | undefined, query: string): DeckCard[] {
+  const rows = list ?? [];
+  const q = query.trim().toLowerCase();
+  if (!q) return rows;
+  return rows.filter(
+    (card) =>
+      card.name.toLowerCase().includes(q) ||
+      card.set.toLowerCase().includes(q) ||
+      card.number.toLowerCase().includes(q) ||
+      card.type.toLowerCase().includes(q),
+  );
+}
+
+export function hasSavedDecklist(players: { decklist?: DeckCard[] }[]): boolean {
+  return players.some((player) => (player.decklist ?? []).length > 0);
+}

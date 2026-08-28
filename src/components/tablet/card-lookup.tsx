@@ -31,7 +31,7 @@ import {
   visibleCardStack,
   type SeatId,
 } from "@/lib/desk-types";
-import { lookupFromDeck, type DeckCard } from "@/lib/decklist";
+import { lookupFromDeck, filterDecklist, hasSavedDecklist, type DeckCard } from "@/lib/decklist";
 import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
@@ -62,6 +62,7 @@ export function CardLookup({
   const ready = useDeskStore((s) => s.ready);
   const [query, setQuery] = useState("");
   const [liveOnly, setLiveOnly] = useState(true);
+  const [scope, setScope] = useState<"match" | "catalog">("catalog");
   const [results, setResults] = useState<LookupCard[]>([]);
   const [selected, setSelected] = useState<LookupCard | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -89,12 +90,24 @@ export function CardLookup({
   const op = catalog === "op";
   const rift = catalog === "rift";
   const lorcana = catalog === "lorcana";
+  const matchPlayers = [p1, p2, p3, p4].slice(0, Math.max(2, tableSize));
+  const hasMatchDeck = hasSavedDecklist(matchPlayers);
+  const matchScope = hasMatchDeck && scope === "match";
 
   useEffect(() => {
     if (!ready) void hydrate();
   }, [ready, hydrate]);
 
   useEffect(() => {
+    setScope(hasMatchDeck ? "match" : "catalog");
+  }, [hasMatchDeck, catalog]);
+
+  useEffect(() => {
+    if (matchScope) {
+      setResults([]);
+      setStatus("idle");
+      return;
+    }
     const q = query.trim();
     if (q.length < 2) {
       setResults([]);
@@ -132,7 +145,7 @@ export function CardLookup({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat]);
+  }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat, matchScope]);
 
   useEffect(() => {
     setQuery("");
@@ -279,6 +292,8 @@ export function CardLookup({
                 : catalog === "ygo" || catalog === "op" || catalog === "lorcana"
                   ? "Search a card, then Show P1 or Show P2 in that player’s well."
                   : "Search, pick a card, then Show on stream."
+              : hasMatchDeck
+                ? "This match is the submitted lists. Catalog is the full search."
               : mtg
               ? "Search a card, Show on stream, then pick the next piece and hit Layer. Each layer sits slightly lower on top."
               : swu
@@ -296,7 +311,17 @@ export function CardLookup({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <GuideButton onClick={guide.openGuide} />
-          {swu || op || rift || lorcana ? null : (
+          {hasMatchDeck ? (
+            <div className="flex rounded-md bg-surface-2 p-0.5">
+              <FilterChip active={scope === "match"} onClick={() => setScope("match")}>
+                This match
+              </FilterChip>
+              <FilterChip active={scope === "catalog"} onClick={() => setScope("catalog")}>
+                Catalog
+              </FilterChip>
+            </div>
+          ) : null}
+          {matchScope || swu || op || rift || lorcana ? null : (
           <div className="flex rounded-md bg-surface-2 p-0.5">
             <FilterChip active={liveOnly} onClick={() => setLiveOnly(true)}>
               {mtg && legal ? formatName : ygo && ygoFormat ? formatName : "Live"}
@@ -314,7 +339,9 @@ export function CardLookup({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={
-            mtg
+            matchScope
+              ? "Filter this match’s lists…"
+              : mtg
               ? "Search Sol Ring, Swords to Plowshares…"
               : swu
                 ? "Search Vader, Force Throw, Superlaser…"
@@ -342,7 +369,16 @@ export function CardLookup({
         players={{ p1, p2, p3, p4, tableSize }}
         query={query}
         selectedId={selected?.id}
+        compact={compact}
+        asResults={matchScope}
         onPick={(card) => void openCard(lookupFromDeck(card))}
+        onShow={
+          mtg
+            ? (card) => void pushToStream(lookupFromDeck(card))
+            : undefined
+        }
+        layerLabel={stack.length >= CARD_STACK_MAX ? "Full" : stack.length ? "Layer" : "Show"}
+        layerDisabled={stack.length >= CARD_STACK_MAX}
       />
       {selected ? (
         <CardDetail
@@ -382,11 +418,11 @@ export function CardLookup({
           onBenchP2={() => void setBench(selected, "p2")}
         />
       ) : null}
-      {status === "loading" ? (
+      {matchScope ? null : status === "loading" ? (
         <p className="mt-4 text-sm text-muted">Searching…</p>
-      ) : status === "error" ? (
+      ) : matchScope ? null : status === "error" ? (
         <p className="mt-4 text-sm text-live">Lookup failed. Try again.</p>
-      ) : results.length > 0 ? (
+      ) : matchScope ? null : results.length > 0 ? (
         <ul className={cn("mt-3 min-h-0 flex-1 space-y-1 overflow-auto", compact && "max-h-72")}>
           {results.map((card) => (
             <li key={card.id} className="flex items-center gap-1">
@@ -427,9 +463,9 @@ export function CardLookup({
             </li>
           ))}
         </ul>
-      ) : query.trim().length >= 2 ? (
+      ) : matchScope ? null : query.trim().length >= 2 ? (
         <p className="mt-4 text-sm text-muted">No cards matched.</p>
-      ) : (
+      ) : matchScope ? null : (
         <p className="mt-4 text-sm text-muted">
           {mtg
             ? `Type at least two letters. ${legal ? `${formatName} filters to cards legal in this event.` : "All printings searches the full Scryfall catalog."}`
@@ -523,6 +559,11 @@ function MatchDeckStrip({
   query,
   selectedId,
   onPick,
+  onShow,
+  layerLabel,
+  layerDisabled,
+  compact,
+  asResults,
 }: {
   players: {
     p1: { name: string; decklist?: DeckCard[] };
@@ -534,22 +575,97 @@ function MatchDeckStrip({
   query: string;
   selectedId?: string;
   onPick: (card: DeckCard) => void;
+  onShow?: (card: DeckCard) => void;
+  layerLabel?: string;
+  layerDisabled?: boolean;
+  compact?: boolean;
+  asResults?: boolean;
 }) {
-  const q = query.trim().toLowerCase();
   const seats = (["p1", "p2", "p3", "p4"] as const).slice(0, Math.max(2, players.tableSize));
   const groups = seats
     .map((seat, i) => {
       const player = players[seat];
-      const cards = (player.decklist ?? []).filter((card) =>
-        q.length < 1
-          ? true
-          : card.name.toLowerCase().includes(q) || card.set.toLowerCase().includes(q) || card.number.toLowerCase().includes(q),
-      );
+      const cards = filterDecklist(player.decklist, query);
       if (!cards.length && !(player.decklist ?? []).length) return null;
-      return { seat, label: player.name || `Player ${i + 1}`, cards };
+      return { seat, label: player.name || `Player ${i + 1}`, cards, total: (player.decklist ?? []).length };
     })
-    .filter((row): row is { seat: SeatId; label: string; cards: DeckCard[] } => Boolean(row));
+    .filter((row): row is { seat: SeatId; label: string; cards: DeckCard[]; total: number } => Boolean(row));
   if (!groups.length) return null;
+
+  if (asResults) {
+    const anyCards = groups.some((group) => group.cards.length);
+    return (
+      <div className="mt-3">
+        <p className="font-mono text-[0.58rem] tracking-[0.14em] text-muted uppercase">This match</p>
+        <div className="mt-1.5 max-h-[20rem] space-y-2 overflow-y-auto overscroll-contain">
+          {groups.map((group) => (
+            <div key={group.seat}>
+              <p className="sticky top-0 z-10 truncate bg-surface py-1 text-xs text-muted">
+                {group.label}
+                <span className="font-mono">
+                  {" "}
+                  · {group.cards.length}
+                  {query.trim() ? ` / ${group.total}` : ""}
+                </span>
+              </p>
+              {group.cards.length ? (
+                <ul className="space-y-1">
+                  {group.cards.map((card) => (
+                    <li key={`${group.seat}-${card.id}`} className="flex h-16 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onPick(card)}
+                        className={cn(
+                          "flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1.5 text-left",
+                          selectedId === card.id ? "bg-accent/15 text-fg" : "hover:bg-surface-2",
+                        )}
+                      >
+                        {card.image || card.id ? (
+                          <RemoteArt
+                            image={card.image}
+                            id={card.id}
+                            size="low"
+                            className="h-12 w-9 shrink-0 rounded-sm object-cover"
+                          />
+                        ) : (
+                          <span className="grid h-12 w-9 shrink-0 place-items-center rounded-sm bg-surface text-[0.6rem] text-muted">
+                            —
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-medium">{card.name}</span>
+                          <span className="block truncate text-xs text-muted">
+                            {[`${card.qty}×`, card.type, card.set, card.number].filter(Boolean).join(" · ")}
+                          </span>
+                        </span>
+                      </button>
+                      {onShow ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="mr-1 shrink-0"
+                          disabled={layerDisabled}
+                          onClick={() => onShow(card)}
+                        >
+                          {layerLabel ?? "Show"}
+                        </Button>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-[0.7rem] text-subtle">No cards in this list match.</p>
+              )}
+            </div>
+          ))}
+          {!anyCards ? (
+            <p className="text-sm text-muted">Nothing matched. Try Catalog.</p>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-3 rounded-lg border border-border/70 bg-surface-2/50 p-2">

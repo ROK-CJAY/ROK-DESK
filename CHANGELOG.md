@@ -12,6 +12,7 @@ Commander is its own title. Browser profiles. MTG combo stack. Arrange the overl
 
 ### Added
 
+- **Match deck search** — when a submitted decklist is on the table, card lookup defaults to those cards (This match / Catalog). List shows five rows, then scrolls.
 - **Swiss top cut** — after Swiss rounds, cut to Top 4 / 6 / 8 / 16 / 32 or a custom size in single or double elim. Standings seed the cut.
 - **Import JSON** — restore a past event from `tournament.json` (export zip or saved desk state)
 - **Stream channel** — handle or URL on Event. Live badge, starting-soon slate, and floor clock show it

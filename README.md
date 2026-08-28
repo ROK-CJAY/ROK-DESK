@@ -140,7 +140,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. If the pairing brought in a submitted decklist, lookup defaults to **This match** (only those cards) with **Catalog** as a fallback. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
 - PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
@@ -374,6 +374,7 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 - **MTG combo stack** — Show, then Layer (up to 5). Same size as the card back until a second card is added
 - Arrange opens the overlay you picked, not always the HUD pack
 - **MTG vs Commander** — Constructed and Commander are separate titles (`/mtg` vs `/edh`) with their own overlays
+- **Match deck search** — submitted lists first (This match / Catalog); five rows then scroll
 
 **Fixed**
 - Tournament name is per game. Switching titles no longer carries the last show name
