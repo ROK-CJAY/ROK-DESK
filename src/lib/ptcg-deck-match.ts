@@ -14,6 +14,33 @@ export type DeckMatch = {
   card: MatchableCard | null;
 };
 
+/** Limitless / PTCGL printed set codes → pokemontcg.io set ids. */
+const PRINTED_SETS: Record<string, string[]> = {
+  SVI: ["sv1"],
+  PAL: ["sv2"],
+  OBF: ["sv3"],
+  MEW: ["sv3pt5", "sv3.5"],
+  PAR: ["sv4"],
+  PAF: ["sv4pt5", "sv4.5"],
+  TEF: ["sv5"],
+  TWM: ["sv6"],
+  SFA: ["sv6pt5", "sv6.5"],
+  SCR: ["sv7"],
+  SSP: ["sv8"],
+  PRE: ["sv8pt5", "sv8.5"],
+  JTG: ["sv9"],
+  DRI: ["sv10"],
+  WHT: ["zsv10pt5", "sv10pt5", "wht"],
+  BLK: ["rsv10pt5", "sv10pt5", "blk"],
+  SVE: ["sve"],
+  MEE: ["mee"],
+  MEP: ["mep", "svp"],
+  POR: ["por"],
+  CRI: ["cri", "cin"],
+  CIN: ["cin", "cri"],
+  FCO: ["fco"],
+};
+
 function norm(value: string): string {
   return value
     .toLowerCase()
@@ -34,29 +61,33 @@ function nameEquals(cardName: string, candidates: string[]): boolean {
   return candidates.some((name) => norm(name) === card);
 }
 
-function setMatches(card: MatchableCard, printed?: string): boolean {
-  if (!printed) return false;
-  const code = printed.toLowerCase();
+function setAliases(printed?: string): string[] {
+  const code = String(printed ?? "").trim().toUpperCase();
+  if (!code) return [];
+  return [code.toLowerCase(), ...(PRINTED_SETS[code] ?? [])];
+}
+
+export function setMatches(card: MatchableCard, printed?: string): boolean {
+  const aliases = setAliases(printed);
+  if (!aliases.length) return false;
   const id = String(card.set?.id ?? "").toLowerCase();
   const name = String(card.set?.name ?? "").toLowerCase();
-  if (!code) return false;
-  if (id === code) return true;
-  if (id.endsWith(code) || id.startsWith(code)) return true;
-  if (name.includes(code)) return true;
+  const printedName = String(printed ?? "").toLowerCase();
+  if (aliases.includes(id)) return true;
+  if (aliases.some((alias) => id === alias || id.endsWith(alias) || id.startsWith(alias))) return true;
+  if (printedName.length >= 3 && name.includes(printedName)) return true;
   return false;
 }
 
 function score(card: MatchableCard, line: ParsedDeckLine): number {
   if (!nameEquals(card.name, line.names)) return -1;
-  let points = 40;
+  if (line.set && !setMatches(card, line.set)) return -1;
+  if (line.number && normNum(card.number) !== normNum(line.number)) return -1;
+  let points = 50;
   const energy = String(card.supertype ?? "").toLowerCase() === "energy";
   const wantsEnergy = line.names.some((name) => /\benergy\b/i.test(name));
-  if (wantsEnergy && energy) points += 25;
-  if (wantsEnergy && !energy) points -= 20;
-  if (line.number && normNum(card.number) === normNum(line.number)) points += 30;
-  if (setMatches(card, line.set)) points += 35;
-  const date = String(card.set?.releaseDate ?? "").replace(/-/g, "");
-  points += Math.min(9, date.length ? Number(date.slice(0, 8)) % 10 : 0);
+  if (wantsEnergy && energy) points += 20;
+  if (wantsEnergy && !energy) return -1;
   return points;
 }
 
@@ -70,7 +101,7 @@ export function matchDeckLine(line: ParsedDeckLine, cards: MatchableCard[]): Mat
       bestScore = next;
     }
   }
-  return bestScore >= 40 ? best : null;
+  return bestScore >= 50 ? best : null;
 }
 
 export function matchDeckLines(lines: ParsedDeckLine[], cards: MatchableCard[]): DeckMatch[] {
