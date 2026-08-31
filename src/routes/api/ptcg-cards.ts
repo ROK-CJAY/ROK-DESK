@@ -1,7 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { catalogCard, isStandardLegal, loadCatalog, searchCatalog } from "@/lib/ptcg-catalog";
 import { matchDeckLines } from "@/lib/ptcg-deck-match";
-import { parsePtcgDeckText } from "@/lib/ptcg-deck-parse";
+import {
+  allowedLimitlessUrl,
+  limitlessShareId,
+  parsePtcgDeckText,
+} from "@/lib/ptcg-deck-parse";
 import { execFile } from "node:child_process";
 
 const noStore = {
@@ -18,17 +22,18 @@ export const Route = createFileRoute("/api/ptcg-cards")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        let payload: { text?: string } = {};
+        let payload: { text?: string; url?: string } = {};
         try {
-          payload = (await request.json()) as { text?: string };
+          payload = (await request.json()) as { text?: string; url?: string };
         } catch {
           payload = {};
         }
-        const text = String(payload.text ?? "").trim();
-        if (!text) {
+        const raw = String(payload.url ?? payload.text ?? "").trim();
+        if (!raw) {
           return Response.json({ error: "Missing deck text" }, { status: 400, headers: noStore });
         }
-        const lines = parsePtcgDeckText(text);
+        const source = await resolveDeckSource(raw);
+        const lines = parsePtcgDeckText(source);
         const catalog = await loadCatalog();
         const matches = catalog?.cards?.length
           ? matchDeckLines(lines, catalog.cards)
@@ -106,6 +111,31 @@ export const Route = createFileRoute("/api/ptcg-cards")({
   },
 });
 
+async function resolveDeckSource(raw: string): Promise<string> {
+  const url = allowedLimitlessUrl(raw);
+  if (!url) return raw;
+  const shareId = limitlessShareId(url);
+  if (shareId) {
+    const api = await getWithRetries(`https://mew.limitlesstcg.com/dm/share/${shareId}`, 3);
+    if (api) {
+      try {
+        const parsed = JSON.parse(api) as { message?: { cards?: string } | string };
+        const cards =
+          typeof parsed.message === "string"
+            ? parsed.message
+            : parsed.message && typeof parsed.message === "object"
+              ? String(parsed.message.cards ?? "")
+              : "";
+        if (cards.includes("xi:")) return cards;
+      } catch {
+        if (api.includes("xi:")) return api;
+      }
+    }
+  }
+  const page = await getWithRetries(url.toString(), 3);
+  return page || raw;
+}
+
 function pokemonTcgIoUrl(q: string, newestFirst: boolean): string {
   const safe = q.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim();
   const name = /\s/.test(safe) ? `name:"${safe}"` : `name:${safe}`;
@@ -133,7 +163,7 @@ function filterStandard(body: string): string {
 
 async function getWithRetries(url: string, attempts: number): Promise<string | null> {
   for (let i = 0; i < attempts; i++) {
-    const body = (await curlGet(url, 4000)) ?? (await fetchGet(url, 4000));
+    const body = (await curlGet(url, 8000)) ?? (await fetchGet(url, 8000));
     if (body) return body;
     if (i < attempts - 1) await sleep(160 + i * 140);
   }
@@ -146,6 +176,7 @@ function curlGet(url: string, timeoutMs: number): Promise<string | null> {
       "curl",
       [
         "-sS",
+        "-L",
         "-f",
         "--http1.1",
         "-m",
@@ -153,7 +184,7 @@ function curlGet(url: string, timeoutMs: number): Promise<string | null> {
         "-A",
         UA,
         "-H",
-        "accept: application/json",
+        "accept: application/json, text/html",
         "-H",
         "accept-language: en-US,en;q=0.9",
         url,
@@ -173,7 +204,7 @@ async function fetchGet(url: string, timeoutMs: number): Promise<string | null> 
     const res = await fetch(url, {
       cache: "no-store",
       headers: {
-        accept: "application/json",
+        accept: "application/json, text/html",
         "accept-language": "en-US,en;q=0.9",
         "user-agent": UA,
       },
