@@ -10,17 +10,25 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Added
 
-- **PTCG catalog download** — Production and the judge tablet have Download / Update catalog. It saves every English card on this machine so lookup does not depend on the live API. Hit the button again to refresh.
+- **PTCG Limitless / PTCGL deck import** — when a decklist is required (or on the roster editor), paste PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link. `{P}` / `{R}` energy glyphs expand to Psychic / Fire. Matching requires the printed name (or set + number on shared lists). Unmatched lines stay listed for the ROK Desk search builder.
 - **TOM companion (PTCG and VGC)** — Tournament Control has a TOM card. Pick PTCG or VGC, then:
   - Sign up in Desk and **Export TDF** (TOM File → Open). PTCG writes `TRADING_CARD_GAME`; VGC writes `VIDEO_GAME` plus in-game trainer names. Organizer name, Player ID, city, state, country, start date go on the card. Players without a Player ID are skipped.
   - Drop a `.tdf` to load that roster onto the matching title.
   - Drop TOM `roster.html` / `pairings.html` / `standings.html` (from `TOM_DATA/data/reports`) to fill tables and send a match to stream.
+  - **Watch TOM reports folder** (Chrome, Edge, or ROK Desk desktop) — pick `TOM_DATA` or `data/reports` once per title. Desk pulls the newest pairings / standings when TOM writes them. Drop files if folder watch is unavailable.
+  - PTCG and VGC TOM cards are separate: organizer, TDF, reports, and folder watch do not copy across titles.
   - **Load sample** / **Clear sample** (or **Clear TOM tables** / **Clear roster**).
   - TOM stays the official book. Desk does not write match results back.
 
+### Changed
+
+- **Layout look** — Overlay preview Look drives Play Layout, ROK Layout, Versus, HUD, and bar/split scorebugs. Each title keeps its own look. **Apply to all** copies it onto every overlay of that game.
+- **Game win / Match win look** — Overlay preview → Game win or Match win: name color, kicker color, fonts, size, and tracking apply on the dedicated source and on HUD pack.
+
 ### Fixed
 
-- PTCG card lookup no longer depends on TCGdex (currently down). Search goes through `/api/ptcg-cards` → pokemontcg.io over HTTP/1.1 with automatic retries and a short cache, so a single search succeeds instead of failing until you retry. Art tries pokemontcg.io / Pokémon.com first and times out dead CDNs instead of hanging.
+- PTCG card lookup no longer depends on TCGdex (currently down). Search goes catalog → pokemontcg.io (HTTP/1.1, retries, short cache) → TCGdex as a last backup. Art tries pokemontcg.io / Pokémon.com first, then TCGdex, and times out dead CDNs instead of hanging.
+- PTCG deck import no longer substitutes a random Energy or an old `N` printing when the paste includes a set code. Shared Limitless lists (`3xi:POR~88`) match that set and number, or they stay unmatched.
 
 ## v1.2.8-beta — 2026-08-28
 

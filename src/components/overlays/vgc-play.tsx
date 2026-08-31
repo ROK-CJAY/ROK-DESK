@@ -1,11 +1,13 @@
 import { FadeValue } from "@/components/overlays/fade-value";
 import { emptyTeam, spriteFallbackUrl, spriteUrl, type TeamMon } from "@/lib/pokemon-vgc";
 import type { DeskState, PlayerSide } from "@/lib/desk-types";
+import { OV_CHROME, OV_LIVE, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
+import { WinStings } from "@/components/overlays/winner";
 
-const RED = "#d4534c";
-const SILVER = "#c5ccd6";
-const PLATE = "linear-gradient(180deg, #1a1d22 0%, #10131a 100%)";
+const RED = OV_LIVE;
+const SILVER = OV_CHROME;
+const PLATE = OV_RAIL;
 
 function recordOf(player: PlayerSide) {
   return `${Math.max(0, player.recordW || 0)}/${Math.max(0, player.recordL || 0)}/${Math.max(0, player.recordD || 0)}`;
@@ -21,7 +23,7 @@ function MonTile({ mon, down }: { mon: TeamMon; down: boolean }) {
         down && "opacity-40 grayscale",
       )}
       style={{
-        background: "linear-gradient(180deg, #22262d 0%, #14161a 100%)",
+        background: OV_RAIL,
         boxShadow: "inset 0 0 0 1px rgb(197 204 214 / 0.18)",
       }}
     >
@@ -45,7 +47,7 @@ function MonTile({ mon, down }: { mon: TeamMon; down: boolean }) {
 function ScorePip({ value }: { value: number }) {
   return (
     <span
-      className="grid size-[3.15rem] shrink-0 place-items-center rounded-full font-display text-[1.85rem] leading-none font-semibold text-white"
+      className="grid size-[3.15rem] shrink-0 place-items-center rounded-full font-display text-[1.85rem] leading-none font-semibold text-ov-fg"
       style={{ background: RED, boxShadow: "0 0 0 2px rgb(244 244 241 / 0.16), 0 6px 14px rgb(212 83 76 / 0.35)" }}
     >
       <FadeValue value={value} />
@@ -78,14 +80,14 @@ function SideCard({
       >
         <p
           className={cn(
-            "font-display min-w-0 flex-1 truncate text-[2.15rem] leading-none font-semibold tracking-wide text-white uppercase",
+            "font-display min-w-0 flex-1 truncate text-[2.15rem] leading-none font-semibold tracking-wide text-ov-fg uppercase",
             right && "text-right",
           )}
         >
           {player.name || (right ? "Player 2" : "Player 1")}
         </p>
         <ScorePip value={player.score} />
-        <span className="font-mono shrink-0 text-[1.35rem] leading-none tabular-nums tracking-wide text-white/88">
+        <span className="font-mono shrink-0 text-[1.35rem] leading-none tabular-nums tracking-wide text-ov-fg/88">
           <FadeValue value={recordOf(player)} />
         </span>
       </div>
@@ -142,13 +144,14 @@ export function VgcPlayLayout({ desk }: { desk: DeskState; now?: number }) {
           ) : (
             <img src="/brand/rok-mark.png" alt="" className="h-16 w-16 object-contain opacity-90" />
           )}
-          <p className="font-display mt-1.5 max-w-full truncate text-center text-[1.15rem] leading-none font-semibold tracking-[0.16em] text-white uppercase">
+          <p className="font-display mt-1.5 max-w-full truncate text-center text-[1.15rem] leading-none font-semibold tracking-[0.16em] text-ov-fg uppercase">
             {desk.roundName || "Match"}
           </p>
         </div>
         <SideCard player={desk.p2} align="right" />
         <CameraWell player={desk.p2} />
       </div>
+      <WinStings desk={desk} />
     </div>
   );
 }

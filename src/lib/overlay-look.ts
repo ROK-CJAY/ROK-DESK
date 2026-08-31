@@ -6,6 +6,10 @@ export type OverlayFontId =
   | "bebas"
   | "anton"
   | "teko"
+  | "rajdhani"
+  | "russo"
+  | "exo"
+  | "archivo"
   | "dm-sans"
   | "inter"
   | "source-sans"
@@ -28,6 +32,8 @@ export type OverlayLook = {
   radius: number;
   tracking: number;
   uppercase: boolean;
+  stroke: string;
+  strokeWidth: number;
 };
 
 export type OverlayLookBook = {
@@ -38,8 +44,12 @@ export const FONT_OPTIONS: { id: OverlayFontId; label: string; stack: string; ro
   { id: "barlow", label: "Barlow Condensed", stack: '"Barlow Condensed", "Arial Narrow", sans-serif', role: "display" },
   { id: "oswald", label: "Oswald", stack: 'Oswald, "Arial Narrow", sans-serif', role: "display" },
   { id: "bebas", label: "Bebas Neue", stack: '"Bebas Neue", "Arial Narrow", sans-serif', role: "display" },
-  { id: "anton", label: "Anton", stack: 'Anton, Impact, sans-serif', role: "display" },
+  { id: "anton", label: "Anton", stack: "Anton, Impact, sans-serif", role: "display" },
   { id: "teko", label: "Teko", stack: 'Teko, "Arial Narrow", sans-serif', role: "display" },
+  { id: "rajdhani", label: "Rajdhani", stack: 'Rajdhani, "Arial Narrow", sans-serif', role: "display" },
+  { id: "russo", label: "Russo One", stack: '"Russo One", Impact, sans-serif', role: "display" },
+  { id: "exo", label: "Exo 2", stack: '"Exo 2", "Segoe UI", sans-serif', role: "display" },
+  { id: "archivo", label: "Archivo Narrow", stack: '"Archivo Narrow", "Arial Narrow", sans-serif', role: "display" },
   { id: "dm-sans", label: "DM Sans", stack: '"DM Sans", "Segoe UI", sans-serif', role: "body" },
   { id: "inter", label: "Inter", stack: 'Inter, "Segoe UI", sans-serif', role: "body" },
   { id: "source-sans", label: "Source Sans 3", stack: '"Source Sans 3", "Segoe UI", sans-serif', role: "body" },
@@ -134,7 +144,17 @@ export const DEFAULT_LOOK: OverlayLook = {
   radius: 12,
   tracking: 0,
   uppercase: true,
+  stroke: "#000000",
+  strokeWidth: 0,
 };
+
+export const OV_CHROME = "var(--color-ov-muted)";
+export const OV_GOLD = "var(--color-game)";
+export const OV_RAIL = "var(--ov-rail)";
+export const OV_LIVE = "var(--color-live)";
+export const OV_PANEL = "var(--color-ov-panel)";
+export const OV_DEEP = "var(--color-ov-panel-deep)";
+export const OV_FG = "var(--color-ov-fg)";
 
 export const DEFAULT_LOOK_BOOK: OverlayLookBook = { sources: {} };
 
@@ -154,6 +174,8 @@ export function mergeLook(raw: unknown): OverlayLook {
     radius: clampRadius(typeof incoming.radius === "number" ? incoming.radius : DEFAULT_LOOK.radius),
     tracking: clampTracking(typeof incoming.tracking === "number" ? incoming.tracking : DEFAULT_LOOK.tracking),
     uppercase: incoming.uppercase !== false,
+    stroke: pickHex(incoming.stroke, DEFAULT_LOOK.stroke),
+    strokeWidth: clampStroke(typeof incoming.strokeWidth === "number" ? incoming.strokeWidth : DEFAULT_LOOK.strokeWidth),
   };
 }
 
@@ -199,7 +221,9 @@ export function looksEqual(a: OverlayLook, b: OverlayLook): boolean {
     a.panelAlpha === b.panelAlpha &&
     a.radius === b.radius &&
     a.tracking === b.tracking &&
-    a.uppercase === b.uppercase
+    a.uppercase === b.uppercase &&
+    a.stroke === b.stroke &&
+    a.strokeWidth === b.strokeWidth
   );
 }
 
@@ -211,10 +235,15 @@ export function lookStyle(look: OverlayLook): Record<string, string> {
   const s = clampScale(look.scale) / 100;
   const alpha = clampAlpha(look.panelAlpha) / 100;
   const radius = clampRadius(look.radius);
+  const deep = shadeHex(look.panel, 0.38);
+  const panel = hexAlpha(look.panel, alpha);
+  const panelDeep = hexAlpha(deep, alpha);
+  const strokeW = clampStroke(look.strokeWidth);
   return {
     "--color-ov-fg": look.fg,
     "--color-ov-muted": look.muted,
-    "--color-ov-panel": hexAlpha(look.panel, alpha),
+    "--color-ov-panel": panel,
+    "--color-ov-panel-deep": panelDeep,
     "--color-game": look.accent,
     "--color-live": look.live,
     "--font-display": fontStack(look.displayFont),
@@ -228,6 +257,9 @@ export function lookStyle(look: OverlayLook): Record<string, string> {
     "--ov-scale": String(s),
     "--ov-tracking": `${clampTracking(look.tracking) / 100}em`,
     "--ov-radius": `${radius}px`,
+    "--ov-rail": `linear-gradient(180deg, ${panel} 0%, ${panelDeep} 100%)`,
+    "--ov-stroke": look.stroke,
+    "--ov-stroke-width": strokeW > 0 ? `${strokeW * 0.55}px` : "0px",
     "--radius-xs": `${Math.max(2, Math.round(radius * 0.33))}px`,
     "--radius-sm": `${Math.max(4, Math.round(radius * 0.66))}px`,
     "--radius-md": `${radius}px`,
@@ -266,6 +298,10 @@ export function clampTracking(value: number): number {
   return Math.min(16, Math.max(0, Math.round(value)));
 }
 
+export function clampStroke(value: number): number {
+  return Math.min(6, Math.max(0, Math.round(value)));
+}
+
 export function applyLookToAll(look: OverlayLook, ids: OverlaySourceId[]): OverlayLookBook {
   const sources: OverlayLookBook["sources"] = {};
   const next = mergeLook(look);
@@ -281,4 +317,16 @@ function hexAlpha(hex: string, alpha: number): string {
     .toString(16)
     .padStart(2, "0");
   return `#${full}${a}`;
+}
+
+function shadeHex(hex: string, amount: number): string {
+  const raw = hex.replace("#", "");
+  const full = raw.length === 3 ? raw.split("").map((c) => c + c).join("") : raw;
+  if (full.length !== 6) return hex;
+  const n = Number.parseInt(full, 16);
+  const t = (c: number) => Math.round(c * (1 - Math.min(1, Math.max(0, amount))));
+  const r = t((n >> 16) & 255);
+  const g = t((n >> 8) & 255);
+  const b = t(n & 255);
+  return `#${[r, g, b].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }

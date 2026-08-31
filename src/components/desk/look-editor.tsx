@@ -10,6 +10,7 @@ import {
   clampAlpha,
   clampRadius,
   clampScale,
+  clampStroke,
   clampTracking,
   lookFor,
   looksEqual,
@@ -19,6 +20,16 @@ import {
   type OverlayLookBook,
 } from "@/lib/overlay-look";
 import { Switch } from "@/components/ui/switch";
+
+function colorLabels(source: OverlaySourceId) {
+  if (source === "winner" || source === "game-win") {
+    return { fg: "Name", muted: "Sub", accent: "Kicker", panel: "Panel", live: "Live" };
+  }
+  if (source === "scorebug" || source === "hud" || source === "versus") {
+    return { fg: "Name", muted: "Chrome", accent: "Gold", panel: "Rails", live: "Live" };
+  }
+  return { fg: "Ink", muted: "Mute", accent: "Accent", panel: "Panel", live: "Live" };
+}
 
 export function LookEditor({
   book,
@@ -32,6 +43,9 @@ export function LookEditor({
   const look = lookFor(book, source);
   const atDefault = looksEqual(look, DEFAULT_LOOK);
   const label = OVERLAY_SOURCES.find((s) => s.id === source)?.name ?? source;
+  const colors = colorLabels(source);
+  const winBug = source === "winner" || source === "game-win";
+  const layout = source === "scorebug" || source === "hud" || source === "versus";
 
   const set = (partial: Partial<OverlayLook>) => {
     onChange(setSourceLook(book, source, { ...look, ...partial }));
@@ -67,16 +81,16 @@ export function LookEditor({
         ))}
       </div>
       <div className="grid grid-cols-5 gap-2">
-        <Swatch label="Ink" value={look.fg} onChange={(fg) => set({ fg })} />
-        <Swatch label="Mute" value={look.muted} onChange={(muted) => set({ muted })} />
-        <Swatch label="Accent" value={look.accent} onChange={(accent) => set({ accent })} />
-        <Swatch label="Panel" value={look.panel} onChange={(panel) => set({ panel })} />
-        <Swatch label="Live" value={look.live} onChange={(live) => set({ live })} />
+        <Swatch label={colors.fg} value={look.fg} onChange={(fg) => set({ fg })} />
+        <Swatch label={colors.muted} value={look.muted} onChange={(muted) => set({ muted })} />
+        <Swatch label={colors.accent} value={look.accent} onChange={(accent) => set({ accent })} />
+        <Swatch label={colors.panel} value={look.panel} onChange={(panel) => set({ panel })} />
+        <Swatch label={colors.live} value={look.live} onChange={(live) => set({ live })} />
       </div>
       <label className="grid gap-1 text-xs text-muted">
-        Display
+        {winBug ? "Name font" : "Names"}
         <NativeSelect value={look.displayFont} onChange={(e) => set({ displayFont: e.target.value as OverlayLook["displayFont"] })}>
-          {FONT_OPTIONS.filter((f) => f.role === "display").map((f) => (
+          {FONT_OPTIONS.map((f) => (
             <option key={f.id} value={f.id}>
               {f.label}
             </option>
@@ -84,9 +98,9 @@ export function LookEditor({
         </NativeSelect>
       </label>
       <label className="grid gap-1 text-xs text-muted">
-        Body
+        {winBug ? "Subtitle font" : "Body"}
         <NativeSelect value={look.bodyFont} onChange={(e) => set({ bodyFont: e.target.value as OverlayLook["bodyFont"] })}>
-          {FONT_OPTIONS.filter((f) => f.role === "body").map((f) => (
+          {FONT_OPTIONS.map((f) => (
             <option key={f.id} value={f.id}>
               {f.label}
             </option>
@@ -94,15 +108,30 @@ export function LookEditor({
         </NativeSelect>
       </label>
       <label className="grid gap-1 text-xs text-muted">
-        Mono
+        {winBug ? "Kicker font" : "Meta / clock"}
         <NativeSelect value={look.monoFont} onChange={(e) => set({ monoFont: e.target.value as OverlayLook["monoFont"] })}>
-          {FONT_OPTIONS.filter((f) => f.role === "mono").map((f) => (
+          {FONT_OPTIONS.map((f) => (
             <option key={f.id} value={f.id}>
               {f.label}
             </option>
           ))}
         </NativeSelect>
       </label>
+      <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+        <label className="grid gap-1 text-xs text-muted">
+          Name outline · {look.strokeWidth}
+          <input
+            type="range"
+            min={0}
+            max={6}
+            step={1}
+            value={look.strokeWidth}
+            onChange={(e) => set({ strokeWidth: clampStroke(Number(e.target.value)) })}
+            className="w-full accent-accent"
+          />
+        </label>
+        <Swatch label="Stroke" value={look.stroke} onChange={(stroke) => set({ stroke })} />
+      </div>
       <label className="grid gap-1 text-xs text-muted">
         Size · {look.scale}%
         <input
@@ -156,18 +185,12 @@ export function LookEditor({
         <Switch checked={look.uppercase} onCheckedChange={(on) => set({ uppercase: on === true })} />
       </label>
       <p className="rounded-md bg-surface px-2.5 py-2 text-[0.7rem] leading-relaxed text-muted">
-        Changes save on their own. This overlay’s look stays on this game. Apply to all copies it onto every source.
+        {winBug
+          ? "Name, kicker (GAME / MATCH WINNER), and subtitle each have a color and font. Size, tracking, and outline apply to the name."
+          : layout
+            ? "Name, chrome, gold, rails, and live apply on this overlay for this title only. Switch games and each keeps its own look. Apply to all copies it onto every overlay of this game (scorebug, HUD, versus, clocks…)."
+            : "Changes save on their own. This overlay’s look stays on this game. Apply to all copies it onto every source."}
       </p>
-      <details className="rounded-md bg-surface px-2.5 py-2">
-        <summary className="cursor-pointer text-xs text-fg">How saving works</summary>
-        <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[0.7rem] leading-relaxed text-muted">
-          <li>Select the overlay you want (Scorebug, Casters, Floor clock, and so on).</li>
-          <li>Change colors, fonts, size, opacity, or corners. Each overlay keeps its own look.</li>
-          <li>Leave it. The desk writes the look automatically — no Save button.</li>
-          <li>The copied overlay URL for this game picks it up. Refresh OBS / vMix only if a source is cached.</li>
-          <li>Switching games keeps each game’s looks. Reset only clears the one you’re on.</li>
-        </ol>
-      </details>
     </div>
   );
 }

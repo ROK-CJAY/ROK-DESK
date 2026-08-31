@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, isCommanderLane, isMtgTitle, casterTabletPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, GAME_LIST, isCommanderLane, isMtgTitle, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -821,6 +821,7 @@ export function PodPanel() {
   const slot = desk.matchSlot ?? 1;
   const path = tabletPath(desk.gameId, slot);
   const playerPath = playerTabletPath(desk.gameId, slot);
+  const extendedPath = playerTabletExtendedPath(desk.gameId, slot);
   const copyPath = mtg && commander ? playerPath : path;
 
   const copy = async () => {
@@ -856,7 +857,7 @@ export function PodPanel() {
                     : rift
                       ? "Judge tablet — first-to-8 points, Duel / Match / Skirmish / War, clock, and Riftcodex card lookup."
                       : lorcana
-                        ? "Two tablets: the player pad sits with the table for lore, games, and the match clock. The judge tablet keeps Lorcast and match report."
+                        ? "Three tablets: player pad for lore and games, player tablet extended if the table is self-running names / inks / cards, judge tablet for Lorcast and match report."
                         : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
@@ -883,7 +884,9 @@ export function PodPanel() {
       ) : rift ? (
         <p className="mt-2 text-xs text-ok">Tap points 1–8. Game and Match report to the desk and bracket. Search cards below on the pad.</p>
       ) : lorcana ? (
-        <p className="mt-2 text-xs text-ok">Player tablet: tap lore and game diamonds. Judge tablet still looks up cards and reports the match.</p>
+        <p className="mt-2 text-xs text-ok">
+          Player tablet: lore and games. Player tablet extended: names, inks, clock, Show P1 / P2, clear. Judge tablet still looks up cards and reports the match.
+        </p>
       ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>
       ) : (
@@ -899,9 +902,16 @@ export function PodPanel() {
           </a>
         </Button>
         {mtg || lorcana || ygo ? (
-          <Button variant={commander || lorcana || ygo ? "default" : "outline"} size="sm" asChild>
+          <Button variant={commander || ygo ? "default" : "outline"} size="sm" asChild>
             <a href={playerPath} target="_blank" rel="noreferrer">
               Open player tablet
+            </a>
+          </Button>
+        ) : null}
+        {lorcana ? (
+          <Button size="sm" asChild>
+            <a href={extendedPath} target="_blank" rel="noreferrer">
+              Open player tablet extended
             </a>
           </Button>
         ) : null}

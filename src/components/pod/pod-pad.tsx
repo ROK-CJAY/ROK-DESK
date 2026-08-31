@@ -11,6 +11,7 @@ import { OpJudgeTablet } from "@/components/tablet/op-judge";
 import { RiftJudgeTablet } from "@/components/tablet/rift-judge";
 import { LorcanaJudgeTablet } from "@/components/tablet/lorcana-judge";
 import { LorcanaPlayerTablet } from "@/components/tablet/lorcana-player";
+import { LorcanaPlayerExtendedTablet } from "@/components/tablet/lorcana-player-extended";
 import { YgoPlayerTablet } from "@/components/tablet/ygo-player";
 import { CasterTablet } from "@/components/tablet/caster-tablet";
 import { DeltaPad } from "@/components/desk/delta-pad";
@@ -20,7 +21,7 @@ import { cn } from "@/lib/cn";
 
 const TABLE_ORDER: SeatId[] = ["p3", "p4", "p2", "p1"];
 
-export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "caster" }) {
+export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "extended" | "caster" }) {
   const ready = useDeskStore((s) => s.ready);
   const hydrate = useDeskStore((s) => s.hydrate);
   const desk = useDeskStore((s) => s.desk);
@@ -65,7 +66,7 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "caster
     return <CasterTablet />;
   }
 
-  if (role !== "player") {
+  if (role !== "player" && role !== "extended") {
     if (desk.gameId === "pokemon-vgc") {
       return <VgcJudgeTablet />;
     }
@@ -97,6 +98,10 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "caster
     if (desk.gameId === "lorcana") {
       return <LorcanaJudgeTablet />;
     }
+  }
+
+  if (role === "extended" && desk.gameId === "lorcana") {
+    return <LorcanaPlayerExtendedTablet />;
   }
 
   if (role === "player" && desk.gameId === "lorcana") {

@@ -3,9 +3,11 @@ import {
   Clapperboard,
   ClipboardList,
   Clock,
+  FolderOpen,
   Globe,
   Mic,
   MonitorPlay,
+  Palette,
   Tablet,
   Trophy,
 } from "lucide-react";
@@ -18,7 +20,7 @@ const STEPS = [
   {
     n: "01",
     title: "Set up the event",
-    body: "Open Tournament Organizer. Name the show, pick the game and format, then add players — or send people to walk-up sign-up (commander search, Limitless notes, VGC team sheet).",
+    body: "Open Tournament Organizer. Name the show, pick the game and format, then add players — or send people to walk-up sign-up (commander search, PTCG Limitless/PTCGL deck paste, VGC team sheet). Play! Pokémon: export a TDF into TOM, then drop or watch pairings back in.",
   },
   {
     n: "02",
@@ -33,12 +35,12 @@ const STEPS = [
   {
     n: "04",
     title: "Key the overlays",
-    body: "In OBS or vMix, add 1920×1080 browser sources from the overlay list. Prefer /{game}/overlay/… so two titles on one host stay separate. VGC, PTCG, YGO, OP, and Lorcana Play Layout, plus ROK Layout on the other titles, are on the source list.",
+    body: "In OBS or vMix, add 1920×1080 browser sources from the overlay list. Prefer /{game}/overlay/… so two titles on one host stay separate. VGC, PTCG, YGO, OP, and Lorcana Play Layout, VGC Versus, plus ROK Layout on the other titles. Look (name, chrome, gold, rails) is per title.",
   },
   {
     n: "05",
     title: "Floor and comms",
-    body: "Judge tablet on a floor iPad. Commander and Lorcana also have a player pad. Casters get a read-only commentary tablet — teams, path, H2H, notes. Stream clock at the featured table; floor clock for the room.",
+    body: "Judge tablet on a floor iPad. Commander and YGO have a player pad. Lorcana has Player Tablet (lore) and Player Tablet Extended (self-run names, inks, lore). Casters get a read-only commentary tablet. Stream clock at the featured table; floor clock for the room.",
   },
 ];
 
@@ -74,7 +76,7 @@ export function Landing() {
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
           ROK Desk runs the tournament and the broadcast from the same event. Pairings,
-          walk-up sign-up, judge / player / commentary tablets, and 1920×1080 overlays for
+          Play! Pokémon TOM companion, walk-up sign-up, judge / player / commentary tablets, and 1920×1080 overlays for
           Pokémon VGC, PTCG, One Piece, Yu-Gi-Oh!, Magic, Lorcana, Star Wars Unlimited, and Riftbound.
         </p>
 
@@ -86,7 +88,7 @@ export function Landing() {
             <Trophy className="size-5 text-muted group-hover:text-fg" />
             <p className="font-display mt-4 text-2xl font-semibold uppercase">Tournament Organizer</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Roster, bracket or Swiss, staff, player IDs, notes, floor clock, export. Start the event here.
+              Roster, bracket or Swiss, staff, player IDs, notes, floor clock, export. PTCG and VGC TOM: TDF out, pairings in. Start the event here.
             </p>
             <p className="mt-4 text-sm font-medium">Open organizer →</p>
           </Link>
@@ -97,7 +99,7 @@ export function Landing() {
             <Clapperboard className="size-5 text-muted group-hover:text-fg" />
             <p className="font-display mt-4 text-2xl font-semibold uppercase">Production Control</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Stream / Floor tables, scorebug, commentary tablet, look, and overlay preview.
+              Stream / Floor tables, scorebug, Play Layouts, Versus, commentary tablet, look per title, and overlay preview.
             </p>
             <p className="mt-4 text-sm font-medium">Open production →</p>
           </Link>
@@ -142,7 +144,20 @@ export function Landing() {
               <div>
                 <p className="font-medium">Player tablet</p>
                 <p className="mt-1 text-sm text-muted">
-                  Commander life pad, or Lorcana lore / games / clock for the table.
+                  Commander life, YGO LP, or Lorcana lore / games / clock for the table.
+                </p>
+              </div>
+            </Link>
+            <Link
+              to="/tablet"
+              search={{ role: "extended" }}
+              className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40"
+            >
+              <Tablet className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Player tablet extended</p>
+                <p className="mt-1 text-sm text-muted">
+                  Lorcana self-run pad: names, inks, lore, games, clock. For tables without a stream op.
                 </p>
               </div>
             </Link>
@@ -163,7 +178,25 @@ export function Landing() {
               <MonitorPlay className="mt-0.5 size-4 shrink-0 text-muted" />
               <div>
                 <p className="font-medium">Browser sources</p>
-                <p className="mt-1 text-sm text-muted">OBS / vMix overlay list. Prefer /{"{game}"}/overlay/…</p>
+                <p className="mt-1 text-sm text-muted">OBS / vMix overlay list. Play Layout, Versus, ROK Layout, HUD. Prefer /{"{game}"}/overlay/…</p>
+              </div>
+            </Link>
+            <Link to="/production" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
+              <Palette className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Look</p>
+                <p className="mt-1 text-sm text-muted">
+                  Name, chrome, gold, rails, fonts, and win bugs. Each title keeps its own palette.
+                </p>
+              </div>
+            </Link>
+            <Link to="/tournament" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
+              <FolderOpen className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">TOM companion</p>
+                <p className="mt-1 text-sm text-muted">
+                  PTCG and VGC stay separate. Export TDF, drop reports, or watch TOM_DATA so pairings import when TOM writes them.
+                </p>
               </div>
             </Link>
             <Link to="/signup" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
@@ -211,7 +244,7 @@ export function Landing() {
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-subtle">
             Free and in beta. One host is one event. Overlay paths are game-scoped so PTCG and VGC
-            bugs do not mix. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
+            bugs do not mix. Play Layouts, Versus, look, and TOM watches are per title. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
             <a href={DONATE_URL} target="_blank" rel="noreferrer" className="underline hover:text-muted">
               donate
             </a>

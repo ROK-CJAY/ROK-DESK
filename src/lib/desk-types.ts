@@ -671,7 +671,6 @@ export function deskLaneOf(live: DeskState, gameId: GameId, slot: MatchSlot = 1)
     eventLogo: live.eventLogo,
     sponsors: live.sponsors,
     sponsorSeconds: live.sponsorSeconds,
-    overlayLook: live.overlayLook,
     formatName: format?.label ?? game.name,
     bestOf: format?.bestOf ?? game.defaultBestOf,
     scorebugStyle: game.defaultScorebug,

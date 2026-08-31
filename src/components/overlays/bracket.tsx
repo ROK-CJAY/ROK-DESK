@@ -318,8 +318,8 @@ function ConnectorColumn({ from, to }: { from: number; to: number }) {
 function ChampionPlaque({ name }: { name: string }) {
   return (
     <div className="flex w-[11rem] shrink-0 flex-col items-stretch justify-center pl-2">
-      <div className="rounded-md border border-[#e4c56a]/70 bg-[#e4c56a]/12 px-3 py-3 text-center">
-        <p className="font-mono text-[0.58rem] tracking-[0.2em] text-[#e4c56a] uppercase">Champion</p>
+      <div className="rounded-md border border-game/70 bg-game/12 px-3 py-3 text-center">
+        <p className="font-mono text-[0.58rem] tracking-[0.2em] text-game uppercase">Champion</p>
         <p className="font-display mt-1 text-xl leading-tight font-semibold text-ov-fg uppercase">{name}</p>
       </div>
     </div>

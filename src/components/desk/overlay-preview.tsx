@@ -322,6 +322,21 @@ export function OverlayPreview() {
         source={source}
         onChange={(overlayLook) => patch({ overlayLook })}
       />
+      {source === "hud" || source === "scorebug" ? (
+        <details className="mt-3 rounded-lg bg-surface-2 px-3 py-2">
+          <summary className="cursor-pointer text-sm text-fg">Game win / Match win look</summary>
+          <LookEditor
+            book={desk.overlayLook}
+            source="game-win"
+            onChange={(overlayLook) => patch({ overlayLook })}
+          />
+          <LookEditor
+            book={desk.overlayLook}
+            source="winner"
+            onChange={(overlayLook) => patch({ overlayLook })}
+          />
+        </details>
+      ) : null}
 
       <details className="mt-3 rounded-lg bg-surface-2 px-3 py-2">
         <summary className="cursor-pointer text-sm text-fg">OBS setup</summary>
@@ -460,8 +475,8 @@ function SourceCanvas({
   if (source === "slate") return <SlateView desk={desk} />;
   if (source === "casters") return <CastersView desk={desk} edit={edit} />;
   if (source === "lower-third") return <LowerThirdView desk={desk} edit={edit} />;
-  if (source === "winner") return <WinnerView desk={desk} edit={edit} />;
-  if (source === "game-win") return <GameWinView desk={desk} edit={edit} />;
+  if (source === "winner") return <WinnerView desk={desk} edit={edit} preview />;
+  if (source === "game-win") return <GameWinView desk={desk} edit={edit} preview />;
   if (source === "timer") return <TimerView desk={desk} now={now} edit={edit} />;
   if (source === "resource") return <ResourceView desk={desk} edit={edit} />;
   if (source === "upcoming") return <UpcomingView desk={desk} edit={edit} />;

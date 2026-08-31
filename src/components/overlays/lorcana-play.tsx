@@ -9,11 +9,12 @@ import {
   type PlayerSide,
 } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk } from "@/lib/lorcana";
+import { OV_CHROME, OV_DEEP, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
+import { WinStings } from "@/components/overlays/winner";
 
-const SILVER = "#c5ccd6";
-const GOLD = "#e4c56a";
-const RAIL_BG = "linear-gradient(180deg, #16191e 0%, #0b0c0e 100%)";
+const SILVER = OV_CHROME;
+const RAIL_BG = OV_RAIL;
 const INFO_W = "20.75rem";
 const LORE_W = "3.15rem";
 const BACK = "/lorcana/card-back.png";
@@ -30,7 +31,7 @@ function CameraWell({ player, seat }: { player: PlayerSide; seat: "P1" | "P2" })
         style={{ border: `3px solid ${SILVER}`, background: "transparent" }}
       />
       <span
-        className="absolute right-2 bottom-2 font-mono text-[0.72rem] tracking-[0.18em] text-white uppercase"
+        className="absolute right-2 bottom-2 font-mono text-[0.72rem] tracking-[0.18em] text-ov-fg uppercase"
         style={{ textShadow: "0 1px 6px rgb(0 0 0 / 0.85)" }}
       >
         {seat}
@@ -80,8 +81,8 @@ function Diamonds({ won, needed }: { won: number; needed: number }) {
           className={cn(
             "inline-block size-[1.15rem] rotate-45 border-2 transition-[background-color,border-color,box-shadow] duration-300",
             i < won
-              ? "border-[#e4c56a] bg-[#e4c56a] shadow-[0_0_10px_rgb(228_197_106_/_0.45)]"
-              : "border-[#e4c56a]/75 bg-transparent",
+              ? "border-[color:var(--color-game)] bg-[color:var(--color-game)] shadow-[0_0_10px_var(--color-game)]"
+              : "border-[color:var(--color-game)]/75 bg-transparent",
           )}
         />
       ))}
@@ -121,14 +122,14 @@ function LoreTrack({ value, max }: { value: number; max: number }) {
       className="flex h-full shrink-0 flex-col"
       style={{
         width: LORE_W,
-        background: "#10131a",
-        boxShadow: "inset 0 0 0 1px rgb(197 204 214 / 0.16)",
+        background: OV_DEEP,
+        boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 16%, transparent)",
       }}
     >
       <p
         className={cn(
           "font-mono shrink-0 py-1.5 text-center text-[0.68rem] tracking-[0.16em] uppercase",
-          lore >= top ? "text-[#e4c56a]" : "text-white/40",
+          lore >= top ? "text-game" : "text-ov-muted",
         )}
       >
         Win
@@ -143,10 +144,10 @@ function LoreTrack({ value, max }: { value: number; max: number }) {
               className={cn(
                 "flex min-h-0 flex-1 items-center justify-center text-[1.2rem] font-bold tabular-nums transition-[background-color,color] duration-300",
                 current
-                  ? "bg-[#e4c56a] text-[#1a1408]"
+                  ? "bg-game text-[color:var(--color-ov-panel-deep)]"
                   : reached
-                    ? "text-[#e4c56a]"
-                    : "text-white/42",
+                    ? "text-game"
+                    : "text-ov-muted/70",
               )}
             >
               {n}
@@ -157,7 +158,7 @@ function LoreTrack({ value, max }: { value: number; max: number }) {
       <p
         className={cn(
           "font-mono shrink-0 py-1.5 text-center text-[0.62rem] tracking-[0.12em] uppercase",
-          lore === 0 ? "text-[#e4c56a]" : "text-white/40",
+          lore === 0 ? "text-game" : "text-ov-muted",
         )}
       >
         Start
@@ -185,12 +186,12 @@ function Rail({
         <CameraWell player={player} seat={right ? "P2" : "P1"} />
         <div className="flex min-h-0 flex-1 flex-col" style={{ background: RAIL_BG }}>
           <div className="flex shrink-0 flex-col items-center gap-1.5 px-3 pt-2 pb-1">
-            <p className="font-display w-full truncate text-center text-[2.05rem] leading-[1.05] font-semibold tracking-wide text-white uppercase">
+            <p className="font-display w-full truncate text-center text-[2.05rem] leading-[1.05] font-semibold tracking-wide text-ov-fg uppercase">
               {player.name || (right ? "Player 2" : "Player 1")}
             </p>
             <InkRow player={player} />
             <Diamonds won={player.score} needed={needed} />
-            <p className="font-mono text-[0.95rem] tracking-[0.14em] text-white/70 uppercase">
+            <p className="font-mono text-[0.95rem] tracking-[0.14em] text-ov-muted uppercase">
               <FadeValue value={record} />
             </p>
           </div>
@@ -216,15 +217,15 @@ function TopCenter({ desk, clock }: { desk: DeskState; clock: string }) {
       <div
         className="mt-1.5 flex items-center gap-3 rounded-md px-3.5 py-1"
         style={{
-          background: "#10131af0",
-          boxShadow: "inset 0 0 0 1px rgb(197 204 214 / 0.18)",
+          background: OV_DEEP,
+          boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 18%, transparent)",
         }}
       >
-        <p className="font-display max-w-[28rem] truncate text-[1.35rem] leading-none font-semibold tracking-[0.14em] text-white uppercase">
+        <p className="font-display max-w-[28rem] truncate text-[1.35rem] leading-none font-semibold tracking-[0.14em] text-ov-fg uppercase">
           {headline}
         </p>
-        <span className="h-4 w-px bg-white/25" />
-        <p className="font-display text-[1.35rem] leading-none font-semibold tabular-nums tracking-wide text-white">
+        <span className="h-4 w-px bg-ov-fg/25" />
+        <p className="font-display text-[1.35rem] leading-none font-semibold tabular-nums tracking-wide text-ov-fg">
           {clock}
         </p>
       </div>
@@ -239,6 +240,7 @@ export function LorcanaPlayLayout({ desk, now = Date.now() }: { desk: DeskState;
       <Rail desk={desk} player={desk.p1} side="p1" />
       <Rail desk={desk} player={desk.p2} side="p2" />
       <TopCenter desk={desk} clock={clock} />
+      <WinStings desk={desk} />
     </div>
   );
 }

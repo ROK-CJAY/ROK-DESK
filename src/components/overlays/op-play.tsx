@@ -9,12 +9,14 @@ import {
   type PlayerSide,
 } from "@/lib/desk-types";
 import { liveSponsors } from "@/lib/sponsors";
+import { OV_CHROME, OV_DEEP, OV_GOLD, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
+import { WinStings } from "@/components/overlays/winner";
 import type { ReactNode } from "react";
 
-const SILVER = "#c5ccd6";
-const GOLD = "#e4c56a";
-const PLATE = "#10131af2";
+const SILVER = OV_CHROME;
+const GOLD = OV_GOLD;
+const PLATE = OV_DEEP;
 const COL_W = "24rem";
 
 function Chip({
@@ -63,7 +65,7 @@ function CameraWell({ player, align }: { player: PlayerSide; align: "left" | "ri
       >
         <p
           className={cn(
-            "font-display truncate text-[2.15rem] leading-none font-semibold tracking-wide text-white uppercase",
+            "font-display truncate text-[2.15rem] leading-none font-semibold tracking-wide text-ov-fg uppercase",
             align === "right" && "text-right",
           )}
         >
@@ -83,7 +85,7 @@ function LifePips({ remaining, max }: { remaining: number; max: number }) {
           key={i}
           className={cn(
             "size-5 rounded-full border-[2.5px] transition-[background-color,border-color] duration-300",
-            i < remaining ? "border-[#e4c56a] bg-[#e4c56a]" : "border-[#e4c56a]/50 bg-transparent",
+            i < remaining ? "border-[color:var(--color-game)] bg-[color:var(--color-game)]" : "border-[color:var(--color-game)]/50 bg-transparent",
           )}
         />
       ))}
@@ -109,7 +111,7 @@ function CardSlot({ desk, side }: { desk: DeskState; side: "p1" | "p2" }) {
           onError();
           event.currentTarget.src = fallback;
         }}
-        className="absolute inset-0 m-auto max-h-full max-w-full object-contain rounded-[0.65rem] border border-[#d4b46a]/45"
+        className="absolute inset-0 m-auto max-h-full max-w-full object-contain rounded-[0.65rem] border border-game/45"
       />
     </div>
   );
@@ -122,24 +124,24 @@ function InfoWell({ desk, player, side }: { desk: DeskState; player: PlayerSide;
     <div
       className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl px-4 pt-4 pb-3"
       style={{
-        background: "linear-gradient(180deg, #1a1d22 0%, #10131a 100%)",
-        boxShadow: "inset 0 0 0 1px rgb(197 204 214 / 0.16)",
+        background: OV_RAIL,
+        boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 16%, transparent)",
       }}
     >
       <div className="shrink-0">
-        <p className="font-mono mb-2 text-center text-[0.72rem] tracking-[0.22em] text-white/50 uppercase">Life</p>
+        <p className="font-mono mb-2 text-center text-[0.72rem] tracking-[0.22em] text-ov-fg/50 uppercase">Life</p>
         <LifePips remaining={life} max={max} />
       </div>
       <div className="mt-4 flex shrink-0 items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-[0.72rem] tracking-[0.2em] text-white/50 uppercase">DON!!</p>
+          <p className="font-mono text-[0.72rem] tracking-[0.2em] text-ov-fg/50 uppercase">DON!!</p>
           <p className="font-display text-[3.1rem] leading-none font-semibold tabular-nums" style={{ color: GOLD }}>
             <FadeValue value={player.secondary} />
           </p>
         </div>
         <div className="text-right">
-          <p className="font-mono text-[0.72rem] tracking-[0.2em] text-white/50 uppercase">Games</p>
-          <p className="font-display text-[3.1rem] leading-none font-semibold tabular-nums text-white">
+          <p className="font-mono text-[0.72rem] tracking-[0.2em] text-ov-fg/50 uppercase">Games</p>
+          <p className="font-display text-[3.1rem] leading-none font-semibold tabular-nums text-ov-fg">
             <FadeValue value={player.score} />
           </p>
         </div>
@@ -185,7 +187,7 @@ function SponsorRow({ desk }: { desk: DeskState }) {
         ) : (
           <p
             key={row.id}
-            className="font-display text-xl leading-none font-semibold tracking-wide text-white uppercase drop-shadow-[0_2px_8px_rgb(0_0_0_/_0.8)]"
+            className="font-display text-xl leading-none font-semibold tracking-wide text-ov-fg uppercase drop-shadow-[0_2px_8px_rgb(0_0_0_/_0.8)]"
           >
             {row.name}
           </p>
@@ -213,12 +215,12 @@ export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?
   return (
     <div data-game="one-piece" className="pointer-events-none absolute inset-0">
       <Chip align="left">
-        <p className="font-display text-[2.7rem] leading-none font-semibold tracking-[0.14em] text-white uppercase">
+        <p className="font-display text-[2.7rem] leading-none font-semibold tracking-[0.14em] text-ov-fg uppercase">
           {desk.roundName || "Match"}
         </p>
       </Chip>
       <Chip align="right">
-        <p className="font-display text-[2.7rem] leading-none font-semibold tabular-nums tracking-wide text-white">
+        <p className="font-display text-[2.7rem] leading-none font-semibold tabular-nums tracking-wide text-ov-fg">
           {clock}
         </p>
       </Chip>
@@ -226,6 +228,7 @@ export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?
       <SideColumn desk={desk} player={desk.p2} align="right" />
       <SponsorRow desk={desk} />
       <EventMark desk={desk} />
+      <WinStings desk={desk} />
     </div>
   );
 }

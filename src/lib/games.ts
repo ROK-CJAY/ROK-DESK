@@ -415,6 +415,10 @@ export function playerTabletPath(gameId: GameId, slot: 1 | 2 | 3 = 1): string {
   return `${tabletPath(gameId, slot)}?role=player`;
 }
 
+export function playerTabletExtendedPath(gameId: GameId, slot: 1 | 2 | 3 = 1): string {
+  return `${tabletPath(gameId, slot)}?role=extended`;
+}
+
 export function casterTabletPath(gameId: GameId, slot: 1 | 2 | 3 = 1): string {
   return `${tabletPath(gameId, slot)}?role=caster`;
 }

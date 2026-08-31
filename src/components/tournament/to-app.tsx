@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, playerIdField, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
 import { catalogForGame } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { decklistCount } from "@/lib/decklist";
@@ -667,6 +667,15 @@ function StreamPanel() {
               <Button key={`player-${slot}`} variant="secondary" size="sm" className="w-full" asChild>
                 <a href={playerTabletPath(t.gameId, slot)} target="_blank" rel="noreferrer">
                   Player tablet · {MATCH_SLOT_SHORT[slot]}
+                </a>
+              </Button>
+            ))
+          : null}
+        {t.gameId === "lorcana"
+          ? MATCH_SLOTS.map((slot) => (
+              <Button key={`extended-${slot}`} size="sm" className="w-full" asChild>
+                <a href={playerTabletExtendedPath(t.gameId, slot)} target="_blank" rel="noreferrer">
+                  Player tablet extended · {MATCH_SLOT_SHORT[slot]}
                 </a>
               </Button>
             ))

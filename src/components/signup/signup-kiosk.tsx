@@ -70,7 +70,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
       return;
     }
     if (needDeck && decklistCount(draft.decklist) === 0) {
-      setError("This event requires a decklist. Search and add your cards.");
+      setError("This event requires a decklist. Import a Limitless / PTCGL list or add cards.");
       return;
     }
     setBusy(true);

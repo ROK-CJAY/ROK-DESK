@@ -46,7 +46,7 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Nunito+Sans:wght@500;600;700&family=Oswald:wght@500;600;700&family=Roboto+Mono:wght@500;600&family=Source+Sans+3:wght@500;600;700&family=Teko:wght@500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Narrow:wght@500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Exo+2:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Nunito+Sans:wght@500;600;700&family=Oswald:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@500;600&family=Russo+One&family=Source+Sans+3:wght@500;600;700&family=Teko:wght@500;600;700&display=swap",
       },
     ],
   }),

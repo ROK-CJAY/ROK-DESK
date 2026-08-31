@@ -29,6 +29,7 @@ import { Route as ApiOpCardsRouteImport } from './routes/api/op-cards'
 import { Route as ApiPtcgArtRouteImport } from './routes/api/ptcg-art'
 import { Route as ApiPtcgCardsRouteImport } from './routes/api/ptcg-cards'
 import { Route as ApiPtcgCatalogRouteImport } from './routes/api/ptcg-catalog'
+import { Route as ApiPtcgDeckImportRouteImport } from './routes/api/ptcg-deck-import'
 import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
@@ -159,6 +160,11 @@ const ApiPtcgCardsRoute = ApiPtcgCardsRouteImport.update({
 const ApiPtcgCatalogRoute = ApiPtcgCatalogRouteImport.update({
   id: '/api/ptcg-catalog',
   path: '/api/ptcg-catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPtcgDeckImportRoute = ApiPtcgDeckImportRouteImport.update({
+  id: '/api/ptcg-deck-import',
+  path: '/api/ptcg-deck-import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRiftCardsRoute = ApiRiftCardsRouteImport.update({
@@ -338,6 +344,7 @@ export interface FileRoutesByFullPath {
   '/api/ptcg-art': typeof ApiPtcgArtRoute
   '/api/ptcg-cards': typeof ApiPtcgCardsRoute
   '/api/ptcg-catalog': typeof ApiPtcgCatalogRoute
+  '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -390,6 +397,7 @@ export interface FileRoutesByTo {
   '/api/ptcg-art': typeof ApiPtcgArtRoute
   '/api/ptcg-cards': typeof ApiPtcgCardsRoute
   '/api/ptcg-catalog': typeof ApiPtcgCatalogRoute
+  '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -444,6 +452,7 @@ export interface FileRoutesById {
   '/api/ptcg-art': typeof ApiPtcgArtRoute
   '/api/ptcg-cards': typeof ApiPtcgCardsRoute
   '/api/ptcg-catalog': typeof ApiPtcgCatalogRoute
+  '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -499,6 +508,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-art'
     | '/api/ptcg-cards'
     | '/api/ptcg-catalog'
+    | '/api/ptcg-deck-import'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -551,6 +561,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-art'
     | '/api/ptcg-cards'
     | '/api/ptcg-catalog'
+    | '/api/ptcg-deck-import'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -604,6 +615,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-art'
     | '/api/ptcg-cards'
     | '/api/ptcg-catalog'
+    | '/api/ptcg-deck-import'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -658,6 +670,7 @@ export interface RootRouteChildren {
   ApiPtcgArtRoute: typeof ApiPtcgArtRoute
   ApiPtcgCardsRoute: typeof ApiPtcgCardsRoute
   ApiPtcgCatalogRoute: typeof ApiPtcgCatalogRoute
+  ApiPtcgDeckImportRoute: typeof ApiPtcgDeckImportRoute
   ApiRiftCardsRoute: typeof ApiRiftCardsRoute
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
@@ -809,6 +822,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ptcg-catalog'
       fullPath: '/api/ptcg-catalog'
       preLoaderRoute: typeof ApiPtcgCatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ptcg-deck-import': {
+      id: '/api/ptcg-deck-import'
+      path: '/api/ptcg-deck-import'
+      fullPath: '/api/ptcg-deck-import'
+      preLoaderRoute: typeof ApiPtcgDeckImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/rift-cards': {
@@ -1116,6 +1136,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPtcgArtRoute: ApiPtcgArtRoute,
   ApiPtcgCardsRoute: ApiPtcgCardsRoute,
   ApiPtcgCatalogRoute: ApiPtcgCatalogRoute,
+  ApiPtcgDeckImportRoute: ApiPtcgDeckImportRoute,
   ApiRiftCardsRoute: ApiRiftCardsRoute,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,

@@ -18,6 +18,9 @@ import { CardSpotlightView } from "@/components/overlays/card";
 import { EventLogoMark, EventLogoView } from "@/components/overlays/event-logo";
 import { SponsorsView } from "@/components/overlays/sponsors";
 import { VgcVersusView } from "@/components/overlays/vgc-versus";
+import { GameWinView, WinnerView } from "@/components/overlays/winner";
+
+export { GameWinView, WinnerView } from "@/components/overlays/winner";
 
 const SLATE_COPY: Record<Exclude<SlateKind, "hidden">, { kicker: string; title: string; image: string }> = {
   starting: { kicker: "Live shortly", title: "Starting Soon", image: "/slates/starting.jpg" },
@@ -259,45 +262,6 @@ function LowerThirdBody({ desk }: { desk: DeskState }) {
   );
 }
 
-export function WinnerView({ desk, edit = null }: { desk: DeskState; edit?: OverlayEdit | null }) {
-  return (
-    <Shell desk={desk} edit={edit}>
-      <WinnerBody desk={desk} kind="match" />
-    </Shell>
-  );
-}
-
-export function GameWinView({ desk, edit = null }: { desk: DeskState; edit?: OverlayEdit | null }) {
-  return (
-    <Shell desk={desk} edit={edit}>
-      <WinnerBody desk={desk} kind="game" />
-    </Shell>
-  );
-}
-
-function WinnerBody({ desk, kind }: { desk: DeskState; kind: "game" | "match" }) {
-  const edit = useOverlayEdit();
-  const side = kind === "match" ? desk.winnerSide : desk.gameWinnerSide;
-  if (!side && !edit) return null;
-  const player = desk[side ?? "p1"];
-  return (
-    <Placed id={kind === "match" ? "winner" : "gameWin"}>
-      <div className={`w-[1920px] px-16 text-center ${side ? "" : "opacity-60"}`}>
-        <p className="font-mono text-sm tracking-[0.34em] text-game uppercase">
-          {kind === "match" ? "Match winner" : "Game"}
-        </p>
-        <h1 className="font-display mt-2 text-8xl font-semibold tracking-tight text-ov-fg uppercase">
-          {player.name}
-        </h1>
-        <p className="mt-3 text-2xl text-ov-muted">
-          {player.archetype || player.extra || player.tag || desk.roundName}
-          {kind === "match" ? ` · ${desk.p1.score}–${desk.p2.score}` : ""}
-        </p>
-      </div>
-    </Placed>
-  );
-}
-
 export function TimerView({
   desk,
   now = Date.now(),
@@ -436,8 +400,8 @@ export function HudView({
       {commander || rok || play ? null : <ResourceView desk={desk} edit={edit} />}
       {commander || rok || play ? null : <CastersView desk={desk} edit={edit} />}
       {play ? null : <LowerThirdView desk={desk} edit={edit} />}
-      <WinnerView desk={desk} edit={edit} />
-      <GameWinView desk={desk} edit={edit} />
+      {rok || play ? null : <WinnerView desk={desk} edit={edit} />}
+      {rok || play ? null : <GameWinView desk={desk} edit={edit} />}
       {rok || play ? null : <RosterView desk={desk} edit={edit} />}
       {rok || play ? null : <CardSpotlightView desk={desk} edit={edit} />}
       {play ? null : <SponsorsView desk={desk} now={now} edit={edit} compact />}

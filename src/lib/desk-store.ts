@@ -25,6 +25,7 @@ import {
   type TableSize,
 } from "@/lib/desk-types";
 import { gameOf, isCommanderLane, slugOf, supportsRokLayout, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
+import { DEFAULT_LOOK_BOOK } from "@/lib/overlay-look";
 import { emptyPtcgBoard } from "@/lib/ptcg-board";
 import { clearLegacyDesk, deskLooksLikeTest, toggleTestDesk } from "@/lib/test-fixtures";
 import {
@@ -394,6 +395,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       tableSize: format?.seats ?? 2,
       resourceCap: format?.resourceMax ?? game.resource.max,
       layout: layoutForTable(prev.layout, format?.seats ?? 2),
+      overlayLook: { sources: { ...DEFAULT_LOOK_BOOK.sources } },
       ...seats,
       winnerSide: null,
       gameWinnerSide: null,
@@ -421,7 +423,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const lanes = { ...prev.lanes, [laneKey(prev.gameId, current)]: stripLane({ ...prev, matchSlot: current }) };
     const saved = lanes[laneKey(prev.gameId, slot)] ? parseDesk(lanes[laneKey(prev.gameId, slot)]) : null;
     if (saved && saved.gameId === prev.gameId) {
-      const desk = { ...saved, matchSlot: slot, lanes, version: prev.version + 1 };
+      const desk = { ...saved, matchSlot: slot, lanes, version: prev.version + 1, overlayLook: prev.overlayLook };
       persist(desk);
       set({ desk, focusedSeat: "p1" });
       return;

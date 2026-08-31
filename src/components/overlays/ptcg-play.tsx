@@ -3,13 +3,15 @@ import { FadeValue } from "@/components/overlays/fade-value";
 import { formatClock, remainingSeconds, resourceLimit, type DeskState } from "@/lib/desk-types";
 import { emptyPtcgSide, energyColor, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { PokeballIcon } from "@/components/overlays/pips";
+import { OV_DEEP, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
+import { WinStings } from "@/components/overlays/winner";
 
 const RAIL_W = "21.25rem";
 const SLOT =
-  "rounded-lg border border-white/20 bg-[#16191e]/95 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.45)]";
-const ABILITY = "text-[#e4c56a]";
-const ABILITY_NAME = "text-[#f0d78a]";
+  "rounded-lg border border-ov-fg/20 bg-ov-panel/95 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.45)]";
+const ABILITY = "text-game";
+const ABILITY_NAME = "text-game";
 
 /**
  * Landscape illustration window of a printed TCG card.
@@ -28,7 +30,7 @@ function CardIllustration({
 }) {
   const { src, onError } = useCardImageSrc(image, size, id);
   return (
-    <div className={cn("relative overflow-hidden bg-[#0b0c0e]", className)} style={{ aspectRatio: "5 / 3" }}>
+    <div className={cn("relative overflow-hidden bg-ov-panel-deep", className)} style={{ aspectRatio: "5 / 3" }}>
       {src ? (
         <img
           key={src}
@@ -97,7 +99,7 @@ function ActiveCard({ mon }: { mon: PtcgMon }) {
     <div className="flex shrink-0 flex-col gap-2">
       <div className={cn("relative overflow-hidden", SLOT)}>
         <CardIllustration image={mon.image} id={mon.id} className="w-full" />
-        <p className="pointer-events-none absolute top-2 right-2 rounded-sm bg-[#f4f4f1] px-2 py-0.5 font-display text-[1.15rem] leading-none font-semibold tracking-wide text-[#101215] uppercase">
+        <p className="pointer-events-none absolute top-2 right-2 rounded-sm bg-ov-fg px-2 py-0.5 font-display text-[1.15rem] leading-none font-semibold tracking-wide text-[color:var(--color-ov-panel-deep)] uppercase">
           {mon.name}
         </p>
       </div>
@@ -110,12 +112,12 @@ function ActiveCard({ mon }: { mon: PtcgMon }) {
       ) : null}
       <div className="space-y-1">
         {mon.attacks.slice(0, 2).map((atk) => (
-          <p key={atk.name} className="flex items-center justify-between gap-2 text-[1.02rem] leading-tight text-white">
+          <p key={atk.name} className="flex items-center justify-between gap-2 text-[1.02rem] leading-tight text-ov-fg">
             <span className="flex min-w-0 items-center gap-2">
               <EnergyPips cost={atk.cost} />
               <span className="truncate font-medium">{atk.name}</span>
             </span>
-            <span className="font-mono text-[1.05rem] tabular-nums text-white/90">{atk.damage}</span>
+            <span className="font-mono text-[1.05rem] tabular-nums text-ov-fg/90">{atk.damage}</span>
           </p>
         ))}
       </div>
@@ -126,8 +128,8 @@ function ActiveCard({ mon }: { mon: PtcgMon }) {
 function BenchRow({ mon }: { mon: PtcgMon | null }) {
   if (!mon) {
     return (
-      <div className={cn("grid min-h-[5.25rem] flex-1 place-items-center", SLOT, "bg-[#14161a]/90")}>
-        <span className="text-[0.85rem] font-semibold tracking-[0.28em] text-white/40 uppercase">Empty</span>
+      <div className={cn("grid min-h-[5.25rem] flex-1 place-items-center", SLOT, "bg-ov-panel/90")}>
+        <span className="text-[0.85rem] font-semibold tracking-[0.28em] text-ov-fg/40 uppercase">Empty</span>
       </div>
     );
   }
@@ -135,7 +137,7 @@ function BenchRow({ mon }: { mon: PtcgMon | null }) {
     <div className={cn("flex min-h-[5.25rem] flex-1 items-center gap-2.5 overflow-hidden px-2 py-1.5", SLOT)}>
       <CardIllustration image={mon.image} id={mon.id} className="w-[min(9.25rem,46%)] shrink-0 rounded-md" />
       <div className="min-w-0 flex-1">
-        <p className="truncate font-display text-[1.15rem] leading-tight font-semibold tracking-wide text-white uppercase">
+        <p className="truncate font-display text-[1.15rem] leading-tight font-semibold tracking-wide text-ov-fg uppercase">
           {mon.name}
         </p>
         {mon.abilities[0] ? (
@@ -145,7 +147,7 @@ function BenchRow({ mon }: { mon: PtcgMon | null }) {
           </p>
         ) : null}
         {mon.attacks[0] ? (
-          <p className="flex items-center gap-1.5 truncate text-[0.88rem] text-white">
+          <p className="flex items-center gap-1.5 truncate text-[0.88rem] text-ov-fg">
             <EnergyPips cost={mon.attacks[0].cost} dim="size-2.5" />
             <span className="truncate">{mon.attacks[0].name}</span>
             {mon.attacks[0].damage ? <span className="font-mono">{mon.attacks[0].damage}</span> : null}
@@ -164,12 +166,12 @@ function SpotlightOverBench({ mon }: { mon: PtcgMon }) {
       <div className="min-h-0 flex-1 overflow-hidden rounded-md bg-black/40">
         {src ? <img key={src} src={src} alt="" decoding="async" onError={onError} className="h-full w-full object-contain" /> : null}
       </div>
-      <p className="font-display text-center text-lg font-semibold tracking-wide text-white uppercase">{mon.name}</p>
+      <p className="font-display text-center text-lg font-semibold tracking-wide text-ov-fg uppercase">{mon.name}</p>
       {mon.abilities[0] ? (
         <p className={cn("text-center text-[0.8rem]", ABILITY_NAME)}>{mon.abilities[0].name}</p>
       ) : null}
       {mon.attacks.slice(0, 2).map((atk) => (
-        <p key={atk.name} className="flex items-center justify-between text-[0.9rem] text-white">
+        <p key={atk.name} className="flex items-center justify-between text-[0.9rem] text-ov-fg">
           <span className="flex items-center gap-1.5">
             <EnergyPips cost={atk.cost} />
             {atk.name}
@@ -187,8 +189,8 @@ function TurnChips({ board }: { board: PtcgSideBoard }) {
       className={cn(
         "flex-1 rounded-md border px-1 py-1.5 text-center text-[0.68rem] font-semibold tracking-[0.14em] uppercase",
         on
-          ? "border-[#d4534c] bg-[#d4534c] text-white"
-          : "border-white/10 bg-black/40 text-white/35 line-through",
+          ? "border-live bg-live text-ov-fg"
+          : "border-ov-fg/10 bg-black/40 text-ov-fg/35 line-through",
       )}
     >
       {label}
@@ -224,23 +226,23 @@ function Rail({
         align === "left" ? "left-0" : "right-0",
       )}
       style={{
-        background: "linear-gradient(180deg, #16191e 0%, #0b0c0e 100%)",
-        boxShadow: align === "right" ? "inset 0 0 0 1px #c5ccd688, 0 0 18px #d4534c33" : "inset 0 0 0 1px #2a2e35",
+        background: OV_RAIL,
+        boxShadow: align === "right" ? "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 53%, transparent), 0 0 18px color-mix(in srgb, var(--color-live) 20%, transparent)" : "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 22%, transparent)",
         width: RAIL_W,
       }}
     >
       <header className="mb-2 flex shrink-0 items-start justify-between gap-2">
         <div className={cn("min-w-0 flex-1", align === "right" && "order-2 text-right")}>
           <div className={cn("flex items-center gap-2", align === "right" && "justify-end")}>
-            <span className="rounded-sm bg-white/12 px-1.5 py-0.5 font-mono text-[0.95rem] leading-none tracking-wider text-white/90">
+            <span className="rounded-sm bg-ov-fg/12 px-1.5 py-0.5 font-mono text-[0.95rem] leading-none tracking-wider text-ov-fg/90">
               {player.country || "—"}
             </span>
-            <span className="font-mono text-[1.05rem] leading-none tabular-nums text-white/80">
+            <span className="font-mono text-[1.05rem] leading-none tabular-nums text-ov-fg/80">
               <FadeValue value={`${player.recordW}/${player.recordL}/${player.recordD}`} />
             </span>
           </div>
           <div className={cn("mt-0.5 flex items-center gap-2", align === "right" && "flex-row-reverse")}>
-            <p className="font-display min-w-0 flex-1 truncate text-[2rem] leading-tight font-semibold tracking-wide text-white uppercase">
+            <p className="font-display min-w-0 flex-1 truncate text-[2rem] leading-tight font-semibold tracking-wide text-ov-fg uppercase">
               {player.name || (align === "left" ? "Player 1" : "Player 2")}
             </p>
             <div className="flex shrink-0 gap-0.5">
@@ -250,15 +252,15 @@ function Rail({
             </div>
           </div>
         </div>
-        <p className={cn("font-display text-[2.35rem] leading-none font-semibold text-white", align === "right" && "order-1")}>
+        <p className={cn("font-display text-[2.35rem] leading-none font-semibold text-ov-fg", align === "right" && "order-1")}>
           <FadeValue value={player.score} />
         </p>
       </header>
       {board.active ? (
         <ActiveCard mon={board.active} />
       ) : (
-        <div className={cn("grid aspect-[5/3] shrink-0 place-items-center", SLOT, "bg-[#14161a]/90")}>
-          <span className="text-[0.8rem] font-semibold tracking-[0.28em] text-white/35 uppercase">Active</span>
+        <div className={cn("grid aspect-[5/3] shrink-0 place-items-center", SLOT, "bg-ov-panel/90")}>
+          <span className="text-[0.8rem] font-semibold tracking-[0.28em] text-ov-fg/35 uppercase">Active</span>
         </div>
       )}
       <div className="mt-2 flex min-h-0 flex-1 flex-col gap-1.5">
@@ -287,17 +289,18 @@ export function PtcgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; no
         <div
           className="rounded-t-md border border-white/25 px-6 py-1.5"
           style={{
-            background: "#0b0c0e",
-            boxShadow: "0 0 18px #0b0c0e, 0 0 0 1px #2a2e35",
+            background: OV_DEEP,
+            boxShadow: "0 0 18px var(--color-ov-panel-deep), 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 28%, transparent)",
           }}
         >
-          <p className="font-display text-center text-[1.1rem] tracking-[0.08em] text-[#f4f4f1] uppercase">
+          <p className="font-display text-center text-[1.1rem] tracking-[0.08em] text-ov-fg uppercase">
             {title}
-            <span className="mx-2 text-[#d4534c]">—</span>
+            <span className="mx-2 text-live">—</span>
             <span className="font-mono tabular-nums">{clock}</span>
           </p>
         </div>
       </div>
+      <WinStings desk={desk} />
     </div>
   );
 }

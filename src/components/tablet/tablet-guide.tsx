@@ -12,6 +12,7 @@ export type TabletGuideKind =
   | "rift"
   | "lorcana"
   | "lorcana-player"
+  | "lorcana-player-extended"
   | "ygo-player"
   | "table"
   | "caster"
@@ -377,7 +378,7 @@ const COPY: Record<
       },
       {
         title: "Tap the diamonds for games",
-        body: "Filled diamonds are games won in the match. Tap one to mark a game win. Tap the last filled diamond to take it back.",
+        body: "Filled diamonds are games won in the match. Tap + / − to mark a game.",
       },
       {
         title: "Watch the clock",
@@ -385,7 +386,30 @@ const COPY: Record<
       },
       {
         title: "Same seats as the stream",
-        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream.",
+        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream. Use Player tablet extended if the table is self-running names, inks, and cards.",
+      },
+    ],
+  },
+  "lorcana-player-extended": {
+    kicker: "Player tablet extended",
+    title: "Run this Lorcana table on stream",
+    lead: "Use this pad when nobody is on Production. Names, inks, lore, games, the clock, and card art all hit the same overlays the desk uses.",
+    steps: [
+      {
+        title: "Type names and tap inks",
+        body: "Each seat has a name, deck, and up to two inks. That is what Play Layout and the scorebug show.",
+      },
+      {
+        title: "Tap lore and games",
+        body: "The big number is lore (0–20). Plus above, minus below, +8 / −8 on the edge. Diamonds are games in the match. Game awards a game and resets lore. Match reports the pairing if Tournament sent it.",
+      },
+      {
+        title: "Clock and cards",
+        body: "Start / pause the match clock at the top. Search a card at the bottom, then Show P1 or Show P2 in that player’s well. Clear takes the art off.",
+      },
+      {
+        title: "Reset and clear",
+        body: "Reset game zeros lore. Reset match zeros lore and games. Clear seat wipes that player. Clear table wipes both seats and anything on the card overlay.",
       },
     ],
   },

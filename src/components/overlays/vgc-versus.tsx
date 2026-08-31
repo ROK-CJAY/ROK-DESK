@@ -1,6 +1,7 @@
 import { useId, type CSSProperties } from "react";
 import { emptyTeam, spriteFallbackUrl, spriteUrl, type TeamMon } from "@/lib/pokemon-vgc";
 import type { DeskState, PlayerSide } from "@/lib/desk-types";
+import { OV_CHROME, OV_DEEP, OV_PANEL, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
 
 const W = 1920;
@@ -16,11 +17,11 @@ const CAM_H = H - PAD * 2;
 const P1 = { x: PAD, y: PAD, w: CAM_W, h: CAM_H };
 const P2 = { x: PAD + CAM_W + GAP + SPINE + GAP, y: PAD, w: CAM_W, h: CAM_H };
 const SPINE_X = PAD + CAM_W + GAP;
-const CHROME = "#10131a";
-const CHROME_2 = "#16191e";
-const SILVER = "#c5ccd6";
-const PLATE = "#f4f4f1";
-const INK = "#0b0c0e";
+const CHROME = OV_DEEP;
+const CHROME_2 = OV_PANEL;
+const SILVER = OV_CHROME;
+const PLATE = "var(--color-ov-fg)";
+const INK = OV_DEEP;
 
 function box(r: { x: number; y: number; w: number; h: number }): CSSProperties {
   return { left: r.x, top: r.y, width: r.w, height: r.h };
@@ -36,7 +37,7 @@ function MonTile({ mon, down }: { mon: TeamMon; down: boolean }) {
         down && "opacity-40 grayscale",
       )}
       style={{
-        background: "linear-gradient(180deg, #1c1f25 0%, #121418 100%)",
+        background: OV_RAIL,
         boxShadow: "inset 0 0 0 1.5px rgb(197 204 214 / 0.2)",
       }}
     >
@@ -174,7 +175,7 @@ export function VgcVersusView({ desk }: { desk: DeskState }) {
           </div>
           <div className="pointer-events-none absolute inset-0 grid place-items-center">
             <p
-              className="font-display leading-none font-semibold tracking-tight text-white uppercase"
+              className="font-display leading-none font-semibold tracking-tight text-ov-fg uppercase"
               style={{
                 fontSize: "7.2rem",
                 textShadow: "0 4px 0 rgb(11 12 14 / 0.35), 0 10px 28px rgb(0 0 0 / 0.55)",

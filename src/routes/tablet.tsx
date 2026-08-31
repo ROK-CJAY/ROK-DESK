@@ -5,8 +5,9 @@ import { useDeskStore } from "@/lib/desk-store";
 
 export const Route = createFileRoute("/tablet")({
   ssr: false,
-  validateSearch: (raw: Record<string, unknown>): { role?: "judge" | "player" | "caster" } => {
+  validateSearch: (raw: Record<string, unknown>): { role?: "judge" | "player" | "extended" | "caster" } => {
     if (raw.role === "player") return { role: "player" };
+    if (raw.role === "extended") return { role: "extended" };
     if (raw.role === "judge") return { role: "judge" };
     if (raw.role === "caster") return { role: "caster" };
     return {};
@@ -30,7 +31,14 @@ function TabletRedirect() {
     void navigate({
       to: "/$game/tablet",
       params: { game: slugOf(gameId) },
-      search: role === "player" ? { role: "player" } : role === "caster" ? { role: "caster" } : {},
+      search:
+        role === "player"
+          ? { role: "player" }
+          : role === "extended"
+            ? { role: "extended" }
+            : role === "caster"
+              ? { role: "caster" }
+              : {},
       replace: true,
     });
   }, [ready, gameId, role, navigate]);

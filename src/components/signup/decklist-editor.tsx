@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Minus, Plus, Search, Trash2 } from "lucide-react";
+import { Link2, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cardImageUrl, searchCatalogCards, type LookupCard, type LookupCatalog } from "@/lib/card-lookup";
@@ -29,43 +29,11 @@ export function DecklistEditor({
   const [hits, setHits] = useState<LookupCard[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [paste, setPaste] = useState("");
-  const [importStatus, setImportStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [unmatched, setUnmatched] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importNote, setImportNote] = useState("");
+  const [importErr, setImportErr] = useState("");
   const total = decklistCount(value);
-  const canPaste = catalog === "ptcg";
-
-  const importPaste = async () => {
-    const text = paste.trim();
-    if (!text || !canPaste) return;
-    setImportStatus("loading");
-    setUnmatched([]);
-    try {
-      const res = await fetch("/api/ptcg-cards", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      const body = (await res.json()) as {
-        cards?: DeckCard[];
-        unmatched?: { name?: string; qty?: number; set?: string; number?: string }[];
-        error?: string;
-      };
-      if (!res.ok) throw new Error(body.error || "Import failed");
-      let next = value;
-      for (const card of body.cards ?? []) {
-        next = addDeckCard(next, card, card.qty);
-      }
-      onChange(next);
-      setUnmatched(
-        (body.unmatched ?? []).map((row) =>
-          [row.qty, row.name, row.set, row.number].filter(Boolean).join(" "),
-        ),
-      );
-      setImportStatus("idle");
-    } catch {
-      setImportStatus("error");
-    }
-  };
+  const ptcg = catalog === "ptcg";
 
   useEffect(() => {
     const q = query.trim();
@@ -100,6 +68,42 @@ export function DecklistEditor({
     setHits([]);
   };
 
+  const importList = async () => {
+    const raw = paste.trim();
+    if (!raw) {
+      setImportErr("Paste a PTCGL / Limitless list or a public Limitless URL.");
+      return;
+    }
+    setImporting(true);
+    setImportErr("");
+    setImportNote("");
+    try {
+      const res = await fetch("/api/ptcg-deck-import", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(/^https?:\/\//i.test(raw) ? { url: raw } : { text: raw }),
+      });
+      const data = (await res.json()) as { cards?: DeckCard[]; unmatched?: string[]; count?: number; error?: string };
+      if (!res.ok) throw new Error(data.error || "Import failed.");
+      const cards = Array.isArray(data.cards) ? data.cards : [];
+      if (!cards.length && !(data.unmatched?.length)) throw new Error("No cards found in that list.");
+      if (cards.length) onChange(cards);
+      const missed = data.unmatched?.length ?? 0;
+      setImportNote(
+        missed
+          ? `Imported ${data.count ?? cards.length} cards. ${missed} didn’t match the catalog — search below to fix.`
+          : `Imported ${data.count ?? cards.length} cards. Search below if you need to edit.`,
+      );
+      if (!cards.length && missed) {
+        setImportErr(data.unmatched?.slice(0, 6).join(" · ") || "Could not match those cards in the catalog.");
+      }
+    } catch (err) {
+      setImportErr(err instanceof Error ? err.message : "Could not import that list.");
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between gap-2">
@@ -108,29 +112,30 @@ export function DecklistEditor({
         </p>
         <p className="font-mono text-xs tabular-nums text-muted">{total} cards</p>
       </div>
-      {canPaste ? (
+      {ptcg ? (
         <div className="grid gap-2 rounded-lg border border-border bg-surface-2 p-2">
-          <p className="font-mono text-[0.62rem] tracking-[0.14em] text-muted uppercase">
-            Limitless / PTCGL paste
+          <p className="text-[0.7rem] text-muted">
+            Paste a PTCGL export, Limitless <span className="text-fg">Copy as Text</span>, or a public Limitless deck URL
+            (including <span className="text-fg">my.limitlesstcg.com/shared/…</span>).
           </p>
           <textarea
             value={paste}
             onChange={(e) => setPaste(e.target.value)}
-            rows={5}
-            placeholder={"3 Basic {P} Energy MEE 5\n4 Telepathic {P} Energy POR 88"}
-            className="min-h-24 w-full resize-y rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-xs"
+            rows={4}
+            placeholder={"4 Charmander PAF 26\nhttps://my.limitlesstcg.com/shared/…"}
+            className="min-h-20 w-full resize-y rounded-md border border-border bg-surface px-3 py-2 font-mono text-xs text-fg placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:outline-none"
           />
-          <div className="flex items-center gap-2">
-            <Button type="button" size="sm" disabled={!paste.trim() || importStatus === "loading"} onClick={() => void importPaste()}>
-              {importStatus === "loading" ? "Importing…" : "Import list"}
-            </Button>
-            {importStatus === "error" ? <p className="text-xs text-live">Import failed. Try again.</p> : null}
-          </div>
-          {unmatched.length ? (
-            <p className="text-xs text-live">Could not match: {unmatched.join(" · ")}</p>
-          ) : null}
+          <Button type="button" size="sm" variant="secondary" onClick={() => void importList()} disabled={importing}>
+            <Link2 className="size-3.5" />
+            {importing ? "Importing…" : "Import list"}
+          </Button>
+          {importNote ? <p className="text-[0.7rem] text-ok">{importNote}</p> : null}
+          {importErr ? <p className="text-[0.7rem] text-live">{importErr}</p> : null}
         </div>
       ) : null}
+      <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">
+        {ptcg ? "ROK Desk builder · backup" : "Search"}
+      </p>
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
         <Input
@@ -229,7 +234,11 @@ export function DecklistEditor({
         </ul>
       ) : (
         <p className={cn("text-xs", required ? "text-live" : "text-subtle")}>
-          {required ? "Add at least one card to submit." : "Search and add cards with a quantity."}
+          {required
+            ? ptcg
+              ? "Import a list or add at least one card to submit."
+              : "Add at least one card to submit."
+            : "Search and add cards with a quantity."}
         </p>
       )}
     </div>

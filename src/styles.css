@@ -36,6 +36,7 @@
   --color-ov-muted: #b7b9be;
   --color-ov-bg: #101215;
   --color-ov-panel: #16191e;
+  --color-ov-panel-deep: #0b0c0e;
 
   --color-roster-plate: #f3eee3;
   --color-roster-ink: #2a1418;
@@ -207,6 +208,8 @@
 
 [data-ov-case] .font-display {
   letter-spacing: var(--ov-tracking, 0em);
+  -webkit-text-stroke: var(--ov-stroke-width, 0px) var(--ov-stroke, transparent);
+  paint-order: stroke fill;
 }
 
 @keyframes number-in {

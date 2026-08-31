@@ -7,6 +7,7 @@ import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } f
 import { isMtgTitle } from "@/lib/games";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { cn } from "@/lib/cn";
+import { WinStings } from "@/components/overlays/winner";
 
 const WELL = "20.5rem";
 
@@ -47,6 +48,7 @@ export function RokLayoutView({ desk, now = Date.now() }: { desk: DeskState; now
     <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
       <RokSide desk={desk} side="p1" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} stack={stack} />
       <RokSide desk={desk} side="p2" clock={clock} cardSrc={cardSrc} fallback={fallback} onCardError={onCardError} stack={stack} />
+      <WinStings desk={desk} />
     </div>
   );
 }
@@ -131,8 +133,8 @@ function RokSide({
                 className={cn(
                   "inline-block size-5 rotate-45 border-2 transition-[background-color,border-color,box-shadow] duration-300 ease-out",
                   i < player.score
-                    ? "border-[#e4c56a] bg-[#e4c56a] shadow-[0_0_10px_rgb(228_197_106_/_0.45)]"
-                    : "border-[#e4c56a]/80 bg-transparent",
+                    ? "border-[color:var(--color-game)] bg-[color:var(--color-game)] shadow-[0_0_10px_var(--color-game)]"
+                    : "border-[color:var(--color-game)]/80 bg-transparent",
                 )}
               />
             ))}
@@ -155,7 +157,7 @@ function RokSide({
               <CardStackArt
                 stack={stack}
                 className="mx-auto"
-                cardClassName="w-[15.5rem] rounded-[0.7rem] border border-[#d4b46a]/50"
+                cardClassName="w-[15.5rem] rounded-[0.7rem] border border-game/50"
                 offsetX={18}
                 offsetY={26}
                 caption={false}
@@ -165,7 +167,7 @@ function RokSide({
                 key={cardSrc}
                 src={cardSrc}
                 alt=""
-                className="mx-auto w-[15.5rem] rounded-[0.7rem] border border-[#d4b46a]/50 shadow-[0_18px_40px_rgb(0_0_0_/_0.55)]"
+                className="mx-auto w-[15.5rem] rounded-[0.7rem] border border-game/50 shadow-[0_18px_40px_rgb(0_0_0_/_0.55)]"
                 onError={() => {
                   if (cardSrc !== fallback) onCardError();
                 }}
@@ -230,7 +232,7 @@ function MtgMeters({ life, poison }: { life: number; poison: number }) {
         <p
           className={cn(
             "font-display text-[2.35rem] leading-none font-semibold tabular-nums",
-            poison >= 10 ? "text-[#e05a5a]" : "text-ov-fg",
+            poison >= 10 ? "text-live" : "text-ov-fg",
           )}
         >
           <FadeValue value={poison} />
@@ -249,7 +251,7 @@ function OpLifeBar({ remaining, max }: { remaining: number; max: number }) {
           <span
             className={cn(
               "inline-block size-5 rounded-full border-2 transition-[background-color,border-color] duration-300 ease-out",
-              i < remaining ? "border-[#e4c56a] bg-[#e4c56a]" : "border-[#e4c56a]/55 bg-transparent",
+              i < remaining ? "border-[color:var(--color-game)] bg-[color:var(--color-game)]" : "border-[color:var(--color-game)]/55 bg-transparent",
             )}
           />
         </li>

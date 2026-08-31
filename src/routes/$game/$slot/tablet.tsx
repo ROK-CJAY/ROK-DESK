@@ -6,13 +6,14 @@ import { parseMatchSlot } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 
 type TabletSearch = {
-  role?: "judge" | "player" | "caster";
+  role?: "judge" | "player" | "extended" | "caster";
 };
 
 export const Route = createFileRoute("/$game/$slot/tablet")({
   ssr: false,
   validateSearch: (raw: Record<string, unknown>): TabletSearch => {
     if (raw.role === "player") return { role: "player" };
+    if (raw.role === "extended") return { role: "extended" };
     if (raw.role === "judge") return { role: "judge" };
     if (raw.role === "caster") return { role: "caster" };
     return {};
@@ -38,5 +39,11 @@ function SlotTablet() {
   }, [gameId, matchSlot, slot, hydrate]);
 
   if (!gameId || (slot !== "1" && slot !== "2" && slot !== "3")) throw notFound();
-  return <PodPad role={role === "player" ? "player" : role === "caster" ? "caster" : "judge"} />;
+  return (
+    <PodPad
+      role={
+        role === "player" ? "player" : role === "extended" ? "extended" : role === "caster" ? "caster" : "judge"
+      }
+    />
+  );
 }

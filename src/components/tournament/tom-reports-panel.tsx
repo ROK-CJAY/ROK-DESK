@@ -1,12 +1,25 @@
-import { useRef, useState } from "react";
-import { Download, Trash2, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Download, FolderOpen, Pause, Trash2, Upload } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseTomFiles, sampleTomFiles, hasTomSample, withVgcSampleTrainers } from "@/lib/tom-reports";
 import { downloadTomTdf, looksLikeTomTdf, parseTomTdf } from "@/lib/tom-tdf";
+import {
+  canWatchTomFolder,
+  clearDirectoryHandle,
+  ensureDirectoryRead,
+  fingerprintTomReports,
+  loadDirectoryHandle,
+  pickTomReportSet,
+  pickTomReportsDirectory,
+  queryDirectoryRead,
+  readTomReportSet,
+  listTomHtmlFiles,
+  tomWatchIntervalMs,
+} from "@/lib/tom-folder-watch";
 import { useTournamentStore } from "@/lib/tournament-store";
-import { viewTournament } from "@/lib/tournament-types";
+import { deskForGame, viewTournament } from "@/lib/tournament-types";
 import { cn } from "@/lib/cn";
 import type { GameId } from "@/lib/games";
 
@@ -30,25 +43,49 @@ export function TomReportsPanel() {
   const [tomGame, setTomGame] = useState<Extract<GameId, "pokemon-tcg" | "pokemon-vgc">>(
     t.gameId === "pokemon-vgc" ? "pokemon-vgc" : "pokemon-tcg",
   );
+  const [watchStatus, setWatchStatus] = useState<Record<"pokemon-tcg" | "pokemon-vgc", "off" | "on" | "need-gesture">>({
+    "pokemon-tcg": "off",
+    "pokemon-vgc": "off",
+  });
+  const [folderNames, setFolderNames] = useState<Record<"pokemon-tcg" | "pokemon-vgc", string>>({
+    "pokemon-tcg": "",
+    "pokemon-vgc": "",
+  });
+  const dirRefs = useRef<Partial<Record<"pokemon-tcg" | "pokemon-vgc", FileSystemDirectoryHandle>>>({});
+  const tomGameRef = useRef(tomGame);
+  tomGameRef.current = tomGame;
 
   const live = tomGame === t.gameId ? t : viewTournament(t, tomGame);
   const vgc = tomGame === "pokemon-vgc";
+  const watchSupported = canWatchTomFolder();
+  const watch = watchStatus[tomGame];
+  const folderName = folderNames[tomGame];
+
+  const patchTom = (partial: Partial<typeof t>) => {
+    if (t.gameId === tomGame) {
+      patch(partial);
+      return;
+    }
+    const desk = { ...deskForGame(t, tomGame), ...partial };
+    patch({ desks: { ...t.desks, [tomGame]: desk } });
+  };
 
   const useTitle = (id: typeof tomGame) => {
     setTomGame(id);
     if (t.gameId !== id) setGame(id);
   };
 
-  const ingest = (files: { name: string; html: string }[]) => {
+  const ingest = (files: { name: string; html: string }[], viaWatch = false, game = tomGameRef.current) => {
     try {
       const reports = parseTomFiles(files);
-      applyTom(vgc ? withVgcSampleTrainers(reports) : reports, tomGame);
+      applyTom(game === "pokemon-vgc" ? withVgcSampleTrainers(reports) : reports, game);
       const tables = reports.pairings.length;
       const players = reports.players.length;
       setStatus("ok");
       setDetail(
         [
-          vgc ? "VGC" : "PTCG",
+          viaWatch ? "Watch" : null,
+          game === "pokemon-vgc" ? "VGC" : "PTCG",
           reports.roundLabel || null,
           players ? `${players} players` : null,
           tables ? `${tables} tables` : null,
@@ -91,6 +128,113 @@ export function TomReportsPanel() {
     }
   };
 
+  const startWatch = async (handle: FileSystemDirectoryHandle, game = tomGame) => {
+    dirRefs.current[game] = handle;
+    setFolderNames((prev) => ({ ...prev, [game]: handle.name }));
+    setWatchStatus((prev) => ({ ...prev, [game]: "on" }));
+  };
+
+  const pickWatchFolder = async () => {
+    try {
+      const dir = await pickTomReportsDirectory(tomGame);
+      const ok = await ensureDirectoryRead(dir);
+      if (!ok) {
+        setStatus("err");
+        setDetail("Need permission to read that folder.");
+        return;
+      }
+      await startWatch(dir, tomGame);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setStatus("err");
+      setDetail(err instanceof Error ? err.message : "Could not open that folder.");
+    }
+  };
+
+  const resumeWatch = async () => {
+    const dir = dirRefs.current[tomGame];
+    if (!dir) return;
+    const ok = await ensureDirectoryRead(dir);
+    if (!ok) {
+      setStatus("err");
+      setDetail("Need permission to read that folder.");
+      return;
+    }
+    await startWatch(dir, tomGame);
+  };
+
+  const stopWatch = () => {
+    setWatchStatus((prev) => ({ ...prev, [tomGame]: "off" }));
+    delete dirRefs.current[tomGame];
+    setFolderNames((prev) => ({ ...prev, [tomGame]: "" }));
+    void clearDirectoryHandle(tomGame);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!canWatchTomFolder()) return;
+      for (const game of ["pokemon-tcg", "pokemon-vgc"] as const) {
+        const handle = await loadDirectoryHandle(game);
+        if (!handle || cancelled) continue;
+        dirRefs.current[game] = handle;
+        setFolderNames((prev) => ({ ...prev, [game]: handle.name }));
+        const perm = await queryDirectoryRead(handle);
+        if (cancelled) return;
+        setWatchStatus((prev) => ({ ...prev, [game]: perm === "granted" ? "on" : "need-gesture" }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const active = (["pokemon-tcg", "pokemon-vgc"] as const).filter((game) => watchStatus[game] === "on");
+    if (!active.length) return;
+    let alive = true;
+    const last: Partial<Record<"pokemon-tcg" | "pokemon-vgc", string>> = {};
+    const pending: Partial<Record<"pokemon-tcg" | "pokemon-vgc", string>> = {};
+    const tick = async () => {
+      for (const game of active) {
+        const dir = dirRefs.current[game];
+        if (!dir || !alive) continue;
+        try {
+          const listed = await listTomHtmlFiles(dir);
+          const picked = pickTomReportSet(listed);
+          const fp = fingerprintTomReports(picked);
+          if (!fp) continue;
+          if (!last[game]) {
+            pending[game] = fp;
+          } else if (fp !== pending[game]) {
+            pending[game] = fp;
+            continue;
+          }
+          if (fp === last[game]) continue;
+          const { files } = await readTomReportSet(dir);
+          if (!alive || !files.length) continue;
+          ingest(
+            files.map((f) => ({ name: f.name, html: f.html })),
+            true,
+            game,
+          );
+          last[game] = fp;
+          pending[game] = fp;
+        } catch (err) {
+          if (!alive) return;
+          setStatus("err");
+          setDetail(err instanceof Error ? err.message : "Could not read the TOM folder.");
+        }
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => void tick(), tomWatchIntervalMs());
+    return () => {
+      alive = false;
+      window.clearInterval(id);
+    };
+  }, [watchStatus]);
+
   const exportTdf = () => {
     try {
       if (t.gameId !== tomGame) setGame(tomGame);
@@ -130,7 +274,7 @@ export function TomReportsPanel() {
     <section className="rounded-xl border border-border bg-surface p-4">
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">TOM</p>
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        Play! Pokémon only — PTCG and VGC. Sign up here, export a <span className="text-fg">.tdf</span> TOM can open, then drop HTML reports back in for stream. Desk does not write results into TOM.
+        Play! Pokémon only — PTCG and VGC each keep their own organizer, roster, tables, and watch folder. Sign up here, export a <span className="text-fg">.tdf</span> TOM can open, then drop HTML reports back in for stream. Desk does not write results into TOM.
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
         {TOM_GAMES.map((g) => (
@@ -151,38 +295,38 @@ export function TomReportsPanel() {
       <div className="mt-2 grid gap-2">
         <Field label="Organizer name">
           <Input
-            value={t.tomOrganizerName}
-            onChange={(e) => patch({ tomOrganizerName: e.target.value })}
+            value={live.tomOrganizerName}
+            onChange={(e) => patchTom({ tomOrganizerName: e.target.value })}
             placeholder="As in Play! Pokémon"
           />
         </Field>
         <Field label="Organizer Player ID">
           <Input
-            value={t.tomOrganizerPopId}
-            onChange={(e) => patch({ tomOrganizerPopId: e.target.value })}
+            value={live.tomOrganizerPopId}
+            onChange={(e) => patchTom({ tomOrganizerPopId: e.target.value })}
             placeholder="popid"
             inputMode="numeric"
           />
         </Field>
         <div className="grid grid-cols-2 gap-2">
           <Field label="City">
-            <Input value={t.tomCity} onChange={(e) => patch({ tomCity: e.target.value })} placeholder="miami" />
+            <Input value={live.tomCity} onChange={(e) => patchTom({ tomCity: e.target.value })} placeholder="miami" />
           </Field>
           <Field label="State">
-            <Input value={t.tomState} onChange={(e) => patch({ tomState: e.target.value })} placeholder="fl" />
+            <Input value={live.tomState} onChange={(e) => patchTom({ tomState: e.target.value })} placeholder="fl" />
           </Field>
         </div>
         <Field label="Country">
           <Input
-            value={t.tomCountry}
-            onChange={(e) => patch({ tomCountry: e.target.value })}
+            value={live.tomCountry}
+            onChange={(e) => patchTom({ tomCountry: e.target.value })}
             placeholder="United States"
           />
         </Field>
         <Field label="Start date">
           <Input
-            value={t.tomStartDate}
-            onChange={(e) => patch({ tomStartDate: e.target.value })}
+            value={live.tomStartDate}
+            onChange={(e) => patchTom({ tomStartDate: e.target.value })}
             placeholder="MM/DD/YYYY"
           />
         </Field>
@@ -242,6 +386,35 @@ export function TomReportsPanel() {
           Load {vgc ? "VGC" : "PTCG"} sample
         </Button>
       </div>
+      {watchSupported ? (
+        <div className="mt-2 grid gap-2">
+          {watch === "on" ? (
+            <Button size="sm" variant="outline" onClick={stopWatch}>
+              <Pause className="size-3.5" />
+              Stop watching {folderName || "folder"}
+            </Button>
+          ) : watch === "need-gesture" ? (
+            <Button size="sm" variant="secondary" onClick={() => void resumeWatch()}>
+              <FolderOpen className="size-3.5" />
+              Resume watch {folderName || "folder"}
+            </Button>
+          ) : (
+            <Button size="sm" variant="secondary" onClick={() => void pickWatchFolder()}>
+              <FolderOpen className="size-3.5" />
+              Watch TOM reports folder
+            </Button>
+          )}
+          <p className="text-[0.65rem] text-subtle">
+            {watch === "on"
+              ? `Watching ${folderName} for ${vgc ? "VGC" : "PTCG"}. TOM writes pairings.html — Desk imports onto this title only.`
+              : `Pick a ${vgc ? "VGC" : "PTCG"} TOM_DATA or data/reports folder. PTCG and VGC watches stay separate.`}
+          </p>
+        </div>
+      ) : (
+        <p className="mt-2 text-[0.65rem] text-subtle">
+          Folder watch needs Chrome, Edge, or ROK Desk desktop. Drop files here otherwise.
+        </p>
+      )}
       {sampleLoaded || tomTables ? (
         <Button size="sm" variant="outline" className="mt-2 w-full" onClick={clearImported}>
           <Trash2 className="size-3.5" />

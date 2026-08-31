@@ -2,14 +2,16 @@ import { useCardImageSrc } from "@/components/ui/remote-art";
 import { FadeValue } from "@/components/overlays/fade-value";
 import { formatClock, remainingSeconds, emptySpotlight, type DeskState, type SideId } from "@/lib/desk-types";
 import { cn } from "@/lib/cn";
+import { WinStings } from "@/components/overlays/winner";
+import { OV_CHROME, OV_DEEP, OV_GOLD, OV_LIVE, OV_RAIL } from "@/lib/overlay-look";
 
 const RAIL_W = "23rem";
 const TICKER_H = "3.35rem";
 const RAIL_PAD = "0.625rem";
-const RAIL_BG = "linear-gradient(180deg, #16191e 0%, #0b0c0e 100%)";
-const SILVER = "#c5ccd6";
-const RED = "#d4534c";
-const GOLD = "#e4c56a";
+const RAIL_BG = OV_RAIL;
+const SILVER = OV_CHROME;
+const RED = OV_LIVE;
+const GOLD = OV_GOLD;
 
 function sideAccent(side: SideId) {
   return side === "p1" ? SILVER : RED;
@@ -25,15 +27,15 @@ function recordLine(w = 0, l = 0, d = 0) {
 function Spine({ align }: { align: "left" | "right" }) {
   return (
     <div
-      className="flex w-[2.35rem] shrink-0 items-center justify-center border-white/10"
+      className="flex w-[2.35rem] shrink-0 items-center justify-center border-ov-fg/10"
       style={{
-        background: "linear-gradient(180deg, #1a1d22 0%, #0b0c0e 100%)",
-        borderRight: align === "left" ? "1px solid #2a2e35" : undefined,
-        borderLeft: align === "right" ? "1px solid #2a2e35" : undefined,
+        background: OV_RAIL,
+        borderRight: align === "left" ? `1px solid ${OV_CHROME}` : undefined,
+        borderLeft: align === "right" ? `1px solid ${OV_CHROME}` : undefined,
       }}
     >
       <p
-        className="font-mono text-[0.68rem] font-semibold tracking-[0.42em] text-white/45 uppercase"
+        className="font-mono text-[0.68rem] font-semibold tracking-[0.42em] text-ov-fg/45 uppercase"
         style={{
           writingMode: "vertical-rl",
           transform: align === "left" ? "rotate(180deg)" : undefined,
@@ -71,7 +73,7 @@ function CameraWell({
           inset: `0 ${RAIL_PAD}`,
           borderRadius: "1.5rem",
           border: `2.5px solid ${accent}`,
-          boxShadow: "0 0 0 100vmax #10131a",
+          boxShadow: "0 0 0 100vmax var(--color-ov-panel-deep)",
         }}
       />
     </div>
@@ -92,7 +94,7 @@ function CardWell({
   return (
     <div
       className="relative min-h-0 flex-1 overflow-hidden rounded-md bg-transparent"
-      style={{ boxShadow: "inset 0 0 0 1.5px #c5ccd655" }}
+      style={{ boxShadow: "inset 0 0 0 1.5px color-mix(in srgb, var(--color-ov-muted) 33%, transparent)" }}
     >
       {show && src ? (
         <img
@@ -138,19 +140,19 @@ function Rail({ desk, side, align }: { desk: DeskState; side: "p1" | "p2"; align
           style={{ background: RAIL_BG }}
         >
           <div className={cn("flex items-center gap-2", right && "flex-row-reverse")}>
-            <span className="font-mono text-[0.92rem] leading-none tabular-nums tracking-wide text-white/80">
+            <span className="font-mono text-[0.92rem] leading-none tabular-nums tracking-wide text-ov-fg/80">
               <FadeValue value={recordLine(player.recordW, player.recordL, player.recordD)} />
             </span>
             {player.country ? (
               <span
-                className="rounded-sm px-1.5 py-0.5 font-mono text-[0.78rem] leading-none tracking-wider text-[#0b0c0e]"
+                className="rounded-sm px-1.5 py-0.5 font-mono text-[0.78rem] leading-none tracking-wider text-[color:var(--color-ov-panel-deep)]"
                 style={{ background: accent }}
               >
                 {player.country}
               </span>
             ) : null}
           </div>
-          <p className="font-display mt-1 truncate text-[2.35rem] leading-none font-semibold tracking-wide text-white uppercase">
+          <p className="font-display mt-1 truncate text-[2.35rem] leading-none font-semibold tracking-wide text-ov-fg uppercase">
             {player.name || (right ? "Player 2" : "Player 1")}
           </p>
         </header>
@@ -160,8 +162,8 @@ function Rail({ desk, side, align }: { desk: DeskState; side: "p1" | "p2"; align
           style={{ background: RAIL_BG }}
         >
           <div className="my-2 shrink-0">
-            <p className="font-mono text-[0.58rem] tracking-[0.22em] text-white/40 uppercase">Deck type</p>
-            <p className="font-display truncate text-[1.15rem] leading-tight font-semibold tracking-wide text-white/90 uppercase">
+            <p className="font-mono text-[0.58rem] tracking-[0.22em] text-ov-fg/40 uppercase">Deck type</p>
+            <p className="font-display truncate text-[1.15rem] leading-tight font-semibold tracking-wide text-ov-fg/90 uppercase">
               {player.archetype || player.extra || "—"}
             </p>
           </div>
@@ -175,7 +177,7 @@ function Rail({ desk, side, align }: { desk: DeskState; side: "p1" | "p2"; align
 function GameChip({ value, accent }: { value: number; accent: string }) {
   return (
     <span
-      className="grid size-11 shrink-0 place-items-center rounded-sm font-display text-[1.85rem] leading-none font-semibold tabular-nums text-[#0b0c0e]"
+      className="grid size-11 shrink-0 place-items-center rounded-sm font-display text-[1.85rem] leading-none font-semibold tabular-nums text-[color:var(--color-ov-panel-deep)]"
       style={{ background: accent }}
     >
       <FadeValue value={value} />
@@ -192,18 +194,18 @@ function TopBar({ desk, clock }: { desk: DeskState; clock: string }) {
         right: `calc(${RAIL_W} + 1.1rem)`,
         top: "0.65rem",
         height: "3.7rem",
-        background: "#0b0c0ecc",
+        background: OV_DEEP,
         boxShadow: `inset 3px 0 0 ${SILVER}, inset -3px 0 0 ${RED}, 0 8px 28px rgb(0 0 0 / 0.45)`,
       }}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3 px-3">
         <GameChip value={desk.p1.score} accent={SILVER} />
         <div className="min-w-0">
-          <p className="font-mono text-[0.58rem] tracking-[0.2em] text-white/45 uppercase">LP</p>
+          <p className="font-mono text-[0.58rem] tracking-[0.2em] text-ov-fg/45 uppercase">LP</p>
           <p
             className={cn(
               "font-display text-[2.05rem] leading-none font-semibold tabular-nums",
-              desk.p1.resource <= 0 ? "text-[#d4534c]" : "text-white",
+              desk.p1.resource <= 0 ? "text-live" : "text-ov-fg",
             )}
           >
             <FadeValue value={desk.p1.resource} />
@@ -218,11 +220,11 @@ function TopBar({ desk, clock }: { desk: DeskState; clock: string }) {
       </div>
       <div className="flex min-w-0 flex-1 items-center justify-end gap-3 px-3">
         <div className="min-w-0 text-right">
-          <p className="font-mono text-[0.58rem] tracking-[0.2em] text-white/45 uppercase">LP</p>
+          <p className="font-mono text-[0.58rem] tracking-[0.2em] text-ov-fg/45 uppercase">LP</p>
           <p
             className={cn(
               "font-display text-[2.05rem] leading-none font-semibold tabular-nums",
-              desk.p2.resource <= 0 ? "text-[#d4534c]" : "text-white",
+              desk.p2.resource <= 0 ? "text-live" : "text-ov-fg",
             )}
           >
             <FadeValue value={desk.p2.resource} />
@@ -243,8 +245,8 @@ function Ticker({ desk }: { desk: DeskState }) {
       className="absolute right-0 bottom-0 left-0 z-10 grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4"
       style={{
         height: TICKER_H,
-        background: "linear-gradient(90deg, #0b0c0e 0%, #16191e 50%, #0b0c0e 100%)",
-        boxShadow: "inset 0 1px 0 #c5ccd644",
+        background: OV_RAIL,
+        boxShadow: "inset 0 1px 0 color-mix(in srgb, var(--color-ov-muted) 27%, transparent)",
       }}
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -253,11 +255,11 @@ function Ticker({ desk }: { desk: DeskState }) {
         ) : (
           <img src="/brand/rok-mark.png" alt="" className="size-8 object-contain" />
         )}
-        <p className="font-display min-w-0 truncate text-[1.35rem] font-semibold tracking-wide text-white uppercase">
+        <p className="font-display min-w-0 truncate text-[1.35rem] font-semibold tracking-wide text-ov-fg uppercase">
           {left}
         </p>
       </div>
-      <p className="max-w-[28rem] truncate text-center font-mono text-[0.78rem] tracking-[0.16em] text-white/70 uppercase">
+      <p className="max-w-[28rem] truncate text-center font-mono text-[0.78rem] tracking-[0.16em] text-ov-fg/70 uppercase">
         {mid}
       </p>
       <p className="truncate text-right font-mono text-[0.72rem] tracking-[0.16em] uppercase" style={{ color: GOLD }}>
@@ -275,6 +277,7 @@ export function YgoPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now
       <Rail desk={desk} side="p2" align="right" />
       <TopBar desk={desk} clock={clock} />
       <Ticker desk={desk} />
+      <WinStings desk={desk} />
     </div>
   );
 }

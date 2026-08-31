@@ -100,7 +100,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Per-game. Switching titles does not share players
 - Name, handle, country, pronouns, deck / commander / extra
 - Organized-play **Player ID** (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, SWU-Stats, Riot ID) with a required privacy checkbox. IDs stay on the roster and export, never on stream
-- **Decklists** (optional per event): TO toggles Request decklist; players search/add cards with qty; export includes `decklists.csv` plus a count on `players.csv`
+- **Decklists** (optional per event): TO toggles Request decklist. PTCG can paste a PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link; `{P}` is Psychic Energy. The ROK Desk card search stays as a backup. Export includes `decklists.csv` plus a count on `players.csv`
 - Lorcana: deck plus up to two official inks
 - Commander / cEDH / Duel Commander: searchable commander (Scryfall) plus an optional Partner field
 - VGC: full team sheet (species, Tera, ability, item, four moves)
@@ -125,10 +125,11 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Staff roles: Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other — archive only
 - **Export tournament** — zip of JSON plus CSVs (event, players, matches, standings, staff, VGC teams, decklists, judge notes). Other titles with a field go in their own folders. Completing the event also downloads this pack.
 - **Import JSON** — load a `tournament.json` from that zip (or a saved desk state) to bring a past event back. Other titles on the machine stay put.
-- **TOM (PTCG and VGC)** — Play! Pokémon companion. Pick the title on the TOM card.
+- **TOM (PTCG and VGC)** — Play! Pokémon companion. Pick the title on the TOM card. PTCG and VGC each keep their own organizer, roster, tables, and watch folder.
   - Sign up in Desk, then **Export TDF** for TOM File → Open. PTCG is `TRADING_CARD_GAME`; VGC is `VIDEO_GAME` with in-game trainer names. Fill organizer name, Player ID, city, and state. Players without a Player ID are skipped.
   - Drop a `.tdf` to load that roster onto PTCG or VGC.
   - Drop `roster.html` / `pairings.html` / `standings.html` from `TOM_DATA/data/reports`. Desk fills tables so you can send a match to stream. TOM still pairs and scores.
+  - **Watch TOM reports folder** (Chrome, Edge, or ROK Desk desktop): pick `TOM_DATA` or `data/reports` once. Desk imports when TOM writes new pairings / standings. Drop files if you are not in a Chromium browser.
   - **Load sample** / **Clear sample**, or **Clear roster** on the player list.
 - VGC **print team list** — two pages per player in the Play! Pokémon VG team-list layout (staff page with stats, opponent page without)
 
@@ -202,6 +203,7 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 
 - **MTG Commander / cEDH / Duel Commander** — life, poison, commander damage
 - **Lorcana** — split lore pads, +8 / −8 chips, game diamonds plus large **+ / −** for games, match clock
+- **Lorcana player tablet extended** (`?role=extended`) — self-run table: names, deck, inks, lore, games, Game / Match, match clock, Lorcast Show P1 / Show P2, Reset game / match, Clear seat / table
 - **YGO** — split LP pads, typed ticks (default 100), −100 / −500 / −800 / −1000 / −2000 chips, game diamonds, match clock
 
 ### Commentary tablet
@@ -227,7 +229,7 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 - Deck / leader / commander when that format needs it
 - Commander / cEDH / Duel Commander: Scryfall search for the commander, plus an optional Partner (or Background)
 - Limitless / notes (optional season record or accomplishments)
-- Decklist when the TO turns on **Request decklist** — search a card, tap to add, set quantity. Uses the same APIs as judge lookup (pokemontcg.io, Scryfall, SWU-DB, YGOPRODeck, OP, Lorcast, Riftcodex)
+- Decklist when the TO turns on **Request decklist**. PTCG: paste PTCGL / Limitless text, a public Limitless URL, or a shared `my.limitlesstcg.com` link, or search/add cards. Other titles: search a card, tap to add, set quantity.
 - Lorcana inks (up to two)
 - VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls
 - Player ID + privacy checkbox
@@ -372,11 +374,14 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 ### Unreleased (on `main`, not tagged)
 
 **Added**
-- **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, send a table to stream. Load / clear sample. TOM stays official.
+- **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, or **Watch TOM reports folder** so pairings import when TOM writes them. Send a table to stream. Load / clear sample. TOM stays official.
+- **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…`. Energy glyphs (`{P}`) and set + number matching. Search builder stays as backup.
 - **PTCG catalog download** — save every English card on this machine; hit the button again to refresh
+- **Lorcana player tablet extended** — self-run names, inks, lore, games, clock, and Show P1 / P2
 
 **Fixed**
-- PTCG lookup uses pokemontcg.io (not TCGdex) with retries, a short cache, and the local catalog
+- PTCG lookup uses the local catalog, then pokemontcg.io, then TCGdex as a last backup
+- PTCG import no longer grabs Warp Energy / Fates Collide N from a fuzzy “Energy” / “N” match
 
 ### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
 

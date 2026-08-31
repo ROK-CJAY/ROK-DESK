@@ -13,6 +13,7 @@ const noStore = {
 };
 
 const PTCG_IO = "https://api.pokemontcg.io/v2/cards";
+const TCGDEX = "https://api.tcgdex.net/v2/en/cards";
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 const cache = new Map<string, { at: number; body: string }>();
@@ -96,13 +97,16 @@ export const Route = createFileRoute("/api/ptcg-cards")({
         if (hit && Date.now() - hit.at < CACHE_MS) return json(hit.body, 200);
 
         const target = id ? `${PTCG_IO}/${encodeURIComponent(id)}` : pokemonTcgIoUrl(q, true);
-        const body =
-          (await getWithRetries(target, 6)) ??
-          (id ? null : await getWithRetries(pokemonTcgIoUrl(q, false), 4));
+        const ioBody =
+          (await getWithRetries(target, 6)) ?? (id ? null : await getWithRetries(pokemonTcgIoUrl(q, false), 4));
+        const body = ioBody
+          ? live && !id
+            ? preferStandard(ioBody)
+            : ioBody
+          : await tcgdexFallback(id, q, live);
         if (body) {
-          const out = live && !id ? preferStandard(body) : body;
-          cache.set(cacheKey, { at: Date.now(), body: out });
-          return json(out, 200);
+          cache.set(cacheKey, { at: Date.now(), body });
+          return json(body, 200);
         }
 
         return Response.json({ error: "Card lookup unavailable" }, { status: 502, headers: noStore });
@@ -146,6 +150,95 @@ function pokemonTcgIoUrl(q: string, newestFirst: boolean): string {
   return url.toString();
 }
 
+function tcgdexUrl(id: string, q: string, live: boolean): string {
+  if (id) return `${TCGDEX}/${encodeURIComponent(id)}`;
+  const url = new URL(TCGDEX);
+  url.searchParams.set("name", q.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim());
+  url.searchParams.set("pagination:itemsPerPage", "20");
+  if (live) url.searchParams.set("legal.standard", "true");
+  return url.toString();
+}
+
+async function tcgdexFallback(id: string, q: string, live: boolean): Promise<string | null> {
+  const raw = await getWithRetries(tcgdexUrl(id, q, live), 2, 2500);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (Array.isArray(parsed)) {
+      const data = parsed.map(toTcgIo).filter((row) => row.name);
+      return JSON.stringify({ data });
+    }
+    if (parsed && typeof parsed === "object" && "name" in parsed) {
+      const card = toTcgIo(parsed);
+      return card.name ? JSON.stringify({ data: card }) : null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function toTcgIo(row: unknown): Record<string, unknown> {
+  const item = isRecord(row) ? row : {};
+  const set = isRecord(item.set) ? item.set : {};
+  const image = item.image ? String(item.image).replace(/\/+$/, "") : "";
+  const number = item.localId != null ? String(item.localId) : item.number != null ? String(item.number) : undefined;
+  const category = item.category ? String(item.category) : item.supertype ? String(item.supertype) : "";
+  const stage = item.stage ? String(item.stage) : "";
+  const trainerType = item.trainerType ? String(item.trainerType) : "";
+  const types = Array.isArray(item.types) ? item.types.map(String) : [];
+  const retreat =
+    typeof item.retreat === "number"
+      ? item.retreat
+      : Array.isArray(item.retreatCost)
+        ? item.retreatCost.length
+        : undefined;
+  const attacks = Array.isArray(item.attacks)
+    ? item.attacks.flatMap((atk) => {
+        if (!isRecord(atk) || !atk.name) return [];
+        return [
+          {
+            name: String(atk.name),
+            cost: Array.isArray(atk.cost) ? atk.cost.map(String) : undefined,
+            damage: atk.damage != null && String(atk.damage) ? String(atk.damage) : undefined,
+            text: atk.effect ? String(atk.effect) : atk.text ? String(atk.text) : undefined,
+          },
+        ];
+      })
+    : undefined;
+  const abilities = Array.isArray(item.abilities)
+    ? item.abilities.flatMap((row) => {
+        if (!isRecord(row) || !row.name) return [];
+        return [{ name: String(row.name), text: row.effect ? String(row.effect) : row.text ? String(row.text) : undefined }];
+      })
+    : undefined;
+  return {
+    id: String(item.id ?? item.name ?? ""),
+    name: String(item.name ?? "").trim(),
+    number,
+    hp: item.hp != null ? String(item.hp) : undefined,
+    rarity: item.rarity ? String(item.rarity) : undefined,
+    supertype: category,
+    subtypes: [stage, trainerType].filter(Boolean),
+    types,
+    regulationMark: item.regulationMark ? String(item.regulationMark) : undefined,
+    images: image ? { small: `${image}/low.webp`, large: `${image}/high.webp` } : undefined,
+    set: {
+      id: set.id ? String(set.id) : undefined,
+      name: set.name ? String(set.name) : undefined,
+    },
+    attacks,
+    abilities,
+    rules: item.effect ? [String(item.effect)] : undefined,
+    convertedRetreatCost: retreat,
+    retreatCost: retreat ? Array.from({ length: retreat }, () => "Colorless") : undefined,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 function preferStandard(body: string): string {
   return filterStandard(body);
 }
@@ -161,9 +254,9 @@ function filterStandard(body: string): string {
   }
 }
 
-async function getWithRetries(url: string, attempts: number): Promise<string | null> {
+async function getWithRetries(url: string, attempts: number, timeoutMs = 4000): Promise<string | null> {
   for (let i = 0; i < attempts; i++) {
-    const body = (await curlGet(url, 8000)) ?? (await fetchGet(url, 8000));
+    const body = (await curlGet(url, timeoutMs)) ?? (await fetchGet(url, timeoutMs));
     if (body) return body;
     if (i < attempts - 1) await sleep(160 + i * 140);
   }
