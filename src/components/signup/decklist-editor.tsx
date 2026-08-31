@@ -28,7 +28,44 @@ export function DecklistEditor({
   const [query, setQuery] = useState("");
   const [hits, setHits] = useState<LookupCard[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [paste, setPaste] = useState("");
+  const [importStatus, setImportStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [unmatched, setUnmatched] = useState<string[]>([]);
   const total = decklistCount(value);
+  const canPaste = catalog === "ptcg";
+
+  const importPaste = async () => {
+    const text = paste.trim();
+    if (!text || !canPaste) return;
+    setImportStatus("loading");
+    setUnmatched([]);
+    try {
+      const res = await fetch("/api/ptcg-cards", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const body = (await res.json()) as {
+        cards?: DeckCard[];
+        unmatched?: { name?: string; qty?: number; set?: string; number?: string }[];
+        error?: string;
+      };
+      if (!res.ok) throw new Error(body.error || "Import failed");
+      let next = value;
+      for (const card of body.cards ?? []) {
+        next = addDeckCard(next, card, card.qty);
+      }
+      onChange(next);
+      setUnmatched(
+        (body.unmatched ?? []).map((row) =>
+          [row.qty, row.name, row.set, row.number].filter(Boolean).join(" "),
+        ),
+      );
+      setImportStatus("idle");
+    } catch {
+      setImportStatus("error");
+    }
+  };
 
   useEffect(() => {
     const q = query.trim();
@@ -71,6 +108,29 @@ export function DecklistEditor({
         </p>
         <p className="font-mono text-xs tabular-nums text-muted">{total} cards</p>
       </div>
+      {canPaste ? (
+        <div className="grid gap-2 rounded-lg border border-border bg-surface-2 p-2">
+          <p className="font-mono text-[0.62rem] tracking-[0.14em] text-muted uppercase">
+            Limitless / PTCGL paste
+          </p>
+          <textarea
+            value={paste}
+            onChange={(e) => setPaste(e.target.value)}
+            rows={5}
+            placeholder={"3 Basic {P} Energy MEE 5\n4 Telepathic {P} Energy POR 88"}
+            className="min-h-24 w-full resize-y rounded-md border border-border bg-surface px-2 py-1.5 font-mono text-xs"
+          />
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" disabled={!paste.trim() || importStatus === "loading"} onClick={() => void importPaste()}>
+              {importStatus === "loading" ? "Importing…" : "Import list"}
+            </Button>
+            {importStatus === "error" ? <p className="text-xs text-live">Import failed. Try again.</p> : null}
+          </div>
+          {unmatched.length ? (
+            <p className="text-xs text-live">Could not match: {unmatched.join(" · ")}</p>
+          ) : null}
+        </div>
+      ) : null}
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
         <Input
