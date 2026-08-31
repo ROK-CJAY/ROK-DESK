@@ -37,6 +37,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { Button } from "@/components/ui/button";
 import { RemoteArt } from "@/components/ui/remote-art";
+import { PtcgCatalogButton } from "@/components/desk/ptcg-catalog-button";
 import { cn } from "@/lib/cn";
 
 export function CardLookup({
@@ -310,6 +311,7 @@ export function CardLookup({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {catalog === "ptcg" ? <PtcgCatalogButton compact /> : null}
           <GuideButton onClick={guide.openGuide} />
           {hasMatchDeck ? (
             <div className="flex rounded-md bg-surface-2 p-0.5">
@@ -475,7 +477,11 @@ export function CardLookup({
                 ? `Type at least two letters. ${ygoFormat ? `${formatName} filters to that banlist when available.` : "All printings searches the full YGOPRODeck catalog."}`
                 : op
                   ? "Type at least two letters. Search uses official English OP card data."
-                  : "Type at least two letters. Live is Standard-legal TCG Live cards."}
+                  : rift
+                    ? "Type at least two letters. Search hits Riftcodex."
+                    : lorcana
+                      ? "Type at least two letters. Search hits Lorcast."
+                      : "Type at least two letters. Live is current Standard (regulation H+). All printings is every set."}
         </p>
       )}
 

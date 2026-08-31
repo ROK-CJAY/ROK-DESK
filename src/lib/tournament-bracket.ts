@@ -323,6 +323,23 @@ export function computeStandings(t: TournamentState): Standing[] {
     });
   }
   const opponents = new Map<string, string[]>();
+  const reported = t.matches.some((m) => m.side === "swiss" && m.winnerId && matchEntrantIds(m).length >= 2);
+  if (!reported) {
+    for (const e of pool) {
+      const row = rows.get(e.id);
+      if (!row) continue;
+      const w = e.recordW || 0;
+      const l = e.recordL || 0;
+      const d = e.recordD || 0;
+      if (!w && !l && !d) continue;
+      row.wins = w;
+      row.losses = l;
+      row.draws = d;
+      row.matchPoints = w * 3 + d;
+      if (e.oppWin) row.oppMatchWin = e.oppWin;
+      if (e.oppOppWin) row.oppGameWin = e.oppOppWin;
+    }
+  }
   for (const match of t.matches.filter((m) => m.side === "swiss")) {
     const ids = matchEntrantIds(match);
     for (const id of ids) {
@@ -355,6 +372,13 @@ export function computeStandings(t: TournamentState): Standing[] {
     }
   }
   for (const row of rows.values()) {
+    if (!reported) {
+      const e = t.entrants.find((p) => p.id === row.entrantId);
+      if (e?.oppWin) {
+        row.oppMatchWin = e.oppWin;
+        continue;
+      }
+    }
     const opps = opponents.get(row.entrantId) ?? [];
     if (opps.length === 0) {
       row.oppMatchWin = 0.33;

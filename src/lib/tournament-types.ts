@@ -96,6 +96,11 @@ export type Entrant = {
   note: string;
   judgeNote: string;
   decklist: DeckCard[];
+  recordW: number;
+  recordL: number;
+  recordD: number;
+  oppWin: number;
+  oppOppWin: number;
 };
 
 export type AgeDivision = "" | "juniors" | "seniors" | "masters";
@@ -221,6 +226,12 @@ export type TournamentState = {
   requireDecklist: boolean;
   tiebreaks: Record<string, number>;
   tiebreakMode: TiebreakMode;
+  tomCity: string;
+  tomState: string;
+  tomCountry: string;
+  tomOrganizerName: string;
+  tomOrganizerPopId: string;
+  tomStartDate: string;
 };
 
 const slotSchema = z.object({
@@ -253,6 +264,11 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
   note: z.string().optional().transform((v) => v ?? ""),
   judgeNote: z.string().optional().transform((v) => v ?? ""),
   decklist: z.unknown().optional().transform((rows) => mergeDecklist(rows)),
+  recordW: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  recordL: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  recordD: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  oppWin: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
+  oppOppWin: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
 });
 
 const staffSchema: z.ZodType<StaffMember> = z.object({
@@ -338,6 +354,12 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   requireDecklist: z.boolean().optional().transform((v) => Boolean(v)),
   tiebreaks: z.record(z.string(), z.number()).optional().transform((v) => v ?? {}),
   tiebreakMode: z.enum(["auto", "to"]).optional().transform((v) => (v === "to" ? "to" : "auto")),
+  tomCity: z.string().optional().transform((v) => v ?? ""),
+  tomState: z.string().optional().transform((v) => v ?? ""),
+  tomCountry: z.string().optional().transform((v) => v ?? ""),
+  tomOrganizerName: z.string().optional().transform((v) => v ?? ""),
+  tomOrganizerPopId: z.string().optional().transform((v) => v ?? ""),
+  tomStartDate: z.string().optional().transform((v) => v ?? ""),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -364,6 +386,11 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     team: mergeTeam(overrides.team),
     decklist: mergeDecklist(overrides.decklist),
     judgeNote: overrides.judgeNote ?? "",
+    recordW: overrides.recordW ?? 0,
+    recordL: overrides.recordL ?? 0,
+    recordD: overrides.recordD ?? 0,
+    oppWin: overrides.oppWin ?? 0,
+    oppOppWin: overrides.oppOppWin ?? 0,
   };
 }
 
@@ -489,6 +516,12 @@ export function defaultTournament(): TournamentState {
     ...desk,
     formatName: game.formats[0]?.label ?? "Standard",
     desks: { "pokemon-tcg": desk },
+    tomCity: "",
+    tomState: "",
+    tomCountry: "United States",
+    tomOrganizerName: "",
+    tomOrganizerPopId: "",
+    tomStartDate: "",
   };
 }
 

@@ -25,6 +25,9 @@ import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } 
 import { remainingSeconds } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 import { withDeskJudgeNotes } from "@/lib/judge-notes-sync";
+import { applyTomTdf as mergeTomTdf, applyTomToGame } from "@/lib/tom-apply";
+import { hasTomSample, isTomSamplePlayer, SAMPLE_EVENT_NAME, type TomReports } from "@/lib/tom-reports";
+import type { TomTdfImport } from "@/lib/tom-tdf";
 
 type TournamentStore = {
   tournament: TournamentState;
@@ -32,6 +35,9 @@ type TournamentStore = {
   hydrate: () => Promise<void>;
   setTournament: (t: TournamentState) => void;
   importArchive: (incoming: TournamentState) => void;
+  applyTom: (reports: TomReports, gameId?: GameId) => void;
+  applyTomTdf: (file: TomTdfImport) => void;
+  clearTom: (mode?: "sample" | "tables" | "all") => void;
   patch: (partial: Partial<TournamentState>) => void;
   setGame: (gameId: GameId) => void;
   addEntrant: (partial?: Partial<Entrant>) => void;
@@ -164,6 +170,81 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
     };
     persist(tournament);
     set({ tournament });
+  },
+
+  applyTom: (reports, gameId) => {
+    const prev = get().tournament;
+    const tournament = nextVersion(applyTomToGame(prev, reports, gameId), {});
+    persist(tournament);
+    set({ tournament });
+    const desk = useDeskStore.getState();
+    const live = [
+      [1 as const, tournament.streamMatchId],
+      [2 as const, tournament.streamMatchId2],
+      [3 as const, tournament.streamMatchId3],
+    ] as const;
+    for (const [slot, matchId] of live) {
+      if (!matchId) continue;
+      const match = tournament.matches.find((m) => m.id === matchId);
+      if (!match) continue;
+      const seat = (id: string | null) => {
+        const e = id ? tournament.entrants.find((row) => row.id === id) : null;
+        return {
+          name: e?.name ?? "",
+          recordW: e?.recordW ?? 0,
+          recordL: e?.recordL ?? 0,
+          recordD: e?.recordD ?? 0,
+        };
+      };
+      desk.patchLiveSeats(slot, seat(match.p1.entrantId), seat(match.p2.entrantId));
+    }
+  },
+
+  applyTomTdf: (file) => {
+    const prev = get().tournament;
+    const tournament = nextVersion(mergeTomTdf(prev, file), {});
+    persist(tournament);
+    set({ tournament });
+  },
+
+  clearTom: (mode = "sample") => {
+    const prev = get().tournament;
+    const dropSample = mode === "sample" || mode === "all" || hasTomSample(prev);
+    const dropAllPlayers = mode === "all";
+    const dropTomMatches = mode !== "sample" || prev.matches.some((m) => m.id.startsWith("tom-")) || dropSample;
+    const keepPlayers = dropAllPlayers
+      ? []
+      : dropSample
+        ? prev.entrants.filter((e) => !isTomSamplePlayer(e)).map((e, i) => ({ ...e, seed: i + 1 }))
+        : prev.entrants;
+    const keepIds = new Set(keepPlayers.map((e) => e.id));
+    const matches = (dropTomMatches ? prev.matches.filter((m) => !m.id.startsWith("tom-")) : prev.matches)
+      .map((m) => ({
+        ...m,
+        p1: { ...m.p1, entrantId: m.p1.entrantId && keepIds.has(m.p1.entrantId) ? m.p1.entrantId : null },
+        p2: { ...m.p2, entrantId: m.p2.entrantId && keepIds.has(m.p2.entrantId) ? m.p2.entrantId : null },
+        p3: { ...m.p3, entrantId: m.p3.entrantId && keepIds.has(m.p3.entrantId) ? m.p3.entrantId : null },
+        p4: { ...m.p4, entrantId: m.p4.entrantId && keepIds.has(m.p4.entrantId) ? m.p4.entrantId : null },
+      }))
+      .filter((m) => m.p1.entrantId || m.p2.entrantId || m.p3.entrantId || m.p4.entrantId);
+    const liveIds = new Set(matches.map((m) => m.id));
+    const keepStream = (id: string | null) => (id && liveIds.has(id) ? id : null);
+    const tournament = nextVersion(prev, {
+      name: dropSample && prev.name.trim() === SAMPLE_EVENT_NAME ? "" : prev.name,
+      entrants: keepPlayers,
+      matches,
+      phase: matches.length ? prev.phase : "setup",
+      streamMatchId: keepStream(prev.streamMatchId),
+      streamMatchId2: keepStream(prev.streamMatchId2),
+      streamMatchId3: keepStream(prev.streamMatchId3),
+    });
+    persist(tournament);
+    set({ tournament });
+    const desk = useDeskStore.getState();
+    for (const slot of [1, 2, 3] as const) {
+      const id = slot === 2 ? prev.streamMatchId2 : slot === 3 ? prev.streamMatchId3 : prev.streamMatchId;
+      if (id && !keepStream(id)) desk.clearStreamSlot(prev.gameId, slot);
+    }
   },
 
   patch: (partial) => {

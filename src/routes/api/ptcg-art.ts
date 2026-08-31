@@ -24,6 +24,7 @@ export const Route = createFileRoute("/api/ptcg-art")({
                 accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
               },
               redirect: "follow",
+              signal: AbortSignal.timeout(2500),
             });
             if (!res.ok) continue;
             const type = res.headers.get("content-type") ?? "";

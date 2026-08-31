@@ -31,6 +31,7 @@ export type LookupCard = {
   abilities?: LookupAbility[];
 };
 
+export const PTCG_PROXY = "/api/ptcg-cards";
 export const TCGDEX_BASE = "https://api.tcgdex.net/v2/en";
 export const SCRYFALL_BASE = "https://api.scryfall.com";
 export const SWU_PROXY = "/api/swu-cards";
@@ -96,7 +97,7 @@ export function isPtcgArt(image?: string, id?: string): boolean {
   if (id && /^(sv|swsh|sm|xy|bw|me|svp|mep|sve|mee|tk|dp|pl|col|mc|ex|neo|base|gym|lc|hgss|ecard|pop)/i.test(id)) {
     return true;
   }
-  return /tcgdex\.net/i.test(image ?? "");
+  return /tcgdex\.net|pokemontcg\.io|scrydex\.com|pokemon\.com\/static-assets/i.test(image ?? "");
 }
 
 export function cardImageUrl(image?: string, size: "low" | "high" = "high", id?: string): string {
@@ -121,34 +122,39 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
 
   const prefix = (image ?? "").trim().replace(/\/+$/, "");
   const isFile = Boolean(prefix) && /\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(prefix);
-  if (isFile) add(prefix);
+  const isTcgdex = /tcgdex\.net/i.test(prefix);
+  if (isFile && !isTcgdex) add(prefix);
   else if (prefix.startsWith("/api/")) add(prefix);
-  else if (prefix) {
+
+  const parsed = parseCardId(id);
+  if (parsed) {
+    const num = parsed.number.replace(/^0+/, "") || "0";
+    for (const ioSet of pokemonTcgIoSets(parsed.set)) {
+      if (size === "high") add(`https://images.pokemontcg.io/${ioSet}/${num}_hires.png`);
+      add(`https://images.pokemontcg.io/${ioSet}/${num}.png`);
+    }
+    for (const folder of pokemonComFolders(parsed.set)) {
+      add(
+        `https://www.pokemon.com/static-assets/content-assets/cms2/img/cards/web/${folder}/${folder}_EN_${num}.png`,
+      );
+    }
+  }
+
+  if (isFile && isTcgdex) add(prefix);
+  else if (prefix && !prefix.startsWith("/api/") && !isFile) {
     const other = size === "high" ? "low" : "high";
     add(`${prefix}/${size}.webp`);
     add(`${prefix}/${other}.webp`);
     add(`${prefix}/${size}.png`);
     add(`${prefix}/${other}.png`);
   }
-
-  const parsed = parseCardId(id);
   if (parsed) {
-    const built = prefix ? "" : tcgdexImagePrefix(parsed.set, parsed.number);
-    if (built) {
+    const built = tcgdexImagePrefix(parsed.set, parsed.number);
+    if (built && built !== prefix) {
       const other = size === "high" ? "low" : "high";
       add(`${built}/${size}.webp`);
       add(`${built}/${other}.webp`);
       add(`${built}/${size}.png`);
-    }
-    const num = parsed.number.replace(/^0+/, "") || "0";
-    for (const folder of pokemonComFolders(parsed.set)) {
-      add(
-        `https://www.pokemon.com/static-assets/content-assets/cms2/img/cards/web/${folder}/${folder}_EN_${num}.png`,
-      );
-    }
-    for (const ioSet of pokemonTcgIoSets(parsed.set)) {
-      add(`https://images.pokemontcg.io/${ioSet}/${num}.png`);
-      if (size === "high") add(`https://images.pokemontcg.io/${ioSet}/${num}_hires.png`);
     }
   }
   return out;
@@ -248,22 +254,29 @@ function inferTcgdexSerie(setId: string): string | null {
 export async function searchLookupCards(query: string, liveOnly = true): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
-  const url = new URL(`${TCGDEX_BASE}/cards`);
-  url.searchParams.set("name", q);
-  url.searchParams.set("pagination:itemsPerPage", "30");
-  if (liveOnly) url.searchParams.set("legal.standard", "true");
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) throw new Error(`Card lookup failed (${res.status})`);
-  const data = (await res.json()) as unknown;
-  return normalizeList(data);
+  const url = new URL(PTCG_PROXY, window.location.origin);
+  url.searchParams.set("q", q);
+  if (liveOnly) url.searchParams.set("live", "1");
+  const data = await fetchPtcgProxy(url.toString(), "Card lookup failed");
+  return normalizePtcgPayload(data);
 }
 
 export async function fetchLookupCard(id: string): Promise<LookupCard | null> {
-  const res = await fetch(`${TCGDEX_BASE}/cards/${encodeURIComponent(id)}`, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Card detail failed (${res.status})`);
-  const data = (await res.json()) as unknown;
-  if (!data || typeof data === "object" === false) return null;
-  return normalizeCard(data as Record<string, unknown>);
+  const url = new URL(PTCG_PROXY, window.location.origin);
+  url.searchParams.set("id", id);
+  const data = await fetchPtcgProxy(url.toString(), "Card detail failed");
+  return normalizePtcgPayload(data)[0] ?? null;
+}
+
+async function fetchPtcgProxy(url: string, label: string): Promise<unknown> {
+  let last = 0;
+  for (let i = 0; i < 4; i++) {
+    const res = await fetch(url, { cache: "no-store" });
+    last = res.status;
+    if (res.ok) return res.json();
+    if (i < 3) await new Promise((resolve) => setTimeout(resolve, 200 + i * 180));
+  }
+  throw new Error(`${label} (${last})`);
 }
 
 export function scryfallLegalFor(formatName: string): string | null {
@@ -474,6 +487,75 @@ export async function fetchLorcanaCard(id: string): Promise<LookupCard | null> {
   const data = (await res.json()) as unknown;
   if (!isRecord(data)) return null;
   return normalizeLorcana(data);
+}
+
+function normalizePtcgPayload(data: unknown): LookupCard[] {
+  if (Array.isArray(data)) return normalizeList(data);
+  if (!isRecord(data)) return [];
+  if (Array.isArray(data.data)) {
+    return data.data.flatMap((row) => {
+      if (!isRecord(row)) return [];
+      const card = row.supertype || row.images ? normalizePokemonTcgIo(row) : normalizeCard(row);
+      return card.name ? [card] : [];
+    });
+  }
+  const inner = isRecord(data.data) ? data.data : data;
+  if (inner.supertype || inner.images || inner.hp || inner.attacks) {
+    const card = normalizePokemonTcgIo(inner);
+    return card.name ? [card] : [];
+  }
+  const card = normalizeCard(inner);
+  return card.name ? [card] : [];
+}
+
+function normalizePokemonTcgIo(item: Record<string, unknown>): LookupCard {
+  const set = isRecord(item.set) ? item.set : null;
+  const images = isRecord(item.images) ? item.images : null;
+  const types = Array.isArray(item.types) ? item.types.map(String) : [];
+  const subtypes = Array.isArray(item.subtypes) ? item.subtypes.map(String) : [];
+  const attacks = Array.isArray(item.attacks)
+    ? item.attacks.flatMap((row) => {
+        if (!isRecord(row) || !row.name) return [];
+        return [
+          {
+            name: String(row.name),
+            cost: Array.isArray(row.cost) ? row.cost.map(String) : undefined,
+            damage: row.damage != null && String(row.damage) ? String(row.damage) : undefined,
+            text: row.text ? String(row.text) : undefined,
+          },
+        ];
+      })
+    : undefined;
+  const abilities = Array.isArray(item.abilities)
+    ? item.abilities.flatMap((row) => {
+        if (!isRecord(row) || !row.name) return [];
+        return [{ name: String(row.name), text: row.text ? String(row.text) : undefined }];
+      })
+    : undefined;
+  const rules = Array.isArray(item.rules) ? item.rules.map(String).join("\n") : "";
+  const retreat = Array.isArray(item.retreatCost)
+    ? String(item.retreatCost.length)
+    : item.convertedRetreatCost != null
+      ? String(item.convertedRetreatCost)
+      : undefined;
+  const supertype = item.supertype ? String(item.supertype) : "";
+  return {
+    id: String(item.id ?? item.name ?? ""),
+    name: String(item.name ?? "").trim(),
+    set: set?.name ? String(set.name) : set?.id ? String(set.id) : undefined,
+    number: item.number != null ? String(item.number) : undefined,
+    image: images?.large ? String(images.large) : images?.small ? String(images.small) : undefined,
+    type: [...types, ...subtypes].filter(Boolean).join(" / ") || supertype || undefined,
+    text: rules || (item.flavorText ? String(item.flavorText) : undefined),
+    category: supertype || undefined,
+    hp: item.hp != null ? String(item.hp) : undefined,
+    rarity: item.rarity ? String(item.rarity) : undefined,
+    stage: subtypes[0],
+    trainerType: supertype === "Trainer" ? subtypes[0] : undefined,
+    retreat,
+    attacks,
+    abilities,
+  };
 }
 
 function normalizeList(data: unknown): LookupCard[] {

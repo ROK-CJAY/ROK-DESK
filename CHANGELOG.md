@@ -6,6 +6,22 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 ## Unreleased
 
+Not tagged. Use the build on `main` until the next beta.
+
+### Added
+
+- **PTCG catalog download** — Production and the judge tablet have Download / Update catalog. It saves every English card on this machine so lookup does not depend on the live API. Hit the button again to refresh.
+- **TOM companion (PTCG and VGC)** — Tournament Control has a TOM card. Pick PTCG or VGC, then:
+  - Sign up in Desk and **Export TDF** (TOM File → Open). PTCG writes `TRADING_CARD_GAME`; VGC writes `VIDEO_GAME` plus in-game trainer names. Organizer name, Player ID, city, state, country, start date go on the card. Players without a Player ID are skipped.
+  - Drop a `.tdf` to load that roster onto the matching title.
+  - Drop TOM `roster.html` / `pairings.html` / `standings.html` (from `TOM_DATA/data/reports`) to fill tables and send a match to stream.
+  - **Load sample** / **Clear sample** (or **Clear TOM tables** / **Clear roster**).
+  - TOM stays the official book. Desk does not write match results back.
+
+### Fixed
+
+- PTCG card lookup no longer depends on TCGdex (currently down). Search goes through `/api/ptcg-cards` → pokemontcg.io over HTTP/1.1 with automatic retries and a short cache, so a single search succeeds instead of failing until you retry. Art tries pokemontcg.io / Pokémon.com first and times out dead CDNs instead of hanging.
+
 ## v1.2.8-beta — 2026-08-28
 
 Commander is its own title. Browser profiles. MTG combo stack. Arrange the overlay you picked.

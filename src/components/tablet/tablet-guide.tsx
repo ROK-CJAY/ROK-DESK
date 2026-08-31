@@ -190,7 +190,7 @@ const COPY: Record<
   cards: {
     kicker: "Card lookup",
     title: "How to pull a card",
-    lead: "This search hits TCGdex Pokémon TCG Live data so you can read the printed card and send it to the stream.",
+    lead: "This search hits pokemontcg.io so you can read the printed card and send it to the stream.",
     steps: [
       {
         title: "Type at least two letters",
@@ -198,7 +198,7 @@ const COPY: Record<
       },
       {
         title: "Live vs All sets",
-        body: "Live is Standard-legal TCG Live. Switch to All sets if the card is out of Standard or you need an older printing.",
+        body: "Live is current Standard — regulation H, I, J, and later. Switch to All printings for rotated or older sets.",
       },
       {
         title: "Show on stream when you need it",

@@ -254,6 +254,16 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                     />
                     <p className="mt-1 text-[0.7rem] text-muted">{idField.hint}</p>
                   </Field>
+                  {t.gameId === "pokemon-tcg" || t.gameId === "pokemon-vgc" ? (
+                    <Field label="Date of birth">
+                      <Input
+                        value={draft.birthDate}
+                        onChange={(e) => setDraft((d) => ({ ...d, birthDate: e.target.value }))}
+                        placeholder="YYYY-MM-DD"
+                      />
+                      <p className="mt-1 text-[0.7rem] text-muted">TOM uses this for age division. Optional on the kiosk.</p>
+                    </Field>
+                  ) : null}
                   {commander ? (
                     <>
                       <Field label="Commander">

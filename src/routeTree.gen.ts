@@ -27,6 +27,8 @@ import { Route as ApiLorcanaCardsRouteImport } from './routes/api/lorcana-cards'
 import { Route as ApiOpArtRouteImport } from './routes/api/op-art'
 import { Route as ApiOpCardsRouteImport } from './routes/api/op-cards'
 import { Route as ApiPtcgArtRouteImport } from './routes/api/ptcg-art'
+import { Route as ApiPtcgCardsRouteImport } from './routes/api/ptcg-cards'
+import { Route as ApiPtcgCatalogRouteImport } from './routes/api/ptcg-catalog'
 import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
@@ -56,6 +58,7 @@ import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$s
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiTournamentExportRouteImport } from './routes/api/tournament/export'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
+import { Route as ApiTournamentTdfRouteImport } from './routes/api/tournament/tdf'
 import { Route as GameSlotOverlaySourceRouteImport } from './routes/$game/$slot/overlay/$source'
 
 const IndexRoute = IndexRouteImport.update({
@@ -146,6 +149,16 @@ const ApiOpCardsRoute = ApiOpCardsRouteImport.update({
 const ApiPtcgArtRoute = ApiPtcgArtRouteImport.update({
   id: '/api/ptcg-art',
   path: '/api/ptcg-art',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPtcgCardsRoute = ApiPtcgCardsRouteImport.update({
+  id: '/api/ptcg-cards',
+  path: '/api/ptcg-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPtcgCatalogRoute = ApiPtcgCatalogRouteImport.update({
+  id: '/api/ptcg-catalog',
+  path: '/api/ptcg-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiRiftCardsRoute = ApiRiftCardsRouteImport.update({
@@ -293,6 +306,11 @@ const ApiTournamentSignupRoute = ApiTournamentSignupRouteImport.update({
   path: '/signup',
   getParentRoute: () => ApiTournamentRoute,
 } as any)
+const ApiTournamentTdfRoute = ApiTournamentTdfRouteImport.update({
+  id: '/tdf',
+  path: '/tdf',
+  getParentRoute: () => ApiTournamentRoute,
+} as any)
 const GameSlotOverlaySourceRoute = GameSlotOverlaySourceRouteImport.update({
   id: '/$game/$slot/overlay/$source',
   path: '/$game/$slot/overlay/$source',
@@ -318,6 +336,8 @@ export interface FileRoutesByFullPath {
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
   '/api/ptcg-art': typeof ApiPtcgArtRoute
+  '/api/ptcg-cards': typeof ApiPtcgCardsRoute
+  '/api/ptcg-catalog': typeof ApiPtcgCatalogRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -347,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
+  '/api/tournament/tdf': typeof ApiTournamentTdfRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
 }
 export interface FileRoutesByTo {
@@ -367,6 +388,8 @@ export interface FileRoutesByTo {
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
   '/api/ptcg-art': typeof ApiPtcgArtRoute
+  '/api/ptcg-cards': typeof ApiPtcgCardsRoute
+  '/api/ptcg-catalog': typeof ApiPtcgCatalogRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -396,6 +419,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
+  '/api/tournament/tdf': typeof ApiTournamentTdfRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
 }
 export interface FileRoutesById {
@@ -418,6 +442,8 @@ export interface FileRoutesById {
   '/api/op-art': typeof ApiOpArtRoute
   '/api/op-cards': typeof ApiOpCardsRoute
   '/api/ptcg-art': typeof ApiPtcgArtRoute
+  '/api/ptcg-cards': typeof ApiPtcgCardsRoute
+  '/api/ptcg-catalog': typeof ApiPtcgCatalogRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -447,6 +473,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
+  '/api/tournament/tdf': typeof ApiTournamentTdfRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
 }
 export interface FileRouteTypes {
@@ -470,6 +497,8 @@ export interface FileRouteTypes {
     | '/api/op-art'
     | '/api/op-cards'
     | '/api/ptcg-art'
+    | '/api/ptcg-cards'
+    | '/api/ptcg-catalog'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -499,6 +528,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/tournament/export'
     | '/api/tournament/signup'
+    | '/api/tournament/tdf'
     | '/$game/$slot/overlay/$source'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -519,6 +549,8 @@ export interface FileRouteTypes {
     | '/api/op-art'
     | '/api/op-cards'
     | '/api/ptcg-art'
+    | '/api/ptcg-cards'
+    | '/api/ptcg-catalog'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -548,6 +580,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/tournament/export'
     | '/api/tournament/signup'
+    | '/api/tournament/tdf'
     | '/$game/$slot/overlay/$source'
   id:
     | '__root__'
@@ -569,6 +602,8 @@ export interface FileRouteTypes {
     | '/api/op-art'
     | '/api/op-cards'
     | '/api/ptcg-art'
+    | '/api/ptcg-cards'
+    | '/api/ptcg-catalog'
     | '/api/rift-cards'
     | '/api/swu-cards'
     | '/api/tournament'
@@ -598,6 +633,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/tournament/export'
     | '/api/tournament/signup'
+    | '/api/tournament/tdf'
     | '/$game/$slot/overlay/$source'
   fileRoutesById: FileRoutesById
 }
@@ -620,6 +656,8 @@ export interface RootRouteChildren {
   ApiOpArtRoute: typeof ApiOpArtRoute
   ApiOpCardsRoute: typeof ApiOpCardsRoute
   ApiPtcgArtRoute: typeof ApiPtcgArtRoute
+  ApiPtcgCardsRoute: typeof ApiPtcgCardsRoute
+  ApiPtcgCatalogRoute: typeof ApiPtcgCatalogRoute
   ApiRiftCardsRoute: typeof ApiRiftCardsRoute
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
@@ -757,6 +795,20 @@ declare module '@tanstack/react-router' {
       path: '/api/ptcg-art'
       fullPath: '/api/ptcg-art'
       preLoaderRoute: typeof ApiPtcgArtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ptcg-cards': {
+      id: '/api/ptcg-cards'
+      path: '/api/ptcg-cards'
+      fullPath: '/api/ptcg-cards'
+      preLoaderRoute: typeof ApiPtcgCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ptcg-catalog': {
+      id: '/api/ptcg-catalog'
+      path: '/api/ptcg-catalog'
+      fullPath: '/api/ptcg-catalog'
+      preLoaderRoute: typeof ApiPtcgCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/rift-cards': {
@@ -962,6 +1014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTournamentSignupRouteImport
       parentRoute: typeof ApiTournamentRoute
     }
+    '/api/tournament/tdf': {
+      id: '/api/tournament/tdf'
+      path: '/tdf'
+      fullPath: '/api/tournament/tdf'
+      preLoaderRoute: typeof ApiTournamentTdfRouteImport
+      parentRoute: typeof ApiTournamentRoute
+    }
     '/$game/$slot/overlay/$source': {
       id: '/$game/$slot/overlay/$source'
       path: '/$game/$slot/overlay/$source'
@@ -1023,11 +1082,13 @@ const OverlayRouteRouteWithChildren = OverlayRouteRoute._addFileChildren(
 interface ApiTournamentRouteChildren {
   ApiTournamentExportRoute: typeof ApiTournamentExportRoute
   ApiTournamentSignupRoute: typeof ApiTournamentSignupRoute
+  ApiTournamentTdfRoute: typeof ApiTournamentTdfRoute
 }
 
 const ApiTournamentRouteChildren: ApiTournamentRouteChildren = {
   ApiTournamentExportRoute: ApiTournamentExportRoute,
   ApiTournamentSignupRoute: ApiTournamentSignupRoute,
+  ApiTournamentTdfRoute: ApiTournamentTdfRoute,
 }
 
 const ApiTournamentRouteWithChildren = ApiTournamentRoute._addFileChildren(
@@ -1053,6 +1114,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOpArtRoute: ApiOpArtRoute,
   ApiOpCardsRoute: ApiOpCardsRoute,
   ApiPtcgArtRoute: ApiPtcgArtRoute,
+  ApiPtcgCardsRoute: ApiPtcgCardsRoute,
+  ApiPtcgCatalogRoute: ApiPtcgCatalogRoute,
   ApiRiftCardsRoute: ApiRiftCardsRoute,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,

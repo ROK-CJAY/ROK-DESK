@@ -23,6 +23,7 @@ import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
 import { ImportTournamentButton } from "@/components/tournament/import-button";
+import { TomReportsPanel } from "@/components/tournament/tom-reports-panel";
 import { exportTournamentFiles } from "@/lib/tournament-export";
 import { StaffPanel } from "@/components/tournament/staff-panel";
 import {
@@ -91,6 +92,7 @@ export function TournamentApp() {
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)]">
         <div className="flex flex-col gap-4">
           <SetupPanel />
+          <TomReportsPanel />
           <StaffPanel />
           <StreamPanel />
           <EventResultCard champ={champ} leader={leader} standings={standings} />
@@ -541,6 +543,9 @@ function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
       team: vgc ? (teamHasMons(e?.team) ? e!.team : emptyTeam()) : undefined,
       ink1: e?.ink1 ?? "",
       ink2: e?.ink2 ?? "",
+      recordW: e?.recordW ?? 0,
+      recordL: e?.recordL ?? 0,
+      recordD: e?.recordD ?? 0,
     };
   };
   const pod = isPodMatch(match);
@@ -682,6 +687,7 @@ function RosterPanel({
   const addEntrant = useTournamentStore((s) => s.addEntrant);
   const updateEntrant = useTournamentStore((s) => s.updateEntrant);
   const removeEntrant = useTournamentStore((s) => s.removeEntrant);
+  const clearTom = useTournamentStore((s) => s.clearTom);
   const reseed = useTournamentStore((s) => s.reseed);
   const reorderEntrants = useTournamentStore((s) => s.reorderEntrants);
   const game = gameOf(t.gameId);
@@ -741,6 +747,19 @@ function RosterPanel({
             <Shuffle className="size-3.5" />
             Reseed 1–n
           </Button>
+          {t.entrants.length ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (!window.confirm(`Remove all ${t.entrants.length} players and tables from this title?`)) return;
+                clearTom("all");
+              }}
+            >
+              <Trash2 className="size-3.5" />
+              Clear roster
+            </Button>
+          ) : null}
         </div>
       </div>
 

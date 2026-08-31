@@ -125,6 +125,11 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Staff roles: Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other — archive only
 - **Export tournament** — zip of JSON plus CSVs (event, players, matches, standings, staff, VGC teams, decklists, judge notes). Other titles with a field go in their own folders. Completing the event also downloads this pack.
 - **Import JSON** — load a `tournament.json` from that zip (or a saved desk state) to bring a past event back. Other titles on the machine stay put.
+- **TOM (PTCG and VGC)** — Play! Pokémon companion. Pick the title on the TOM card.
+  - Sign up in Desk, then **Export TDF** for TOM File → Open. PTCG is `TRADING_CARD_GAME`; VGC is `VIDEO_GAME` with in-game trainer names. Fill organizer name, Player ID, city, and state. Players without a Player ID are skipped.
+  - Drop a `.tdf` to load that roster onto PTCG or VGC.
+  - Drop `roster.html` / `pairings.html` / `standings.html` from `TOM_DATA/data/reports`. Desk fills tables so you can send a match to stream. TOM still pairs and scores.
+  - **Load sample** / **Clear sample**, or **Clear roster** on the player list.
 - VGC **print team list** — two pages per player in the Play! Pokémon VG team-list layout (staff page with stats, opponent page without)
 
 ---
@@ -140,7 +145,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. If the pairing brought in a submitted decklist, lookup defaults to **This match** (only those cards) with **Catalog** as a fallback. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. If the pairing brought in a submitted decklist, lookup defaults to **This match** (only those cards) with **Catalog** as a fallback. PTCG has **Download catalog** so search does not depend on the live API. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
 - PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
@@ -181,7 +186,7 @@ How-to guide on first open. Start / pause / add or remove time / reset **this ta
 | Game | Pad | Lookup |
 | --- | --- | --- |
 | VGC | Remaining Pokémon from the team sheet (tap to KO) | — |
-| PTCG | Prize balls, Energy / Supporter / Retreat, full PTCG board card (Active / bench / HP / Swap / KO) | TCGdex — Show P1 / Show P2 / Clear, Set Active, Set Bench |
+| PTCG | Prize balls, Energy / Supporter / Retreat, full PTCG board card (Active / bench / HP / Swap / KO) | pokemontcg.io (Download catalog for offline search) — Show P1 / Show P2 / Clear, Set Active, Set Bench |
 | MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall — Show, then Layer for a combo |
 | SWU | Base HP, initiative | SWU-DB |
 | YGO | 8000 LP, typed ticks | YGOPRODeck — Show P1 / Show P2 / Clear |
@@ -222,7 +227,7 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 - Deck / leader / commander when that format needs it
 - Commander / cEDH / Duel Commander: Scryfall search for the commander, plus an optional Partner (or Background)
 - Limitless / notes (optional season record or accomplishments)
-- Decklist when the TO turns on **Request decklist** — search a card, tap to add, set quantity. Uses the same APIs as judge lookup (TCGdex, Scryfall, SWU-DB, YGOPRODeck, OP, Lorcast, Riftcodex)
+- Decklist when the TO turns on **Request decklist** — search a card, tap to add, set quantity. Uses the same APIs as judge lookup (pokemontcg.io, Scryfall, SWU-DB, YGOPRODeck, OP, Lorcast, Riftcodex)
 - Lorcana inks (up to two)
 - VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls
 - Player ID + privacy checkbox
@@ -363,6 +368,15 @@ npm run dist
 ## Changelog
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### Unreleased (on `main`, not tagged)
+
+**Added**
+- **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, send a table to stream. Load / clear sample. TOM stays official.
+- **PTCG catalog download** — save every English card on this machine; hit the button again to refresh
+
+**Fixed**
+- PTCG lookup uses pokemontcg.io (not TCGdex) with retries, a short cache, and the local catalog
 
 ### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
 

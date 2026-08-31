@@ -74,6 +74,7 @@ type DeskStore = {
     p3?: Partial<PlayerSide>;
     p4?: Partial<PlayerSide>;
   }) => void;
+  patchLiveSeats: (slot: MatchSlot, p1: Partial<PlayerSide>, p2: Partial<PlayerSide>) => void;
   setTableSize: (size: TableSize) => void;
   setResourceCap: (n: number) => void;
   setFocusedSeat: (seat: SeatId) => void;
@@ -512,6 +513,17 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       winnerSide: null,
       gameWinnerSide: null,
       streamMatchId: payload.matchId ?? null,
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  patchLiveSeats: (slot, p1, p2) => {
+    const prev = get().desk;
+    if ((prev.matchSlot ?? 1) !== slot) return;
+    const desk = nextVersion(prev, {
+      p1: { ...prev.p1, name: p1.name ?? prev.p1.name, recordW: p1.recordW ?? prev.p1.recordW, recordL: p1.recordL ?? prev.p1.recordL, recordD: p1.recordD ?? prev.p1.recordD },
+      p2: { ...prev.p2, name: p2.name ?? prev.p2.name, recordW: p2.recordW ?? prev.p2.recordW, recordL: p2.recordL ?? prev.p2.recordL, recordD: p2.recordD ?? prev.p2.recordD },
     });
     persist(desk);
     set({ desk });

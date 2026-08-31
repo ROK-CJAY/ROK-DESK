@@ -25,6 +25,7 @@ import {
   MATCH_SLOT_SHORT,
   type MatchSlot,
 } from "@/lib/desk-types";
+import { PtcgCatalogButton } from "@/components/desk/ptcg-catalog-button";
 import { useEffect, useState } from "react";
 
 export function EventPanel() {
@@ -859,7 +860,9 @@ export function PodPanel() {
                         : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {tcg ? (
-        <p className="mt-2 text-xs text-ok">Card lookup uses Pokémon TCG Live (TCGdex) data.</p>
+        <div className="mt-3">
+          <PtcgCatalogButton />
+        </div>
       ) : vgc ? (
         <p className="mt-2 text-xs text-ok">Tap a Pokémon to mark it KO. Game / Match report to the desk.</p>
       ) : mtg ? (
