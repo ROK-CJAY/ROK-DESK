@@ -28,10 +28,11 @@ export type ParsedDeckLine = {
 const SECTION = /^(pok[eé]mon|trainer|energy|cards?|item|supporter|stadium|tool|total|sideboard|list)\s*:?/i;
 
 export function allowedLimitlessUrl(raw: string): URL | null {
-  const text = raw.trim();
-  if (!/^https:\/\//i.test(text)) return null;
+  const text = normalizeLimitlessHref(raw);
+  if (!text) return null;
   try {
     const url = new URL(text);
+    if (url.protocol !== "https:") return null;
     const host = url.hostname.toLowerCase();
     const ok =
       host === "my.limitlesstcg.com" ||
@@ -45,10 +46,33 @@ export function allowedLimitlessUrl(raw: string): URL | null {
   }
 }
 
+/** Host/path paste without https:// still counts as a Limitless URL. */
+export function normalizeLimitlessHref(raw: string): string | null {
+  let text = raw.trim().replace(/^<|>$/g, "");
+  if (!text) return null;
+  const share = text.match(/\/(?:dm\/)?shared?\/([a-f0-9]{16,})\b/i);
+  if (share && !/^https?:\/\//i.test(text) && !/limitlesstcg\.com/i.test(text)) {
+    return `https://my.limitlesstcg.com/shared/${share[1]}`;
+  }
+  if (!/^https?:\/\//i.test(text)) {
+    const host = text.match(
+      /((?:my|mew|play|www)\.limitlesstcg\.com|limitlesstcg\.com)(\/[^\s]*)?/i,
+    );
+    if (!host) return null;
+    text = `https://${host[1]}${host[2] ?? ""}`;
+  }
+  text = text.replace(/^http:\/\//i, "https://");
+  return text;
+}
+
+export function looksLikeLimitlessPaste(raw: string): boolean {
+  return Boolean(allowedLimitlessUrl(raw));
+}
+
 export function limitlessShareId(url: URL): string | null {
-  const shared = url.pathname.match(/\/shared\/([a-f0-9]{16,})$/i);
+  const shared = url.pathname.match(/\/shared\/([a-f0-9]{16,})/i);
   if (shared) return shared[1];
-  const api = url.pathname.match(/\/dm\/share\/([a-f0-9]{16,})$/i);
+  const api = url.pathname.match(/\/dm\/share\/([a-f0-9]{16,})/i);
   if (api) return api[1];
   return null;
 }

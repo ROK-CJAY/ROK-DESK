@@ -11,6 +11,7 @@ import {
   type DeckCard,
 } from "@/lib/decklist";
 import { cn } from "@/lib/cn";
+import { looksLikeLimitlessPaste } from "@/lib/ptcg-deck-parse";
 
 export function DecklistEditor({
   catalog,
@@ -81,7 +82,7 @@ export function DecklistEditor({
       const res = await fetch("/api/ptcg-deck-import", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(/^https?:\/\//i.test(raw) ? { url: raw } : { text: raw }),
+        body: JSON.stringify(looksLikeLimitlessPaste(raw) ? { url: raw } : { text: raw }),
       });
       const data = (await res.json()) as { cards?: DeckCard[]; unmatched?: string[]; count?: number; error?: string };
       if (!res.ok) throw new Error(data.error || "Import failed.");
@@ -157,7 +158,11 @@ export function DecklistEditor({
                 className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-surface"
               >
                 {card.image || card.id ? (
-                  <img src={cardImageUrl(card.image, "low", card.id)} alt="" className="h-10 w-7 shrink-0 rounded-sm object-cover" />
+                  <img
+                    src={cardImageUrl(card.image, "high", card.id)}
+                    alt=""
+                    className="h-10 w-7 shrink-0 rounded-sm bg-black/40 object-contain"
+                  />
                 ) : (
                   <span className="grid h-10 w-7 shrink-0 place-items-center rounded-sm bg-surface text-[0.55rem] text-muted">
                     —
@@ -183,9 +188,13 @@ export function DecklistEditor({
           {value.map((card) => (
             <li key={card.id} className="flex items-center gap-2 rounded-md bg-surface-2 px-2 py-1.5">
               {card.image || card.id ? (
-                <img src={cardImageUrl(card.image, "low", card.id)} alt="" className="h-9 w-6 shrink-0 rounded-sm object-cover" />
+                <img
+                  src={cardImageUrl(card.image, "high", card.id)}
+                  alt=""
+                  className="h-12 w-8 shrink-0 rounded-sm bg-black/40 object-contain"
+                />
               ) : (
-                <span className="size-6 shrink-0 rounded-sm bg-surface" />
+                <span className="h-12 w-8 shrink-0 rounded-sm bg-surface" />
               )}
               <p className="min-w-0 flex-1 truncate text-sm">
                 {card.name}

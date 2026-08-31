@@ -100,7 +100,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Per-game. Switching titles does not share players
 - Name, handle, country, pronouns, deck / commander / extra
 - Organized-play **Player ID** (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, SWU-Stats, Riot ID) with a required privacy checkbox. IDs stay on the roster and export, never on stream
-- **Decklists** (optional per event): TO toggles Request decklist. PTCG can paste a PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link; `{P}` is Psychic Energy. The ROK Desk card search stays as a backup. Export includes `decklists.csv` plus a count on `players.csv`
+- **Decklists** (optional per event): TO toggles Request decklist. PTCG can paste a PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link (https optional). `{P}` is Psychic. Named lines keep the card name if the collector number is from another print. The ROK Desk card search stays as a backup. Export includes `decklists.csv` plus a count on `players.csv`
 - Lorcana: deck plus up to two official inks
 - Commander / cEDH / Duel Commander: searchable commander (Scryfall) plus an optional Partner field
 - VGC: full team sheet (species, Tera, ability, item, four moves)
@@ -229,7 +229,7 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 - Deck / leader / commander when that format needs it
 - Commander / cEDH / Duel Commander: Scryfall search for the commander, plus an optional Partner (or Background)
 - Limitless / notes (optional season record or accomplishments)
-- Decklist when the TO turns on **Request decklist**. PTCG: paste PTCGL / Limitless text, a public Limitless URL, or a shared `my.limitlesstcg.com` link, or search/add cards. Other titles: search a card, tap to add, set quantity.
+- Decklist when the TO turns on **Request decklist**. PTCG: paste PTCGL / Limitless text, a public Limitless URL, or a shared `my.limitlesstcg.com` link (with or without https), or search/add cards. Other titles: search a card, tap to add, set quantity.
 - Lorcana inks (up to two)
 - VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls
 - Player ID + privacy checkbox
@@ -375,13 +375,13 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
 **Added**
 - **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, or **Watch TOM reports folder** so pairings import when TOM writes them. Send a table to stream. Load / clear sample. TOM stays official.
-- **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…`. Energy glyphs (`{P}`) and set + number matching. Search builder stays as backup.
+- **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…` (https optional). Energy glyphs (`{P}`), Limitless set codes (`PBL` / `POR` / `CRI` / `MEE`), and **name-first** matching when a collector number is from another print. Search builder stays as backup.
 - **PTCG catalog download** — save every English card on this machine; hit the button again to refresh
 - **Lorcana player tablet extended** — self-run names, inks, lore, games, clock, and Show P1 / P2
 
 **Fixed**
 - PTCG lookup uses the local catalog, then pokemontcg.io, then TCGdex as a last backup
-- PTCG import no longer grabs Warp Energy / Fates Collide N from a fuzzy “Energy” / “N” match
+- PTCG import keeps the pasted **name** when the number is wrong (`Charmander PAF 26` → Charmander, not Xatu). Shared lists still match set + number. Art is PNG/WebP through the card proxy.
 
 ### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
 

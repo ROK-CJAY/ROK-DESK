@@ -424,7 +424,9 @@ function SetupPanel() {
             <span>
               <span className="block text-sm font-medium">Request decklist</span>
               <span className="block text-xs text-muted">
-                Walk-up sign-up must search and add cards with quantities. Saved lists feed judge lookup and the export.
+                {t.gameId === "pokemon-tcg"
+                  ? "Walk-up must submit a list. PTCG can paste Limitless Copy as Text or a my.limitlesstcg.com/shared URL."
+                  : "Walk-up sign-up must search and add cards with quantities. Saved lists feed judge lookup and the export."}
               </span>
             </span>
             <Switch checked={Boolean(t.requireDecklist)} onCheckedChange={(on) => patch({ requireDecklist: on === true })} />

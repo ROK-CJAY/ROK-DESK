@@ -14,7 +14,8 @@ export type DeckMatch = {
   card: MatchableCard | null;
 };
 
-const PRINTED_SETS: Record<string, string[]> = {
+/** Limitless / PTCGL printed codes → pokemontcg.io / local catalog set ids. */
+export const PRINTED_SETS: Record<string, string[]> = {
   SVI: ["sv1"],
   PAL: ["sv2"],
   OBF: ["sv3"],
@@ -34,13 +35,27 @@ const PRINTED_SETS: Record<string, string[]> = {
   SVE: ["sve"],
   MEE: ["mee"],
   MEP: ["mep", "svp"],
-  POR: ["por"],
-  CRI: ["cri", "cin"],
-  CIN: ["cin", "cri"],
+  MEG: ["me1", "meg", "me01"],
+  PFL: ["me2"],
+  ASC: ["me2pt5", "me02.5", "asc"],
+  POR: ["me3", "me03"],
+  CRI: ["me4", "me04"],
+  PBL: ["me5", "me05", "pbl"],
+  CIN: ["cin"],
   FCO: ["fco"],
-  PBL: ["pbl"],
-  MEG: ["meg"],
-  ASC: ["asc"],
+};
+
+const SET_NAMES: Record<string, string[]> = {
+  MEG: ["mega evolution"],
+  ASC: ["ascended heroes"],
+  POR: ["perfect order"],
+  CRI: ["chaos rising"],
+  PBL: ["pitch black"],
+  MEE: ["mega evolution energy"],
+  PFL: ["phantasmal flames"],
+  CIN: ["crimson invasion"],
+  WHT: ["white flare"],
+  BLK: ["black bolt"],
 };
 
 function norm(value: string): string {
@@ -58,48 +73,80 @@ function normNum(value?: string): string {
     .toLowerCase();
 }
 
-function nameEquals(cardName: string, candidates: string[]): boolean {
+export function nameEquals(cardName: string, candidates: string[]): boolean {
   if (!candidates.length) return false;
   const card = norm(cardName);
-  return candidates.some((name) => norm(name) === card);
+  return candidates.some((name) => {
+    const want = norm(name);
+    if (!want) return false;
+    return card === want || card.startsWith(`${want} `);
+  });
 }
 
-function setAliases(printed?: string): string[] {
+export function setAliases(printed?: string): string[] {
   const code = String(printed ?? "").trim().toUpperCase();
   if (!code) return [];
-  return [code.toLowerCase(), ...(PRINTED_SETS[code] ?? [])];
+  const extra = PRINTED_SETS[code] ?? [];
+  return [...new Set([code.toLowerCase(), ...extra.map((id) => id.toLowerCase())])];
+}
+
+export function printedCodesForSet(setId?: string): string[] {
+  const id = String(setId ?? "").trim();
+  if (!id) return [];
+  const lower = id.toLowerCase();
+  const codes = [id.toUpperCase()];
+  for (const [printed, aliases] of Object.entries(PRINTED_SETS)) {
+    if (printed.toLowerCase() === lower || aliases.some((alias) => alias.toLowerCase() === lower)) {
+      codes.push(printed);
+    }
+  }
+  return [...new Set(codes)];
+}
+
+export function catalogIdsForLine(line: ParsedDeckLine): string[] {
+  const number = String(line.number ?? "").trim();
+  if (!number) return [];
+  const padded = number.padStart(3, "0");
+  const ids: string[] = [];
+  for (const set of setAliases(line.set)) {
+    ids.push(`${set}-${number}`, `${set}-${padded}`);
+  }
+  return [...new Set(ids)];
 }
 
 export function setMatches(card: MatchableCard, printed?: string): boolean {
-  const aliases = setAliases(printed);
-  if (!aliases.length) return false;
+  const code = String(printed ?? "").trim().toUpperCase();
+  if (!code) return false;
+  const aliases = setAliases(code);
   const id = String(card.set?.id ?? "").toLowerCase();
-  const name = String(card.set?.name ?? "").toLowerCase();
-  const printedName = String(printed ?? "").toLowerCase();
   if (aliases.includes(id)) return true;
-  if (aliases.some((alias) => id === alias || id.endsWith(alias) || id.startsWith(alias))) return true;
-  if (printedName.length >= 3 && name.includes(printedName)) return true;
+  const name = norm(String(card.set?.name ?? ""));
+  const names = SET_NAMES[code] ?? [];
+  if (names.some((label) => name === label)) return true;
   return false;
 }
 
 function score(card: MatchableCard, line: ParsedDeckLine): number {
   const numberOk = !line.number || normNum(card.number) === normNum(line.number);
   const setOk = !line.set || setMatches(card, line.set);
+  const named = line.names.length > 0;
+  const nameOk = named ? nameEquals(card.name, line.names) : true;
 
-  if (!line.names.length) {
+  if (named && !nameOk) return -1;
+
+  if (!named) {
     if (line.set && line.number && setOk && numberOk) return 80;
     return -1;
   }
 
-  if (!nameEquals(card.name, line.names)) return -1;
-  if (line.set && !setOk) return -1;
-  if (line.number && !numberOk) return -1;
-  let points = 50;
   const energy = String(card.supertype ?? "").toLowerCase() === "energy";
   const wantsEnergy = line.names.some((name) => /\benergy\b/i.test(name));
-  if (wantsEnergy && energy) points += 20;
   if (wantsEnergy && !energy) return -1;
-  return points;
+
+  if (setOk && numberOk) return 100;
+  if (setOk) return 72;
+  if (numberOk) return 55;
+  return 40;
 }
 
 export function matchDeckLine(line: ParsedDeckLine, cards: MatchableCard[]): MatchableCard | null {
@@ -112,7 +159,7 @@ export function matchDeckLine(line: ParsedDeckLine, cards: MatchableCard[]): Mat
       bestScore = next;
     }
   }
-  return bestScore >= 50 ? best : null;
+  return bestScore >= 40 ? best : null;
 }
 
 export function matchDeckLines(lines: ParsedDeckLine[], cards: MatchableCard[]): DeckMatch[] {

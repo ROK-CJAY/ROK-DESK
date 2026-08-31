@@ -21,16 +21,16 @@ export const Route = createFileRoute("/api/ptcg-art")({
             const res = await fetch(src, {
               headers: {
                 "user-agent": "Mozilla/5.0 ROK-Desk",
-                accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+                accept: "image/png,image/jpeg,image/webp,image/*;q=0.8",
               },
               redirect: "follow",
               signal: AbortSignal.timeout(2500),
             });
             if (!res.ok) continue;
-            const type = res.headers.get("content-type") ?? "";
-            if (!type.startsWith("image/")) continue;
+            const type = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+            if (type !== "image/png" && type !== "image/jpeg" && type !== "image/webp") continue;
             return new Response(res.body, {
-              headers: { ...cache, "content-type": type.split(";")[0] },
+              headers: { ...cache, "content-type": type },
             });
           } catch {
             /* try next CDN */

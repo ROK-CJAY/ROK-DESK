@@ -86,10 +86,56 @@ test("does not match Warp Energy or Fates Collide N from a typed line", () => {
   assert.equal(hits[1]?.card?.id, "sv8-185");
 });
 
+test("maps Limitless PBL/POR/CRI to catalog set ids, not Temporal Forces", () => {
+  const lines = parseLimitlessShareCards("3xi:PBL~39;4xi:POR~88;4xi:POR~81;1xi:CRI~70");
+  const catalog = [
+    { id: "me5-39", name: "Dhelmise", number: "39", set: { id: "me5", name: "Pitch Black" } },
+    { id: "sv5-81", name: "Iron Crown ex", number: "81", set: { id: "sv5", name: "Temporal Forces" } },
+    { id: "cin-70", name: "Kartana-GX", number: "70", set: { id: "cin", name: "Crimson Invasion" } },
+    { id: "me4-70", name: "Patrat", number: "70", set: { id: "me4", name: "Chaos Rising" } },
+    { id: "me3-81", name: "Poké Pad", number: "81", set: { id: "me3", name: "Perfect Order" } },
+    { id: "me3-88", name: "Telepathic Psychic Energy", number: "88", supertype: "Energy", set: { id: "me3", name: "Perfect Order" } },
+  ];
+  const hits = matchDeckLines(lines, catalog);
+  assert.equal(hits[0]?.card?.id, "me5-39");
+  assert.equal(hits[1]?.card?.id, "me3-88");
+  assert.equal(hits[2]?.card?.id, "me3-81");
+  assert.equal(hits[3]?.card?.id, "me4-70");
+});
+
+test("named PTCGL lines prefer the card name when the collector number is from another print", () => {
+  const lines = parsePtcgDeckText("4 Charmander PAF 26\n2 Pikachu ex SVI 238");
+  const catalog = [
+    { id: "sv4pt5-26", name: "Xatu", number: "26", set: { id: "sv4pt5", name: "Paldean Fates" } },
+    { id: "sv4pt5-7", name: "Charmander", number: "7", set: { id: "sv4pt5", name: "Paldean Fates" } },
+    { id: "sv1-238", name: "Miriam", number: "238", set: { id: "sv1", name: "Scarlet & Violet" } },
+    { id: "sv8-238", name: "Pikachu ex", number: "238", set: { id: "sv8", name: "Surging Sparks" } },
+    { id: "sv1-73", name: "Pikachu ex", number: "73", set: { id: "sv1", name: "Scarlet & Violet" } },
+  ];
+  const hits = matchDeckLines(lines, catalog);
+  assert.equal(hits[0]?.card?.id, "sv4pt5-7");
+  assert.equal(hits[1]?.card?.id, "sv1-73");
+});
+
+test("parenthetical print names still match Boss's Orders / Professor's Research", () => {
+  const lines = parsePtcgDeckText("2 Boss's Orders PAL 172\n2 Professor's Research SVI 189");
+  const catalog = [
+    { id: "me1-114", name: "Boss's Orders", number: "114", set: { id: "me1", name: "Mega Evolution" } },
+    { id: "sv2-172", name: "Boss's Orders (Ghetsis)", number: "172", set: { id: "sv2", name: "Paldea Evolved" } },
+    { id: "pgo-78", name: "Professor's Research", number: "78", set: { id: "pgo", name: "Pokémon GO" } },
+    { id: "sv1-189", name: "Professor's Research (Professor Sada)", number: "189", set: { id: "sv1", name: "Scarlet & Violet" } },
+  ];
+  const hits = matchDeckLines(lines, catalog);
+  assert.equal(hits[0]?.card?.id, "sv2-172");
+  assert.equal(hits[1]?.card?.id, "sv1-189");
+});
+
 test("only public Limitless hosts are allowed", () => {
   assert.ok(allowedLimitlessUrl("https://limitlesstcg.com/decks/?list=3692"));
   assert.ok(allowedLimitlessUrl("https://play.limitlesstcg.com/tournament/abc/decklist"));
   assert.ok(allowedLimitlessUrl("https://my.limitlesstcg.com/shared/6a95bc2a932b04243429ded9"));
+  assert.ok(allowedLimitlessUrl("my.limitlesstcg.com/shared/6a95bc2a932b04243429ded9"));
+  assert.ok(allowedLimitlessUrl("/shared/6a95bc2a932b04243429ded9"));
   assert.equal(allowedLimitlessUrl("https://evil.example/decks"), null);
-  assert.equal(allowedLimitlessUrl("http://limitlesstcg.com/decks/?list=1"), null);
+  assert.equal(allowedLimitlessUrl("http://evil.example/decks"), null);
 });

@@ -22,13 +22,14 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Changed
 
+- **PTCG deck import** — `my.limitlesstcg.com/shared/…` works with or without `https://`. Limitless printed codes map to catalog sets (`PBL` → Pitch Black, `POR` → Perfect Order, `CRI` → Chaos Rising, `MEE` → Mega Evolution Energy). Named PTCGL lines keep the **card name** when the collector number is from another print (`Charmander PAF 26` stays Charmander, not Xatu). Parenthetical catalog names (`Boss's Orders (Ghetsis)`) still match. Art uses PNG/WebP via the card proxy (Limitless scans when needed), not AVIF.
 - **Layout look** — Overlay preview Look drives Play Layout, ROK Layout, Versus, HUD, and bar/split scorebugs. Each title keeps its own look. **Apply to all** copies it onto every overlay of that game.
 - **Game win / Match win look** — Overlay preview → Game win or Match win: name color, kicker color, fonts, size, and tracking apply on the dedicated source and on HUD pack.
 
 ### Fixed
 
 - PTCG card lookup no longer depends on TCGdex (currently down). Search goes catalog → pokemontcg.io (HTTP/1.1, retries, short cache) → TCGdex as a last backup. Art tries pokemontcg.io / Pokémon.com first, then TCGdex, and times out dead CDNs instead of hanging.
-- PTCG deck import no longer substitutes a random Energy or an old `N` printing when the paste includes a set code. Shared Limitless lists (`3xi:POR~88`) match that set and number, or they stay unmatched.
+- PTCG deck import no longer substitutes a random Energy, an old `N` printing, Temporal Forces, or Xatu/Ralts/Miriam when the paste has a name plus a mismatched number. Shared Limitless lists (`3xi:PBL~39`) match that set and number, or they stay unmatched.
 
 ## v1.2.8-beta — 2026-08-28
 

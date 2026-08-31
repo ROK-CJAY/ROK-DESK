@@ -58,6 +58,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   const vgc = t.gameId === "pokemon-vgc";
   const catalog = catalogForGame(t.gameId);
   const needDeck = Boolean(t.requireDecklist && catalog);
+  const showDeck = Boolean(catalog && (needDeck || catalog === "ptcg"));
 
   const submit = async () => {
     const name = draft.name.trim();
@@ -156,7 +157,11 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                   : commander
                     ? `. Enter your name, ${idField.label}, commander, and partner if you have one.`
                     : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
-              {needDeck ? " The TO asked for a full decklist — search each card and set the quantity." : ""}
+              {showDeck && catalog === "ptcg"
+                ? " Paste a Limitless list or shared deck URL, or search cards as a backup."
+                : needDeck
+                  ? " The TO asked for a full decklist — search each card and set the quantity."
+                  : ""}
             </p>
             <ul className="mt-5 grid gap-2 text-sm text-muted">
               <li className="rounded-lg bg-surface-2 px-3 py-3">One player at a time. When you’re done, hand it back.</li>
@@ -314,14 +319,14 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                   </Field>
                 </div>
 
-                {needDeck && catalog ? (
+                {showDeck && catalog ? (
                   <div className="mt-4">
                     <DecklistEditor
                       catalog={catalog}
                       formatName={t.formatName}
                       value={draft.decklist}
                       onChange={(decklist) => setDraft((d) => ({ ...d, decklist }))}
-                      required
+                      required={needDeck}
                     />
                   </div>
                 ) : null}

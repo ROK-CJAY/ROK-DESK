@@ -199,13 +199,15 @@ export function Landing() {
                 </p>
               </div>
             </Link>
-            <Link to="/signup" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
+            <a href="/ptcg/signup" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
               <ClipboardList className="mt-0.5 size-4 shrink-0 text-muted" />
               <div>
                 <p className="font-medium">Walk-up sign-up</p>
-                <p className="mt-1 text-sm text-muted">Kiosk for the active game. Per-game links live on Tournament.</p>
+                <p className="mt-1 text-sm text-muted">
+                  PTCG kiosk with Limitless paste / shared URL. Other titles: /{"{game}"}/signup from Tournament.
+                </p>
               </div>
-            </Link>
+            </a>
             <a href="/ptcg/overlay/floor-clock" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
               <Clock className="mt-0.5 size-4 shrink-0 text-muted" />
               <div>
