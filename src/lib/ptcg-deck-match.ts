@@ -14,7 +14,6 @@ export type DeckMatch = {
   card: MatchableCard | null;
 };
 
-/** Limitless / PTCGL printed set codes → pokemontcg.io set ids. */
 const PRINTED_SETS: Record<string, string[]> = {
   SVI: ["sv1"],
   PAL: ["sv2"],
@@ -39,6 +38,9 @@ const PRINTED_SETS: Record<string, string[]> = {
   CRI: ["cri", "cin"],
   CIN: ["cin", "cri"],
   FCO: ["fco"],
+  PBL: ["pbl"],
+  MEG: ["meg"],
+  ASC: ["asc"],
 };
 
 function norm(value: string): string {
@@ -57,6 +59,7 @@ function normNum(value?: string): string {
 }
 
 function nameEquals(cardName: string, candidates: string[]): boolean {
+  if (!candidates.length) return false;
   const card = norm(cardName);
   return candidates.some((name) => norm(name) === card);
 }
@@ -80,9 +83,17 @@ export function setMatches(card: MatchableCard, printed?: string): boolean {
 }
 
 function score(card: MatchableCard, line: ParsedDeckLine): number {
+  const numberOk = !line.number || normNum(card.number) === normNum(line.number);
+  const setOk = !line.set || setMatches(card, line.set);
+
+  if (!line.names.length) {
+    if (line.set && line.number && setOk && numberOk) return 80;
+    return -1;
+  }
+
   if (!nameEquals(card.name, line.names)) return -1;
-  if (line.set && !setMatches(card, line.set)) return -1;
-  if (line.number && normNum(card.number) !== normNum(line.number)) return -1;
+  if (line.set && !setOk) return -1;
+  if (line.number && !numberOk) return -1;
   let points = 50;
   const energy = String(card.supertype ?? "").toLowerCase() === "energy";
   const wantsEnergy = line.names.some((name) => /\benergy\b/i.test(name));
