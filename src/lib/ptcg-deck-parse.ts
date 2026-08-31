@@ -13,6 +13,8 @@ export const ENERGY_GLYPHS: Record<string, string> = {
   N: "Dragon",
 };
 
+const TYPE_NAMES = Object.values(ENERGY_GLYPHS);
+
 export type ParsedDeckLine = {
   qty: number;
   name: string;
@@ -22,6 +24,32 @@ export type ParsedDeckLine = {
 };
 
 const SECTION = /^(pok[eé]mon|trainer|energy|cards?)\s*:/i;
+
+export function allowedLimitlessUrl(raw: string): URL | null {
+  const text = raw.trim();
+  if (!/^https?:\/\//i.test(text)) return null;
+  try {
+    const url = new URL(text);
+    const host = url.hostname.toLowerCase();
+    const ok =
+      host === "my.limitlesstcg.com" ||
+      host === "limitlesstcg.com" ||
+      host === "www.limitlesstcg.com" ||
+      host === "mew.limitlesstcg.com" ||
+      host === "play.limitlesstcg.com";
+    return ok ? url : null;
+  } catch {
+    return null;
+  }
+}
+
+export function limitlessShareId(url: URL): string | null {
+  const shared = url.pathname.match(/\/shared\/([a-f0-9]{16,})$/i);
+  if (shared) return shared[1];
+  const api = url.pathname.match(/\/dm\/share\/([a-f0-9]{16,})$/i);
+  if (api) return api[1];
+  return null;
+}
 
 export function expandEnergyGlyphs(raw: string): string {
   return raw
@@ -56,10 +84,22 @@ export function energyNameCandidates(raw: string): string[] {
   const glyphBasic = base.match(/^basic\s+\{([A-Za-z])\}\s+energy$/i);
   if (glyphBasic) add(`Basic ${ENERGY_GLYPHS[glyphBasic[1].toUpperCase()] ?? glyphBasic[1]} Energy`);
 
+  const typed = stripped.match(new RegExp(`^(?:basic\s+)?(${TYPE_NAMES.join("|")})\s+energy$`, "i"));
+  if (typed) {
+    const type = typed[1][0].toUpperCase() + typed[1].slice(1).toLowerCase();
+    add(`${type} Energy`);
+    add(`Basic ${type} Energy`);
+  }
+
   return [...seen];
 }
 
 export function parsePtcgDeckText(text: string): ParsedDeckLine[] {
+  const htmlLines = parseLimitlessDeckHtml(text);
+  if (htmlLines.length) return htmlLines;
+  const shareLines = parseLimitlessShareCards(text);
+  if (shareLines.length) return shareLines;
+
   const lines: ParsedDeckLine[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -68,6 +108,45 @@ export function parsePtcgDeckText(text: string): ParsedDeckLine[] {
     if (parsed) lines.push(parsed);
   }
   return lines;
+}
+
+export function parseLimitlessShareCards(raw: string): ParsedDeckLine[] {
+  const blob = raw.match(/\d+xi:[A-Za-z0-9]+~\d+[A-Za-z]?(?:;\d+xi:[A-Za-z0-9]+~\d+[A-Za-z]?)*/);
+  if (!blob) return [];
+  const lines: ParsedDeckLine[] = [];
+  for (const part of blob[0].split(";")) {
+    const hit = part.match(/^(\d+)xi:([A-Za-z0-9]+)~(\d+[A-Za-z]?)$/i);
+    if (!hit) continue;
+    lines.push({
+      qty: clampQty(hit[1]),
+      name: `${hit[2].toUpperCase()} ${hit[3]}`,
+      set: hit[2].toUpperCase(),
+      number: hit[3].replace(/^0+/, "") || hit[3],
+      names: [],
+    });
+  }
+  return lines;
+}
+
+export function parseLimitlessDeckHtml(html: string): ParsedDeckLine[] {
+  if (!/limitlesstcg\.com\/cards\//i.test(html) && !/class="card-count"/i.test(html)) return [];
+  const lines: ParsedDeckLine[] = [];
+  const re =
+    /href="https?:\/\/(?:www\.)?limitlesstcg\.com\/cards\/([^"\/]+)\/([^"\/?#]+)"[\s\S]{0,400}?alt="([^"]+)"[\s\S]{0,400}?cc-num[^>]*>(\d+)/gi;
+  for (const match of html.matchAll(re)) {
+    lines.push(row(match[4], decode(match[3]), match[1], match[2].replace(/^0+/, "") || match[2]));
+  }
+  return lines;
+}
+
+function decode(value: string): string {
+  return value
+    .replace(/&/g, "&")
+    .replace(/"/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/</g, "<")
+    .replace(/>/g, ">")
+    .replace(/'/g, "'");
 }
 
 function parseDeckLine(line: string): ParsedDeckLine | null {
@@ -87,10 +166,16 @@ function parseDeckLine(line: string): ParsedDeckLine | null {
 function row(qty: string, name: string, set?: string, number?: string): ParsedDeckLine {
   const cleaned = name.replace(/\s+/g, " ").trim();
   return {
-    qty: Math.max(1, Math.min(99, Number(qty) || 1)),
+    qty: clampQty(qty),
     name: expandEnergyGlyphs(cleaned) || cleaned,
     set: set?.toUpperCase(),
     number,
     names: energyNameCandidates(cleaned),
   };
+}
+
+function clampQty(value: string): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(1, Math.min(99, n));
 }
