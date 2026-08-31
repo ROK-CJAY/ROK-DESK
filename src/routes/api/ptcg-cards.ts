@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { catalogCard, isStandardLegal, searchCatalog } from "@/lib/ptcg-catalog";
+import { catalogCard, isStandardLegal, loadCatalog, searchCatalog } from "@/lib/ptcg-catalog";
+import { matchDeckLines } from "@/lib/ptcg-deck-match";
+import { parsePtcgDeckText } from "@/lib/ptcg-deck-parse";
 import { execFile } from "node:child_process";
 
 const noStore = {
@@ -15,6 +17,57 @@ const CACHE_MS = 2 * 60 * 1000;
 export const Route = createFileRoute("/api/ptcg-cards")({
   server: {
     handlers: {
+      POST: async ({ request }) => {
+        let payload: { text?: string } = {};
+        try {
+          payload = (await request.json()) as { text?: string };
+        } catch {
+          payload = {};
+        }
+        const text = String(payload.text ?? "").trim();
+        if (!text) {
+          return Response.json({ error: "Missing deck text" }, { status: 400, headers: noStore });
+        }
+        const lines = parsePtcgDeckText(text);
+        const catalog = await loadCatalog();
+        const matches = catalog?.cards?.length
+          ? matchDeckLines(lines, catalog.cards)
+          : lines.map((line) => ({ line, card: null }));
+        for (const row of matches) {
+          if (row.card) continue;
+          for (const name of row.line.names) {
+            const hits = (await searchCatalog(name, false)) ?? [];
+            const picked = matchDeckLines([row.line], hits)[0]?.card;
+            if (picked) {
+              row.card = picked;
+              break;
+            }
+          }
+        }
+        const cards = [];
+        const unmatched = [];
+        for (const row of matches) {
+          if (!row.card) {
+            unmatched.push({
+              qty: row.line.qty,
+              name: row.line.name,
+              set: row.line.set ?? "",
+              number: row.line.number ?? "",
+            });
+            continue;
+          }
+          cards.push({
+            id: row.card.id,
+            name: row.card.name,
+            set: row.card.set?.id ?? row.line.set ?? "",
+            number: row.card.number ?? row.line.number ?? "",
+            image: row.card.images?.large ?? row.card.images?.small ?? "",
+            type: row.card.supertype ?? "",
+            qty: row.line.qty,
+          });
+        }
+        return Response.json({ cards, unmatched, parsed: lines.length }, { headers: noStore });
+      },
       GET: async ({ request }) => {
         const params = new URL(request.url).searchParams;
         const id = params.get("id")?.trim() ?? "";
