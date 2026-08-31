@@ -36,6 +36,7 @@ export const Route = createFileRoute("/api/ptcg-cards")({
         for (const row of matches) {
           if (row.card) continue;
           for (const name of row.line.names) {
+            if (name.replace(/\{[^}]+\}/g, "").trim().length < 3) continue;
             const hits = (await searchCatalog(name, false)) ?? [];
             const picked = matchDeckLines([row.line], hits)[0]?.card;
             if (picked) {
@@ -59,7 +60,7 @@ export const Route = createFileRoute("/api/ptcg-cards")({
           cards.push({
             id: row.card.id,
             name: row.card.name,
-            set: row.card.set?.id ?? row.line.set ?? "",
+            set: row.card.set?.name ?? row.card.set?.id ?? row.line.set ?? "",
             number: row.card.number ?? row.line.number ?? "",
             image: row.card.images?.large ?? row.card.images?.small ?? "",
             type: row.card.supertype ?? "",
