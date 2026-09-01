@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { isLimitlessArtCode, limitlessPrintedCodes, matchDeckLines } from "../src/lib/ptcg-deck-match.ts";
+import { isLimitlessArtCode, limitlessPrintedCodes, matchDeckLines, printedSetCode } from "../src/lib/ptcg-deck-match.ts";
 import {
   allowedLimitlessUrl,
+  decodeHtml,
   energyNameCandidates,
+  parseLimitlessCardPage,
   parseLimitlessDeckHtml,
   parseLimitlessShareCards,
   parsePtcgDeckText,
@@ -154,4 +156,34 @@ test("Limitless art URLs use printed codes, not pokemontcg.io set ids", () => {
   assert.deepEqual(limitlessPrintedCodes("PBL"), ["PBL"]);
   assert.deepEqual(limitlessPrintedCodes("MEG"), ["MEG"]);
   assert.deepEqual(limitlessPrintedCodes("sv6pt5"), ["SFA"]);
+  assert.equal(printedSetCode("Pitch Black", "me5-39"), "PBL");
+  assert.equal(printedSetCode("Journey Together", "sv9-56"), "JTG");
+  assert.equal(printedSetCode("Destined Rivals", "sv10-10"), "DRI");
+  assert.equal(printedSetCode("Chaos Rising", "me4-70"), "CRI");
+  assert.equal(printedSetCode("JTG"), "JTG");
+});
+
+test("decodes Limitless HTML entities and reads Trainer type from the card page", () => {
+  assert.equal(decodeHtml("Lana&#039;s Aid"), "Lana's Aid");
+  assert.equal(decodeHtml("Lana&#39;s Aid"), "Lana's Aid");
+  assert.equal(decodeHtml("Boss&apos;s Orders"), "Boss's Orders");
+  const lana = parseLimitlessCardPage(`
+    <title>Lana&#039;s Aid - Twilight Masquerade (TWM) #207 – Limitless</title>
+    <span class="card-text-name"><a href="/cards/TWM/207">Lana&#039;s Aid</a></span>
+    <p class="card-text-type">Trainer - Supporter</p>
+    <div class="regulation-mark">H Regulation Mark</div>
+  `);
+  assert.equal(lana?.name, "Lana's Aid");
+  assert.equal(lana?.supertype, "Trainer");
+  assert.equal(lana?.regulation, "H");
+  const stretcher = parseLimitlessCardPage(`
+    <title>Night Stretcher - Shrouded Fable (SFA) #61 – Limitless</title>
+    <span class="card-text-name"><a href="/cards/SFA/61">Night Stretcher</a></span>
+    <p class="card-text-type">
+            Trainer
+              - Item
+    </p>
+  `);
+  assert.equal(stretcher?.name, "Night Stretcher");
+  assert.equal(stretcher?.supertype, "Trainer");
 });

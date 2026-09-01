@@ -13,5 +13,5 @@
     "baseUrl": ".",
     "paths": { "@/*": ["./src/*"] }
   },
-  "include": ["src", "server"]
+  "include": ["src", "server", "src/pdf-assets.d.ts"]
 }

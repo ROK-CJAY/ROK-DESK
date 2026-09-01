@@ -28,6 +28,7 @@ export type LookupCard = {
   trainerType?: string;
   retreat?: string;
   mana?: string;
+  regulation?: string;
   attacks?: LookupAttack[];
   abilities?: LookupAbility[];
 };

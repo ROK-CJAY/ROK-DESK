@@ -10,6 +10,8 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Added
 
+- **Official Play! Pokémon PDFs** — PTCG and VGC roster printers keep the in-app sheets and add **Official PDF**, which fills the published Play! Pokémon deck list / VGC team list from sign-up data. Age division follows the event (Masters / Seniors / Juniors). Form templates are bundled with the app so filling does not depend on `public/` files on disk.
+
 - **Play! Pokémon age divisions** — PTCG and VGC each run **Masters, Seniors, and Juniors** as three concurrent events on one host. Tournament Control picks the division (chips + player counts). Production shows **PTCG** or **VGC**, then Masters / Seniors / Juniors, each with Stream / Floor 1 / Floor 2. Walk-up kiosks: `/ptcg/signup`, `/ptcg-seniors/signup`, `/ptcg-juniors/signup`, `/vgc/signup`, `/vgc-seniors/signup`, `/vgc-juniors/signup` (age division locked). Overlay / tablet URLs follow the same slugs. TOM is PTCG | VGC, then Masters / Seniors / Juniors, with a separate folder watch per event. A TDF named for a division lands on that title.
 
 - **PTCG Limitless / PTCGL deck import** — when a decklist is required (or on the roster editor), paste PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link. `{P}` / `{R}` energy glyphs expand to Psychic / Fire. Matching requires the printed name (or set + number on shared lists). Unmatched lines stay listed for the ROK Desk search builder.
@@ -32,7 +34,8 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Fixed
 
-- PTCG sign-up art — Limitless thumbnails used pokemontcg.io set folders (`ME5`, `SV9`) that 403 on the Limitless CDN. They now use printed codes (`PBL`, `JTG`, `MEG`, …). The art proxy races PNG/WebP sources and sniffs the bytes so octet-stream scans still count. Sign-up falls back across CDNs the same way overlays do.
+- Official Play! Pokémon PDFs — VGC species names sit after the **Pokémon** label, stat numbers sit in the boxes, and the age **X** is in the checkbox to the **right** of Juniors / Seniors / Masters (event division, not a stale player field). PTCG rows sit on the printed lines, and H/I/J marks go in the checkboxes above the letters.
+- PTCG Limitless import — a stalled import no longer shows a raw JSON / `<!DOCTYPE` error; unmatched cards skip the slow TCGdex wait and resolve in parallel. Trainer pages such as Night Stretcher and Lana's Aid keep **Trainer**. HTML names decode (`Lana&#039;s Aid` → Lana's Aid).
 - PTCG card lookup no longer depends on TCGdex (currently down). Search goes catalog → pokemontcg.io (HTTP/1.1, retries, short cache) → TCGdex as a last backup. Art tries pokemontcg.io / Pokémon.com first, then TCGdex, and times out dead CDNs instead of hanging.
 - PTCG deck import no longer substitutes a random Energy, an old `N` printing, Temporal Forces, or Xatu/Ralts/Miriam when the paste has a name plus a mismatched number. Shared Limitless lists (`3xi:PBL~39`) match that set and number, or they stay unmatched.
 

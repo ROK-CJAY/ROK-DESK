@@ -1,4 +1,5 @@
 import { emptyTeam, TERA_LABEL, type TeamMon } from "@/lib/pokemon-vgc";
+import { playAgeDivisionOf, type GameId } from "@/lib/games";
 import type { AgeDivision, Entrant } from "@/lib/tournament-types";
 
 export function trainerNameOf(player: Entrant): string {
@@ -17,6 +18,15 @@ export function ageLabel(division: AgeDivision): string {
   if (division === "juniors") return "Juniors";
   if (division === "seniors") return "Seniors";
   if (division === "masters") return "Masters";
+  return "";
+}
+
+export function printAgeDivision(player: Entrant, gameId: GameId): AgeDivision {
+  const fromEvent = playAgeDivisionOf(gameId);
+  if (fromEvent) return fromEvent;
+  if (player.ageDivision === "juniors" || player.ageDivision === "seniors" || player.ageDivision === "masters") {
+    return player.ageDivision;
+  }
   return "";
 }
 

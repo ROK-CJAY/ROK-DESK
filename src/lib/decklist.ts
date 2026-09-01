@@ -8,6 +8,7 @@ export type DeckCard = {
   image: string;
   type: string;
   qty: number;
+  regulation?: string;
 };
 
 export function emptyDecklist(): DeckCard[] {
@@ -27,6 +28,10 @@ export function mergeDecklist(raw: unknown): DeckCard[] {
     const existing = rows.find((row) => row.id === id);
     if (existing) {
       existing.qty = clampQty(existing.qty + qty);
+      if (!existing.regulation) {
+        const mark = regMark(r.regulation);
+        if (mark) existing.regulation = mark;
+      }
       continue;
     }
     rows.push({
@@ -37,6 +42,7 @@ export function mergeDecklist(raw: unknown): DeckCard[] {
       image: String(r.image ?? ""),
       type: String(r.type ?? ""),
       qty,
+      ...(regMark(r.regulation) ? { regulation: regMark(r.regulation) } : {}),
     });
   }
   return rows;
@@ -50,6 +56,15 @@ export function clampQty(value: unknown): number {
 
 export function decklistCount(cards: DeckCard[] | undefined): number {
   return (cards ?? []).reduce((sum, card) => sum + card.qty, 0);
+}
+
+function regMark(value: unknown): string {
+  const mark = String(value ?? "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "")
+    .slice(0, 1);
+  return mark;
 }
 
 export function addDeckCard(list: DeckCard[], card: LookupCard, qty = 1): DeckCard[] {
@@ -69,6 +84,7 @@ export function addDeckCard(list: DeckCard[], card: LookupCard, qty = 1): DeckCa
     image: card.image ?? "",
     type: card.type ?? "",
     qty: clampQty(qty),
+    ...(regMark(card.regulation) ? { regulation: regMark(card.regulation) } : {}),
   });
   return next;
 }

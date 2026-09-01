@@ -3,6 +3,7 @@ import {
   Clapperboard,
   ClipboardList,
   Clock,
+  FileText,
   FolderOpen,
   Globe,
   Mic,
@@ -20,7 +21,7 @@ const STEPS = [
   {
     n: "01",
     title: "Set up the event",
-    body: "Open Tournament Organizer. Name the show, pick the game and format (PTCG and VGC: Masters, Seniors, or Juniors — three events per title on one host), then add players — or send people to walk-up sign-up (commander search, PTCG Limitless/PTCGL deck paste, VGC team sheet). Play! Pokémon: export a TDF into TOM, then drop or watch pairings back in.",
+    body: "Open Tournament Organizer. Name the show, pick the game and format (PTCG and VGC: Masters, Seniors, or Juniors — three events per title on one host), then add players — or send people to walk-up sign-up (commander search, PTCG Limitless/PTCGL deck paste, VGC team sheet). Play! Pokémon: export a TDF into TOM, then drop or watch pairings back in. Print in-app lists or Official PDF from the roster.",
   },
   {
     n: "02",
@@ -76,7 +77,7 @@ export function Landing() {
         </h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
           ROK Desk runs the tournament and the broadcast from the same event. Pairings,
-          Play! Pokémon TOM companion, walk-up sign-up, judge / player / commentary tablets, and 1920×1080 overlays for
+          Play! Pokémon TOM companion, official deck / team PDFs, walk-up sign-up, judge / player / commentary tablets, and 1920×1080 overlays for
           Pokémon VGC, PTCG, One Piece, Yu-Gi-Oh!, Magic, Lorcana, Star Wars Unlimited, and Riftbound.
         </p>
 
@@ -88,7 +89,7 @@ export function Landing() {
             <Trophy className="size-5 text-muted group-hover:text-fg" />
             <p className="font-display mt-4 text-2xl font-semibold uppercase">Tournament Organizer</p>
             <p className="mt-2 text-sm leading-relaxed text-muted">
-              Roster, bracket or Swiss, staff, player IDs, notes, floor clock, export. PTCG and VGC TOM: TDF out, pairings in. Start the event here.
+              Roster, bracket or Swiss, staff, player IDs, notes, floor clock, export. PTCG and VGC TOM: TDF out, pairings in. Print lists or Official PDF. Start the event here.
             </p>
             <p className="mt-4 text-sm font-medium">Open organizer →</p>
           </Link>
@@ -199,6 +200,15 @@ export function Landing() {
                 </p>
               </div>
             </Link>
+            <Link to="/tournament" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
+              <FileText className="mt-0.5 size-4 shrink-0 text-muted" />
+              <div>
+                <p className="font-medium">Official PDF</p>
+                <p className="mt-1 text-sm text-muted">
+                  Fill the published Play! Pokémon TCG deck list and VGC team list from sign-up. Desk print sheets stay next to it.
+                </p>
+              </div>
+            </Link>
             <a href="/ptcg/signup" className="flex gap-3 rounded-xl border border-border bg-surface p-4 hover:border-accent/40">
               <ClipboardList className="mt-0.5 size-4 shrink-0 text-muted" />
               <div>
@@ -246,7 +256,7 @@ export function Landing() {
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-subtle">
             Free and in beta. One host runs PTCG and VGC Masters, Seniors, and Juniors at once — each has its own roster, kiosk, tables, and overlays. Overlay paths are game-scoped so titles
-            do not mix. Play Layouts, Versus, look, and TOM watches are per title. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
+            do not mix. Play Layouts, Versus, look, TOM watches, and Official PDF fills are per title. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
             <a href={DONATE_URL} target="_blank" rel="noreferrer" className="underline hover:text-muted">
               donate
             </a>

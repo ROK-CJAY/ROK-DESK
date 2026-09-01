@@ -2,8 +2,8 @@ import {
   ageLabel,
   battleTeamOf,
   monRows,
+  printAgeDivision,
   switchProfileOf,
-  teraLabel,
   trainerNameOf,
 } from "@/lib/vg-team-list";
 import type { Entrant, TournamentState } from "@/lib/tournament-types";
@@ -40,6 +40,7 @@ function OfficialPage({
 }) {
   const staff = variant === "staff";
   const mons = monRows(player);
+  const division = printAgeDivision(player, tournament.gameId);
   return (
     <section className={`sheet ${staff ? "staff" : "foes"}`}>
       <header className="head">
@@ -58,7 +59,7 @@ function OfficialPage({
             )}
           </p>
         </div>
-        <AgeChecks value={player.ageDivision} />
+        <AgeChecks value={division} />
       </header>
 
       <p className="instruct">
@@ -98,7 +99,7 @@ function OfficialPage({
       ) : (
         <p className="event-line">
           {tournament.name} · {tournament.formatName}
-          {ageLabel(player.ageDivision) ? ` · ${ageLabel(player.ageDivision)}` : ""}
+          {ageLabel(division) ? ` · ${ageLabel(division)}` : ""}
         </p>
       )}
     </section>
@@ -113,7 +114,7 @@ function AgeChecks({ value }: { value: string }) {
         {(["juniors", "seniors", "masters"] as const).map((id) => (
           <label key={id} className={value === id ? "on" : ""}>
             <i />
-            {id[0]!.toUpperCase() + id.slice(1)}
+            {id === "juniors" ? "Junior" : id === "seniors" ? "Senior" : "Masters"}
           </label>
         ))}
       </div>
@@ -131,9 +132,7 @@ function Write({ label, value, tall }: { label: string; value: string; tall?: bo
 }
 
 function speciesLine(mon: TeamMon): string {
-  const tera = teraLabel(mon);
-  if (!mon.species) return "";
-  return tera ? `${mon.species}  (Tera ${tera})` : mon.species;
+  return mon.species;
 }
 
 function StaffSlot({ mon }: { mon: TeamMon }) {
@@ -270,6 +269,8 @@ const PRINT_CSS = `
   .ages label.on i {
     background: #111;
     box-shadow: inset 0 0 0 2px #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .instruct {
     margin: 8px 0 8px;

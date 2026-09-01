@@ -135,6 +135,7 @@ export default defineConfig(({ command }) => ({
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },
+  assetsInclude: ["**/*.pdf"],
   plugins: [
     pgliteBootstrapPlugin(),
     // Before tanstackStart so /auth/popup never falls through to the SPA.

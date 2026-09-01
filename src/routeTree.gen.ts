@@ -59,6 +59,7 @@ import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiTournamentExportRouteImport } from './routes/api/tournament/export'
+import { Route as ApiTournamentOfficialPdfRouteImport } from './routes/api/tournament/official-pdf'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
 import { Route as ApiTournamentTdfRouteImport } from './routes/api/tournament/tdf'
 import { Route as GameSlotOverlaySourceRouteImport } from './routes/$game/$slot/overlay/$source'
@@ -313,6 +314,12 @@ const ApiTournamentExportRoute = ApiTournamentExportRouteImport.update({
   path: '/export',
   getParentRoute: () => ApiTournamentRoute,
 } as any)
+const ApiTournamentOfficialPdfRoute =
+  ApiTournamentOfficialPdfRouteImport.update({
+    id: '/official-pdf',
+    path: '/official-pdf',
+    getParentRoute: () => ApiTournamentRoute,
+  } as any)
 const ApiTournamentSignupRoute = ApiTournamentSignupRouteImport.update({
   id: '/signup',
   path: '/signup',
@@ -380,6 +387,7 @@ export interface FileRoutesByFullPath {
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
+  '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
   '/api/tournament/tdf': typeof ApiTournamentTdfRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
@@ -434,6 +442,7 @@ export interface FileRoutesByTo {
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
+  '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
   '/api/tournament/tdf': typeof ApiTournamentTdfRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
@@ -490,6 +499,7 @@ export interface FileRoutesById {
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
+  '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
   '/api/tournament/tdf': typeof ApiTournamentTdfRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
@@ -547,6 +557,7 @@ export interface FileRouteTypes {
     | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/tournament/export'
+    | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
     | '/api/tournament/tdf'
     | '/$game/$slot/overlay/$source'
@@ -601,6 +612,7 @@ export interface FileRouteTypes {
     | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/tournament/export'
+    | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
     | '/api/tournament/tdf'
     | '/$game/$slot/overlay/$source'
@@ -656,6 +668,7 @@ export interface FileRouteTypes {
     | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/tournament/export'
+    | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
     | '/api/tournament/tdf'
     | '/$game/$slot/overlay/$source'
@@ -1047,6 +1060,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTournamentExportRouteImport
       parentRoute: typeof ApiTournamentRoute
     }
+    '/api/tournament/official-pdf': {
+      id: '/api/tournament/official-pdf'
+      path: '/official-pdf'
+      fullPath: '/api/tournament/official-pdf'
+      preLoaderRoute: typeof ApiTournamentOfficialPdfRouteImport
+      parentRoute: typeof ApiTournamentRoute
+    }
     '/api/tournament/signup': {
       id: '/api/tournament/signup'
       path: '/signup'
@@ -1121,12 +1141,14 @@ const OverlayRouteRouteWithChildren = OverlayRouteRoute._addFileChildren(
 
 interface ApiTournamentRouteChildren {
   ApiTournamentExportRoute: typeof ApiTournamentExportRoute
+  ApiTournamentOfficialPdfRoute: typeof ApiTournamentOfficialPdfRoute
   ApiTournamentSignupRoute: typeof ApiTournamentSignupRoute
   ApiTournamentTdfRoute: typeof ApiTournamentTdfRoute
 }
 
 const ApiTournamentRouteChildren: ApiTournamentRouteChildren = {
   ApiTournamentExportRoute: ApiTournamentExportRoute,
+  ApiTournamentOfficialPdfRoute: ApiTournamentOfficialPdfRoute,
   ApiTournamentSignupRoute: ApiTournamentSignupRoute,
   ApiTournamentTdfRoute: ApiTournamentTdfRoute,
 }

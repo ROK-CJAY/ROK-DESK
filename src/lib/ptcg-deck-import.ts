@@ -4,8 +4,10 @@ import { catalogIdsForLine, matchDeckLine, nameEquals } from "@/lib/ptcg-deck-ma
 import { limitlessCardPng } from "@/lib/card-lookup";
 import {
   allowedLimitlessUrl,
+  decodeHtml,
   limitlessShareId,
   looksLikeLimitlessPaste,
+  parseLimitlessCardPage,
   parseLimitlessDeckHtml,
   parsePtcgDeckText,
   type ParsedDeckLine,
@@ -36,14 +38,15 @@ export async function resolveDeckLines(lines: ParsedDeckLine[]): Promise<PtcgDec
   const catalog = await loadCatalog();
   const cards: DeckCard[] = [];
   const unmatched: string[] = [];
-  for (const line of lines) {
-    const hit = await resolveLine(line, catalog?.cards ?? []);
+  const resolved = await Promise.all(lines.map((line) => resolveLine(line, catalog?.cards ?? [])));
+  resolved.forEach((hit, i) => {
+    const line = lines[i]!;
     if (hit) {
       cards.push(deckCardFromCatalog(hit, line));
-      continue;
+      return;
     }
     unmatched.push(line.raw || `${line.qty} ${line.name} ${line.set} ${line.number}`.trim());
-  }
+  });
   const merged = mergeDecklist(cards);
   return { cards: merged, unmatched, count: merged.reduce((n, c) => n + c.qty, 0) };
 }
@@ -61,21 +64,35 @@ async function resolveLine(line: ParsedDeckLine, catalog: PtcgCatalogCard[]): Pr
 }
 
 async function fetchRemotePrint(line: ParsedDeckLine): Promise<PtcgCatalogCard | null> {
-  for (const id of catalogIdsForLine(line)) {
+  if (line.set && line.number) {
+    const fromPage = await limitlessCard(line);
+    if (fromPage) return fromPage;
+  }
+  for (const id of catalogIdsForLine(line).slice(0, 2)) {
     const card = await tcgdexCard(id);
     if (card) return card;
   }
-  if (!line.set || !line.number) return null;
+  return null;
+}
+
+async function limitlessCard(line: ParsedDeckLine): Promise<PtcgCatalogCard | null> {
   try {
-    const html = await fetchText(`https://limitlesstcg.com/cards/${encodeURIComponent(line.set)}/${encodeURIComponent(line.number)}`, "text/html");
-    const title = html.match(/<title>([^<]+)/i)?.[1] ?? "";
-    const name = title.split(" - ")[0]?.replace(/– Limitless.*/i, "").trim();
+    const html = await fetchText(
+      `https://limitlesstcg.com/cards/${encodeURIComponent(line.set)}/${encodeURIComponent(line.number)}`,
+      "text/html",
+      4000,
+    );
+    const parsed = parseLimitlessCardPage(html);
+    const title = decodeHtml(html.match(/<title>([^<]+)/i)?.[1] ?? "");
+    const name = parsed?.name || title.split(" - ")[0]?.replace(/– Limitless.*/i, "").trim();
     if (!name || /limitless/i.test(name)) return null;
+    const energy = /energy/i.test(name) || parsed?.supertype === "Energy";
     return {
       id: `${line.set}-${line.number}`.toLowerCase(),
       name,
       number: line.number,
-      supertype: /energy/i.test(name) ? "Energy" : "",
+      supertype: energy ? "Energy" : parsed?.supertype || "",
+      regulationMark: parsed?.regulation || undefined,
       set: { id: line.set.toLowerCase(), name: line.set },
     };
   } catch {
@@ -85,7 +102,7 @@ async function fetchRemotePrint(line: ParsedDeckLine): Promise<PtcgCatalogCard |
 
 async function tcgdexCard(id: string): Promise<PtcgCatalogCard | null> {
   try {
-    const raw = await fetchText(`https://api.tcgdex.net/v2/en/cards/${encodeURIComponent(id)}`, "application/json");
+    const raw = await fetchText(`https://api.tcgdex.net/v2/en/cards/${encodeURIComponent(id)}`, "application/json", 2500);
     const item = JSON.parse(raw) as Record<string, unknown>;
     const name = String(item.name ?? "").trim();
     if (!name) return null;
@@ -98,11 +115,13 @@ async function tcgdexCard(id: string): Promise<PtcgCatalogCard | null> {
       setId === "mee" && /energy$/i.test(name) && !/^basic\b/i.test(name) ? `Basic ${name}` : name;
     const idValue = String(item.id ?? id);
     const compact = idValue.replace(/-0+(\d)/, "-$1");
+    const regulation = String(item.regulationMark ?? item.regulation ?? "").trim().toUpperCase().slice(0, 1);
     return {
       id: idValue,
       name: labeled,
       number,
       supertype: item.category ? String(item.category) : undefined,
+      regulationMark: regulation || undefined,
       images: image
         ? { small: `${image}/low.webp`, large: `${image}/high.webp` }
         : { small: `https://images.scrydex.com/pokemon/${compact}/large`, large: `https://images.scrydex.com/pokemon/${compact}/large` },
@@ -120,12 +139,13 @@ function deckCardFromCatalog(card: PtcgCatalogCard, line: ParsedDeckLine): DeckC
   const image = png || card.images?.large || card.images?.small || "";
   return {
     id,
-    name: card.name,
+    name: decodeHtml(card.name),
     set: card.set?.name || card.set?.id || line.set || "",
     number: card.number ?? line.number ?? "",
     image,
     type: card.supertype ?? "",
     qty: clampQty(line.qty),
+    ...(card.regulationMark ? { regulation: card.regulationMark.trim().toUpperCase().slice(0, 1) } : {}),
   };
 }
 
@@ -157,9 +177,9 @@ async function fetchLimitlessSource(url: URL): Promise<string> {
   return page;
 }
 
-async function fetchText(url: string, accept: string): Promise<string> {
+async function fetchText(url: string, accept: string, timeoutMs = 8000): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
       signal: controller.signal,

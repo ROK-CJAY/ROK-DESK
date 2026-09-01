@@ -60,8 +60,9 @@ Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switc
 | Player tablet | `/{game}/tablet?role=player` | Commander or Lorcana table pad |
 | Commentary tablet | `/{game}/tablet?role=caster` | Casters — full player info, read-only |
 | Walk-up signup | `/{game}/signup` | Players at the door. PTCG/VGC: `/ptcg/signup` or `/vgc/signup` Masters, `/{game}-seniors/signup`, `/{game}-juniors/signup` |
-| VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon form |
-| PTCG deck-list print | `/print/deck-list` | Official 8.5×11 Play! Pokémon deck list |
+| VGC team-list print | `/print/team-list` | In-app 2-page Play! Pokémon team list |
+| PTCG deck-list print | `/print/deck-list` | In-app 8.5×11 Play! Pokémon deck list |
+| Official PDF | Tournament **Official PDF** | Fills the published Play! Pokémon TCG deck list / VGC team list from sign-up (sits next to the in-app sheets) |
 | Overlay index | `/overlay` | Browser-source list |
 | Floor clock | `/{game}/overlay/floor-clock` | Room monitor |
 | Stream clock | `/{game}/overlay/stream-clock` | Monitor at the streamed table |
@@ -136,8 +137,8 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
   - Drop `roster.html` / `pairings.html` / `standings.html` from `TOM_DATA/data/reports`. Desk fills tables so you can send a match to stream. TOM still pairs and scores.
   - **Watch TOM reports folder** (Chrome, Edge, or ROK Desk desktop): pick `TOM_DATA` or `data/reports` once. Desk imports when TOM writes new pairings / standings. Drop files if you are not in a Chromium browser.
   - **Load sample** / **Clear sample**, or **Clear roster** on the player list.
-- VGC **print team list** — two pages per player in the Play! Pokémon VG team-list layout (staff page with stats, opponent page without)
-- PTCG **print deck list** — one 8.5×11 page per player (Play! Pokémon TCG deck list: Pokémon / Trainer / Energy, Player ID, age division, Standard / Expanded)
+- VGC **print team list** — in-app two-page Play! Pokémon VG team-list layout (staff page with stats, opponent page without), plus **Official PDF** that fills the published form from sign-up (age **X** in the box to the right of Juniors / Seniors / Masters)
+- PTCG **print deck list** — in-app 8.5×11 Play! Pokémon TCG deck list (Pokémon / Trainer / Energy, Player ID, age division, Standard / Expanded), plus **Official PDF** that fills the published deck list (H/I/J in the mark boxes)
 
 ---
 
@@ -381,13 +382,16 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
 **Added**
 - **Play! Pokémon age divisions** — PTCG and VGC each run Masters, Seniors, and Juniors as three events on one host (own roster, kiosk, Stream / Floor 1 / Floor 2, overlays, TOM watch). Kiosks: `/ptcg/signup`, `/ptcg-seniors/signup`, `/ptcg-juniors/signup`, `/vgc/signup`, `/vgc-seniors/signup`, `/vgc-juniors/signup`
+- **Official Play! Pokémon PDFs** — roster printers keep the in-app sheets and add **Official PDF**, which fills the published TCG deck list / VGC team list from sign-up
 - **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, or **Watch TOM reports folder** so pairings import when TOM writes them. Send a table to stream. Load / clear sample. TOM stays official. Six TOM cards (PTCG/VGC × Masters/Seniors/Juniors)
 - **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…` (https optional). Energy glyphs (`{P}`), Limitless set codes (`PBL` / `POR` / `CRI` / `MEE`), and **name-first** matching when a collector number is from another print. Search builder stays as backup
-- **PTCG deck-list print** — `/print/deck-list` fills the official 8.5×11 Play! Pokémon TCG deck list
+- **PTCG deck-list print** — `/print/deck-list` fills the in-app 8.5×11 Play! Pokémon TCG deck list
 - **PTCG catalog download** — save every English card on this machine; hit the button again to refresh
 - **Lorcana player tablet extended** — self-run names, inks, lore, games, clock, and Show P1 / P2
 
 **Fixed**
+- Official PDF overlay — VGC names sit after **Pokémon**, stats sit in the boxes, age **X** is in the checkbox to the right of the division name. PTCG rows sit on the printed lines; H/I/J marks go in the boxes above the letters
+- PTCG Limitless import no longer stalls on an HTML timeout (`Unexpected token '<'`). Unmatched cards skip the slow TCGdex wait
 - PTCG lookup uses the local catalog, then pokemontcg.io, then TCGdex as a last backup
 - PTCG import keeps the pasted **name** when the number is wrong (`Charmander PAF 26` → Charmander, not Xatu). Shared lists still match set + number
 - PTCG sign-up / Limitless art uses printed set folders (`PBL`, `JTG`, `MEG`) instead of pokemontcg.io ids that 403 (`ME5`, `SV9`). Art proxy races PNG/WebP and sniffs the bytes. Sign-up falls back across CDNs like overlays

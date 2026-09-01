@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isPlayPokemonTitle, isVgcTitle, PTCG_DIVISIONS, playAgeDivisionOf, playDivisionsFor, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath, VGC_DIVISIONS } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isPlayPokemonTitle, isVgcTitle, MTG_LANES, PTCG_DIVISIONS, playAgeDivisionOf, playDivisionsFor, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath, VGC_DIVISIONS } from "@/lib/games";
 import { catalogForGame } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { decklistCount } from "@/lib/decklist";
@@ -19,6 +19,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { groupByRound, readyMatches, computeStandings, currentSwissRound, eventChampion, swissRoundComplete, defaultSwissRounds, canStartTopCut, topCutStarted, hasTopCut, previewTournament, tieGroupKey } from "@/lib/tournament-bracket";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { TeamSheetPanel } from "@/components/tournament/team-sheet-panel";
+import { OfficialPdfButton } from "@/components/tournament/official-pdf-button";
 import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
@@ -98,7 +99,6 @@ export function TournamentApp() {
           <EventResultCard champ={champ} leader={leader} standings={standings} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
-          <TomReportsPanel />
           <RosterPanel
             sheetPlayerId={sheetPlayerId}
             onOpenSheet={(id) => {
@@ -108,6 +108,7 @@ export function TournamentApp() {
           />
           <TeamSheetPanel playerId={sheetPlayerId} onSelectPlayer={setSheetPlayerId} />
           <BracketBoard />
+          <TomReportsPanel />
           <TiebreakPanel t={t} standings={standings} />
         </div>
       </main>
@@ -250,7 +251,14 @@ function SetupPanel() {
                 </option>
               ))}
             </optgroup>
-            {GAME_LIST.filter((g) => !isPlayPokemonTitle(g.id)).map((g) => (
+            <optgroup label="Magic: The Gathering">
+              {MTG_LANES.map((d) => (
+                <option key={d.gameId} value={d.gameId}>
+                  {d.label}
+                </option>
+              ))}
+            </optgroup>
+            {GAME_LIST.filter((g) => !isPlayPokemonTitle(g.id) && !isMtgTitle(g.id)).map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
               </option>
@@ -285,7 +293,9 @@ function SetupPanel() {
           <p className="mt-1 text-[0.65rem] text-subtle">
             {isPlayPokemonTitle(t.gameId)
               ? "Masters, Seniors, and Juniors are three events on this host. Each has its own roster, pairings, kiosk, and overlays."
-              : "This title only. Each game keeps its own name."}
+              : isMtgTitle(t.gameId)
+                ? "Constructed and Commander are two events on this host. Each has its own roster, pairings, kiosk, and overlays."
+                : "This title only. Each game keeps its own name."}
           </p>
         </Field>
         <Field label="Format">
@@ -795,18 +805,24 @@ function RosterPanel({
             </a>
           </Button>
           {isVgcTitle(t.gameId) ? (
-            <Button variant="outline" size="sm" asChild>
-              <a href="/print/team-list?all=1" target="_blank" rel="noreferrer">
-                Print all lists
-              </a>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/print/team-list?all=1" target="_blank" rel="noreferrer">
+                  Print all lists
+                </a>
+              </Button>
+              <OfficialPdfButton kind="team" all />
+            </>
           ) : null}
           {isPtcgTitle(t.gameId) ? (
-            <Button variant="outline" size="sm" asChild>
-              <a href="/print/deck-list?all=1" target="_blank" rel="noreferrer">
-                Print all lists
-              </a>
-            </Button>
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/print/deck-list?all=1" target="_blank" rel="noreferrer">
+                  Print all lists
+                </a>
+              </Button>
+              <OfficialPdfButton kind="deck" all />
+            </>
           ) : null}
           <Button variant="outline" size="sm" onClick={reseed}>
             <Shuffle className="size-3.5" />
@@ -1143,18 +1159,24 @@ function EntrantRow({
             </Button>
           ) : null}
           {showTeam ? (
-            <Button variant="ghost" size="icon" className="size-8" asChild>
-              <a href={`/print/team-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print team list">
-                <Printer className="size-3.5" />
-              </a>
-            </Button>
+            <>
+              <Button variant="ghost" size="icon" className="size-8" asChild>
+                <a href={`/print/team-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print team list">
+                  <Printer className="size-3.5" />
+                </a>
+              </Button>
+              <OfficialPdfButton kind="team" id={entrant.id} icon />
+            </>
           ) : null}
           {catalog === "ptcg" ? (
-            <Button variant="ghost" size="icon" className="size-8" asChild>
-              <a href={`/print/deck-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print deck list">
-                <Printer className="size-3.5" />
-              </a>
-            </Button>
+            <>
+              <Button variant="ghost" size="icon" className="size-8" asChild>
+                <a href={`/print/deck-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print deck list">
+                  <Printer className="size-3.5" />
+                </a>
+              </Button>
+              <OfficialPdfButton kind="deck" id={entrant.id} icon />
+            </>
           ) : null}
           {catalog ? (
             <Button

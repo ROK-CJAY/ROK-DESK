@@ -85,7 +85,13 @@ export function DecklistEditor({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(looksLikeLimitlessPaste(raw) ? { url: raw } : { text: raw }),
       });
-      const data = (await res.json()) as { cards?: DeckCard[]; unmatched?: string[]; count?: number; error?: string };
+      const rawBody = await res.text();
+      let data: { cards?: DeckCard[]; unmatched?: string[]; count?: number; error?: string };
+      try {
+        data = JSON.parse(rawBody) as { cards?: DeckCard[]; unmatched?: string[]; count?: number; error?: string };
+      } catch {
+        throw new Error("Import didn’t finish. Try again in a moment.");
+      }
       if (!res.ok) throw new Error(data.error || "Import failed.");
       const cards = Array.isArray(data.cards) ? data.cards : [];
       if (!cards.length && !(data.unmatched?.length)) throw new Error("No cards found in that list.");

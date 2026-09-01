@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { PtcgDeckListPrint } from "@/components/tournament/ptcg-deck-list-print";
+import { OfficialPdfButton } from "@/components/tournament/official-pdf-button";
 import { Button } from "@/components/ui/button";
 import { isPtcgTitle } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
@@ -44,12 +45,15 @@ function DeckListPrintPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-neutral-200 py-4">
+    <div className="min-h-dvh bg-neutral-200 py-4 print:bg-white print:py-0">
       <div className="no-print mx-auto mb-4 flex max-w-[8.5in] flex-wrap items-center justify-between gap-2 px-4">
         <p className="text-sm text-neutral-700">
           {players.length === 1 ? players[0]!.name : `${players.length} players`} · Play! Pokémon 8.5×11 deck list
         </p>
-        <Button onClick={() => window.print()}>Print / Save PDF</Button>
+        <div className="flex flex-wrap gap-2">
+          <OfficialPdfButton kind="deck" id={all ? undefined : id} all={all} />
+          <Button onClick={() => window.print()}>Print / Save PDF</Button>
+        </div>
       </div>
       <PtcgDeckListPrint tournament={t} players={players} />
     </div>

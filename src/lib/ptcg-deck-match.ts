@@ -46,16 +46,32 @@ export const PRINTED_SETS: Record<string, string[]> = {
 };
 
 const SET_NAMES: Record<string, string[]> = {
+  SVI: ["scarlet violet", "scarlet & violet"],
+  PAL: ["paldea evolved"],
+  OBF: ["obsidian flames"],
+  MEW: ["151"],
+  PAR: ["paradox rift"],
+  PAF: ["paldean fates"],
+  TEF: ["temporal forces"],
+  TWM: ["twilight masquerade"],
+  SFA: ["shrouded fable"],
+  SCR: ["stellar crown"],
+  SSP: ["surging sparks"],
+  PRE: ["prismatic evolutions"],
+  JTG: ["journey together"],
+  DRI: ["destined rivals"],
+  WHT: ["white flare"],
+  BLK: ["black bolt"],
+  SVE: ["scarlet violet energy", "scarlet & violet energies"],
+  MEE: ["mega evolution energy", "mega evolution energies"],
   MEG: ["mega evolution"],
+  PFL: ["phantasmal flames"],
   ASC: ["ascended heroes"],
   POR: ["perfect order"],
   CRI: ["chaos rising"],
   PBL: ["pitch black"],
-  MEE: ["mega evolution energy"],
-  PFL: ["phantasmal flames"],
   CIN: ["crimson invasion"],
-  WHT: ["white flare"],
-  BLK: ["black bolt"],
+  FCO: ["fates collide"],
 };
 
 function norm(value: string): string {
@@ -101,6 +117,27 @@ export function printedCodesForSet(setId?: string): string[] {
     }
   }
   return [...new Set(codes)];
+}
+
+/** Short code for a deck-list SET column (PBL, JTG, DRI). */
+export function printedSetCode(set?: string, id?: string): string {
+  const raw = String(set ?? "").trim();
+  const upper = raw.toUpperCase();
+  if (PRINTED_SETS[upper]) return upper;
+  if (/^[A-Z]{2,5}$/.test(upper) && isLimitlessArtCode(upper)) return upper;
+
+  const named = norm(raw);
+  if (named) {
+    for (const [code, names] of Object.entries(SET_NAMES)) {
+      if (names.includes(named)) return code;
+    }
+  }
+
+  const setId = String(id ?? "").split("-")[0];
+  const mapped = printedCodesForSet(setId).find((code) => Boolean(PRINTED_SETS[code]));
+  if (mapped) return mapped;
+  const art = limitlessPrintedCodes(setId)[0];
+  return art || raw;
 }
 
 /** Limitless CDN folders (PBL, JTG, MEG). Not pokemontcg.io ids like me5 / sv9 / sv6pt5. */

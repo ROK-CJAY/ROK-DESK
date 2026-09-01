@@ -201,12 +201,47 @@ function attr(block: string, name: string): string {
 
 function decode(value: string): string {
   return value
-    .replace(/&/g, "&")
-    .replace(/"/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/</g, "<")
-    .replace(/>/g, ">")
-    .replace(/'/g, "'");
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => fromCode(Number.parseInt(hex, 16)))
+    .replace(/&#0*([0-9]+);/g, (_, num: string) => fromCode(Number(num)))
+    .replace(/\u00a0/g, " ");
+}
+
+function fromCode(code: number): string {
+  if (!Number.isFinite(code) || code < 1 || code > 0x10ffff) return "";
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return "";
+  }
+}
+
+export function decodeHtml(value: string): string {
+  return decode(value);
+}
+
+export function parseLimitlessCardPage(html: string): { name: string; supertype: string; regulation: string } | null {
+  const named = decode((html.match(/class="card-text-name"[^>]*>[\s\S]*?<a[^>]*>([^<]+)/i) ?? [])[1] ?? "").trim();
+  const title = decode((html.match(/<title>([^<]+)/i) ?? [])[1] ?? "")
+    .split(" - ")[0]
+    ?.replace(/– Limitless.*/i, "")
+    .trim();
+  const name = named || title || "";
+  if (!name || /limitless/i.test(name)) return null;
+
+  const typeHtml = (html.match(/class="card-text-type"[^>]*>([\s\S]*?)<\/p>/i) ?? [])[1] ?? "";
+  const typeText = decode(typeHtml.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+  let supertype = "";
+  if (/trainer/i.test(typeText)) supertype = "Trainer";
+  else if (/\benergy\b/i.test(typeText) || /\benergy\b/i.test(name)) supertype = "Energy";
+  else if (/pok/i.test(typeText)) supertype = "Pokémon";
+  const regulation = ((html.match(/class="regulation-mark"[^>]*>\s*([A-Z])\s*Regulation Mark/i) ?? [])[1] ?? "").toUpperCase();
+  return { name, supertype, regulation };
 }
 
 function parseDeckLine(line: string): ParsedDeckLine | null {
@@ -222,7 +257,7 @@ function parseDeckLine(line: string): ParsedDeckLine | null {
 }
 
 function row(qty: string, name: string, set?: string, number?: string, raw?: string): ParsedDeckLine {
-  const cleaned = name.replace(/\s+/g, " ").trim();
+  const cleaned = decode(name).replace(/\s+/g, " ").trim();
   return {
     qty: clampQty(qty),
     name: expandEnergyGlyphs(cleaned) || cleaned,

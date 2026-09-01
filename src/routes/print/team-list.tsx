@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { VgTeamListPrint } from "@/components/tournament/vg-team-list-print";
+import { OfficialPdfButton } from "@/components/tournament/official-pdf-button";
 import { Button } from "@/components/ui/button";
 import { isVgcTitle } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
@@ -49,7 +50,10 @@ function TeamListPrintPage() {
         <p className="text-sm text-neutral-700">
           {players.length === 1 ? players[0]!.name : `${players.length} players`} · 2 pages each
         </p>
-        <Button onClick={() => window.print()}>Print / Save PDF</Button>
+        <div className="flex flex-wrap gap-2">
+          <OfficialPdfButton kind="team" id={all ? undefined : id} all={all} />
+          <Button onClick={() => window.print()}>Print / Save PDF</Button>
+        </div>
       </div>
       <VgTeamListPrint tournament={t} players={players} />
     </div>

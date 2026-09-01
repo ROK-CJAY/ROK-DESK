@@ -4,6 +4,7 @@ import { Field, NativeSelect } from "@/components/desk/field";
 import { CatalogSelect } from "@/components/desk/catalog-select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { OfficialPdfButton } from "@/components/tournament/official-pdf-button";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { teamSheetLabel, type AgeDivision, type Entrant } from "@/lib/tournament-types";
@@ -247,9 +248,10 @@ function SheetHeader({
         <Button type="button" variant="outline" size="sm" asChild>
           <a href={`/print/team-list?id=${player.id}`} target="_blank" rel="noreferrer">
             <Printer className="size-3.5" />
-            Official list
+            Print list
           </a>
         </Button>
+        <OfficialPdfButton kind="team" id={player.id} />
       </div>
     </div>
   );
