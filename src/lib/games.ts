@@ -1,1 +1,15 @@
-PLACEHOLDER_USE_LOCAL
+export const GAME_IDS = [
+  "pokemon-vgc",
+  "pokemon-vgc-seniors",
+  "pokemon-vgc-juniors",
+  "pokemon-tcg",
+  "pokemon-tcg-seniors",
+  "pokemon-tcg-juniors",
+  "one-piece",
+  "yugioh",
+  "mtg",
+  "mtg-commander",
+  "lorcana",
+  "swu",
+  "riftbound",
+] as const;
