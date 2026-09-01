@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, FolderOpen, Pause, Trash2, Upload } from "lucide-react";
-import { Field } from "@/components/desk/field";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { parseTomFiles, sampleTomFiles, hasTomSample, withVgcSampleTrainers } from "@/lib/tom-reports";
-import { isTomTitle, isVgcTitle, playAgeDivisionOf, playDivisionsFor, TOM_TITLE_IDS, tomTitleOf, vgcGameIdFor, ptcgGameIdFor, type PlayAgeDivision, type TomTitleId } from "@/lib/games";
-import { parseTomTdf, looksLikeTomTdf, downloadTomTdf, resolveTomTdfGame } from "@/lib/tom-tdf";
+import { parseTomFiles, withVgcSampleTrainers } from "@/lib/tom-reports";
+import { isTomTitle, isVgcTitle, playAgeDivisionOf, playDivisionsFor, TOM_TITLE_IDS, tomTitleOf, type TomTitleId } from "@/lib/games";
+import { parseTomTdf, looksLikeTomTdf, resolveTomTdfGame } from "@/lib/tom-tdf";
 import {
   canWatchTomFolder,
   clearDirectoryHandle,
@@ -21,7 +17,7 @@ import {
 } from "@/lib/tom-folder-watch";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { deskForGame, viewTournament } from "@/lib/tournament-types";
-import { cn } from "@/lib/cn";
+import { TomReportsView } from "@/components/tournament/tom-reports-view";
 
 function tomKindLabel(id: TomTitleId): string {
   const family = isVgcTitle(id) ? "VGC" : "PTCG";
@@ -38,7 +34,6 @@ export function TomReportsPanel() {
   const t = useTournamentStore((s) => s.tournament);
   const applyTom = useTournamentStore((s) => s.applyTom);
   const applyTomTdf = useTournamentStore((s) => s.applyTomTdf);
-  const clearTom = useTournamentStore((s) => s.clearTom);
   const patch = useTournamentStore((s) => s.patch);
   const setGame = useTournamentStore((s) => s.setGame);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -243,3 +238,34 @@ export function TomReportsPanel() {
   }, [watchStatus]);
 
   if (!isTomTitle(t.gameId)) return null;
+
+  return (
+    <TomReportsView
+      live={live}
+      tomGame={tomGame}
+      vgc={vgc}
+      tomDivision={tomDivision}
+      tomDivisions={tomDivisions}
+      watchSupported={watchSupported}
+      watch={watch}
+      folderName={folderName}
+      status={status}
+      detail={detail}
+      tdfStatus={tdfStatus}
+      setTdfStatus={setTdfStatus}
+      setStatus={setStatus}
+      setDetail={setDetail}
+      drag={drag}
+      setDrag={setDrag}
+      inputRef={inputRef}
+      patchTom={patchTom}
+      useTitle={useTitle}
+      ingest={ingest}
+      fromList={fromList}
+      pickWatchFolder={pickWatchFolder}
+      resumeWatch={resumeWatch}
+      stopWatch={stopWatch}
+      tomKindLabel={tomKindLabel}
+    />
+  );
+}
