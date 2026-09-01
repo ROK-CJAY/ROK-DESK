@@ -1,4 +1,4 @@
-import { Children, cloneElement, isValidElement, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ReactElement, type ReactNode, type SelectHTMLAttributes } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/cn";
 
@@ -21,7 +21,7 @@ export function Field({
 
 function regroupMagicOptions(children: ReactNode): ReactNode {
   const list = Children.toArray(children);
-  const magic: React.ReactElement[] = [];
+  const magic: ReactElement[] = [];
   const rest: ReactNode[] = [];
   for (const child of list) {
     if (isValidElement(child) && child.type === "option") {
@@ -49,18 +49,12 @@ function regroupMagicOptions(children: ReactNode): ReactNode {
 
   const before: ReactNode[] = [];
   const after: ReactNode[] = [];
-  let optgroupsDone = false;
   for (const child of rest) {
-    if (isValidElement(child) && child.type === "optgroup" && !optgroupsDone) {
-      before.push(child);
-      continue;
-    }
     if (isValidElement(child) && child.type === "optgroup") {
       before.push(child);
       continue;
     }
     if (before.some((row) => isValidElement(row) && row.type === "optgroup")) {
-      optgroupsDone = true;
       after.push(child);
     } else {
       before.push(child);
@@ -80,7 +74,7 @@ export function NativeSelect({
   className,
   children,
   ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+}: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       className={cn(
