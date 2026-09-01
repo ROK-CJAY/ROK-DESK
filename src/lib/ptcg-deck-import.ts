@@ -1,6 +1,6 @@
-import { clampQty, mergeDecklist, type DeckCard } from "@/lib/decklist";
-import { catalogCard, loadCatalog, type PtcgCatalogCard } from "@/lib/ptcg-catalog";
-import { catalogIdsForLine, matchDeckLine, nameEquals } from "@/lib/ptcg-deck-match";
+import { clampQty, mergeDecklist, printedNamesMatch, type DeckCard } from "@/lib/decklist";
+import { catalogCard, loadCatalog, resolveCatalogCard, type PtcgCatalogCard } from "@/lib/ptcg-catalog";
+import { catalogIdsForLine, matchDeckLine, nameEquals, printedSetCode } from "@/lib/ptcg-deck-match";
 import { limitlessCardPng } from "@/lib/card-lookup";
 import {
   allowedLimitlessUrl,
@@ -49,6 +49,57 @@ export async function resolveDeckLines(lines: ParsedDeckLine[]): Promise<PtcgDec
   });
   const merged = mergeDecklist(cards);
   return { cards: merged, unmatched, count: merged.reduce((n, c) => n + c.qty, 0) };
+}
+
+/** Fill HP / attacks / trainer text / art on an already-saved list from the local catalog. */
+export async function hydrateDeckCards(cards: DeckCard[]): Promise<DeckCard[]> {
+  if (!cards.length) return cards;
+  const catalog = await loadCatalog();
+  const rows = catalog?.cards ?? [];
+  const next = await Promise.all(cards.map((card) => hydrateSavedCard(card, rows)));
+  return next;
+}
+
+async function hydrateSavedCard(card: DeckCard, rows: PtcgCatalogCard[]): Promise<DeckCard> {
+  const printed = printedSetCode(card.set, card.id) || card.set;
+  const line: ParsedDeckLine = {
+    qty: card.qty,
+    name: card.name,
+    set: printed,
+    number: card.number,
+    names: card.name ? [card.name] : [],
+    raw: `${card.qty} ${card.name} ${printed} ${card.number}`.trim(),
+  };
+  const hitRaw =
+    (card.id ? await catalogCard(card.id) : null) ??
+    (matchDeckLine(line, rows) as PtcgCatalogCard | null) ??
+    (await resolveCatalogCard({
+      id: card.id,
+      name: card.name,
+      number: card.number,
+      set: printed || card.set,
+    }));
+  const hit =
+    hitRaw && card.name && hitRaw.name && !printedNamesMatch(card.name, hitRaw.name)
+      ? await resolveCatalogCard({
+          name: card.name,
+          number: card.number,
+          set: printed || card.set,
+        })
+      : hitRaw;
+  if (hit && card.name && hit.name && !printedNamesMatch(card.name, hit.name)) return card;
+  if (!hit) return card;
+  const rich = deckCardFromCatalog(hit, line);
+  return {
+    ...rich,
+    qty: card.qty,
+    set: printed || rich.set || card.set,
+    image: rich.image || card.image,
+    hp: rich.hp || card.hp,
+    text: rich.text || card.text,
+    attacks: rich.attacks?.length ? rich.attacks : card.attacks,
+    abilities: rich.abilities?.length ? rich.abilities : card.abilities,
+  };
 }
 
 async function resolveLine(line: ParsedDeckLine, catalog: PtcgCatalogCard[]): Promise<PtcgCatalogCard | null> {
@@ -120,12 +171,16 @@ async function tcgdexCard(id: string): Promise<PtcgCatalogCard | null> {
       id: idValue,
       name: labeled,
       number,
+      hp: item.hp != null ? String(item.hp) : undefined,
       supertype: item.category ? String(item.category) : undefined,
       regulationMark: regulation || undefined,
       images: image
         ? { small: `${image}/low.webp`, large: `${image}/high.webp` }
         : { small: `https://images.scrydex.com/pokemon/${compact}/large`, large: `https://images.scrydex.com/pokemon/${compact}/large` },
       set: { id: setId, name: setName },
+      attacks: Array.isArray(item.attacks) ? item.attacks : undefined,
+      abilities: Array.isArray(item.abilities) ? item.abilities : undefined,
+      rules: item.effect ? [String(item.effect)] : undefined,
     };
   } catch {
     return null;
@@ -136,16 +191,50 @@ function deckCardFromCatalog(card: PtcgCatalogCard, line: ParsedDeckLine): DeckC
   const id = card.id;
   const number = line.number || card.number || id.split("-").slice(1).join("-");
   const png = limitlessCardPng(line.set || card.set?.id || id.split("-")[0], number)[0];
-  const image = png || card.images?.large || card.images?.small || "";
+  const image = card.images?.large || card.images?.small || png || "";
+  const printed = printedSetCode(line.set || card.set?.name, id) || line.set || card.set?.id || "";
+  const attacks = Array.isArray(card.attacks)
+    ? card.attacks.flatMap((row) => {
+        if (!row || typeof row !== "object" || !("name" in row)) return [];
+        const atk = row as Record<string, unknown>;
+        const name = String(atk.name ?? "").trim();
+        if (!name) return [];
+        return [
+          {
+            name,
+            cost: Array.isArray(atk.cost) ? atk.cost.map(String) : undefined,
+            damage: atk.damage != null && String(atk.damage) ? String(atk.damage) : undefined,
+            text: atk.text ? String(atk.text) : atk.effect ? String(atk.effect) : undefined,
+          },
+        ];
+      })
+    : undefined;
+  const abilities = Array.isArray(card.abilities)
+    ? card.abilities.flatMap((row) => {
+        if (!row || typeof row !== "object" || !("name" in row)) return [];
+        const ab = row as Record<string, unknown>;
+        const name = String(ab.name ?? "").trim();
+        if (!name) return [];
+        return [{ name, text: ab.text ? String(ab.text) : ab.effect ? String(ab.effect) : undefined }];
+      })
+    : undefined;
+  const text = Array.isArray(card.rules) && card.rules.length ? card.rules.join("\n") : undefined;
+  const types = (card.types ?? []).filter(Boolean);
+  const subtypes = (card.subtypes ?? []).filter(Boolean);
+  const type = [...types, ...subtypes].join(" / ") || card.supertype || "";
   return {
     id,
     name: decodeHtml(card.name),
-    set: card.set?.name || card.set?.id || line.set || "",
+    set: printed,
     number: card.number ?? line.number ?? "",
     image,
-    type: card.supertype ?? "",
+    type,
     qty: clampQty(line.qty),
     ...(card.regulationMark ? { regulation: card.regulationMark.trim().toUpperCase().slice(0, 1) } : {}),
+    ...(card.hp ? { hp: String(card.hp) } : {}),
+    ...(text ? { text } : {}),
+    ...(attacks?.length ? { attacks } : {}),
+    ...(abilities?.length ? { abilities } : {}),
   };
 }
 

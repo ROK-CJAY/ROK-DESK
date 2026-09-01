@@ -142,6 +142,21 @@ test("only public Limitless hosts are allowed", () => {
   assert.equal(allowedLimitlessUrl("http://evil.example/decks"), null);
 });
 
+test("maps Limitless BRS / SSH onto Sword & Shield catalog ids", () => {
+  const lines = parsePtcgDeckText("2 Lumineon V BRS 40\n3 Zacian V SSH 138");
+  const catalog = [
+    { id: "swsh9-40", name: "Lumineon V", number: "40", set: { id: "swsh9", name: "Brilliant Stars" } },
+    { id: "swsh1-138", name: "Zacian V", number: "138", set: { id: "swsh1", name: "Sword & Shield" } },
+    { id: "sv7-36", name: "Lumineon", number: "36", set: { id: "sv7", name: "Stellar Crown" } },
+  ];
+  const hits = matchDeckLines(lines, catalog);
+  assert.equal(hits[0]?.card?.id, "swsh9-40");
+  assert.equal(hits[1]?.card?.id, "swsh1-138");
+  assert.equal(printedSetCode("Brilliant Stars", "swsh9-40"), "BRS");
+  assert.deepEqual(limitlessPrintedCodes("swsh9"), ["BRS"]);
+  assert.deepEqual(limitlessPrintedCodes("BRS"), ["BRS"]);
+});
+
 test("Limitless art URLs use printed codes, not pokemontcg.io set ids", () => {
   assert.equal(isLimitlessArtCode("PBL"), true);
   assert.equal(isLimitlessArtCode("MEG"), true);

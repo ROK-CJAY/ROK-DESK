@@ -37,6 +37,7 @@ function CardIllustration({
           src={src}
           alt=""
           decoding="async"
+          loading="eager"
           onError={onError}
           className="pointer-events-none absolute max-w-none select-none"
           style={{

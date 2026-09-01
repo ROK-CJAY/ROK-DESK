@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { PRINTED_SETS, printedCodesForSet } from "@/lib/ptcg-deck-match";
 
 const ZIP_URL = "https://codeload.github.com/PokemonTCG/pokemon-tcg-data/zip/refs/heads/master";
 const UA =
@@ -46,13 +47,28 @@ const g = globalThis as typeof globalThis & {
   __ptcgCatalogJob__?: PtcgCatalogStatus;
   __ptcgCatalogMem__?: CatalogFile | null;
   __ptcgCatalogSync__?: Promise<void>;
+  __ptcgCatalogLoad__?: Promise<CatalogFile | null>;
+  __ptcgCatalogById__?: Map<string, PtcgCatalogCard>;
 };
 
+function catalogRoots(): string[] {
+  const roots: string[] = [];
+  const add = (value?: string) => {
+    const root = value?.trim();
+    if (root && !roots.includes(root)) roots.push(root);
+  };
+  add(typeof process !== "undefined" ? process.env.ROK_DATA_DIR : "");
+  add(path.join(process.cwd(), "data"));
+  add("/workspace/data");
+  return roots;
+}
+
 function catalogPath() {
-  const root =
-    (typeof process !== "undefined" ? process.env.ROK_DATA_DIR?.trim() : "") ||
-    path.join(process.cwd(), "data");
-  return path.join(root, "ptcg-catalog.json");
+  return path.join(catalogRoots()[0] ?? path.join(process.cwd(), "data"), "ptcg-catalog.json");
+}
+
+function catalogFiles(): string[] {
+  return catalogRoots().map((root) => path.join(root, "ptcg-catalog.json"));
 }
 
 export function catalogStatus(): PtcgCatalogStatus {
@@ -65,45 +81,191 @@ export function catalogStatus(): PtcgCatalogStatus {
   return { status: "idle", count: 0, updatedAt: null, file: catalogPath() };
 }
 
-export async function loadCatalog(): Promise<CatalogFile | null> {
-  if (g.__ptcgCatalogMem__) return g.__ptcgCatalogMem__;
-  try {
-    const raw = await readFile(catalogPath(), "utf8");
-    const parsed = JSON.parse(raw) as CatalogFile;
-    if (!parsed || !Array.isArray(parsed.cards)) return null;
-    g.__ptcgCatalogMem__ = parsed;
-    return parsed;
-  } catch {
-    return null;
+function indexCatalog(catalog: CatalogFile) {
+  const map = new Map<string, PtcgCatalogCard>();
+  const add = (key: string, card: PtcgCatalogCard) => {
+    const id = key.trim().toLowerCase();
+    if (id && !map.has(id)) map.set(id, card);
+  };
+  for (const card of catalog.cards) {
+    add(card.id, card);
+    const number = String(card.number ?? "").trim();
+    if (!number) continue;
+    const trimmed = number.replace(/^0+/, "") || number;
+    const padded = trimmed.padStart(3, "0");
+    for (const code of printedCodesForSet(card.set?.id)) {
+      add(`${code}-${number}`, card);
+      add(`${code}-${trimmed}`, card);
+      add(`${code}-${padded}`, card);
+    }
   }
+  g.__ptcgCatalogById__ = map;
+}
+
+function rememberCatalog(catalog: CatalogFile) {
+  g.__ptcgCatalogMem__ = catalog;
+  indexCatalog(catalog);
+  g.__ptcgCatalogLoad__ = Promise.resolve(catalog);
+}
+
+export async function loadCatalog(): Promise<CatalogFile | null> {
+  if (g.__ptcgCatalogMem__) {
+    if (!g.__ptcgCatalogById__) indexCatalog(g.__ptcgCatalogMem__);
+    return g.__ptcgCatalogMem__;
+  }
+  if (g.__ptcgCatalogLoad__) return g.__ptcgCatalogLoad__;
+  g.__ptcgCatalogLoad__ = (async () => {
+    for (const file of catalogFiles()) {
+      try {
+        const raw = await readFile(file, "utf8");
+        const parsed = JSON.parse(raw) as CatalogFile;
+        if (!parsed || !Array.isArray(parsed.cards) || !parsed.cards.length) continue;
+        rememberCatalog(parsed);
+        return parsed;
+      } catch {
+        /* try the next known data folder */
+      }
+    }
+    return null;
+  })();
+  try {
+    return await g.__ptcgCatalogLoad__;
+  } finally {
+    if (!g.__ptcgCatalogMem__) g.__ptcgCatalogLoad__ = undefined;
+  }
+}
+
+/** In-memory only — art/search hot paths must not parse the 16MB catalog. */
+export function peekCatalogCard(id: string): PtcgCatalogCard | null {
+  return cardFromIndex(id);
+}
+
+function cardFromIndex(id: string): PtcgCatalogCard | null {
+  const index = g.__ptcgCatalogById__;
+  if (!index) return null;
+  const needle = id.trim().toLowerCase();
+  if (!needle) return null;
+  const exact = index.get(needle);
+  if (exact) return exact;
+  const last = needle.lastIndexOf("-");
+  if (last < 1) return null;
+  const set = needle.slice(0, last);
+  const number = needle.slice(last + 1);
+  const mapped = PRINTED_SETS[set.toUpperCase()];
+  if (!mapped) return null;
+  const trimmed = number.replace(/^0+/, "") || number;
+  for (const io of mapped) {
+    const hit = index.get(`${io.toLowerCase()}-${number}`) ?? index.get(`${io.toLowerCase()}-${trimmed}`);
+    if (hit) return hit;
+  }
+  return null;
 }
 
 export async function searchCatalog(query: string, live: boolean): Promise<PtcgCatalogCard[] | null> {
   const catalog = await loadCatalog();
   if (!catalog?.cards.length) return null;
-  const needle = query.trim().toLowerCase();
+  const needle = foldName(query);
   if (needle.length < 2) return [];
-  const hits: PtcgCatalogCard[] = [];
+  const parts = needle.split(" ").filter(Boolean);
+  const last = parts[parts.length - 1] ?? "";
+  const setToken = parts.length >= 2 ? parts[parts.length - 2]! : "";
+  const looksLikePrint = parts.length >= 2 && /^[a-z0-9]{1,8}$/.test(last) && /^[a-z0-9]{2,8}$/.test(setToken);
+
+  const exact: PtcgCatalogCard[] = [];
+  const starts: PtcgCatalogCard[] = [];
+  const rest: PtcgCatalogCard[] = [];
+
   for (const card of catalog.cards) {
-    if (!card.name.toLowerCase().includes(needle)) continue;
+    const name = foldName(card.name);
+    const number = String(card.number ?? "")
+      .replace(/^0+/, "")
+      .toLowerCase();
+    const setBits = [
+      String(card.set?.id ?? ""),
+      String(card.set?.name ?? ""),
+      ...printedCodesForSet(card.set?.id),
+    ].map((value) => foldName(value));
+    const printHit =
+      looksLikePrint &&
+      (number === last.replace(/^0+/, "") || String(card.number ?? "").toLowerCase() === last) &&
+      setBits.some((bit) => bit === setToken || bit.startsWith(setToken));
+    const nameHit = name.includes(needle);
+    if (!nameHit && !printHit) continue;
+
+    const isExact = name === needle || printHit;
     if (live && !isStandardLegal(card)) continue;
-    hits.push(card);
+
+    if (isExact) exact.push(card);
+    else if (name.startsWith(needle)) starts.push(card);
+    else rest.push(card);
   }
-  hits.sort((a, b) => {
-    const aStarts = a.name.toLowerCase().startsWith(needle) ? 1 : 0;
-    const bStarts = b.name.toLowerCase().startsWith(needle) ? 1 : 0;
-    if (aStarts !== bStarts) return bStarts - aStarts;
+
+  const byDate = (a: PtcgCatalogCard, b: PtcgCatalogCard) => {
     const date = String(b.set?.releaseDate ?? "").localeCompare(String(a.set?.releaseDate ?? ""));
     if (date) return date;
-    return a.name.localeCompare(b.name);
-  });
-  return hits.slice(0, 30);
+    return a.name.localeCompare(b.name) || String(a.number ?? "").localeCompare(String(b.number ?? ""));
+  };
+  exact.sort(byDate);
+  starts.sort(byDate);
+  rest.sort(byDate);
+  return [...exact, ...starts, ...rest].slice(0, 40);
+}
+
+export function foldName(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/['’`]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 export async function catalogCard(id: string): Promise<PtcgCatalogCard | null> {
-  const catalog = await loadCatalog();
-  if (!catalog) return null;
-  return catalog.cards.find((card) => card.id === id) ?? null;
+  await loadCatalog();
+  return cardFromIndex(id);
+}
+
+export async function resolveCatalogCard(opts: {
+  id?: string;
+  name?: string;
+  number?: string;
+  set?: string;
+}): Promise<PtcgCatalogCard | null> {
+  await loadCatalog();
+  if (opts.id) {
+    const hit = cardFromIndex(opts.id);
+    if (hit) return hit;
+  }
+  const name = foldName(opts.name ?? "");
+  if (!name) return null;
+  const number = String(opts.number ?? "").replace(/^0+/, "").toLowerCase();
+  const setRaw = opts.set?.trim() ?? "";
+  const setKeys = new Set<string>();
+  if (setRaw) {
+    setKeys.add(setRaw.toLowerCase());
+    const upper = setRaw.toUpperCase();
+    for (const alias of PRINTED_SETS[upper] ?? []) setKeys.add(alias.toLowerCase());
+    for (const [code, aliases] of Object.entries(PRINTED_SETS)) {
+      if (code.toLowerCase() === setRaw.toLowerCase() || aliases.some((alias) => alias.toLowerCase() === setRaw.toLowerCase())) {
+        setKeys.add(code.toLowerCase());
+        aliases.forEach((alias) => setKeys.add(alias.toLowerCase()));
+      }
+    }
+    for (const code of printedCodesForSet(setRaw)) setKeys.add(code.toLowerCase());
+  }
+  const cards = g.__ptcgCatalogMem__?.cards ?? [];
+  let loose: PtcgCatalogCard | null = null;
+  for (const card of cards) {
+    if (foldName(card.name) !== name) continue;
+    const cardNum = String(card.number ?? "").replace(/^0+/, "").toLowerCase();
+    if (number && cardNum !== number) continue;
+    const setId = (card.set?.id ?? "").toLowerCase();
+    const setName = (card.set?.name ?? "").toLowerCase();
+    if (!setKeys.size || setKeys.has(setId) || setKeys.has(setName) || (setRaw && setName.includes(setRaw.toLowerCase()))) {
+      return card;
+    }
+    if (!loose) loose = card;
+  }
+  return loose;
 }
 
 /** Paper Standard since 10 Apr 2026: regulation H and later. */
@@ -165,7 +327,7 @@ async function runSync() {
     const tmp = `${out}.tmp`;
     await writeFile(tmp, JSON.stringify(catalog));
     await rename(tmp, out);
-    g.__ptcgCatalogMem__ = catalog;
+    rememberCatalog(catalog);
     g.__ptcgCatalogJob__ = {
       status: "ok",
       phase: "Ready",
@@ -251,3 +413,5 @@ function unzipTo(zipPath: string, dest: string) {
     });
   });
 }
+
+void loadCatalog();

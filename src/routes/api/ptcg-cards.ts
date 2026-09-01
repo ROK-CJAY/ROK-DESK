@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { catalogCard, isStandardLegal, loadCatalog, searchCatalog } from "@/lib/ptcg-catalog";
+import { catalogCard, isStandardLegal, loadCatalog, resolveCatalogCard, searchCatalog, type PtcgCatalogCard } from "@/lib/ptcg-catalog";
 import { matchDeckLines } from "@/lib/ptcg-deck-match";
 import {
   allowedLimitlessUrl,
@@ -63,14 +63,19 @@ export const Route = createFileRoute("/api/ptcg-cards")({
             });
             continue;
           }
+          const card = row.card as PtcgCatalogCard;
           cards.push({
-            id: row.card.id,
-            name: row.card.name,
-            set: row.card.set?.name ?? row.card.set?.id ?? row.line.set ?? "",
-            number: row.card.number ?? row.line.number ?? "",
-            image: row.card.images?.large ?? row.card.images?.small ?? "",
-            type: row.card.supertype ?? "",
+            id: card.id,
+            name: card.name,
+            set: card.set?.name ?? card.set?.id ?? row.line.set ?? "",
+            number: card.number ?? row.line.number ?? "",
+            image: card.images?.large ?? card.images?.small ?? "",
+            type: card.supertype ?? "",
             qty: row.line.qty,
+            ...(card.hp ? { hp: String(card.hp) } : {}),
+            ...(Array.isArray(card.rules) && card.rules.length ? { text: card.rules.join("\n") } : {}),
+            ...(Array.isArray(card.attacks) && card.attacks.length ? { attacks: card.attacks } : {}),
+            ...(Array.isArray(card.abilities) && card.abilities.length ? { abilities: card.abilities } : {}),
           });
         }
         return Response.json({ cards, unmatched, parsed: lines.length }, { headers: noStore });
@@ -79,18 +84,24 @@ export const Route = createFileRoute("/api/ptcg-cards")({
         const params = new URL(request.url).searchParams;
         const id = params.get("id")?.trim() ?? "";
         const q = params.get("q")?.trim() ?? "";
+        const name = params.get("name")?.trim() ?? "";
+        const number = params.get("number")?.trim() ?? "";
+        const set = params.get("set")?.trim() ?? "";
         const live = params.get("live") === "1" || params.get("live") === "true";
-        if (!id && !q) {
+        const localOnly = params.get("local") === "1" || params.get("local") === "true";
+        if (!id && !q && !name) {
           return Response.json({ error: "Missing query" }, { status: 400, headers: noStore });
         }
 
-        if (id) {
-          const local = await catalogCard(id);
-          if (local) return json(JSON.stringify({ data: local }), 200);
-        } else {
+        const resolved =
+          (id ? await catalogCard(id) : null) ??
+          (name || id ? await resolveCatalogCard({ id, name: name || undefined, number, set }) : null);
+        if (resolved) return json(JSON.stringify({ data: resolved }), 200);
+        if (q) {
           const local = await searchCatalog(q, live);
           if (local) return json(JSON.stringify({ data: local }), 200);
         }
+        if (localOnly) return json(JSON.stringify({ data: [] }), 200);
 
         const cacheKey = id ? `id:${id}` : `q:${live ? "1" : "0"}:${q.toLowerCase()}`;
         const hit = cache.get(cacheKey);
@@ -98,7 +109,7 @@ export const Route = createFileRoute("/api/ptcg-cards")({
 
         const target = id ? `${PTCG_IO}/${encodeURIComponent(id)}` : pokemonTcgIoUrl(q, true);
         const ioBody =
-          (await getWithRetries(target, 6)) ?? (id ? null : await getWithRetries(pokemonTcgIoUrl(q, false), 4));
+          (await getWithRetries(target, 1, 2000)) ?? (id ? null : await getWithRetries(pokemonTcgIoUrl(q, false), 1, 2000));
         const body = ioBody
           ? live && !id
             ? preferStandard(ioBody)
@@ -160,7 +171,7 @@ function tcgdexUrl(id: string, q: string, live: boolean): string {
 }
 
 async function tcgdexFallback(id: string, q: string, live: boolean): Promise<string | null> {
-  const raw = await getWithRetries(tcgdexUrl(id, q, live), 2, 2500);
+  const raw = await getWithRetries(tcgdexUrl(id, q, live), 1, 1200);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -254,11 +265,11 @@ function filterStandard(body: string): string {
   }
 }
 
-async function getWithRetries(url: string, attempts: number, timeoutMs = 4000): Promise<string | null> {
+async function getWithRetries(url: string, attempts: number, timeoutMs = 2500): Promise<string | null> {
   for (let i = 0; i < attempts; i++) {
     const body = (await curlGet(url, timeoutMs)) ?? (await fetchGet(url, timeoutMs));
     if (body) return body;
-    if (i < attempts - 1) await sleep(160 + i * 140);
+    if (i < attempts - 1) await sleep(120 + i * 80);
   }
   return null;
 }

@@ -1,5 +1,6 @@
 import type { GameId } from "@/lib/games";
-import { isLimitlessArtCode, limitlessPrintedCodes } from "@/lib/ptcg-deck-match";
+import { isLimitlessArtCode, limitlessPrintedCodes, PRINTED_SETS } from "@/lib/ptcg-deck-match";
+import { applyHydratedList, type DeckCard } from "@/lib/decklist";
 
 export type LookupAttack = {
   name: string;
@@ -93,7 +94,7 @@ export function ptcgArtUrl(id?: string, image?: string, size: "low" | "high" = "
   if (id) q.set("id", id);
   if (image) q.set("image", image);
   q.set("size", size);
-  q.set("v", "4");
+  q.set("v", "8");
   if (!id && !image) return "";
   return `/api/ptcg-art?${q.toString()}`;
 }
@@ -110,8 +111,21 @@ export function cardImageUrl(image?: string, size: "low" | "high" = "high", id?:
 export function cardImageCandidates(image?: string, size: "low" | "high" = "high", id?: string): string[] {
   const sources = ptcgArtSources(image, size, id);
   if (!isPtcgArt(image, id)) return sources;
+  // Same-origin proxy first. Direct CDNs fail in the live preview / OBS / in-app
+  // browser (no Referer, blocked hosts). The proxy is cached and tries
+  // pokemontcg.io before Limitless, so this is the fast path — not a stall.
   const proxy = ptcgArtUrl(id, image, size);
-  return proxy ? [proxy, ...sources.filter((src) => src !== proxy)] : sources;
+  const out: string[] = [];
+  const add = (url?: string) => {
+    const src = url?.trim();
+    if (src && !out.includes(src)) out.push(src);
+  };
+  add(proxy);
+  for (const src of sources) {
+    if (src.startsWith("/") || isLimitlessScan(src)) continue;
+    add(src);
+  }
+  return out.length ? out : sources;
 }
 
 /** Direct CDN URLs. The /api/ptcg-art proxy walks these and only returns a real 200 image. */
@@ -127,33 +141,44 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
   const isTcgdex = /tcgdex\.net/i.test(prefix);
   const isScrydex = /scrydex\.com\/pokemon\//i.test(prefix);
   const keepProvided = !isLimitlessScan(prefix) || isLimitlessArtUrl(prefix);
-
   const parsed = parseCardId(id);
+
+  if (isScrydex) {
+    add(prefix.replace(/\/(small|large)$/i, "/large"));
+    add(prefix);
+  } else if (isFile && !isTcgdex && keepProvided && !isLimitlessScan(prefix)) {
+    add(prefix);
+  } else if (prefix.startsWith("/api/")) {
+    add(prefix);
+  }
+
   if (parsed) {
     const num = parsed.number.replace(/^0+/, "") || "0";
     const padded = num.padStart(3, "0");
-    for (const png of limitlessCardPng(parsed.set, parsed.number)) add(png);
-    for (const ioSet of pokemonTcgIoSets(parsed.set)) {
+    const ioSets = pokemonTcgIoSets(parsed.set);
+    for (const ioSet of ioSets) {
+      add(`https://images.scrydex.com/pokemon/${ioSet}-${num}/${size === "high" ? "large" : "small"}`);
+      add(`https://images.scrydex.com/pokemon/${ioSet}-${num}/${size === "high" ? "small" : "large"}`);
+    }
+    if (isLimitlessScan(prefix) && isLimitlessArtUrl(prefix)) add(prefix);
+    for (const ioSet of [parsed.set, ...ioSets]) {
+      for (const png of limitlessCardPng(ioSet, parsed.number)) add(png);
+    }
+    for (const ioSet of ioSets) {
       if (size === "high") add(`https://images.pokemontcg.io/${ioSet}/${num}_hires.png`);
       add(`https://images.pokemontcg.io/${ioSet}/${num}.png`);
+    }
+    for (const ioSet of ioSets) {
+      for (const folder of pokemonComFolders(ioSet)) {
+        add(`https://www.pokemon.com/static-assets/content-assets/cms2/img/cards/web/${folder}/${folder}_EN_${num}.png`);
+      }
     }
     const scryIds = [`${parsed.set}-${num}`, `${parsed.set}-${parsed.number}`, `${parsed.set}-${padded}`];
     for (const scry of scryIds) {
       add(`https://images.scrydex.com/pokemon/${scry}/large`);
       add(`https://images.scrydex.com/pokemon/${scry}/small`);
     }
-    for (const folder of pokemonComFolders(parsed.set)) {
-      add(
-        `https://www.pokemon.com/static-assets/content-assets/cms2/img/cards/web/${folder}/${folder}_EN_${num}.png`,
-      );
-    }
   }
-
-  if (isScrydex) {
-    add(prefix.replace(/\/(small|large)$/i, "/large"));
-    add(prefix);
-  } else if (isFile && !isTcgdex && keepProvided) add(prefix);
-  else if (prefix.startsWith("/api/")) add(prefix);
 
   if (isFile && isTcgdex) add(prefix);
   else if (prefix && !prefix.startsWith("/api/") && !isFile && !isScrydex) {
@@ -164,14 +189,17 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
     add(`${prefix}/${other}.png`);
   }
   if (parsed) {
-    const built = tcgdexImagePrefix(parsed.set, parsed.number);
-    if (built && built !== prefix) {
-      const other = size === "high" ? "low" : "high";
-      add(`${built}/${size}.webp`);
-      add(`${built}/${other}.webp`);
-      add(`${built}/${size}.png`);
+    for (const ioSet of pokemonTcgIoSets(parsed.set)) {
+      const built = tcgdexImagePrefix(ioSet, parsed.number);
+      if (built && built !== prefix) {
+        const other = size === "high" ? "low" : "high";
+        add(`${built}/${size}.webp`);
+        add(`${built}/${other}.webp`);
+        add(`${built}/${size}.png`);
+      }
     }
   }
+
   return out;
 }
 
@@ -219,13 +247,28 @@ function pokemonComFolders(setId: string): string[] {
 }
 
 function pokemonTcgIoSets(setId: string): string[] {
-  const ids = [setId];
+  const ids: string[] = [];
+  const add = (value?: string) => {
+    const id = value?.trim();
+    if (!id) return;
+    // Printed codes (PAF, ASC) 404 on pokemontcg.io with a PNG body. Keep real
+    // set ids like sv4pt5 / mep / me2.
+    if (PRINTED_SETS[id.toUpperCase()] && !/\d/.test(id) && !/^me[p0-9]/i.test(id) && !/^sv/i.test(id)) return;
+    if (!ids.includes(id)) ids.push(id);
+  };
+  const mapped = PRINTED_SETS[setId.toUpperCase()];
+  if (mapped) mapped.forEach(add);
+  else add(setId);
+  const lower = setId.toLowerCase();
+  for (const aliases of Object.values(PRINTED_SETS)) {
+    if (aliases.some((alias) => alias.toLowerCase() === lower)) aliases.forEach(add);
+  }
   const sv = setId.match(/^sv0*(\d+(?:\.\d+)?)$/i);
-  if (sv) ids.push(`sv${sv[1].replace(".", "pt")}`);
+  if (sv) add(`sv${sv[1].replace(".", "pt")}`);
   const dotted = setId.replace(/\.(\d+)/, "pt$1");
-  if (dotted !== setId) ids.push(dotted);
-  if (setId === "mep") ids.push("svp");
-  return ids.filter((value, i) => ids.indexOf(value) === i);
+  if (dotted !== setId) add(dotted);
+  if (lower === "mep") add("svp");
+  return ids;
 }
 
 const TCGDEX_SERIES = [
@@ -301,15 +344,49 @@ export async function fetchLookupCard(id: string): Promise<LookupCard | null> {
   return normalizePtcgPayload(data)[0] ?? null;
 }
 
-async function fetchPtcgProxy(url: string, label: string): Promise<unknown> {
-  let last = 0;
-  for (let i = 0; i < 4; i++) {
-    const res = await fetch(url, { cache: "no-store" });
-    last = res.status;
-    if (res.ok) return res.json();
-    if (i < 3) await new Promise((resolve) => setTimeout(resolve, 200 + i * 180));
+/** Local catalog only — no pokemontcg.io / TCGdex. Used for submitted lists. */
+export async function fetchCatalogCard(
+  id: string,
+  extra?: { name?: string; number?: string; set?: string },
+): Promise<LookupCard | null> {
+  const q = id.trim();
+  if (!q && !extra?.name) return null;
+  const url = new URL(PTCG_PROXY, window.location.origin);
+  if (q) url.searchParams.set("id", q);
+  if (extra?.name) url.searchParams.set("name", extra.name);
+  if (extra?.number) url.searchParams.set("number", extra.number);
+  if (extra?.set) url.searchParams.set("set", extra.set);
+  url.searchParams.set("local", "1");
+  try {
+    const res = await fetch(url.toString(), { cache: "no-store", signal: AbortSignal.timeout(4000) });
+    if (!res.ok) return null;
+    return normalizePtcgPayload(await res.json())[0] ?? null;
+  } catch {
+    return null;
   }
-  throw new Error(`${label} (${last})`);
+}
+
+export async function hydrateDeckOnClient(cards: DeckCard[]): Promise<DeckCard[]> {
+  if (!cards.length) return cards;
+  try {
+    const res = await fetch("/api/ptcg-deck-import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ cards }),
+      signal: AbortSignal.timeout(12000),
+    });
+    if (!res.ok) return cards;
+    const data = (await res.json()) as { cards?: DeckCard[] };
+    return applyHydratedList(cards, data.cards);
+  } catch {
+    return cards;
+  }
+}
+
+async function fetchPtcgProxy(url: string, label: string): Promise<unknown> {
+  const res = await fetch(url, { cache: "no-store", signal: AbortSignal.timeout(6000) });
+  if (!res.ok) throw new Error(`${label} (${res.status})`);
+  return res.json();
 }
 
 export function scryfallLegalFor(formatName: string): string | null {
@@ -588,6 +665,7 @@ function normalizePokemonTcgIo(item: Record<string, unknown>): LookupCard {
     retreat,
     attacks,
     abilities,
+    regulation: item.regulationMark ? String(item.regulationMark) : undefined,
   };
 }
 

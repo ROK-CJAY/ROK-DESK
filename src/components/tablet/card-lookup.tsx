@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  fetchLookupCard,
+  fetchCatalogCard,
   fetchScryfallCard,
   fetchSwuCard,
   fetchYgoCard,
@@ -31,8 +31,8 @@ import {
   visibleCardStack,
   type SeatId,
 } from "@/lib/desk-types";
-import { lookupFromDeck, filterDecklist, hasSavedDecklist, type DeckCard } from "@/lib/decklist";
-import { addToBench, monFromLookup } from "@/lib/ptcg-board";
+import { lookupFromDeck, filterDecklist, hasSavedDecklist, applyHydratedList, printedNamesMatch, type DeckCard } from "@/lib/decklist";
+import { addToBench, monFromLookup, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { liveMatchForSlot } from "@/lib/caster-path";
@@ -74,6 +74,7 @@ export function CardLookup({
   const [results, setResults] = useState<LookupCard[]>([]);
   const [selected, setSelected] = useState<LookupCard | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [hydratedLists, setHydratedLists] = useState<Record<string, DeckCard>>({});
   const guide = useTabletGuide(
     catalog === "mtg"
       ? "mtg-cards"
@@ -98,13 +99,22 @@ export function CardLookup({
   const op = catalog === "op";
   const rift = catalog === "rift";
   const lorcana = catalog === "lorcana";
-  const matchPlayers = withLiveDecklists(
+  const rawMatchPlayers = withLiveDecklists(
     [p1, p2, p3, p4].slice(0, Math.max(2, tableSize)),
     tournament,
     matchSlot,
   );
-  const hasMatchDeck = hasSavedDecklist(matchPlayers);
+  const matchPlayers = rawMatchPlayers.map((player) => ({
+    ...player,
+    decklist: (player.decklist ?? []).map((card) => hydratedLists[card.id] ?? card),
+  }));
+  const hasMatchDeck = hasSavedDecklist(rawMatchPlayers);
   const matchScope = hasMatchDeck && scope === "match";
+  const matchListKey = rawMatchPlayers
+    .map((player) => (player.decklist ?? []).map((card) => `${card.id}:${card.number}`).join(","))
+    .join("|");
+  const listsRef = useRef(rawMatchPlayers.map((player) => player.decklist ?? []));
+  listsRef.current = rawMatchPlayers.map((player) => player.decklist ?? []);
 
   useEffect(() => {
     if (!ready) void hydrate();
@@ -155,7 +165,7 @@ export function CardLookup({
           if (cancelled) return;
           setStatus("error");
         });
-    }, 280);
+    }, 140);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -170,34 +180,84 @@ export function CardLookup({
     setLiveOnly(true);
   }, [catalog]);
 
-  const detailOf = async (card: LookupCard) => {
-    if ((card.attacks && card.attacks.length) || (card.abilities && card.abilities.length) || card.hp) return card;
-    try {
-      const detail = await fetchLookupCard(card.id);
-      if (!detail) return card;
-      return {
-        ...detail,
-        image: card.image || detail.image,
-        set: card.set || detail.set,
-        number: card.number || detail.number,
-      };
-    } catch {
-      return card;
-    }
-  };
+  useEffect(() => {
+    if (catalog !== "ptcg" || !hasMatchDeck) return;
+    const lists = listsRef.current;
+    const rows = lists.flat();
+    if (!rows.length) return;
+    let cancelled = false;
+    void fetch("/api/ptcg-deck-import", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        cards: rows.map((card) => ({
+          id: card.id,
+          name: card.name,
+          set: card.set,
+          number: card.number,
+          image: card.image,
+          type: card.type,
+          qty: card.qty,
+        })),
+      }),
+    })
+      .then(async (res) => {
+        if (!res.ok) return null;
+        return (await res.json()) as { cards?: DeckCard[] };
+      })
+      .then((data) => {
+        if (cancelled || !data?.cards?.length) return;
+        const next: Record<string, DeckCard> = {};
+        let offset = 0;
+        lists.forEach((list, playerIndex) => {
+          const hits = data.cards?.slice(offset, offset + list.length) ?? [];
+          offset += list.length;
+          const enriched = applyHydratedList(list, hits);
+          persistPlayerDeck(playerIndex, enriched);
+          list.forEach((orig, i) => {
+            const rich = enriched[i];
+            if (!rich || (orig.name && rich.name && !printedNamesMatch(orig.name, rich.name))) return;
+            next[orig.id] = rich;
+            if (rich.id && rich.id !== orig.id) next[rich.id] = rich;
+          });
+        });
+        if (!Object.keys(next).length) return;
+        setHydratedLists((current) => ({ ...current, ...next }));
+        setSelected((current) => {
+          if (!current) return current;
+          const rich =
+            next[current.id] ??
+            Object.values(next).find(
+              (card) => card.name === current.name && (!current.number || card.number === current.number),
+            );
+          if (!rich) return current;
+          if (current.name && rich.name && !printedNamesMatch(current.name, rich.name)) return current;
+          return { ...lookupFromDeck(rich), id: current.id };
+        });
+        for (const rich of Object.values(next)) {
+          const look = lookupFromDeck(rich);
+          fillBoardFromCatalog(look, look);
+        }
+      })
+      .catch(() => {
+        /* keep thin rows; tap still tries the catalog */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [catalog, hasMatchDeck, matchListKey]);
 
   const stack = visibleCardStack({ cardSpotlight: spotlight, cardStack });
 
-  const pushToStream = async (card: LookupCard, side?: "p1" | "p2") => {
-    const full = catalog === "ptcg" ? await detailOf(card) : card;
+  const pushToStream = (card: LookupCard, side?: "p1" | "p2") => {
     const spotlightCard = {
       visible: true,
-      id: full.id,
-      name: full.name,
-      set: full.set ?? "",
-      number: full.number ?? "",
-      image: full.image ?? "",
-      type: full.type ?? "",
+      id: card.id,
+      name: card.name,
+      set: card.set ?? "",
+      number: card.number ?? "",
+      image: card.image ?? "",
+      type: card.type ?? "",
     };
     if (catalog === "mtg") {
       const live = useDeskStore.getState().desk;
@@ -207,7 +267,7 @@ export function CardLookup({
     }
     if (catalog === "ptcg" && side) {
       const live = useDeskStore.getState().desk.ptcgBoard;
-      patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: monFromLookup(full) } } });
+      patch({ ptcgBoard: { ...live, [side]: { ...live[side], spotlight: monFromLookup(card) } } });
     }
     if ((catalog === "ygo" || catalog === "op" || catalog === "lorcana") && side) {
       const live = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
@@ -215,17 +275,16 @@ export function CardLookup({
     }
   };
 
-  const replaceStream = async (card: LookupCard) => {
-    const full = catalog === "ptcg" ? await detailOf(card) : card;
+  const replaceStream = (card: LookupCard) => {
     patch(
       replaceSpotlight({
         visible: true,
-        id: full.id,
-        name: full.name,
-        set: full.set ?? "",
-        number: full.number ?? "",
-        image: full.image ?? "",
-        type: full.type ?? "",
+        id: card.id,
+        name: card.name,
+        set: card.set ?? "",
+        number: card.number ?? "",
+        image: card.image ?? "",
+        type: card.type ?? "",
       }),
     );
   };
@@ -268,45 +327,80 @@ export function CardLookup({
     patch(clearSpotlight());
   };
 
-  const setActive = async (card: LookupCard, side: "p1" | "p2") => {
-    const full = await detailOf(card);
+  const setActive = (card: LookupCard, side: "p1" | "p2") => {
     const live = useDeskStore.getState().desk.ptcgBoard;
-    patch({ ptcgBoard: { ...live, [side]: { ...live[side], active: monFromLookup(full) } } });
+    patch({ ptcgBoard: { ...live, [side]: { ...live[side], active: monFromLookup(card) } } });
+    if (card.hp && (card.attacks?.length || card.abilities?.length)) return;
+    void hydratePtcgFromCatalog(card).then((detail) => {
+      if (detail) fillBoardFromCatalog(card, detail);
+    });
   };
 
-  const setBench = async (card: LookupCard, side: "p1" | "p2") => {
-    const full = await detailOf(card);
+  const setBench = (card: LookupCard, side: "p1" | "p2") => {
     const live = useDeskStore.getState().desk.ptcgBoard;
-    patch({ ptcgBoard: { ...live, [side]: addToBench(live[side], monFromLookup(full)) } });
+    patch({ ptcgBoard: { ...live, [side]: addToBench(live[side], monFromLookup(card)) } });
+    if (card.hp && (card.attacks?.length || card.abilities?.length)) return;
+    void hydratePtcgFromCatalog(card).then((detail) => {
+      if (detail) fillBoardFromCatalog(card, detail);
+    });
   };
 
-  const openCard = async (card: LookupCard) => {
-    setSelected(card);
-    try {
-      const detail = mtg
-        ? await fetchScryfallCard(card.id)
-        : swu
-          ? await fetchSwuCard(card.id)
-          : ygo
-            ? await fetchYgoCard(card.id)
-            : op
-              ? await fetchOpCard(card.id)
-              : rift
-                ? await fetchRiftCard(card.id)
-                : lorcana
-                  ? await fetchLorcanaCard(card.id)
-                  : await fetchLookupCard(card.id);
-      if (detail) {
-        setSelected({
-          ...detail,
-          image: card.image || detail.image,
-          set: card.set || detail.set,
-          number: card.number || detail.number,
-        });
-      }
-    } catch {
-      /* keep list row */
+  const openCard = (card: LookupCard) => {
+    const rich = hydratedLists[card.id] ? lookupFromDeck(hydratedLists[card.id]!) : card;
+    setSelected(rich);
+    if (catalog === "ptcg") {
+      const ready = Boolean(rich.hp || rich.attacks?.length || rich.abilities?.length || rich.text);
+      if (ready) fillBoardFromCatalog(card, rich);
+      if (ready) return;
+      void hydratePtcgFromCatalog(rich).then((detail) => {
+        if (!detail) return;
+        setSelected((current) =>
+          current?.id === card.id || current?.id === rich.id || current?.name === card.name
+            ? {
+                ...current,
+                ...detail,
+                id: current.id,
+                image: detail.image || current.image,
+                set: current.set || detail.set,
+                number: current.number || detail.number,
+                hp: detail.hp || current.hp,
+                text: detail.text || current.text,
+                attacks: detail.attacks?.length ? detail.attacks : current.attacks,
+                abilities: detail.abilities?.length ? detail.abilities : current.abilities,
+              }
+            : current,
+        );
+        fillBoardFromCatalog(card, detail);
+      });
+      return;
     }
+    void (async () => {
+      try {
+        const detail = mtg
+          ? await fetchScryfallCard(card.id)
+          : swu
+            ? await fetchSwuCard(card.id)
+            : ygo
+              ? await fetchYgoCard(card.id)
+              : op
+                ? await fetchOpCard(card.id)
+                : rift
+                  ? await fetchRiftCard(card.id)
+                  : lorcana
+                    ? await fetchLorcanaCard(card.id)
+                    : null;
+        if (detail) {
+          setSelected({
+            ...detail,
+            image: card.image || detail.image,
+            set: card.set || detail.set,
+            number: card.number || detail.number,
+          });
+        }
+      } catch {
+        /* keep list row */
+      }
+    })();
   };
 
   return (
@@ -409,10 +503,10 @@ export function CardLookup({
         selectedId={selected?.id}
         compact={compact}
         asResults={hasMatchDeck}
-        onPick={(card) => void openCard(lookupFromDeck(card))}
+        onPick={(card) => openCard(lookupFromDeck(card))}
         onShow={
           mtg
-            ? (card) => void pushToStream(lookupFromDeck(card))
+            ? (card) => pushToStream(lookupFromDeck(card))
             : undefined
         }
         layerLabel={stack.length >= CARD_STACK_MAX ? "Full" : stack.length ? "Layer" : "Show"}
@@ -444,16 +538,16 @@ export function CardLookup({
               ? Boolean(sideSpotlight?.p2.visible && sideSpotlight.p2.id === selected.id)
               : Boolean(ptcgBoard.p2.spotlight && ptcgBoard.p2.spotlight.id === selected.id)
           }
-          onShow={() => void pushToStream(selected)}
-          onShowP1={() => void pushToStream(selected, "p1")}
-          onShowP2={() => void pushToStream(selected, "p2")}
+          onShow={() => pushToStream(selected)}
+          onShowP1={() => pushToStream(selected, "p1")}
+          onShowP2={() => pushToStream(selected, "p2")}
           onClear={() => clearStream()}
           onClearP1={() => clearStream("p1")}
           onClearP2={() => clearStream("p2")}
-          onActiveP1={() => void setActive(selected, "p1")}
-          onActiveP2={() => void setActive(selected, "p2")}
-          onBenchP1={() => void setBench(selected, "p1")}
-          onBenchP2={() => void setBench(selected, "p2")}
+          onActiveP1={() => setActive(selected, "p1")}
+          onActiveP2={() => setActive(selected, "p2")}
+          onBenchP1={() => setBench(selected, "p1")}
+          onBenchP2={() => setBench(selected, "p2")}
         />
       ) : null}
       {matchScope ? null : status === "loading" ? (
@@ -466,7 +560,7 @@ export function CardLookup({
             <li key={card.id} className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={() => void openCard(card)}
+                onClick={() => openCard(card)}
                 className={cn(
                   "flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 text-left",
                   selected?.id === card.id ? "bg-accent/15 text-fg" : "hover:bg-surface-2",
@@ -482,7 +576,7 @@ export function CardLookup({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{card.name}</span>
                   <span className="block truncate text-xs text-muted">
-                    {[card.type, card.mana ? `Cost ${card.mana}` : "", card.number].filter(Boolean).join(" · ")}
+                    {[card.type, card.hp ? `${card.hp} HP` : "", card.number].filter(Boolean).join(" · ")}
                   </span>
                 </span>
               </button>
@@ -493,7 +587,7 @@ export function CardLookup({
                   variant={stack.length ? "secondary" : "default"}
                   className="mr-1 shrink-0"
                   disabled={stack.length >= CARD_STACK_MAX}
-                  onClick={() => void pushToStream(card)}
+                  onClick={() => pushToStream(card)}
                 >
                   {stack.length >= CARD_STACK_MAX ? "Full" : stack.length ? "Layer" : "Show"}
                 </Button>
@@ -502,7 +596,11 @@ export function CardLookup({
           ))}
         </ul>
       ) : matchScope ? null : query.trim().length >= 2 ? (
-        <p className="mt-4 text-sm text-muted">No cards matched.</p>
+        <p className="mt-4 text-sm text-muted">
+          {catalog === "ptcg" && liveOnly
+            ? "No Standard (H+) print for that name. Switch to All printings for older cards."
+            : "No cards matched."}
+        </p>
       ) : matchScope ? null : (
         <p className="mt-4 text-sm text-muted">
           {mtg
@@ -677,7 +775,9 @@ function MatchDeckStrip({
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-medium">{card.name}</span>
                           <span className="block truncate text-xs text-muted">
-                            {[`${card.qty}×`, card.type, card.set, card.number].filter(Boolean).join(" · ")}
+                            {[`${card.qty}×`, card.type, card.hp ? `${card.hp} HP` : "", card.set, card.number]
+                              .filter(Boolean)
+                              .join(" · ")}
                           </span>
                         </span>
                       </button>
@@ -745,6 +845,70 @@ function MatchDeckStrip({
       </div>
     </div>
   );
+}
+
+function hydratePtcgFromCatalog(card: LookupCard): Promise<LookupCard | null> {
+  if (!card.id && !card.name) return Promise.resolve(null);
+  return fetchCatalogCard(card.id, { name: card.name, number: card.number, set: card.set });
+}
+
+function fillBoardFromCatalog(card: LookupCard, detail: LookupCard) {
+  const live = useDeskStore.getState().desk.ptcgBoard;
+  if (!live) return;
+  let changed = false;
+  const fill = (mon: PtcgMon | null) => {
+    if (!mon) return mon;
+    if (mon.id !== card.id && mon.name !== card.name && mon.name !== detail.name) return mon;
+    const next = monFromLookup({ ...detail, id: mon.id, image: detail.image || mon.image });
+    if (
+      mon.hp === next.hp &&
+      mon.image === next.image &&
+      mon.attacks.length === next.attacks.length &&
+      mon.abilities.length === next.abilities.length
+    ) {
+      return mon;
+    }
+    changed = true;
+    return { ...next, hpNow: mon.hp > 0 ? mon.hpNow : next.hpNow };
+  };
+  const side = (row: PtcgSideBoard): PtcgSideBoard => ({
+    ...row,
+    active: fill(row.active),
+    spotlight: fill(row.spotlight),
+    bench: row.bench.map(fill),
+  });
+  const p1 = side(live.p1);
+  const p2 = side(live.p2);
+  if (changed) useDeskStore.getState().patch({ ptcgBoard: { p1, p2 } });
+}
+
+function persistPlayerDeck(index: number, next: DeckCard[]) {
+  const side = (["p1", "p2", "p3", "p4"] as const)[index];
+  if (!side) return;
+  const same = (list?: DeckCard[]) =>
+    Boolean(
+      list &&
+        list.length === next.length &&
+        list.every(
+          (card, i) =>
+            card.id === next[i]?.id &&
+            card.hp === next[i]?.hp &&
+            (card.image || "") === (next[i]?.image || "") &&
+            (card.text || "") === (next[i]?.text || ""),
+        ),
+    );
+  const desk = useDeskStore.getState();
+  const current = desk.desk[side].decklist ?? [];
+  if (current.length && !same(current)) desk.setPlayer(side, { decklist: next });
+
+  const tournament = useTournamentStore.getState();
+  const live = liveMatchForSlot(tournament.tournament, desk.desk.matchSlot);
+  if (!live) return;
+  const id = matchEntrantIds(live)[index];
+  if (!id) return;
+  const entrant = entrantById(tournament.tournament, id);
+  if (!entrant?.decklist?.length || same(entrant.decklist)) return;
+  tournament.updateEntrant(id, { decklist: next });
 }
 
 function matchDeckHits(players: { decklist?: DeckCard[] }[], query: string) {
@@ -835,7 +999,7 @@ function CardDetail({
   return (
     <article className="mt-3 grid gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[8.5rem_1fr]">
       {card.image || card.id ? (
-        <RemoteArt image={card.image} id={card.id} className="mx-auto w-32 rounded-md object-contain" />
+        <RemoteArt image={card.image} id={card.id} className="mx-auto w-32 rounded-md object-contain" eager />
       ) : (
         <div className="grid h-40 place-items-center rounded-md bg-surface text-xs text-muted">No art</div>
       )}
@@ -844,7 +1008,7 @@ function CardDetail({
           <div>
             <h3 className="font-display text-xl font-semibold uppercase">{card.name}</h3>
             <p className="text-xs text-muted">
-              {[card.mana, card.set, card.number, card.rarity, card.stage || card.trainerType || card.category, card.type, card.hp ? `${card.hp} HP` : ""]
+              {[card.mana, card.set, card.number, card.rarity, card.stage || card.trainerType || card.category, card.type, card.regulation ? `Reg ${card.regulation}` : "", card.hp ? `${card.hp} HP` : ""]
                 .filter(Boolean)
                 .join(" · ")}
             </p>

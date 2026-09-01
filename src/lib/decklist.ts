@@ -1,4 +1,4 @@
-import type { LookupCard } from "@/lib/card-lookup";
+import type { LookupAbility, LookupAttack, LookupCard } from "@/lib/card-lookup";
 
 export type DeckCard = {
   id: string;
@@ -9,10 +9,68 @@ export type DeckCard = {
   type: string;
   qty: number;
   regulation?: string;
+  hp?: string;
+  text?: string;
+  attacks?: LookupAttack[];
+  abilities?: LookupAbility[];
 };
 
 export function emptyDecklist(): DeckCard[] {
   return [];
+}
+
+function asAttacks(value: unknown): LookupAttack[] | undefined {
+  if (!Array.isArray(value) || !value.length) return undefined;
+  const rows = value.flatMap((item) => {
+    if (!item || typeof item !== "object" || !("name" in item)) return [];
+    const row = item as Record<string, unknown>;
+    const name = String(row.name ?? "").trim();
+    if (!name) return [];
+    return [
+      {
+        name,
+        cost: Array.isArray(row.cost) ? row.cost.map(String) : undefined,
+        damage: row.damage != null && String(row.damage) ? String(row.damage) : undefined,
+        text: row.text ? String(row.text) : undefined,
+      },
+    ];
+  });
+  return rows.length ? rows : undefined;
+}
+
+function asAbilities(value: unknown): LookupAbility[] | undefined {
+  if (!Array.isArray(value) || !value.length) return undefined;
+  const rows = value.flatMap((item) => {
+    if (!item || typeof item !== "object" || !("name" in item)) return [];
+    const row = item as Record<string, unknown>;
+    const name = String(row.name ?? "").trim();
+    if (!name) return [];
+    return [{ name, text: row.text ? String(row.text) : undefined }];
+  });
+  return rows.length ? rows : undefined;
+}
+
+function extrasFrom(raw: Record<string, unknown>): Partial<DeckCard> {
+  const hp = raw.hp != null && String(raw.hp).trim() ? String(raw.hp) : undefined;
+  const text = raw.text != null && String(raw.text).trim() ? String(raw.text) : undefined;
+  const attacks = asAttacks(raw.attacks);
+  const abilities = asAbilities(raw.abilities);
+  return {
+    ...(hp ? { hp } : {}),
+    ...(text ? { text } : {}),
+    ...(attacks ? { attacks } : {}),
+    ...(abilities ? { abilities } : {}),
+  };
+}
+
+function fillMissing(into: DeckCard, from: Record<string, unknown>) {
+  const extra = extrasFrom(from);
+  if (!into.hp && extra.hp) into.hp = extra.hp;
+  if (!into.text && extra.text) into.text = extra.text;
+  if (!into.attacks?.length && extra.attacks) into.attacks = extra.attacks;
+  if (!into.abilities?.length && extra.abilities) into.abilities = extra.abilities;
+  if (!into.image && from.image) into.image = String(from.image);
+  if (!into.type && from.type) into.type = String(from.type);
 }
 
 export function mergeDecklist(raw: unknown): DeckCard[] {
@@ -32,6 +90,7 @@ export function mergeDecklist(raw: unknown): DeckCard[] {
         const mark = regMark(r.regulation);
         if (mark) existing.regulation = mark;
       }
+      fillMissing(existing, r);
       continue;
     }
     rows.push({
@@ -43,6 +102,7 @@ export function mergeDecklist(raw: unknown): DeckCard[] {
       type: String(r.type ?? ""),
       qty,
       ...(regMark(r.regulation) ? { regulation: regMark(r.regulation) } : {}),
+      ...extrasFrom(r),
     });
   }
   return rows;
@@ -56,6 +116,50 @@ export function clampQty(value: unknown): number {
 
 export function decklistCount(cards: DeckCard[] | undefined): number {
   return (cards ?? []).reduce((sum, card) => sum + card.qty, 0);
+}
+
+/** Keep each row in place — do not stack by id. Hydrate needs 1:1 with the request. */
+export function deckCardsKeepOrder(raw: unknown, cap = 160): DeckCard[] {
+  if (!Array.isArray(raw)) return [];
+  const rows: DeckCard[] = [];
+  for (const item of raw) {
+    const one = mergeDecklist([item])[0];
+    rows.push(
+      one ?? {
+        id: "",
+        name: "",
+        set: "",
+        number: "",
+        image: "",
+        type: "",
+        qty: 1,
+      },
+    );
+    if (rows.length >= cap) break;
+  }
+  return rows;
+}
+
+export function printedNamesMatch(a: string, b: string): boolean {
+  const fold = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/['’`]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim();
+  return Boolean(a) && fold(a) === fold(b);
+}
+
+export function applyHydratedCard(orig: DeckCard, hit?: DeckCard | null): DeckCard {
+  if (!hit) return orig;
+  if (orig.name && hit.name && !printedNamesMatch(orig.name, hit.name)) return orig;
+  return { ...hit, qty: orig.qty, name: orig.name || hit.name };
+}
+
+export function applyHydratedList(orig: DeckCard[], hits: DeckCard[] | undefined): DeckCard[] {
+  if (!orig.length) return orig;
+  if (!hits?.length) return orig;
+  return orig.map((card, i) => applyHydratedCard(card, hits[i]));
 }
 
 function regMark(value: unknown): string {
@@ -74,6 +178,7 @@ export function addDeckCard(list: DeckCard[], card: LookupCard, qty = 1): DeckCa
   const existing = next.find((row) => row.id === id);
   if (existing) {
     existing.qty = clampQty(existing.qty + qty);
+    fillMissing(existing, card as unknown as Record<string, unknown>);
     return next;
   }
   next.push({
@@ -85,6 +190,7 @@ export function addDeckCard(list: DeckCard[], card: LookupCard, qty = 1): DeckCa
     type: card.type ?? "",
     qty: clampQty(qty),
     ...(regMark(card.regulation) ? { regulation: regMark(card.regulation) } : {}),
+    ...extrasFrom(card as unknown as Record<string, unknown>),
   });
   return next;
 }
@@ -106,6 +212,12 @@ export function lookupFromDeck(card: DeckCard): LookupCard {
     number: card.number || undefined,
     image: card.image || undefined,
     type: card.type || undefined,
+    category: card.type || undefined,
+    hp: card.hp,
+    text: card.text,
+    attacks: card.attacks,
+    abilities: card.abilities,
+    regulation: card.regulation,
   };
 }
 

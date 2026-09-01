@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
 import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isPlayPokemonTitle, isVgcTitle, MTG_LANES, PTCG_DIVISIONS, playAgeDivisionOf, playDivisionsFor, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath, VGC_DIVISIONS } from "@/lib/games";
-import { catalogForGame } from "@/lib/card-lookup";
+import { catalogForGame, hydrateDeckOnClient } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { decklistCount } from "@/lib/decklist";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
@@ -609,29 +609,47 @@ function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
   const pod = isPodMatch(match);
   const deskSlot = slot;
   useTournamentStore.getState().setStreamMatch(matchId, deskSlot);
-  useDeskStore.getState().loadStreamMatch({
-    eventName: t.name,
-    streamChannel: t.streamChannel,
-    roundName: match.label,
-    eventPhase:
-      t.bracketType === "double"
-        ? "Double elimination"
-        : t.bracketType === "swiss"
-          ? pod
-            ? "Swiss pods"
-            : "Swiss"
-          : "Single elimination",
-    bestOf: t.bestOf,
-    gameId: t.gameId,
-    formatName: t.formatName,
-    tableSize: pod ? 4 : 2,
-    matchId: match.id,
-    matchSlot: deskSlot,
-    p1: seat(match.p1.entrantId),
-    p2: seat(match.p2.entrantId),
-    p3: pod ? seat(match.p3?.entrantId) : undefined,
-    p4: pod ? seat(match.p4?.entrantId) : undefined,
-  });
+  void (async () => {
+    let p1 = seat(match.p1.entrantId);
+    let p2 = seat(match.p2.entrantId);
+    let p3 = pod ? seat(match.p3?.entrantId) : undefined;
+    let p4 = pod ? seat(match.p4?.entrantId) : undefined;
+    if (isPtcgTitle(t.gameId)) {
+      const [d1, d2, d3, d4] = await Promise.all([
+        hydrateDeckOnClient(p1.decklist ?? []),
+        hydrateDeckOnClient(p2.decklist ?? []),
+        p3 ? hydrateDeckOnClient(p3.decklist ?? []) : Promise.resolve([]),
+        p4 ? hydrateDeckOnClient(p4.decklist ?? []) : Promise.resolve([]),
+      ]);
+      p1 = { ...p1, decklist: d1 };
+      p2 = { ...p2, decklist: d2 };
+      if (p3) p3 = { ...p3, decklist: d3 };
+      if (p4) p4 = { ...p4, decklist: d4 };
+    }
+    useDeskStore.getState().loadStreamMatch({
+      eventName: t.name,
+      streamChannel: t.streamChannel,
+      roundName: match.label,
+      eventPhase:
+        t.bracketType === "double"
+          ? "Double elimination"
+          : t.bracketType === "swiss"
+            ? pod
+              ? "Swiss pods"
+              : "Swiss"
+            : "Single elimination",
+      bestOf: t.bestOf,
+      gameId: t.gameId,
+      formatName: t.formatName,
+      tableSize: pod ? 4 : 2,
+      matchId: match.id,
+      matchSlot: deskSlot,
+      p1,
+      p2,
+      p3,
+      p4,
+    });
+  })();
 }
 
 function namesForMatch(t: import("@/lib/tournament-types").TournamentState, match: import("@/lib/tournament-types").BracketMatch) {

@@ -24,12 +24,14 @@ export function RemoteArt({
   size = "high",
   className,
   alt = "",
+  eager = false,
 }: {
   image?: string;
   id?: string;
   size?: "low" | "high";
   className?: string;
   alt?: string;
+  eager?: boolean;
 }) {
   const { src, onError, empty } = useCardImageSrc(image, size, id);
   if (empty) {
@@ -39,5 +41,16 @@ export function RemoteArt({
       </span>
     );
   }
-  return <img key={src} src={src} alt={alt} className={className} referrerPolicy="no-referrer" onError={onError} />;
+  return (
+    <img
+      key={src}
+      src={src}
+      alt={alt}
+      className={className}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={onError}
+    />
+  );
 }

@@ -168,8 +168,9 @@ export function DecklistEditor({
                   <RemoteArt
                     image={card.image}
                     id={card.id}
-                    size="high"
-                    className="h-10 w-7 shrink-0 rounded-sm bg-black/40 object-contain"
+                    size="low"
+                    eager
+                    className="h-10 w-7 shrink-0 rounded-sm bg-black/40 object-cover"
                   />
                 ) : (
                   <span className="grid h-10 w-7 shrink-0 place-items-center rounded-sm bg-surface text-[0.55rem] text-muted">
@@ -199,8 +200,9 @@ export function DecklistEditor({
                 <RemoteArt
                   image={card.image}
                   id={card.id}
-                  size="high"
-                  className="h-12 w-8 shrink-0 rounded-sm bg-black/40 object-contain"
+                  size="low"
+                  eager
+                  className="h-12 w-8 shrink-0 rounded-sm bg-black/40 object-cover"
                 />
               ) : (
                 <span className="h-12 w-8 shrink-0 rounded-sm bg-surface" />

@@ -34,6 +34,7 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Fixed
 
+- **PTCG card lookup / submitted lists** — catalog search stays local and fast. Live is Standard (regulation H+) only; All printings is every set. Submitted lists hydrate HP, attacks, abilities, and trainer text from the catalog. Sending a match to stream keeps P1 and P2 lists separate so P2 Pokémon are not replaced by Energy. Printed codes such as BRS / PBL map onto the matching catalog print.
 - Official Play! Pokémon PDFs — VGC species names sit after the **Pokémon** label, stat numbers sit in the boxes, and the age **X** is in the checkbox to the **right** of Juniors / Seniors / Masters (event division, not a stale player field). PTCG rows sit on the printed lines, and H/I/J marks go in the checkboxes above the letters.
 - PTCG Limitless import — a stalled import no longer shows a raw JSON / `<!DOCTYPE` error; unmatched cards skip the slow TCGdex wait and resolve in parallel. Trainer pages such as Night Stretcher and Lana's Aid keep **Trainer**. HTML names decode (`Lana&#039;s Aid` → Lana's Aid).
 - PTCG card lookup no longer depends on TCGdex (currently down). Search goes catalog → pokemontcg.io (HTTP/1.1, retries, short cache) → TCGdex as a last backup. Art tries pokemontcg.io / Pokémon.com first, then TCGdex, and times out dead CDNs instead of hanging.
