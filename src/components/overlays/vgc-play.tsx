@@ -127,7 +127,7 @@ function CameraWell({ player }: { player: PlayerSide }) {
 
 export function VgcPlayLayout({ desk }: { desk: DeskState; now?: number }) {
   return (
-    <div data-game="pokemon-vgc" className="pointer-events-none absolute inset-0">
+    <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
       <div
         className="absolute top-0 right-0 left-0 z-10 grid items-stretch gap-x-3 px-5 pt-4"
         style={{

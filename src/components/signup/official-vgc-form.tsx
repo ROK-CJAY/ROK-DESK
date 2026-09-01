@@ -15,7 +15,7 @@ import {
   type TeamMon,
 } from "@/lib/pokemon-vgc";
 import type { SignupDraft } from "@/components/signup/signup-types";
-import { playerIdField } from "@/lib/games";
+import { playerIdField, type GameId, type PlayAgeDivision } from "@/lib/games";
 import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
 
 export function OfficialVgcForm({
@@ -24,6 +24,8 @@ export function OfficialVgcForm({
   draft,
   error,
   busy,
+  gameId = "pokemon-vgc",
+  lockedDivision,
   onChange,
   onCancel,
   onSubmit,
@@ -33,12 +35,14 @@ export function OfficialVgcForm({
   draft: SignupDraft;
   error: string;
   busy: boolean;
+  gameId?: GameId;
+  lockedDivision?: PlayAgeDivision | null;
   onChange: (next: SignupDraft) => void;
   onCancel: () => void;
   onSubmit: () => void;
 }) {
   const patch = (partial: Partial<SignupDraft>) => onChange({ ...draft, ...partial });
-  const idField = playerIdField("pokemon-vgc");
+  const idField = playerIdField(gameId);
   const setMon = (index: number, mon: TeamMon) => {
     const team = draft.team.slice();
     team[index] = mon;
@@ -91,15 +95,19 @@ export function OfficialVgcForm({
           <Input value={draft.deck} onChange={(e) => patch({ deck: e.target.value })} />
         </Field>
         <Field label="Age Division">
-          <NativeSelect
-            value={draft.ageDivision}
-            onChange={(e) => patch({ ageDivision: e.target.value as SignupDraft["ageDivision"] })}
-          >
-            <option value="">Select</option>
-            <option value="juniors">Juniors</option>
-            <option value="seniors">Seniors</option>
-            <option value="masters">Masters</option>
-          </NativeSelect>
+          {lockedDivision ? (
+            <Input value={lockedDivision[0]!.toUpperCase() + lockedDivision.slice(1)} readOnly />
+          ) : (
+            <NativeSelect
+              value={draft.ageDivision}
+              onChange={(e) => patch({ ageDivision: e.target.value as SignupDraft["ageDivision"] })}
+            >
+              <option value="">Select</option>
+              <option value="juniors">Juniors</option>
+              <option value="seniors">Seniors</option>
+              <option value="masters">Masters</option>
+            </NativeSelect>
+          )}
         </Field>
         <Field label="Handle (stream)">
           <Input value={draft.tag} onChange={(e) => patch({ tag: e.target.value })} />
@@ -123,7 +131,7 @@ export function OfficialVgcForm({
       {draft.playerId.trim() ? (
         <div className="mt-4">
           <PlayerIdPrivacy
-            gameId="pokemon-vgc"
+            gameId={gameId}
             accepted={draft.idPrivacy}
             onAccept={(idPrivacy) => patch({ idPrivacy })}
           />

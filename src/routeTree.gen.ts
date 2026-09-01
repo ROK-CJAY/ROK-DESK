@@ -53,6 +53,7 @@ import { Route as OverlayTimerRouteImport } from './routes/overlay/timer'
 import { Route as OverlayUpcomingRouteImport } from './routes/overlay/upcoming'
 import { Route as OverlayVersusRouteImport } from './routes/overlay/versus'
 import { Route as OverlayWinnerRouteImport } from './routes/overlay/winner'
+import { Route as PrintDeckListRouteImport } from './routes/print/deck-list'
 import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
 import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
@@ -282,6 +283,11 @@ const OverlayWinnerRoute = OverlayWinnerRouteImport.update({
   path: '/winner',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const PrintDeckListRoute = PrintDeckListRouteImport.update({
+  id: '/print/deck-list',
+  path: '/print/deck-list',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrintTeamListRoute = PrintTeamListRouteImport.update({
   id: '/print/team-list',
   path: '/print/team-list',
@@ -367,6 +373,7 @@ export interface FileRoutesByFullPath {
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
+  '/print/deck-list': typeof PrintDeckListRoute
   '/print/team-list': typeof PrintTeamListRoute
   '/overlay/': typeof OverlayIndexRoute
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
@@ -420,6 +427,7 @@ export interface FileRoutesByTo {
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
+  '/print/deck-list': typeof PrintDeckListRoute
   '/print/team-list': typeof PrintTeamListRoute
   '/overlay': typeof OverlayIndexRoute
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
@@ -475,6 +483,7 @@ export interface FileRoutesById {
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
+  '/print/deck-list': typeof PrintDeckListRoute
   '/print/team-list': typeof PrintTeamListRoute
   '/overlay/': typeof OverlayIndexRoute
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
@@ -531,6 +540,7 @@ export interface FileRouteTypes {
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
+    | '/print/deck-list'
     | '/print/team-list'
     | '/overlay/'
     | '/$game/$slot/tablet'
@@ -584,6 +594,7 @@ export interface FileRouteTypes {
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
+    | '/print/deck-list'
     | '/print/team-list'
     | '/overlay'
     | '/$game/$slot/tablet'
@@ -638,6 +649,7 @@ export interface FileRouteTypes {
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
+    | '/print/deck-list'
     | '/print/team-list'
     | '/overlay/'
     | '/$game/$slot/tablet'
@@ -675,6 +687,7 @@ export interface RootRouteChildren {
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
   ApiYgoCardsRoute: typeof ApiYgoCardsRoute
+  PrintDeckListRoute: typeof PrintDeckListRoute
   PrintTeamListRoute: typeof PrintTeamListRoute
   GameSlotTabletRoute: typeof GameSlotTabletRoute
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
@@ -992,6 +1005,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayWinnerRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/print/deck-list': {
+      id: '/print/deck-list'
+      path: '/print/deck-list'
+      fullPath: '/print/deck-list'
+      preLoaderRoute: typeof PrintDeckListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/print/team-list': {
       id: '/print/team-list'
       path: '/print/team-list'
@@ -1141,6 +1161,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,
   ApiYgoCardsRoute: ApiYgoCardsRoute,
+  PrintDeckListRoute: PrintDeckListRoute,
   PrintTeamListRoute: PrintTeamListRoute,
   GameSlotTabletRoute: GameSlotTabletRoute,
   GameOverlaySourceRoute: GameOverlaySourceRoute,

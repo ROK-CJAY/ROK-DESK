@@ -1,4 +1,4 @@
-import { extraFieldFor, gameOf, isCommanderLane, type GameId } from "@/lib/games";
+import { extraFieldFor, gameOf, isCommanderLane, isVgcTitle, type GameId } from "@/lib/games";
 import { blankPlayer, parseDesk, stripLane, type Caster, type DeskState, type PlayerSide, type QueueMatch } from "@/lib/desk-types";
 import { blankEntrant, type Entrant, type GameDesk, type TournamentState } from "@/lib/tournament-types";
 import { sampleTeamA, sampleTeamB, type TeamMon } from "@/lib/pokemon-vgc";
@@ -35,7 +35,47 @@ const DECKS: Record<GameId, string[]> = {
     "Roaring Moon",
     "Lost Zone box",
   ],
+  "pokemon-tcg-seniors": [
+    "Charizard ex",
+    "Dragapult",
+    "Gardevoir",
+    "Raging Bolt",
+    "Lugia",
+    "Pidgeot control",
+    "Roaring Moon",
+    "Lost Zone box",
+  ],
+  "pokemon-tcg-juniors": [
+    "Charizard ex",
+    "Dragapult",
+    "Gardevoir",
+    "Raging Bolt",
+    "Lugia",
+    "Pidgeot control",
+    "Roaring Moon",
+    "Lost Zone box",
+  ],
   "pokemon-vgc": [
+    "Scovillain / Archaludon",
+    "Incineroar / Flutter Mane",
+    "Calyrex Ice",
+    "Miraidon",
+    "Kyogre rain",
+    "Indeedee / Armarouge",
+    "Urshifu rapid",
+    "Ogerpon wellspring",
+  ],
+  "pokemon-vgc-seniors": [
+    "Scovillain / Archaludon",
+    "Incineroar / Flutter Mane",
+    "Calyrex Ice",
+    "Miraidon",
+    "Kyogre rain",
+    "Indeedee / Armarouge",
+    "Urshifu rapid",
+    "Ogerpon wellspring",
+  ],
+  "pokemon-vgc-juniors": [
     "Scovillain / Archaludon",
     "Incineroar / Flutter Mane",
     "Calyrex Ice",
@@ -133,7 +173,7 @@ export function testPlayersFor(gameId: GameId, formatName: string): TestPlayer[]
     ...person,
     deck: decks[i] ?? `Seat ${i + 1}`,
     extra: commander ? (COMMANDER_PARTNERS[i] ?? "") : "",
-    team: gameId === "pokemon-vgc" ? (i === 0 ? sampleTeamA() : i === 1 ? sampleTeamB() : undefined) : undefined,
+    team: isVgcTitle(gameId) ? (i === 0 ? sampleTeamA() : i === 1 ? sampleTeamB() : undefined) : undefined,
   }));
 }
 

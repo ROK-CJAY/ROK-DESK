@@ -1,4 +1,4 @@
-import { gameOf } from "@/lib/games";
+import { gameOf, isPtcgTitle, isVgcTitle } from "@/lib/games";
 import { streamChannelLabel } from "@/lib/stream-channel";
 import {
   formatClock,
@@ -51,7 +51,7 @@ export function VersusView({ desk }: { desk: DeskState }) {
   if (useCommanderOverlay(desk)) {
     return <CommanderVersus desk={desk} />;
   }
-  if (desk.gameId === "pokemon-vgc") {
+  if (isVgcTitle(desk.gameId)) {
     return <VgcVersusView desk={desk} />;
   }
   const game = gameOf(desk.gameId);
@@ -388,9 +388,9 @@ export function HudView({
   const rok = desk.scorebugStyle === "rok";
   const play =
     desk.scorebugStyle === "play" &&
-    (desk.gameId === "pokemon-tcg" ||
+    (isPtcgTitle(desk.gameId) ||
       desk.gameId === "yugioh" ||
-      desk.gameId === "pokemon-vgc" ||
+      isVgcTitle(desk.gameId) ||
       desk.gameId === "one-piece" ||
       desk.gameId === "lorcana");
   return (

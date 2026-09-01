@@ -1,20 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { VgTeamListPrint } from "@/components/tournament/vg-team-list-print";
+import { PtcgDeckListPrint } from "@/components/tournament/ptcg-deck-list-print";
 import { Button } from "@/components/ui/button";
-import { isVgcTitle } from "@/lib/games";
+import { isPtcgTitle } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
 
-export const Route = createFileRoute("/print/team-list")({
+export const Route = createFileRoute("/print/deck-list")({
   ssr: false,
   validateSearch: (search: Record<string, unknown>) => ({
     id: typeof search.id === "string" ? search.id : undefined,
     all: search.all === "1" || search.all === true,
   }),
-  component: TeamListPrintPage,
+  component: DeckListPrintPage,
 });
 
-function TeamListPrintPage() {
+function DeckListPrintPage() {
   const { id, all } = Route.useSearch();
   const ready = useTournamentStore((s) => s.ready);
   const hydrate = useTournamentStore((s) => s.hydrate);
@@ -32,11 +32,11 @@ function TeamListPrintPage() {
   }, [t.entrants, id, all]);
 
   if (!ready) {
-    return <div className="grid min-h-dvh place-items-center bg-white text-neutral-500">Loading team list…</div>;
+    return <div className="grid min-h-dvh place-items-center bg-white text-neutral-500">Loading deck list…</div>;
   }
 
-  if (!isVgcTitle(t.gameId)) {
-    return <div className="grid min-h-dvh place-items-center bg-white text-neutral-700">Team lists are for VGC events.</div>;
+  if (!isPtcgTitle(t.gameId)) {
+    return <div className="grid min-h-dvh place-items-center bg-white text-neutral-700">Deck lists are for PTCG events.</div>;
   }
 
   if (players.length === 0) {
@@ -47,11 +47,11 @@ function TeamListPrintPage() {
     <div className="min-h-dvh bg-neutral-200 py-4">
       <div className="no-print mx-auto mb-4 flex max-w-[8.5in] flex-wrap items-center justify-between gap-2 px-4">
         <p className="text-sm text-neutral-700">
-          {players.length === 1 ? players[0]!.name : `${players.length} players`} · 2 pages each
+          {players.length === 1 ? players[0]!.name : `${players.length} players`} · Play! Pokémon 8.5×11 deck list
         </p>
         <Button onClick={() => window.print()}>Print / Save PDF</Button>
       </div>
-      <VgTeamListPrint tournament={t} players={players} />
+      <PtcgDeckListPrint tournament={t} players={players} />
     </div>
   );
 }

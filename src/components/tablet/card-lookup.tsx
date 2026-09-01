@@ -34,6 +34,9 @@ import {
 import { lookupFromDeck, filterDecklist, hasSavedDecklist, type DeckCard } from "@/lib/decklist";
 import { addToBench, monFromLookup } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
+import { useTournamentStore } from "@/lib/tournament-store";
+import { liveMatchForSlot } from "@/lib/caster-path";
+import { entrantById, matchEntrantIds, type TournamentState } from "@/lib/tournament-types";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { Button } from "@/components/ui/button";
 import { RemoteArt } from "@/components/ui/remote-art";
@@ -59,6 +62,10 @@ export function CardLookup({
   const p3 = useDeskStore((s) => s.desk.p3);
   const p4 = useDeskStore((s) => s.desk.p4);
   const tableSize = useDeskStore((s) => s.desk.tableSize);
+  const matchSlot = useDeskStore((s) => s.desk.matchSlot);
+  const tournament = useTournamentStore((s) => s.tournament);
+  const hydrateTournament = useTournamentStore((s) => s.hydrate);
+  const tournamentReady = useTournamentStore((s) => s.ready);
   const hydrate = useDeskStore((s) => s.hydrate);
   const ready = useDeskStore((s) => s.ready);
   const [query, setQuery] = useState("");
@@ -91,13 +98,18 @@ export function CardLookup({
   const op = catalog === "op";
   const rift = catalog === "rift";
   const lorcana = catalog === "lorcana";
-  const matchPlayers = [p1, p2, p3, p4].slice(0, Math.max(2, tableSize));
+  const matchPlayers = withLiveDecklists(
+    [p1, p2, p3, p4].slice(0, Math.max(2, tableSize)),
+    tournament,
+    matchSlot,
+  );
   const hasMatchDeck = hasSavedDecklist(matchPlayers);
   const matchScope = hasMatchDeck && scope === "match";
 
   useEffect(() => {
     if (!ready) void hydrate();
-  }, [ready, hydrate]);
+    if (!tournamentReady) void hydrateTournament();
+  }, [ready, hydrate, tournamentReady, hydrateTournament]);
 
   useEffect(() => {
     setScope(hasMatchDeck ? "match" : "catalog");
@@ -134,7 +146,9 @@ export function CardLookup({
       void run
         .then((rows) => {
           if (cancelled) return;
-          setResults(rows);
+          const fromMatch = hasMatchDeck ? [] : matchDeckHits(matchPlayers, q);
+          const seen = new Set(fromMatch.map((card) => card.id));
+          setResults([...fromMatch, ...rows.filter((card) => !seen.has(card.id))]);
           setStatus("idle");
         })
         .catch(() => {
@@ -146,7 +160,7 @@ export function CardLookup({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat, matchScope]);
+  }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat, matchScope, hasMatchDeck, p1.decklist, p2.decklist, p3.decklist, p4.decklist, tournament, matchSlot]);
 
   useEffect(() => {
     setQuery("");
@@ -159,7 +173,14 @@ export function CardLookup({
   const detailOf = async (card: LookupCard) => {
     if ((card.attacks && card.attacks.length) || (card.abilities && card.abilities.length) || card.hp) return card;
     try {
-      return (await fetchLookupCard(card.id)) ?? card;
+      const detail = await fetchLookupCard(card.id);
+      if (!detail) return card;
+      return {
+        ...detail,
+        image: card.image || detail.image,
+        set: card.set || detail.set,
+        number: card.number || detail.number,
+      };
     } catch {
       return card;
     }
@@ -275,7 +296,14 @@ export function CardLookup({
                 : lorcana
                   ? await fetchLorcanaCard(card.id)
                   : await fetchLookupCard(card.id);
-      if (detail) setSelected(detail);
+      if (detail) {
+        setSelected({
+          ...detail,
+          image: card.image || detail.image,
+          set: card.set || detail.set,
+          number: card.number || detail.number,
+        });
+      }
     } catch {
       /* keep list row */
     }
@@ -288,13 +316,15 @@ export function CardLookup({
           <p className="font-mono text-[0.65rem] tracking-[0.2em] text-muted uppercase">Card lookup</p>
           <p className="text-sm text-muted">
             {compact
-              ? catalog === "ptcg"
+              ? hasMatchDeck
+                ? "Submitted lists first. Catalog is backup. Show P1 / Show P2 over the bench."
+              : catalog === "ptcg"
                 ? "Search a Pokémon, set Active / Bench, then Show P1 or Show P2 over the bench."
                 : catalog === "ygo" || catalog === "op" || catalog === "lorcana"
                   ? "Search a card, then Show P1 or Show P2 in that player’s well."
                   : "Search, pick a card, then Show on stream."
               : hasMatchDeck
-                ? "This match is the submitted lists. Catalog is the full search."
+                ? "Submitted lists for this pairing first, then the catalog. Tap a card for the scan."
               : mtg
               ? "Search a card, Show on stream, then pick the next piece and hit Layer. Each layer sits slightly lower on top."
               : swu
@@ -368,11 +398,17 @@ export function CardLookup({
         />
       ) : null}
       <MatchDeckStrip
-        players={{ p1, p2, p3, p4, tableSize }}
+        players={{
+          p1: matchPlayers[0] ?? p1,
+          p2: matchPlayers[1] ?? p2,
+          p3: matchPlayers[2] ?? p3,
+          p4: matchPlayers[3] ?? p4,
+          tableSize,
+        }}
         query={query}
         selectedId={selected?.id}
         compact={compact}
-        asResults={matchScope}
+        asResults={hasMatchDeck}
         onPick={(card) => void openCard(lookupFromDeck(card))}
         onShow={
           mtg
@@ -709,6 +745,34 @@ function MatchDeckStrip({
       </div>
     </div>
   );
+}
+
+function matchDeckHits(players: { decklist?: DeckCard[] }[], query: string) {
+  const seen = new Set<string>();
+  const out: LookupCard[] = [];
+  for (const player of players) {
+    for (const card of filterDecklist(player.decklist, query)) {
+      if (seen.has(card.id)) continue;
+      seen.add(card.id);
+      out.push(lookupFromDeck(card));
+    }
+  }
+  return out;
+}
+
+function withLiveDecklists<T extends { name: string; decklist?: DeckCard[] }>(
+  players: T[],
+  tournament: TournamentState,
+  slot: 1 | 2 | 3,
+): T[] {
+  if (hasSavedDecklist(players)) return players;
+  const live = liveMatchForSlot(tournament, slot);
+  if (!live) return players;
+  const ids = matchEntrantIds(live);
+  return players.map((player, i) => {
+    const list = ids[i] ? (entrantById(tournament, ids[i])?.decklist ?? []) : [];
+    return list.length ? { ...player, decklist: list } : player;
+  });
 }
 
 function FilterChip({

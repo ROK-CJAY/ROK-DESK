@@ -13,14 +13,14 @@ import {
 } from "lucide-react";
 import { FloorLinks } from "@/components/app/floor-links";
 import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
-import { GAME_LIST } from "@/lib/games";
+import { TITLE_STRIP } from "@/lib/games";
 import { APP_VERSION_LABEL } from "@/lib/version";
 
 const STEPS = [
   {
     n: "01",
     title: "Set up the event",
-    body: "Open Tournament Organizer. Name the show, pick the game and format, then add players — or send people to walk-up sign-up (commander search, PTCG Limitless/PTCGL deck paste, VGC team sheet). Play! Pokémon: export a TDF into TOM, then drop or watch pairings back in.",
+    body: "Open Tournament Organizer. Name the show, pick the game and format (PTCG and VGC: Masters, Seniors, or Juniors — three events per title on one host), then add players — or send people to walk-up sign-up (commander search, PTCG Limitless/PTCGL deck paste, VGC team sheet). Play! Pokémon: export a TDF into TOM, then drop or watch pairings back in.",
   },
   {
     n: "02",
@@ -204,7 +204,7 @@ export function Landing() {
               <div>
                 <p className="font-medium">Walk-up sign-up</p>
                 <p className="mt-1 text-sm text-muted">
-                  PTCG kiosk with Limitless paste / shared URL. Other titles: /{"{game}"}/signup from Tournament.
+                  Three PTCG kiosks and three VGC kiosks — Masters, Seniors, Juniors. Open the matching sign-up from Tournament.
                 </p>
               </div>
             </a>
@@ -235,18 +235,18 @@ export function Landing() {
         <section className="mt-12 border-t border-border pt-8">
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Titles</p>
           <ul className="mt-3 flex flex-wrap gap-2">
-            {GAME_LIST.map((game) => (
+            {TITLE_STRIP.map((title) => (
               <li
-                key={game.id}
+                key={title.id}
                 className="rounded-md border border-border bg-surface-2 px-2.5 py-1 font-mono text-[0.68rem] tracking-wide text-muted uppercase"
               >
-                {game.short}
+                {title.label}
               </li>
             ))}
           </ul>
           <p className="mt-4 text-xs leading-relaxed text-subtle">
-            Free and in beta. One host is one event. Overlay paths are game-scoped so PTCG and VGC
-            bugs do not mix. Play Layouts, Versus, look, and TOM watches are per title. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
+            Free and in beta. One host runs PTCG and VGC Masters, Seniors, and Juniors at once — each has its own roster, kiosk, tables, and overlays. Overlay paths are game-scoped so titles
+            do not mix. Play Layouts, Versus, look, and TOM watches are per title. This build is {APP_VERSION_LABEL}. If it saves you a night,{" "}
             <a href={DONATE_URL} target="_blank" rel="noreferrer" className="underline hover:text-muted">
               donate
             </a>

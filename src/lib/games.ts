@@ -1,6 +1,10 @@
 export const GAME_IDS = [
   "pokemon-vgc",
+  "pokemon-vgc-seniors",
+  "pokemon-vgc-juniors",
   "pokemon-tcg",
+  "pokemon-tcg-seniors",
+  "pokemon-tcg-juniors",
   "one-piece",
   "yugioh",
   "mtg",
@@ -11,6 +15,129 @@ export const GAME_IDS = [
 ] as const;
 
 export type GameId = (typeof GAME_IDS)[number];
+
+export type PlayAgeDivision = "masters" | "seniors" | "juniors";
+export type PtcgDivision = PlayAgeDivision;
+
+type PlayDivisionRow = { id: PlayAgeDivision; gameId: GameId; slug: string; label: string };
+
+export const PTCG_DIVISIONS: PlayDivisionRow[] = [
+  { id: "masters", gameId: "pokemon-tcg", slug: "ptcg", label: "Masters" },
+  { id: "seniors", gameId: "pokemon-tcg-seniors", slug: "ptcg-seniors", label: "Seniors" },
+  { id: "juniors", gameId: "pokemon-tcg-juniors", slug: "ptcg-juniors", label: "Juniors" },
+];
+
+export const VGC_DIVISIONS: PlayDivisionRow[] = [
+  { id: "masters", gameId: "pokemon-vgc", slug: "vgc", label: "Masters" },
+  { id: "seniors", gameId: "pokemon-vgc-seniors", slug: "vgc-seniors", label: "Seniors" },
+  { id: "juniors", gameId: "pokemon-vgc-juniors", slug: "vgc-juniors", label: "Juniors" },
+];
+
+export function isPtcgTitle(gameId: GameId): boolean {
+  return gameId === "pokemon-tcg" || gameId === "pokemon-tcg-seniors" || gameId === "pokemon-tcg-juniors";
+}
+
+export function isVgcTitle(gameId: GameId): boolean {
+  return gameId === "pokemon-vgc" || gameId === "pokemon-vgc-seniors" || gameId === "pokemon-vgc-juniors";
+}
+
+export function isPlayPokemonTitle(gameId: GameId): boolean {
+  return isPtcgTitle(gameId) || isVgcTitle(gameId);
+}
+
+export function ptcgDivisionOf(gameId: GameId): PlayAgeDivision | null {
+  if (gameId === "pokemon-tcg-seniors") return "seniors";
+  if (gameId === "pokemon-tcg-juniors") return "juniors";
+  if (gameId === "pokemon-tcg") return "masters";
+  return null;
+}
+
+export function vgcDivisionOf(gameId: GameId): PlayAgeDivision | null {
+  if (gameId === "pokemon-vgc-seniors") return "seniors";
+  if (gameId === "pokemon-vgc-juniors") return "juniors";
+  if (gameId === "pokemon-vgc") return "masters";
+  return null;
+}
+
+export function playAgeDivisionOf(gameId: GameId): PlayAgeDivision | null {
+  return ptcgDivisionOf(gameId) ?? vgcDivisionOf(gameId);
+}
+
+export function playDivisionsFor(gameId: GameId): PlayDivisionRow[] {
+  if (isVgcTitle(gameId)) return VGC_DIVISIONS;
+  if (isPtcgTitle(gameId)) return PTCG_DIVISIONS;
+  return [];
+}
+
+export type TomTitleId = Extract<
+  GameId,
+  | "pokemon-vgc"
+  | "pokemon-vgc-seniors"
+  | "pokemon-vgc-juniors"
+  | "pokemon-tcg"
+  | "pokemon-tcg-seniors"
+  | "pokemon-tcg-juniors"
+>;
+
+export const TOM_TITLE_IDS: TomTitleId[] = [
+  "pokemon-tcg",
+  "pokemon-tcg-seniors",
+  "pokemon-tcg-juniors",
+  "pokemon-vgc",
+  "pokemon-vgc-seniors",
+  "pokemon-vgc-juniors",
+];
+
+export function ptcgGameIdFor(division: PlayAgeDivision): GameId {
+  return PTCG_DIVISIONS.find((d) => d.id === division)?.gameId ?? "pokemon-tcg";
+}
+
+export function vgcGameIdFor(division: PlayAgeDivision): GameId {
+  return VGC_DIVISIONS.find((d) => d.id === division)?.gameId ?? "pokemon-vgc";
+}
+
+export function inferPlayAgeDivision(text: string): PlayAgeDivision | null {
+  const t = text.toLowerCase();
+  if (/\bjunior/.test(t) || /\bjr\b/.test(t)) return "juniors";
+  if (/\bsenior/.test(t) || /\bsr\b/.test(t)) return "seniors";
+  if (/\bmaster/.test(t)) return "masters";
+  return null;
+}
+
+export const inferPtcgDivision = inferPlayAgeDivision;
+
+export function titleStripActive(stripId: GameId, current: GameId): boolean {
+  if (stripId === "pokemon-tcg") return isPtcgTitle(current);
+  if (stripId === "pokemon-vgc") return isVgcTitle(current);
+  return stripId === current;
+}
+
+export function titleStripTarget(stripId: GameId, current: GameId): GameId {
+  if (stripId === "pokemon-tcg") return isPtcgTitle(current) ? current : "pokemon-tcg";
+  if (stripId === "pokemon-vgc") return isVgcTitle(current) ? current : "pokemon-vgc";
+  return stripId;
+}
+
+export function isTomTitle(gameId: GameId): gameId is TomTitleId {
+  return isPlayPokemonTitle(gameId);
+}
+
+export function tomTitleOf(gameId: GameId): TomTitleId {
+  if (isTomTitle(gameId)) return gameId;
+  return "pokemon-tcg";
+}
+
+export const TITLE_STRIP: { id: GameId; label: string }[] = [
+  { id: "pokemon-vgc", label: "VGC" },
+  { id: "pokemon-tcg", label: "PTCG" },
+  { id: "one-piece", label: "OP" },
+  { id: "yugioh", label: "YGO" },
+  { id: "mtg", label: "MTG" },
+  { id: "mtg-commander", label: "EDH" },
+  { id: "lorcana", label: "Lorcana" },
+  { id: "swu", label: "SWU" },
+  { id: "riftbound", label: "Rift" },
+];
 
 export type ResourceKind = "pips" | "life" | "points";
 export type ScorebugStyle = "bar" | "split" | "rok" | "play";
@@ -65,8 +192,66 @@ export type GameDef = {
 export const GAME_LIST: GameDef[] = [
   {
     id: "pokemon-vgc",
-    name: "Pokemon VGC",
-    short: "VGC",
+    name: "Pokémon VGC · Masters",
+    short: "VGC M",
+    category: "VGC",
+    resource: {
+      kind: "pips",
+      label: "Pokemon remaining",
+      shortLabel: "PKMN",
+      min: 0,
+      max: 6,
+      start: 6,
+      step: 1,
+      invertWin: true,
+      pips: true,
+      pipStyle: "team",
+    },
+    extraLabel: "Team",
+    extraPlaceholder: "Sun · Balance · Rain",
+    scoreLabel: "Games",
+    defaultBestOf: 3,
+    defaultScorebug: "play",
+    formats: [
+      { id: "reg-i", label: "VGC 2026 Regulation I" },
+      { id: "reg-h", label: "VGC 2026 Regulation H" },
+      { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
+    ],
+  },
+  {
+    id: "pokemon-vgc-seniors",
+    name: "Pokémon VGC · Seniors",
+    short: "VGC S",
+    category: "VGC",
+    resource: {
+      kind: "pips",
+      label: "Pokemon remaining",
+      shortLabel: "PKMN",
+      min: 0,
+      max: 6,
+      start: 6,
+      step: 1,
+      invertWin: true,
+      pips: true,
+      pipStyle: "team",
+    },
+    extraLabel: "Team",
+    extraPlaceholder: "Sun · Balance · Rain",
+    scoreLabel: "Games",
+    defaultBestOf: 3,
+    defaultScorebug: "play",
+    formats: [
+      { id: "reg-i", label: "VGC 2026 Regulation I" },
+      { id: "reg-h", label: "VGC 2026 Regulation H" },
+      { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1 },
+    ],
+  },
+  {
+    id: "pokemon-vgc-juniors",
+    name: "Pokémon VGC · Juniors",
+    short: "VGC J",
     category: "VGC",
     resource: {
       kind: "pips",
@@ -94,8 +279,66 @@ export const GAME_LIST: GameDef[] = [
   },
   {
     id: "pokemon-tcg",
-    name: "Pokemon TCG",
-    short: "PTCG",
+    name: "Pokémon TCG · Masters",
+    short: "PTCG M",
+    category: "TCG",
+    resource: {
+      kind: "pips",
+      label: "Prize cards",
+      shortLabel: "PRZ",
+      min: 0,
+      max: 6,
+      start: 6,
+      step: 1,
+      invertWin: true,
+      pips: true,
+      pipStyle: "pokeball",
+    },
+    extraLabel: "Deck",
+    extraPlaceholder: "Charizard ex · Raging Bolt",
+    scoreLabel: "Games",
+    defaultBestOf: 3,
+    defaultScorebug: "play",
+    formats: [
+      { id: "standard", label: "Standard" },
+      { id: "expanded", label: "Expanded" },
+      { id: "pocket", label: "Pocket", resourceStart: 3, resourceMax: 3 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1, resourceStart: 4, resourceMax: 4 },
+    ],
+  },
+  {
+    id: "pokemon-tcg-seniors",
+    name: "Pokémon TCG · Seniors",
+    short: "PTCG S",
+    category: "TCG",
+    resource: {
+      kind: "pips",
+      label: "Prize cards",
+      shortLabel: "PRZ",
+      min: 0,
+      max: 6,
+      start: 6,
+      step: 1,
+      invertWin: true,
+      pips: true,
+      pipStyle: "pokeball",
+    },
+    extraLabel: "Deck",
+    extraPlaceholder: "Charizard ex · Raging Bolt",
+    scoreLabel: "Games",
+    defaultBestOf: 3,
+    defaultScorebug: "play",
+    formats: [
+      { id: "standard", label: "Standard" },
+      { id: "expanded", label: "Expanded" },
+      { id: "pocket", label: "Pocket", resourceStart: 3, resourceMax: 3 },
+      { id: "prerelease", label: "Pre-release", bestOf: 1, resourceStart: 4, resourceMax: 4 },
+    ],
+  },
+  {
+    id: "pokemon-tcg-juniors",
+    name: "Pokémon TCG · Juniors",
+    short: "PTCG J",
     category: "TCG",
     resource: {
       kind: "pips",
@@ -361,7 +604,11 @@ export function gameOf(id: GameId): GameDef {
 
 export const GAME_SLUG: Record<GameId, string> = {
   "pokemon-vgc": "vgc",
+  "pokemon-vgc-seniors": "vgc-seniors",
+  "pokemon-vgc-juniors": "vgc-juniors",
   "pokemon-tcg": "ptcg",
+  "pokemon-tcg-seniors": "ptcg-seniors",
+  "pokemon-tcg-juniors": "ptcg-juniors",
   "one-piece": "op",
   yugioh: "ygo",
   mtg: "mtg",
@@ -466,7 +713,11 @@ export type PlayerIdField = {
 export function playerIdField(gameId: GameId): PlayerIdField {
   switch (gameId) {
     case "pokemon-vgc":
+    case "pokemon-vgc-seniors":
+    case "pokemon-vgc-juniors":
     case "pokemon-tcg":
+    case "pokemon-tcg-seniors":
+    case "pokemon-tcg-juniors":
       return {
         label: "Play! Pokémon ID",
         placeholder: "1234567890",
@@ -563,6 +814,8 @@ const ROK_LAYOUT_GAMES: GameId[] = [
   "lorcana",
   "yugioh",
   "pokemon-tcg",
+  "pokemon-tcg-seniors",
+  "pokemon-tcg-juniors",
   "riftbound",
   "swu",
   "mtg",
@@ -571,9 +824,9 @@ const ROK_LAYOUT_GAMES: GameId[] = [
 
 export function supportsPlayLayout(desk: { gameId: GameId }): boolean {
   return (
-    desk.gameId === "pokemon-tcg" ||
+    isPtcgTitle(desk.gameId) ||
+    isVgcTitle(desk.gameId) ||
     desk.gameId === "yugioh" ||
-    desk.gameId === "pokemon-vgc" ||
     desk.gameId === "one-piece" ||
     desk.gameId === "lorcana"
   );

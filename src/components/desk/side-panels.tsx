@@ -5,7 +5,7 @@ import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, GAME_LIST, isCommanderLane, isMtgTitle, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle, playDivisionsFor, TITLE_STRIP, titleStripActive, titleStripTarget, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -117,7 +117,7 @@ export function EventPanel() {
             </NativeSelect>
           </Field>
         )}
-        {desk.gameId === "pokemon-tcg" ? (
+        {isPtcgTitle(desk.gameId) ? (
           <Field label="Prizes">
             <NativeSelect
               value={String(resourceLimit(desk))}
@@ -551,7 +551,7 @@ export function ShowPanel() {
             onCheckedChange={(showResources) => patch({ showResources })}
           />
         </div>
-        {desk.gameId === "pokemon-tcg" || isMtgTitle(desk.gameId) ? (
+        {isPtcgTitle(desk.gameId) || isMtgTitle(desk.gameId) ? (
           <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
             <div className="min-w-0">
               <p className="text-sm">Card overlay</p>
@@ -570,7 +570,7 @@ export function ShowPanel() {
             ) : null}
           </div>
         ) : null}
-        {desk.gameId === "pokemon-vgc" ? (
+        {isVgcTitle(desk.gameId) ? (
           <Field label="Team preview">
             <NativeSelect
               value={desk.rosterSide}
@@ -606,7 +606,7 @@ export function ShowPanel() {
                 ? "Cameras, life, poison, W/L/D, Best-of diamonds, clock, Magic card well."
                 : desk.gameId === "yugioh"
                   ? "Cameras, LP, W/L/D, Best-of diamonds, clock, Yu-Gi-Oh! card well."
-                  : desk.gameId === "pokemon-tcg"
+                  : isPtcgTitle(desk.gameId)
                     ? "Cameras, prize pokéballs, W/L/D, Best-of diamonds, clock, Pokémon card well."
                     : desk.gameId === "riftbound"
                       ? "Cameras, point ladder, W/L/D, Best-of diamonds, clock, Riftbound card well."
@@ -620,7 +620,7 @@ export function ShowPanel() {
             <p className="self-center text-[0.7rem] text-muted">
               {desk.gameId === "yugioh"
                 ? "Table cam in the middle. Rails: player cam, deck, card well. Show P1 / P2 in each well."
-                : desk.gameId === "pokemon-vgc"
+                : isVgcTitle(desk.gameId)
                   ? "Top bar: names, games, and W/L/D on top, both teams underneath. Side cams. Event logo in the spine."
                   : desk.gameId === "one-piece"
                     ? "Table cam in the middle. Side player cams, life / DON!! / games, card well (Show P1 / P2). Sponsors bottom left, event logo bottom right."
@@ -676,29 +676,52 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
   const desk = useDeskStore((s) => s.desk);
   const applyMatchSlot = useDeskStore((s) => s.applyMatchSlot);
   const slot = (desk.matchSlot ?? 1) as MatchSlot;
+  const divisions = playDivisionsFor(desk.gameId);
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1">
-        {GAME_LIST.map((game) => {
-          const active = desk.gameId === game.id;
+        {TITLE_STRIP.map((title) => {
+          const active = titleStripActive(title.id, desk.gameId);
           return (
             <button
-              key={game.id}
+              key={title.id}
               type="button"
-              data-game={game.id}
-              onClick={() => onPick(game.id)}
+              data-game={title.id}
+              onClick={() => onPick(titleStripTarget(title.id, desk.gameId))}
               className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium tracking-wide whitespace-nowrap transition-colors duration-150 ${
                 active
                   ? "border-game bg-game/15 text-fg"
                   : "border-border bg-surface text-muted hover:text-fg"
               }`}
             >
-              {game.short}
+              {title.label}
             </button>
           );
         })}
       </div>
+      {divisions.length ? (
+        <div className="flex flex-wrap gap-1.5">
+          {divisions.map((division) => {
+            const active = desk.gameId === division.gameId;
+            return (
+              <button
+                key={division.id}
+                type="button"
+                data-play-division={division.id}
+                onClick={() => onPick(division.gameId)}
+                className={`rounded-md border px-3 py-1 text-xs font-medium tracking-wide ${
+                  active
+                    ? "border-accent bg-accent text-accent-fg"
+                    : "border-border bg-surface-2 text-muted hover:text-fg"
+                }`}
+              >
+                {division.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-1.5">
           {MATCH_SLOTS.map((n) => (
             <button
@@ -810,8 +833,8 @@ export function PodPanel() {
   const desk = useDeskStore((s) => s.desk);
   const [copied, setCopied] = useState(false);
   const commander = isCommanderTable(desk) || isCommanderLane(desk);
-  const vgc = desk.gameId === "pokemon-vgc";
-  const tcg = desk.gameId === "pokemon-tcg";
+  const vgc = isVgcTitle(desk.gameId);
+  const tcg = isPtcgTitle(desk.gameId);
   const mtg = isMtgTitle(desk.gameId);
   const swu = desk.gameId === "swu";
   const ygo = desk.gameId === "yugioh";

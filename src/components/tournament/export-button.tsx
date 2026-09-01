@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { exportTournamentFiles } from "@/lib/tournament-export";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
+import { isVgcTitle } from "@/lib/games";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 
 export function ExportTournamentButton({
@@ -48,7 +49,7 @@ export function ExportTournamentButton({
         <p className="text-[0.65rem] leading-relaxed text-subtle">
           One zip: JSON (includes a restorable state) plus CSVs (event, players, matches, standings, judge notes
           {t.staff?.length ? ", staff" : ""}
-          {t.gameId === "pokemon-vgc" ? ", VGC teams" : ""}
+          {isVgcTitle(t.gameId) ? ", VGC teams" : ""}
           ). Completing the event also downloads this pack.
           {demo ? " Test mode — this is the demo field." : " Includes player IDs; keep it with event staff."}
         </p>

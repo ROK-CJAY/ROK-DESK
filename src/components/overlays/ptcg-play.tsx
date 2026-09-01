@@ -279,7 +279,7 @@ export function PtcgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; no
   const clock = formatClock(remainingSeconds(desk, now));
   const title = [desk.eventName, desk.eventPhase, desk.roundName].filter(Boolean).join(" · ") || "Round";
   return (
-    <div data-game="pokemon-tcg" className="pointer-events-none absolute inset-0">
+    <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
       <Rail desk={desk} side="p1" align="left" />
       <Rail desk={desk} side="p2" align="right" />
       <div

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isPlayPokemonTitle, isVgcTitle, PTCG_DIVISIONS, playAgeDivisionOf, playDivisionsFor, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath, VGC_DIVISIONS } from "@/lib/games";
 import { catalogForGame } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { decklistCount } from "@/lib/decklist";
@@ -39,6 +39,7 @@ import {
   isPresetSize,
   matchEntrantIds,
   matchSlots,
+  rosterCount,
   teamSheetLabel,
   viewsFor,
   type BracketSize,
@@ -89,15 +90,15 @@ export function TournamentApp() {
           </div>
         }
       />
-      <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[300px_minmax(0,1fr)]">
+      <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <div className="flex flex-col gap-4">
           <SetupPanel />
-          <TomReportsPanel />
           <StaffPanel />
           <StreamPanel />
           <EventResultCard champ={champ} leader={leader} standings={standings} />
         </div>
         <div className="flex min-w-0 flex-col gap-4">
+          <TomReportsPanel />
           <RosterPanel
             sheetPlayerId={sheetPlayerId}
             onOpenSheet={(id) => {
@@ -235,12 +236,57 @@ function SetupPanel() {
             value={t.gameId}
             onChange={(e) => setGame(e.target.value as typeof t.gameId)}
           >
-            {GAME_LIST.map((g) => (
+            <optgroup label="Pokémon TCG">
+              {PTCG_DIVISIONS.map((d) => (
+                <option key={d.gameId} value={d.gameId}>
+                  {d.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Pokémon VGC">
+              {VGC_DIVISIONS.map((d) => (
+                <option key={d.gameId} value={d.gameId}>
+                  {d.label}
+                </option>
+              ))}
+            </optgroup>
+            {GAME_LIST.filter((g) => !isPlayPokemonTitle(g.id)).map((g) => (
               <option key={g.id} value={g.id}>
                 {g.name}
               </option>
             ))}
           </NativeSelect>
+          {playDivisionsFor(t.gameId).length ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {playDivisionsFor(t.gameId).map((d) => {
+                const active = t.gameId === d.gameId;
+                return (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => {
+                      if (!active) setGame(d.gameId);
+                    }}
+                    className={`rounded-md border px-2.5 py-1 text-xs font-medium tracking-wide ${
+                      active
+                        ? "border-accent bg-accent text-accent-fg"
+                        : "border-border bg-surface-2 text-muted hover:text-fg"
+                    }`}
+                  >
+                    {d.label}
+                    <span className="ml-1 font-mono text-[0.62rem] text-subtle">
+                      {rosterCount(t, d.gameId)}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : null}
+          <p className="mt-1 text-[0.65rem] text-subtle">
+            {isPlayPokemonTitle(t.gameId)
+              ? "Masters, Seniors, and Juniors are three events on this host. Each has its own roster, pairings, kiosk, and overlays."
+              : "This title only. Each game keeps its own name."}
+          </p>
         </Field>
         <Field label="Format">
           <NativeSelect
@@ -424,7 +470,7 @@ function SetupPanel() {
             <span>
               <span className="block text-sm font-medium">Request decklist</span>
               <span className="block text-xs text-muted">
-                {t.gameId === "pokemon-tcg"
+                {isPtcgTitle(t.gameId)
                   ? "Walk-up must submit a list. PTCG can paste Limitless Copy as Text or a my.limitlesstcg.com/shared URL."
                   : "Walk-up sign-up must search and add cards with quantities. Saved lists feed judge lookup and the export."}
               </span>
@@ -530,7 +576,7 @@ function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
   if (!match) return;
   const seat = (entrantId: string | null | undefined) => {
     const e = entrantId ? t.entrants.find((row) => row.id === entrantId) : null;
-    const vgc = t.gameId === "pokemon-vgc";
+    const vgc = isVgcTitle(t.gameId);
     return {
       name: e?.name ?? "",
       tag: e?.tag ?? "",
@@ -722,6 +768,7 @@ function RosterPanel({
       country: draft.country,
       ink1: draft.ink1,
       ink2: draft.ink2,
+      ageDivision: playAgeDivisionOf(t.gameId) ?? "",
     });
     setDraft({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: draft.country, ink1: "", ink2: "" });
   };
@@ -735,7 +782,7 @@ function RosterPanel({
           </p>
           <p className="text-sm text-muted">
             {t.entrants.length} players · drag a row to change seed
-            {t.gameId === "pokemon-vgc" ? " · open a team sheet below" : ""}
+            {isVgcTitle(t.gameId) ? " · open a team sheet below" : ""}
           </p>
           <div className="mt-1 max-w-xl">
             <PlayerIdStaffNote gameId={t.gameId} />
@@ -747,9 +794,16 @@ function RosterPanel({
               Open sign-up
             </a>
           </Button>
-          {t.gameId === "pokemon-vgc" ? (
+          {isVgcTitle(t.gameId) ? (
             <Button variant="outline" size="sm" asChild>
               <a href="/print/team-list?all=1" target="_blank" rel="noreferrer">
+                Print all lists
+              </a>
+            </Button>
+          ) : null}
+          {isPtcgTitle(t.gameId) ? (
+            <Button variant="outline" size="sm" asChild>
+              <a href="/print/deck-list?all=1" target="_blank" rel="noreferrer">
                 Print all lists
               </a>
             </Button>
@@ -888,7 +942,7 @@ function RosterPanel({
                     setDragId(null);
                     setOverId(null);
                   }}
-                  showTeam={t.gameId === "pokemon-vgc"}
+                  showTeam={isVgcTitle(t.gameId)}
                   showInks={t.gameId === "lorcana"}
                   catalog={catalogForGame(t.gameId)}
                   formatName={t.formatName}
@@ -1091,6 +1145,13 @@ function EntrantRow({
           {showTeam ? (
             <Button variant="ghost" size="icon" className="size-8" asChild>
               <a href={`/print/team-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print team list">
+                <Printer className="size-3.5" />
+              </a>
+            </Button>
+          ) : null}
+          {catalog === "ptcg" ? (
+            <Button variant="ghost" size="icon" className="size-8" asChild>
+              <a href={`/print/deck-list?id=${entrant.id}`} target="_blank" rel="noreferrer" aria-label="Print deck list">
                 <Printer className="size-3.5" />
               </a>
             </Button>

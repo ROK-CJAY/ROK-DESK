@@ -10,7 +10,10 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Added
 
+- **Play! Pokémon age divisions** — PTCG and VGC each run **Masters, Seniors, and Juniors** as three concurrent events on one host. Tournament Control picks the division (chips + player counts). Production shows **PTCG** or **VGC**, then Masters / Seniors / Juniors, each with Stream / Floor 1 / Floor 2. Walk-up kiosks: `/ptcg/signup`, `/ptcg-seniors/signup`, `/ptcg-juniors/signup`, `/vgc/signup`, `/vgc-seniors/signup`, `/vgc-juniors/signup` (age division locked). Overlay / tablet URLs follow the same slugs. TOM is PTCG | VGC, then Masters / Seniors / Juniors, with a separate folder watch per event. A TDF named for a division lands on that title.
+
 - **PTCG Limitless / PTCGL deck import** — when a decklist is required (or on the roster editor), paste PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link. `{P}` / `{R}` energy glyphs expand to Psychic / Fire. Matching requires the printed name (or set + number on shared lists). Unmatched lines stay listed for the ROK Desk search builder.
+- **PTCG deck-list print** — Tournament roster printer and **Print all lists** fill the Play! Pokémon 8.5×11 TCG deck list (player name / ID / DOB, age division, Standard or Expanded, Pokémon with set + collector number, Trainer, Energy, 60-card total).
 - **TOM companion (PTCG and VGC)** — Tournament Control has a TOM card. Pick PTCG or VGC, then:
   - Sign up in Desk and **Export TDF** (TOM File → Open). PTCG writes `TRADING_CARD_GAME`; VGC writes `VIDEO_GAME` plus in-game trainer names. Organizer name, Player ID, city, state, country, start date go on the card. Players without a Player ID are skipped.
   - Drop a `.tdf` to load that roster onto the matching title.
@@ -19,6 +22,7 @@ Not tagged. Use the build on `main` until the next beta.
   - PTCG and VGC TOM cards are separate: organizer, TDF, reports, and folder watch do not copy across titles.
   - **Load sample** / **Clear sample** (or **Clear TOM tables** / **Clear roster**).
   - TOM stays the official book. Desk does not write match results back.
+  - PTCG and VGC each have three TOM cards (Masters / Seniors / Juniors). Drop a TDF whose event name includes a division to land on that title.
 
 ### Changed
 
@@ -28,6 +32,7 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Fixed
 
+- PTCG sign-up art — Limitless thumbnails used pokemontcg.io set folders (`ME5`, `SV9`) that 403 on the Limitless CDN. They now use printed codes (`PBL`, `JTG`, `MEG`, …). The art proxy races PNG/WebP sources and sniffs the bytes so octet-stream scans still count. Sign-up falls back across CDNs the same way overlays do.
 - PTCG card lookup no longer depends on TCGdex (currently down). Search goes catalog → pokemontcg.io (HTTP/1.1, retries, short cache) → TCGdex as a last backup. Art tries pokemontcg.io / Pokémon.com first, then TCGdex, and times out dead CDNs instead of hanging.
 - PTCG deck import no longer substitutes a random Energy, an old `N` printing, Temporal Forces, or Xatu/Ralts/Miriam when the paste has a name plus a mismatched number. Shared Limitless lists (`3xi:PBL~39`) match that set and number, or they stay unmatched.
 

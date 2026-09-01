@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link2, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cardImageUrl, searchCatalogCards, type LookupCard, type LookupCatalog } from "@/lib/card-lookup";
+import { searchCatalogCards, type LookupCard, type LookupCatalog } from "@/lib/card-lookup";
+import { RemoteArt } from "@/components/ui/remote-art";
 import {
   addDeckCard,
   decklistCount,
@@ -158,9 +159,10 @@ export function DecklistEditor({
                 className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-surface"
               >
                 {card.image || card.id ? (
-                  <img
-                    src={cardImageUrl(card.image, "high", card.id)}
-                    alt=""
+                  <RemoteArt
+                    image={card.image}
+                    id={card.id}
+                    size="high"
                     className="h-10 w-7 shrink-0 rounded-sm bg-black/40 object-contain"
                   />
                 ) : (
@@ -188,9 +190,10 @@ export function DecklistEditor({
           {value.map((card) => (
             <li key={card.id} className="flex items-center gap-2 rounded-md bg-surface-2 px-2 py-1.5">
               {card.image || card.id ? (
-                <img
-                  src={cardImageUrl(card.image, "high", card.id)}
-                  alt=""
+                <RemoteArt
+                  image={card.image}
+                  id={card.id}
+                  size="high"
                   className="h-12 w-8 shrink-0 rounded-sm bg-black/40 object-contain"
                 />
               ) : (

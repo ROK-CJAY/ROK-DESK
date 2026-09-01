@@ -103,6 +103,34 @@ export function printedCodesForSet(setId?: string): string[] {
   return [...new Set(codes)];
 }
 
+/** Limitless CDN folders (PBL, JTG, MEG). Not pokemontcg.io ids like me5 / sv9 / sv6pt5. */
+export function isLimitlessArtCode(code: string): boolean {
+  const printed = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (printed.length < 2 || printed.length > 5) return false;
+  if (/PT\d/i.test(printed)) return false;
+  if (/^(SV|SWSH|SM|XY|BW|ME)\d+$/i.test(printed)) return false;
+  return true;
+}
+
+export function limitlessPrintedCodes(setId?: string): string[] {
+  const id = String(setId ?? "").trim();
+  if (!id) return [];
+  const lower = id.toLowerCase();
+  const upper = id.toUpperCase();
+  const codes: string[] = [];
+  const add = (code: string) => {
+    const printed = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!isLimitlessArtCode(printed) || codes.includes(printed)) return;
+    codes.push(printed);
+  };
+  if (PRINTED_SETS[upper]) add(upper);
+  for (const [printed, aliases] of Object.entries(PRINTED_SETS)) {
+    if (printed.toLowerCase() === lower || aliases.some((alias) => alias.toLowerCase() === lower)) add(printed);
+  }
+  add(upper);
+  return codes;
+}
+
 export function catalogIdsForLine(line: ParsedDeckLine): string[] {
   const number = String(line.number ?? "").trim();
   if (!number) return [];

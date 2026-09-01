@@ -6,7 +6,7 @@ import { OfficialVgcForm } from "@/components/signup/official-vgc-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, gameOf, isCommanderLane, playerIdField, slugOf, type GameId } from "@/lib/games";
+import { extraFieldFor, gameOf, isCommanderLane, isPtcgTitle, isVgcTitle, playAgeDivisionOf, playerIdField, slugOf, type GameId } from "@/lib/games";
 import { catalogForGame } from "@/lib/card-lookup";
 import { decklistCount } from "@/lib/decklist";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
@@ -21,6 +21,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   const hydrate = useTournamentStore((s) => s.hydrate);
   const live = useTournamentStore((s) => s.tournament);
   const t = pinnedGame ? viewTournament(live, pinnedGame) : live;
+  const lockedDivision = playAgeDivisionOf(t.gameId);
   const [step, setStep] = useState<"welcome" | "form" | "done">("welcome");
   const [draft, setDraft] = useState<SignupDraft>(() => emptySignupDraft());
   const [error, setError] = useState("");
@@ -30,6 +31,11 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   useEffect(() => {
     void hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    if (!lockedDivision) return;
+    setDraft((d) => (d.ageDivision === lockedDivision ? d : { ...d, ageDivision: lockedDivision }));
+  }, [lockedDivision]);
 
   useEffect(() => {
     let lock: WakeLockSentinel | null = null;
@@ -55,7 +61,8 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   const commander = isCommanderLane(t);
   const idField = playerIdField(t.gameId);
   const closed = t.phase === "complete";
-  const vgc = t.gameId === "pokemon-vgc";
+  const vgc = isVgcTitle(t.gameId);
+  const ptcg = isPtcgTitle(t.gameId);
   const catalog = catalogForGame(t.gameId);
   const needDeck = Boolean(t.requireDecklist && catalog);
   const showDeck = Boolean(catalog && (needDeck || catalog === "ptcg"));
@@ -90,7 +97,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
           playerId: draft.playerId.trim(),
           trainerName: draft.trainerName.trim(),
           switchProfile: draft.switchProfile.trim(),
-          ageDivision: draft.ageDivision,
+          ageDivision: lockedDivision ?? draft.ageDivision,
           birthDate: draft.birthDate.trim(),
           team: vgc ? draft.team : undefined,
           ink1: t.gameId === "lorcana" ? draft.ink1 : undefined,
@@ -119,7 +126,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   };
 
   const reset = () => {
-    setDraft(emptySignupDraft());
+    setDraft({ ...emptySignupDraft(), ageDivision: lockedDivision ?? "" });
     setResult(null);
     setError("");
     setStep("welcome");
@@ -157,6 +164,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                   : commander
                     ? `. Enter your name, ${idField.label}, commander, and partner if you have one.`
                     : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
+              {lockedDivision ? ` This event is ${lockedDivision[0]!.toUpperCase()}${lockedDivision.slice(1)} only.` : ""}
               {showDeck && catalog === "ptcg"
                 ? " Paste a Limitless list or shared deck URL, or search cards as a backup."
                 : needDeck
@@ -198,6 +206,8 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                 draft={draft}
                 error={error}
                 busy={busy}
+                gameId={t.gameId}
+                lockedDivision={lockedDivision}
                 onChange={setDraft}
                 onCancel={reset}
                 onSubmit={() => void submit()}
@@ -259,7 +269,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                     />
                     <p className="mt-1 text-[0.7rem] text-muted">{idField.hint}</p>
                   </Field>
-                  {t.gameId === "pokemon-tcg" || t.gameId === "pokemon-vgc" ? (
+                  {ptcg || vgc ? (
                     <Field label="Date of birth">
                       <Input
                         value={draft.birthDate}
@@ -267,6 +277,14 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
                         placeholder="YYYY-MM-DD"
                       />
                       <p className="mt-1 text-[0.7rem] text-muted">TOM uses this for age division. Optional on the kiosk.</p>
+                    </Field>
+                  ) : null}
+                  {lockedDivision ? (
+                    <Field label="Age division">
+                      <Input value={lockedDivision[0]!.toUpperCase() + lockedDivision.slice(1)} readOnly />
+                      <p className="mt-1 text-[0.7rem] text-muted">
+                        This tablet is the {lockedDivision} event. Other age divisions check in on their own kiosks.
+                      </p>
                     </Field>
                   ) : null}
                   {commander ? (

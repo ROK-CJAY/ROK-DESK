@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { matchDeckLines } from "../src/lib/ptcg-deck-match.ts";
+import { isLimitlessArtCode, limitlessPrintedCodes, matchDeckLines } from "../src/lib/ptcg-deck-match.ts";
 import {
   allowedLimitlessUrl,
   energyNameCandidates,
@@ -138,4 +138,20 @@ test("only public Limitless hosts are allowed", () => {
   assert.ok(allowedLimitlessUrl("/shared/6a95bc2a932b04243429ded9"));
   assert.equal(allowedLimitlessUrl("https://evil.example/decks"), null);
   assert.equal(allowedLimitlessUrl("http://evil.example/decks"), null);
+});
+
+test("Limitless art URLs use printed codes, not pokemontcg.io set ids", () => {
+  assert.equal(isLimitlessArtCode("PBL"), true);
+  assert.equal(isLimitlessArtCode("MEG"), true);
+  assert.equal(isLimitlessArtCode("JTG"), true);
+  assert.equal(isLimitlessArtCode("SVE"), true);
+  assert.equal(isLimitlessArtCode("ME5"), false);
+  assert.equal(isLimitlessArtCode("SV9"), false);
+  assert.equal(isLimitlessArtCode("SV6PT5"), false);
+  assert.equal(isLimitlessArtCode("RSV10PT5"), false);
+  assert.deepEqual(limitlessPrintedCodes("me5"), ["PBL"]);
+  assert.deepEqual(limitlessPrintedCodes("sv9"), ["JTG"]);
+  assert.deepEqual(limitlessPrintedCodes("PBL"), ["PBL"]);
+  assert.deepEqual(limitlessPrintedCodes("MEG"), ["MEG"]);
+  assert.deepEqual(limitlessPrintedCodes("sv6pt5"), ["SFA"]);
 });

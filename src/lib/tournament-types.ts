@@ -340,7 +340,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   version: z.number(),
   name: z.string(),
   streamChannel: z.string().optional().transform((v) => v ?? ""),
-  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
+  gameId: z.enum(["pokemon-vgc", "pokemon-vgc-seniors", "pokemon-vgc-juniors", "pokemon-tcg", "pokemon-tcg-seniors", "pokemon-tcg-juniors", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
   size: z.number().int().min(2).max(128),

@@ -1,4 +1,4 @@
-import { extraFieldFor, GAME_IDS, gameOf, playerIdField, slugOf } from "@/lib/games";
+import { extraFieldFor, GAME_IDS, gameOf, isVgcTitle, playerIdField, slugOf } from "@/lib/games";
 import { APP_VERSION } from "@/lib/version";
 import { computeStandings, eventChampion, topCutStarted, type Standing } from "@/lib/tournament-bracket";
 import {
@@ -540,7 +540,7 @@ function filesForGame(t: TournamentState, prefix = ""): Array<{ name: string; bo
       ),
     },
   ];
-  if (t.gameId === "pokemon-vgc") {
+  if (isVgcTitle(t.gameId)) {
     files.push({
       name: `${p}teams.csv`,
       body: csv(

@@ -1,6 +1,7 @@
 import { OverlayEditProvider, Placed, type OverlayEdit } from "@/components/overlays/placed";
 import { TeraBadge, TypeIcon } from "@/components/overlays/type-icon";
 import type { DeskState, PlayerSide, RosterSide } from "@/lib/desk-types";
+import { isVgcTitle } from "@/lib/games";
 import { spriteFallbackUrl, spriteUrl, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
 import { cn } from "@/lib/cn";
 
@@ -13,7 +14,7 @@ export function RosterView({
   edit?: OverlayEdit | null;
   force?: RosterSide;
 }) {
-  if (desk.gameId !== "pokemon-vgc") return null;
+  if (!isVgcTitle(desk.gameId)) return null;
   const side = force ?? desk.rosterSide;
   const showP1 = side === "p1" || side === "both";
   const showP2 = side === "p2" || side === "both";

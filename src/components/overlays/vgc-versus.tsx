@@ -129,7 +129,7 @@ export function VgcVersusView({ desk }: { desk: DeskState }) {
   const nameW = CAM_W - NAME_INSET * 2;
 
   return (
-    <div data-game="pokemon-vgc" className="pointer-events-none relative h-full w-full overflow-hidden">
+    <div data-game={desk.gameId} className="pointer-events-none relative h-full w-full overflow-hidden">
       <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">

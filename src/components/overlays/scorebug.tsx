@@ -1,11 +1,10 @@
-import { gameOf } from "@/lib/games";
+import { gameOf, isCommanderLane, isPtcgTitle, isVgcTitle } from "@/lib/games";
 import { remainingSeconds, formatClock, resourceLimit, type DeskState } from "@/lib/desk-types";
 import { ResourcePips } from "@/components/overlays/pips";
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { CommanderScorebug, useCommanderOverlay } from "@/components/overlays/commander";
 import { FadeValue } from "@/components/overlays/fade-value";
-import { isCommanderLane } from "@/lib/games";
 import { cn } from "@/lib/cn";
 import { InitiativeMark } from "@/components/desk/initiative";
 import { RokLayoutView } from "@/components/overlays/rok-layout";
@@ -158,14 +157,14 @@ export function ScorebugView({
   if (useCommanderOverlay(desk)) {
     return <CommanderScorebug desk={desk} edit={edit} />;
   }
-  if (desk.scorebugStyle === "play" && desk.gameId === "pokemon-tcg") {
+  if (desk.scorebugStyle === "play" && isPtcgTitle(desk.gameId)) {
     return (
       <OverlayEditProvider desk={desk} edit={edit}>
         <PtcgPlayLayout desk={desk} now={now} />
       </OverlayEditProvider>
     );
   }
-  if (desk.scorebugStyle === "play" && desk.gameId === "pokemon-vgc") {
+  if (desk.scorebugStyle === "play" && isVgcTitle(desk.gameId)) {
     return (
       <OverlayEditProvider desk={desk} edit={edit}>
         <VgcPlayLayout desk={desk} now={now} />

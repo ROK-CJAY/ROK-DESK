@@ -4,7 +4,7 @@ import { blankEntrant, emptyDesk, snapshotDesk } from "@/lib/tournament-types";
 import { loadTournament, saveTournament } from "@/lib/tournament-server";
 import { mergeTeam } from "@/lib/pokemon-vgc";
 import { mergeDecklist } from "@/lib/decklist";
-import { gameIdFromSlug } from "@/lib/games";
+import { gameIdFromSlug, playAgeDivisionOf } from "@/lib/games";
 import { sanitizeInk } from "@/lib/lorcana";
 
 const noStore = {
@@ -77,7 +77,7 @@ export const Route = createFileRoute("/api/tournament/signup")({
           playerId: parsed.data.playerId,
           trainerName: parsed.data.trainerName,
           switchProfile: parsed.data.switchProfile,
-          ageDivision: parsed.data.ageDivision,
+          ageDivision: playAgeDivisionOf(gameId) ?? parsed.data.ageDivision,
           birthDate: parsed.data.birthDate,
           seed,
           team: mergeTeam(parsed.data.team),

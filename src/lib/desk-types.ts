@@ -240,7 +240,7 @@ const casterSchema: z.ZodType<Caster> = z.object({
 
 export const deskSchema: z.ZodType<DeskState> = z.object({
   version: z.number(),
-  gameId: z.enum(["pokemon-vgc", "pokemon-tcg", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
+  gameId: z.enum(["pokemon-vgc", "pokemon-vgc-seniors", "pokemon-vgc-juniors", "pokemon-tcg", "pokemon-tcg-seniors", "pokemon-tcg-juniors", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
   matchSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().transform((v) => (v === 2 || v === 3 ? v : 1)),
   eventName: z.string(),
   streamChannel: z.string().optional().transform((v) => v ?? ""),

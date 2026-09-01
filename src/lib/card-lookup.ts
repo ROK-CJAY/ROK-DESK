@@ -1,5 +1,5 @@
 import type { GameId } from "@/lib/games";
-import { printedCodesForSet } from "@/lib/ptcg-deck-match";
+import { isLimitlessArtCode, limitlessPrintedCodes } from "@/lib/ptcg-deck-match";
 
 export type LookupAttack = {
   name: string;
@@ -46,6 +46,8 @@ export type LookupCatalog = "ptcg" | "mtg" | "swu" | "ygo" | "op" | "rift" | "lo
 export function catalogForGame(gameId: GameId): LookupCatalog | null {
   switch (gameId) {
     case "pokemon-tcg":
+    case "pokemon-tcg-seniors":
+    case "pokemon-tcg-juniors":
       return "ptcg";
     case "mtg":
     case "mtg-commander":
@@ -90,14 +92,14 @@ export function ptcgArtUrl(id?: string, image?: string, size: "low" | "high" = "
   if (id) q.set("id", id);
   if (image) q.set("image", image);
   q.set("size", size);
-  q.set("v", "3");
+  q.set("v", "4");
   if (!id && !image) return "";
   return `/api/ptcg-art?${q.toString()}`;
 }
 
 export function isPtcgArt(image?: string, id?: string): boolean {
   if (id && /^[a-z0-9.]+-\d+[a-z0-9]*$/i.test(id)) return true;
-  return /tcgdex\.net|pokemontcg\.io|scrydex\.com|pokemon\.com\/static-assets/i.test(image ?? "");
+  return /tcgdex\.net|pokemontcg\.io|scrydex\.com|pokemon\.com\/static-assets|limitlesstcg/i.test(image ?? "");
 }
 
 export function cardImageUrl(image?: string, size: "low" | "high" = "high", id?: string): string {
@@ -105,11 +107,10 @@ export function cardImageUrl(image?: string, size: "low" | "high" = "high", id?:
 }
 
 export function cardImageCandidates(image?: string, size: "low" | "high" = "high", id?: string): string[] {
-  if (isPtcgArt(image, id)) {
-    const url = ptcgArtUrl(id, image, size);
-    return url ? [url] : [];
-  }
-  return ptcgArtSources(image, size, id);
+  const sources = ptcgArtSources(image, size, id);
+  if (!isPtcgArt(image, id)) return sources;
+  const proxy = ptcgArtUrl(id, image, size);
+  return proxy ? [proxy, ...sources.filter((src) => src !== proxy)] : sources;
 }
 
 /** Direct CDN URLs. The /api/ptcg-art proxy walks these and only returns a real 200 image. */
@@ -124,25 +125,21 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
   const isFile = Boolean(prefix) && /\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(prefix);
   const isTcgdex = /tcgdex\.net/i.test(prefix);
   const isScrydex = /scrydex\.com\/pokemon\//i.test(prefix);
-  if (isScrydex) {
-    add(prefix.replace(/\/(small|large)$/i, "/large"));
-    add(prefix);
-  } else if (isFile && !isTcgdex) add(prefix);
-  else if (prefix.startsWith("/api/")) add(prefix);
+  const keepProvided = !isLimitlessScan(prefix) || isLimitlessArtUrl(prefix);
 
   const parsed = parseCardId(id);
   if (parsed) {
     const num = parsed.number.replace(/^0+/, "") || "0";
     const padded = num.padStart(3, "0");
-    const scryIds = [`${parsed.set}-${num}`, `${parsed.set}-${parsed.number}`, `${parsed.set}-${padded}`];
-    for (const scry of scryIds) {
-      add(`https://images.scrydex.com/pokemon/${scry}/large`);
-      add(`https://images.scrydex.com/pokemon/${scry}/small`);
-    }
     for (const png of limitlessCardPng(parsed.set, parsed.number)) add(png);
     for (const ioSet of pokemonTcgIoSets(parsed.set)) {
       if (size === "high") add(`https://images.pokemontcg.io/${ioSet}/${num}_hires.png`);
       add(`https://images.pokemontcg.io/${ioSet}/${num}.png`);
+    }
+    const scryIds = [`${parsed.set}-${num}`, `${parsed.set}-${parsed.number}`, `${parsed.set}-${padded}`];
+    for (const scry of scryIds) {
+      add(`https://images.scrydex.com/pokemon/${scry}/large`);
+      add(`https://images.scrydex.com/pokemon/${scry}/small`);
     }
     for (const folder of pokemonComFolders(parsed.set)) {
       add(
@@ -150,6 +147,12 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
       );
     }
   }
+
+  if (isScrydex) {
+    add(prefix.replace(/\/(small|large)$/i, "/large"));
+    add(prefix);
+  } else if (isFile && !isTcgdex && keepProvided) add(prefix);
+  else if (prefix.startsWith("/api/")) add(prefix);
 
   if (isFile && isTcgdex) add(prefix);
   else if (prefix && !prefix.startsWith("/api/") && !isFile && !isScrydex) {
@@ -169,6 +172,15 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
     }
   }
   return out;
+}
+
+function isLimitlessScan(url: string): boolean {
+  return /limitlesstcg[^/]*\/tpci\//i.test(url);
+}
+
+function isLimitlessArtUrl(url: string): boolean {
+  const folder = url.match(/\/tpci\/([^/]+)\//i)?.[1] ?? "";
+  return isLimitlessArtCode(folder);
 }
 
 function parseCardId(id?: string): { set: string; number: string } | null {
@@ -254,15 +266,9 @@ export function limitlessCardPng(setId?: string, number?: string): string[] {
   const num = String(number ?? "").replace(/^0+/, "") || "";
   if (!setId || !num) return [];
   const padded = num.padStart(3, "0");
-  const out: string[] = [];
-  for (const code of printedCodesForSet(setId)) {
-    const printed = code.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (!printed) continue;
-    out.push(
-      `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/${printed}/${printed}_${padded}_R_EN.png`,
-    );
-  }
-  return out;
+  return limitlessPrintedCodes(setId).map(
+    (printed) => `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci/${printed}/${printed}_${padded}_R_EN.png`,
+  );
 }
 
 function inferTcgdexSerie(setId: string): string | null {

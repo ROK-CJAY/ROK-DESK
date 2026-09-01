@@ -1,7 +1,7 @@
 import { clampBracketSize, blankEntrant, emptySlot, switchGame, type Entrant, type TournamentState } from "@/lib/tournament-types";
 import type { TomPlayer, TomReports } from "@/lib/tom-reports";
 import type { TomTdfImport } from "@/lib/tom-tdf";
-import type { GameId } from "@/lib/games";
+import { playAgeDivisionOf, type GameId } from "@/lib/games";
 
 export function applyTomReports(prev: TournamentState, reports: TomReports): TournamentState {
   if (!reports.players.length && !reports.pairings.length) {
@@ -30,7 +30,7 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
         ...prevPlayer,
         name: row.name || prevPlayer.name,
         playerId: row.playerId || prevPlayer.playerId,
-        ageDivision: row.division || prevPlayer.ageDivision,
+        ageDivision: row.division || prevPlayer.ageDivision || playAgeDivisionOf(prev.gameId) || "",
         dropped: row.dropped ?? prevPlayer.dropped,
         birthDate: row.birthDate || prevPlayer.birthDate,
         trainerName: row.trainerName || prevPlayer.trainerName,
@@ -46,7 +46,7 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
     const created = blankEntrant({
       name: row.name,
       playerId: row.playerId,
-      ageDivision: row.division,
+      ageDivision: row.division || playAgeDivisionOf(prev.gameId) || "",
       dropped: Boolean(row.dropped),
       seed: entrants.length + 1,
       birthDate: row.birthDate ?? "",

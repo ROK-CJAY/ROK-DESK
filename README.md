@@ -23,7 +23,7 @@ On a typical show:
 5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share **that table’s match clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander, Lorcana, and YGO.
 6. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**, which is a separate timer from the feature match.
 
-Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at once (PTCG on one side of the hall, Commander on the other) still means two hosts — each machine is one event.
+Two TCG (or VGC) tables plus a stream can run on **one host**. **PTCG and VGC each run Masters, Seniors, and Juniors** as three titles on that same host — each with its own roster, kiosk, Stream / Floor 1 / Floor 2, and overlays. Two *different sports* at once (PTCG on one side of the hall, Commander on the other) still means two hosts if you want two TOs working the floor at the same time; one host can still switch between saved titles.
 
 ---
 
@@ -31,8 +31,12 @@ Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at o
 
 | Title | Slug | What the desk tracks |
 | --- | --- | --- |
-| Pokémon VGC | `vgc` | Remaining Pokémon from the submitted team, Bo3 games, **Play Layout** |
-| Pokémon TCG | `ptcg` | Prize cards (6 / 4 / 3 / 2 / 1), Bo3, **Play Layout** board |
+| Pokémon VGC · Masters | `vgc` | Remaining Pokémon from the submitted team, Bo3 games, **Play Layout**. Play! Pokémon Masters |
+| Pokémon VGC · Seniors | `vgc-seniors` | Same VGC desk as Masters, own roster / pairings / overlays |
+| Pokémon VGC · Juniors | `vgc-juniors` | Same VGC desk as Masters, own roster / pairings / overlays |
+| Pokémon TCG · Masters | `ptcg` | Prize cards, Bo3, **Play Layout** board. Play! Pokémon Masters |
+| Pokémon TCG · Seniors | `ptcg-seniors` | Same PTCG desk as Masters, own roster / pairings / overlays |
+| Pokémon TCG · Juniors | `ptcg-juniors` | Same PTCG desk as Masters, own roster / pairings / overlays |
 | One Piece TCG | `op` | Life, DON!!, Bo1 by default, **Play Layout** |
 | Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3, **Play Layout** |
 | Magic: The Gathering | `mtg` | Life, poison; Standard / Modern / Pioneer / Legacy / Pauper |
@@ -41,7 +45,7 @@ Two TCG (or VGC) tables plus a stream can run on **one host**. Two *titles* at o
 | Star Wars Unlimited | `swu` | Base HP, initiative |
 | Riftbound | `rb` | First-to-8 points |
 
-Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switching games on Production does not throw away the other event’s live match.
+Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switching games on Production does not throw away the other event’s live match. Play! Pokémon age divisions work the same way: tap **PTCG** or **VGC**, then **Masters / Seniors / Juniors**. Overlay URLs are `/ptcg/overlay/…`, `/vgc-seniors/overlay/…`, `/vgc-juniors/overlay/…`. Walk-up kiosks lock the age division (`/ptcg/signup`, `/vgc-juniors/signup`, …).
 
 ---
 
@@ -55,8 +59,9 @@ Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switc
 | Judge tablet | `/{game}/tablet` · Floor 1: `/{game}/2/tablet` · Floor 2: `/{game}/3/tablet` | Floor judge for that table |
 | Player tablet | `/{game}/tablet?role=player` | Commander or Lorcana table pad |
 | Commentary tablet | `/{game}/tablet?role=caster` | Casters — full player info, read-only |
-| Walk-up signup | `/{game}/signup` | Players at the door |
+| Walk-up signup | `/{game}/signup` | Players at the door. PTCG/VGC: `/ptcg/signup` or `/vgc/signup` Masters, `/{game}-seniors/signup`, `/{game}-juniors/signup` |
 | VGC team-list print | `/print/team-list` | Official 2-page Play! Pokémon form |
+| PTCG deck-list print | `/print/deck-list` | Official 8.5×11 Play! Pokémon deck list |
 | Overlay index | `/overlay` | Browser-source list |
 | Floor clock | `/{game}/overlay/floor-clock` | Room monitor |
 | Stream clock | `/{game}/overlay/stream-clock` | Monitor at the streamed table |
@@ -100,7 +105,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - Per-game. Switching titles does not share players
 - Name, handle, country, pronouns, deck / commander / extra
 - Organized-play **Player ID** (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, SWU-Stats, Riot ID) with a required privacy checkbox. IDs stay on the roster and export, never on stream
-- **Decklists** (optional per event): TO toggles Request decklist. PTCG can paste a PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link (https optional). `{P}` is Psychic. Named lines keep the card name if the collector number is from another print. The ROK Desk card search stays as a backup. Export includes `decklists.csv` plus a count on `players.csv`
+- **Decklists** (optional per event): TO toggles Request decklist. PTCG can paste a PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link (https optional). `{P}` is Psychic. Named lines keep the card name if the collector number is from another print. Thumbnails use Limitless **printed** set codes (PBL, MEG, JTG, …) and fall back across CDNs. The ROK Desk card search stays as a backup. Export includes `decklists.csv` plus a count on `players.csv`
 - Lorcana: deck plus up to two official inks
 - Commander / cEDH / Duel Commander: searchable commander (Scryfall) plus an optional Partner field
 - VGC: full team sheet (species, Tera, ability, item, four moves)
@@ -132,6 +137,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
   - **Watch TOM reports folder** (Chrome, Edge, or ROK Desk desktop): pick `TOM_DATA` or `data/reports` once. Desk imports when TOM writes new pairings / standings. Drop files if you are not in a Chromium browser.
   - **Load sample** / **Clear sample**, or **Clear roster** on the player list.
 - VGC **print team list** — two pages per player in the Play! Pokémon VG team-list layout (staff page with stats, opponent page without)
+- PTCG **print deck list** — one 8.5×11 page per player (Play! Pokémon TCG deck list: Pokémon / Trainer / Energy, Player ID, age division, Standard / Expanded)
 
 ---
 
@@ -146,7 +152,7 @@ From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor
 - **Game win** — awards a game, resets resources for the next game
 - **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
 - **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. If the pairing brought in a submitted decklist, lookup defaults to **This match** (only those cards) with **Catalog** as a fallback. PTCG has **Download catalog** so search does not depend on the live API. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
+- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. If the pairing brought in a submitted decklist, lookup defaults to **This match** (those scans, including Limitless imports) with **Catalog** as a fallback. PTCG has **Download catalog** so search does not depend on the live API. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
 - PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
 - Lorcana inks and W/L/D on the player cards
 - SWU initiative toggle
@@ -229,12 +235,12 @@ Card overlay: **On Stream** is red while a card is up. With nothing selected the
 - Deck / leader / commander when that format needs it
 - Commander / cEDH / Duel Commander: Scryfall search for the commander, plus an optional Partner (or Background)
 - Limitless / notes (optional season record or accomplishments)
-- Decklist when the TO turns on **Request decklist**. PTCG: paste PTCGL / Limitless text, a public Limitless URL, or a shared `my.limitlesstcg.com` link (with or without https), or search/add cards. Other titles: search a card, tap to add, set quantity.
+- Decklist when the TO turns on **Request decklist**. PTCG: paste PTCGL / Limitless text, a public Limitless URL, or a shared `my.limitlesstcg.com` link (with or without https), or search/add cards. Art follows the printed set. Other titles: search a card, tap to add, set quantity.
 - Lorcana inks (up to two)
-- VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls
+- VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls. Age division is locked to that kiosk (Masters / Seniors / Juniors)
 - Player ID + privacy checkbox
 
-Players land on that game’s Tournament roster. Account sign-in is off until multi-user hosting ships.
+Players land on that game’s Tournament roster. PTCG and VGC kiosks lock **Masters / Seniors / Juniors** to the URL. Account sign-in is off until multi-user hosting ships.
 
 ---
 
@@ -374,14 +380,17 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 ### Unreleased (on `main`, not tagged)
 
 **Added**
-- **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, or **Watch TOM reports folder** so pairings import when TOM writes them. Send a table to stream. Load / clear sample. TOM stays official.
-- **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…` (https optional). Energy glyphs (`{P}`), Limitless set codes (`PBL` / `POR` / `CRI` / `MEE`), and **name-first** matching when a collector number is from another print. Search builder stays as backup.
+- **Play! Pokémon age divisions** — PTCG and VGC each run Masters, Seniors, and Juniors as three events on one host (own roster, kiosk, Stream / Floor 1 / Floor 2, overlays, TOM watch). Kiosks: `/ptcg/signup`, `/ptcg-seniors/signup`, `/ptcg-juniors/signup`, `/vgc/signup`, `/vgc-seniors/signup`, `/vgc-juniors/signup`
+- **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, or **Watch TOM reports folder** so pairings import when TOM writes them. Send a table to stream. Load / clear sample. TOM stays official. Six TOM cards (PTCG/VGC × Masters/Seniors/Juniors)
+- **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…` (https optional). Energy glyphs (`{P}`), Limitless set codes (`PBL` / `POR` / `CRI` / `MEE`), and **name-first** matching when a collector number is from another print. Search builder stays as backup
+- **PTCG deck-list print** — `/print/deck-list` fills the official 8.5×11 Play! Pokémon TCG deck list
 - **PTCG catalog download** — save every English card on this machine; hit the button again to refresh
 - **Lorcana player tablet extended** — self-run names, inks, lore, games, clock, and Show P1 / P2
 
 **Fixed**
 - PTCG lookup uses the local catalog, then pokemontcg.io, then TCGdex as a last backup
-- PTCG import keeps the pasted **name** when the number is wrong (`Charmander PAF 26` → Charmander, not Xatu). Shared lists still match set + number. Art is PNG/WebP through the card proxy.
+- PTCG import keeps the pasted **name** when the number is wrong (`Charmander PAF 26` → Charmander, not Xatu). Shared lists still match set + number
+- PTCG sign-up / Limitless art uses printed set folders (`PBL`, `JTG`, `MEG`) instead of pokemontcg.io ids that 403 (`ME5`, `SV9`). Art proxy races PNG/WebP and sniffs the bytes. Sign-up falls back across CDNs like overlays
 
 ### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
 

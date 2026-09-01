@@ -18,7 +18,8 @@ import { PtcgBoardPanel } from "@/components/desk/ptcg-board-panel";
 import { TeamPanel } from "@/components/desk/team-panel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
-import { gameOf, isMtgTitle, type GameId } from "@/lib/games";
+import { catalogForGame } from "@/lib/card-lookup";
+import { gameOf, isMtgTitle, isPtcgTitle, isVgcTitle } from "@/lib/games";
 
 export function DeskApp() {
   const hydrate = useDeskStore((s) => s.hydrate);
@@ -32,8 +33,8 @@ export function DeskApp() {
   const game = gameOf(desk.gameId);
   const lookupCatalog = catalogForGame(desk.gameId);
   const showTablet =
-    desk.gameId === "pokemon-vgc" ||
-    desk.gameId === "pokemon-tcg" ||
+    isVgcTitle(desk.gameId) ||
+    isPtcgTitle(desk.gameId) ||
     isMtgTitle(desk.gameId) ||
     desk.gameId === "swu" ||
     desk.gameId === "yugioh" ||
@@ -105,26 +106,4 @@ export function DeskApp() {
       </div>
     </TooltipProvider>
   );
-}
-
-function catalogForGame(gameId: GameId) {
-  switch (gameId) {
-    case "pokemon-tcg":
-      return "ptcg" as const;
-    case "mtg":
-    case "mtg-commander":
-      return "mtg" as const;
-    case "swu":
-      return "swu" as const;
-    case "yugioh":
-      return "ygo" as const;
-    case "one-piece":
-      return "op" as const;
-    case "riftbound":
-      return "rift" as const;
-    case "lorcana":
-      return "lorcana" as const;
-    default:
-      return null;
-  }
 }

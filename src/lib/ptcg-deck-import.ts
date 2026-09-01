@@ -39,7 +39,7 @@ export async function resolveDeckLines(lines: ParsedDeckLine[]): Promise<PtcgDec
   for (const line of lines) {
     const hit = await resolveLine(line, catalog?.cards ?? []);
     if (hit) {
-      cards.push(deckCardFromCatalog(hit, line.qty));
+      cards.push(deckCardFromCatalog(hit, line));
       continue;
     }
     unmatched.push(line.raw || `${line.qty} ${line.name} ${line.set} ${line.number}`.trim());
@@ -113,18 +113,19 @@ async function tcgdexCard(id: string): Promise<PtcgCatalogCard | null> {
   }
 }
 
-function deckCardFromCatalog(card: PtcgCatalogCard, qty: number): DeckCard {
+function deckCardFromCatalog(card: PtcgCatalogCard, line: ParsedDeckLine): DeckCard {
   const id = card.id;
-  const png = limitlessCardPng(card.set?.id || id.split("-")[0], card.number || id.split("-").slice(1).join("-"))[0];
+  const number = line.number || card.number || id.split("-").slice(1).join("-");
+  const png = limitlessCardPng(line.set || card.set?.id || id.split("-")[0], number)[0];
   const image = png || card.images?.large || card.images?.small || "";
   return {
     id,
     name: card.name,
-    set: card.set?.name || card.set?.id || "",
-    number: card.number ?? "",
+    set: card.set?.name || card.set?.id || line.set || "",
+    number: card.number ?? line.number ?? "",
     image,
     type: card.supertype ?? "",
-    qty: clampQty(qty),
+    qty: clampQty(line.qty),
   };
 }
 

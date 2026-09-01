@@ -4,7 +4,8 @@ import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { parseTomFiles, sampleTomFiles, hasTomSample, withVgcSampleTrainers } from "@/lib/tom-reports";
-import { downloadTomTdf, looksLikeTomTdf, parseTomTdf } from "@/lib/tom-tdf";
+import { isTomTitle, isVgcTitle, playAgeDivisionOf, playDivisionsFor, TOM_TITLE_IDS, tomTitleOf, vgcGameIdFor, ptcgGameIdFor, type PlayAgeDivision, type TomTitleId } from "@/lib/games";
+import { parseTomTdf, looksLikeTomTdf, downloadTomTdf, resolveTomTdfGame } from "@/lib/tom-tdf";
 import {
   canWatchTomFolder,
   clearDirectoryHandle,
@@ -21,12 +22,17 @@ import {
 import { useTournamentStore } from "@/lib/tournament-store";
 import { deskForGame, viewTournament } from "@/lib/tournament-types";
 import { cn } from "@/lib/cn";
-import type { GameId } from "@/lib/games";
 
-const TOM_GAMES: { id: Extract<GameId, "pokemon-tcg" | "pokemon-vgc">; label: string; note: string }[] = [
-  { id: "pokemon-tcg", label: "PTCG", note: "Trading Card Game" },
-  { id: "pokemon-vgc", label: "VGC", note: "Video Game" },
-];
+function tomKindLabel(id: TomTitleId): string {
+  const family = isVgcTitle(id) ? "VGC" : "PTCG";
+  const division = playAgeDivisionOf(id);
+  if (!division) return family;
+  return `${family} ${division[0]!.toUpperCase()}${division.slice(1)}`;
+}
+
+function emptyTomWatch<T>(value: T): Record<TomTitleId, T> {
+  return Object.fromEntries(TOM_TITLE_IDS.map((id) => [id, value])) as Record<TomTitleId, T>;
+}
 
 export function TomReportsPanel() {
   const t = useTournamentStore((s) => s.tournament);
@@ -40,23 +46,25 @@ export function TomReportsPanel() {
   const [detail, setDetail] = useState("");
   const [drag, setDrag] = useState(false);
   const [tdfStatus, setTdfStatus] = useState("");
-  const [tomGame, setTomGame] = useState<Extract<GameId, "pokemon-tcg" | "pokemon-vgc">>(
-    t.gameId === "pokemon-vgc" ? "pokemon-vgc" : "pokemon-tcg",
+  const [tomGame, setTomGame] = useState<TomTitleId>(() => tomTitleOf(t.gameId));
+  const [watchStatus, setWatchStatus] = useState<Record<TomTitleId, "off" | "on" | "need-gesture">>(() =>
+    emptyTomWatch("off"),
   );
-  const [watchStatus, setWatchStatus] = useState<Record<"pokemon-tcg" | "pokemon-vgc", "off" | "on" | "need-gesture">>({
-    "pokemon-tcg": "off",
-    "pokemon-vgc": "off",
-  });
-  const [folderNames, setFolderNames] = useState<Record<"pokemon-tcg" | "pokemon-vgc", string>>({
-    "pokemon-tcg": "",
-    "pokemon-vgc": "",
-  });
-  const dirRefs = useRef<Partial<Record<"pokemon-tcg" | "pokemon-vgc", FileSystemDirectoryHandle>>>({});
+  const [folderNames, setFolderNames] = useState<Record<TomTitleId, string>>(() => emptyTomWatch(""));
+  const dirRefs = useRef<Partial<Record<TomTitleId, FileSystemDirectoryHandle>>>({});
   const tomGameRef = useRef(tomGame);
   tomGameRef.current = tomGame;
 
+  useEffect(() => {
+    if (!isTomTitle(t.gameId)) return;
+    const next = t.gameId;
+    setTomGame((prev) => (prev === next ? prev : next));
+  }, [t.gameId]);
+
   const live = tomGame === t.gameId ? t : viewTournament(t, tomGame);
-  const vgc = tomGame === "pokemon-vgc";
+  const vgc = isVgcTitle(tomGame);
+  const tomDivision = playAgeDivisionOf(tomGame) ?? "masters";
+  const tomDivisions = playDivisionsFor(tomGame);
   const watchSupported = canWatchTomFolder();
   const watch = watchStatus[tomGame];
   const folderName = folderNames[tomGame];
@@ -78,14 +86,14 @@ export function TomReportsPanel() {
   const ingest = (files: { name: string; html: string }[], viaWatch = false, game = tomGameRef.current) => {
     try {
       const reports = parseTomFiles(files);
-      applyTom(game === "pokemon-vgc" ? withVgcSampleTrainers(reports) : reports, game);
+      applyTom(isVgcTitle(game) ? withVgcSampleTrainers(reports) : reports, game);
       const tables = reports.pairings.length;
       const players = reports.players.length;
       setStatus("ok");
       setDetail(
         [
           viaWatch ? "Watch" : null,
-          game === "pokemon-vgc" ? "VGC" : "PTCG",
+          tomKindLabel(game),
           reports.roundLabel || null,
           players ? `${players} players` : null,
           tables ? `${tables} tables` : null,
@@ -111,11 +119,12 @@ export function TomReportsPanel() {
     try {
       if (tdfs[0]) {
         const parsed = parseTomTdf(await tdfs[0].text());
-        applyTomTdf(parsed);
-        setTomGame(parsed.gameId);
+        const gameId = resolveTomTdfGame(parsed, tomGame);
+        applyTomTdf({ ...parsed, gameId });
+        setTomGame(gameId);
         setStatus("ok");
         setDetail(
-          `${parsed.gameId === "pokemon-vgc" ? "VGC" : "PTCG"} · ${parsed.players.length} players from ${tdfs[0].name}`,
+          `${tomKindLabel(gameId)} · ${parsed.players.length} players from ${tdfs[0].name}`,
         );
       }
       if (htmls.length) {
@@ -174,7 +183,7 @@ export function TomReportsPanel() {
     let cancelled = false;
     void (async () => {
       if (!canWatchTomFolder()) return;
-      for (const game of ["pokemon-tcg", "pokemon-vgc"] as const) {
+      for (const game of TOM_TITLE_IDS) {
         const handle = await loadDirectoryHandle(game);
         if (!handle || cancelled) continue;
         dirRefs.current[game] = handle;
@@ -190,11 +199,11 @@ export function TomReportsPanel() {
   }, []);
 
   useEffect(() => {
-    const active = (["pokemon-tcg", "pokemon-vgc"] as const).filter((game) => watchStatus[game] === "on");
+    const active = TOM_TITLE_IDS.filter((game) => watchStatus[game] === "on");
     if (!active.length) return;
     let alive = true;
-    const last: Partial<Record<"pokemon-tcg" | "pokemon-vgc", string>> = {};
-    const pending: Partial<Record<"pokemon-tcg" | "pokemon-vgc", string>> = {};
+    const last: Partial<Record<TomTitleId, string>> = {};
+    const pending: Partial<Record<TomTitleId, string>> = {};
     const tick = async () => {
       for (const game of active) {
         const dir = dirRefs.current[game];
@@ -245,7 +254,7 @@ export function TomReportsPanel() {
         return;
       }
       const skip = result.skipped.length ? ` Skipped ${result.skipped.length} without a Player ID.` : "";
-      const kind = tomGame === "pokemon-vgc" ? "VIDEO_GAME" : "TRADING_CARD_GAME";
+      const kind = isVgcTitle(tomGame) ? "VIDEO_GAME" : "TRADING_CARD_GAME";
       setTdfStatus(`Saved ${result.filename} (${kind}) · ${result.included} players.${skip} Open it in TOM (File → Open).`);
     } catch {
       setTdfStatus("Could not download. Try the TDF link in the note below.");
@@ -274,160 +283,183 @@ export function TomReportsPanel() {
     <section className="rounded-xl border border-border bg-surface p-4">
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">TOM</p>
       <p className="mt-2 text-xs leading-relaxed text-muted">
-        Play! Pokémon only — PTCG and VGC each keep their own organizer, roster, tables, and watch folder. Sign up here, export a <span className="text-fg">.tdf</span> TOM can open, then drop HTML reports back in for stream. Desk does not write results into TOM.
+        Play! Pokémon — PTCG and VGC each run Masters, Seniors, and Juniors as their own event. Each keeps organizer, roster, tables, and watch folder. Sign up here, export a <span className="text-fg">.tdf</span> TOM can open, then drop HTML reports back in for stream. Desk does not write results into TOM.
       </p>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        {TOM_GAMES.map((g) => (
+      <div className="mt-3 grid gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           <Button
-            key={g.id}
             size="sm"
-            variant={tomGame === g.id ? "default" : "outline"}
-            className={cn(tomGame === g.id && "pointer-events-none")}
-            onClick={() => useTitle(g.id)}
+            variant={isVgcTitle(tomGame) ? "outline" : "default"}
+            className={cn(!isVgcTitle(tomGame) && "pointer-events-none")}
+            onClick={() => useTitle(ptcgGameIdFor(tomDivision) as TomTitleId)}
           >
-            {g.label}
-            <span className="font-sans font-normal text-[0.65rem] text-subtle"> {g.note}</span>
+            PTCG
           </Button>
-        ))}
-      </div>
-
-      <p className="font-mono mt-4 text-[0.62rem] tracking-[0.16em] text-muted uppercase">Export for TOM</p>
-      <div className="mt-2 grid gap-2">
-        <Field label="Organizer name">
-          <Input
-            value={live.tomOrganizerName}
-            onChange={(e) => patchTom({ tomOrganizerName: e.target.value })}
-            placeholder="As in Play! Pokémon"
-          />
-        </Field>
-        <Field label="Organizer Player ID">
-          <Input
-            value={live.tomOrganizerPopId}
-            onChange={(e) => patchTom({ tomOrganizerPopId: e.target.value })}
-            placeholder="popid"
-            inputMode="numeric"
-          />
-        </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Field label="City">
-            <Input value={live.tomCity} onChange={(e) => patchTom({ tomCity: e.target.value })} placeholder="miami" />
-          </Field>
-          <Field label="State">
-            <Input value={live.tomState} onChange={(e) => patchTom({ tomState: e.target.value })} placeholder="fl" />
-          </Field>
+          <Button
+            size="sm"
+            variant={isVgcTitle(tomGame) ? "default" : "outline"}
+            className={cn(isVgcTitle(tomGame) && "pointer-events-none")}
+            onClick={() => useTitle(vgcGameIdFor(tomDivision) as TomTitleId)}
+          >
+            VGC
+          </Button>
         </div>
-        <Field label="Country">
-          <Input
-            value={live.tomCountry}
-            onChange={(e) => patchTom({ tomCountry: e.target.value })}
-            placeholder="United States"
-          />
-        </Field>
-        <Field label="Start date">
-          <Input
-            value={live.tomStartDate}
-            onChange={(e) => patchTom({ tomStartDate: e.target.value })}
-            placeholder="MM/DD/YYYY"
-          />
-        </Field>
-        <Button size="sm" onClick={exportTdf} disabled={!live.entrants.length}>
-          <Download className="size-3.5" />
-          Export {vgc ? "VGC" : "PTCG"} TDF
-        </Button>
-        <p className="text-[0.65rem] text-subtle">
-          {withId} of {live.entrants.filter((e) => !e.dropped).length} {vgc ? "VGC" : "PTCG"} players have a Player ID.
-          {vgc ? " In-game trainer name goes in the TDF when set on the team sheet." : ""}
-          {" "}
-          <a href="/api/tournament/tdf" className="underline underline-offset-2">
-            Direct download
-          </a>
-        </p>
-        {tdfStatus ? <p className="mt-0 text-[0.7rem] text-muted">{tdfStatus}</p> : null}
+        <div className="grid grid-cols-3 gap-1.5">
+          {tomDivisions.map((d) => (
+            <Button
+              key={d.id}
+              size="sm"
+              variant={tomGame === d.gameId ? "default" : "outline"}
+              className={cn("px-2", tomGame === d.gameId && "pointer-events-none")}
+              onClick={() => useTitle(d.gameId as TomTitleId)}
+            >
+              {d.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      <p className="font-mono mt-4 text-[0.62rem] tracking-[0.16em] text-muted uppercase">Import reports</p>
-      <div
-        className={`mt-2 rounded-lg border border-dashed px-3 py-3 text-center text-xs ${drag ? "border-live bg-live/10 text-fg" : "border-border bg-surface-2 text-muted"}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDrag(true);
-        }}
-        onDragLeave={() => setDrag(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDrag(false);
-          void fromList(e.dataTransfer.files);
-        }}
-      >
-        Drop a <span className="text-fg">.tdf</span>, <span className="text-fg">roster.html</span>,{" "}
-        <span className="text-fg">pairings.html</span>, or <span className="text-fg">standings.html</span>
-      </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".html,.htm,.tdf,text/html,application/xml,text/xml"
-        multiple
-        className="sr-only"
-        onChange={(e) => {
-          if (e.target.files?.length) void fromList(e.target.files);
-          e.target.value = "";
-        }}
-      />
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()}>
-          <Upload className="size-3.5" />
-          Choose files
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => ingest(sampleTomFiles())}
-        >
-          Load {vgc ? "VGC" : "PTCG"} sample
-        </Button>
-      </div>
-      {watchSupported ? (
-        <div className="mt-2 grid gap-2">
-          {watch === "on" ? (
-            <Button size="sm" variant="outline" onClick={stopWatch}>
-              <Pause className="size-3.5" />
-              Stop watching {folderName || "folder"}
-            </Button>
-          ) : watch === "need-gesture" ? (
-            <Button size="sm" variant="secondary" onClick={() => void resumeWatch()}>
-              <FolderOpen className="size-3.5" />
-              Resume watch {folderName || "folder"}
-            </Button>
-          ) : (
-            <Button size="sm" variant="secondary" onClick={() => void pickWatchFolder()}>
-              <FolderOpen className="size-3.5" />
-              Watch TOM reports folder
-            </Button>
-          )}
-          <p className="text-[0.65rem] text-subtle">
-            {watch === "on"
-              ? `Watching ${folderName} for ${vgc ? "VGC" : "PTCG"}. TOM writes pairings.html — Desk imports onto this title only.`
-              : `Pick a ${vgc ? "VGC" : "PTCG"} TOM_DATA or data/reports folder. PTCG and VGC watches stay separate.`}
+      <div className="mt-4 grid gap-5">
+        <div>
+          <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Export for TOM</p>
+          <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <Field label="Organizer name">
+              <Input
+                value={live.tomOrganizerName}
+                onChange={(e) => patchTom({ tomOrganizerName: e.target.value })}
+                placeholder="As in Play! Pokémon"
+              />
+            </Field>
+            <Field label="Organizer Player ID">
+              <Input
+                value={live.tomOrganizerPopId}
+                onChange={(e) => patchTom({ tomOrganizerPopId: e.target.value })}
+                placeholder="popid"
+                inputMode="numeric"
+              />
+            </Field>
+            <Field label="City">
+              <Input value={live.tomCity} onChange={(e) => patchTom({ tomCity: e.target.value })} placeholder="miami" />
+            </Field>
+            <Field label="State">
+              <Input value={live.tomState} onChange={(e) => patchTom({ tomState: e.target.value })} placeholder="fl" />
+            </Field>
+            <Field label="Country">
+              <Input
+                value={live.tomCountry}
+                onChange={(e) => patchTom({ tomCountry: e.target.value })}
+                placeholder="United States"
+              />
+            </Field>
+            <Field label="Start date">
+              <Input
+                value={live.tomStartDate}
+                onChange={(e) => patchTom({ tomStartDate: e.target.value })}
+                placeholder="MM/DD/YYYY"
+              />
+            </Field>
+          </div>
+          <Button size="sm" className="mt-2" onClick={exportTdf} disabled={!live.entrants.length}>
+            <Download className="size-3.5" />
+            Export {tomKindLabel(tomGame)} TDF
+          </Button>
+          <p className="mt-2 text-[0.65rem] text-subtle">
+            {withId} of {live.entrants.filter((e) => !e.dropped).length} {tomKindLabel(tomGame)} players have a Player ID.
+            {vgc ? " In-game trainer name goes in the TDF when set on the team sheet." : ""}
+            {" "}
+            <a href="/api/tournament/tdf" className="underline underline-offset-2">
+              Direct download
+            </a>
           </p>
+          {tdfStatus ? <p className="mt-1 text-[0.7rem] text-muted">{tdfStatus}</p> : null}
         </div>
-      ) : (
-        <p className="mt-2 text-[0.65rem] text-subtle">
-          Folder watch needs Chrome, Edge, or ROK Desk desktop. Drop files here otherwise.
-        </p>
-      )}
-      {sampleLoaded || tomTables ? (
-        <Button size="sm" variant="outline" className="mt-2 w-full" onClick={clearImported}>
-          <Trash2 className="size-3.5" />
-          {sampleLoaded ? `Clear ${vgc ? "VGC" : "PTCG"} sample` : "Clear TOM tables"}
-        </Button>
-      ) : null}
-      {status === "ok" ? <p className="mt-2 text-[0.7rem] text-ok">{detail}</p> : null}
-      {status === "err" ? <p className="mt-2 text-[0.7rem] text-live">{detail}</p> : null}
-      {live.matches.some((m) => m.id.startsWith("tom-")) ? (
-        <p className="mt-2 text-[0.65rem] text-subtle">
-          Pairings came from TOM. Report slips in TOM. Use Send on a table to put it on stream.
-        </p>
-      ) : null}
+
+        <div>
+          <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Import reports</p>
+          <div
+            className={`mt-2 rounded-lg border border-dashed px-3 py-5 text-center text-xs ${drag ? "border-live bg-live/10 text-fg" : "border-border bg-surface-2 text-muted"}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDrag(true);
+            }}
+            onDragLeave={() => setDrag(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDrag(false);
+              void fromList(e.dataTransfer.files);
+            }}
+          >
+            Drop a <span className="text-fg">.tdf</span>, <span className="text-fg">roster.html</span>,{" "}
+            <span className="text-fg">pairings.html</span>, or <span className="text-fg">standings.html</span>
+          </div>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".html,.htm,.tdf,text/html,application/xml,text/xml"
+            multiple
+            className="sr-only"
+            onChange={(e) => {
+              if (e.target.files?.length) void fromList(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()}>
+              <Upload className="size-3.5" />
+              Choose files
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => ingest(sampleTomFiles())}
+            >
+              Load {tomKindLabel(tomGame)} sample
+            </Button>
+            {watchSupported ? (
+              watch === "on" ? (
+                <Button size="sm" variant="outline" onClick={stopWatch}>
+                  <Pause className="size-3.5" />
+                  Stop watching {folderName || "folder"}
+                </Button>
+              ) : watch === "need-gesture" ? (
+                <Button size="sm" variant="secondary" onClick={() => void resumeWatch()}>
+                  <FolderOpen className="size-3.5" />
+                  Resume watch {folderName || "folder"}
+                </Button>
+              ) : (
+                <Button size="sm" variant="secondary" onClick={() => void pickWatchFolder()}>
+                  <FolderOpen className="size-3.5" />
+                  Watch TOM reports folder
+                </Button>
+              )
+            ) : null}
+          </div>
+          {watchSupported ? (
+            <p className="mt-2 text-[0.65rem] text-subtle">
+              {watch === "on"
+                ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. TOM writes pairings.html — Desk imports onto this title only.`
+                : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. Each PTCG division and VGC watch stays separate.`}
+            </p>
+          ) : (
+            <p className="mt-2 text-[0.65rem] text-subtle">
+              Folder watch needs Chrome, Edge, or ROK Desk desktop. Drop files here otherwise.
+            </p>
+          )}
+          {sampleLoaded || tomTables ? (
+            <Button size="sm" variant="outline" className="mt-2" onClick={clearImported}>
+              <Trash2 className="size-3.5" />
+              {sampleLoaded ? `Clear ${tomKindLabel(tomGame)} sample` : "Clear TOM tables"}
+            </Button>
+          ) : null}
+          {status === "ok" ? <p className="mt-2 text-[0.7rem] text-ok">{detail}</p> : null}
+          {status === "err" ? <p className="mt-2 text-[0.7rem] text-live">{detail}</p> : null}
+          {live.matches.some((m) => m.id.startsWith("tom-")) ? (
+            <p className="mt-2 text-[0.65rem] text-subtle">
+              Pairings came from TOM. Report slips in TOM. Use Send on a table to put it on stream.
+            </p>
+          ) : null}
+        </div>
+      </div>
     </section>
   );
 }

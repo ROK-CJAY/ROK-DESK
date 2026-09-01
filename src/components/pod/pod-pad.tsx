@@ -16,7 +16,7 @@ import { YgoPlayerTablet } from "@/components/tablet/ygo-player";
 import { CasterTablet } from "@/components/tablet/caster-tablet";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
-import { formatCommanderLine, isCommanderLane, isMtgTitle } from "@/lib/games";
+import { formatCommanderLine, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle } from "@/lib/games";
 import { cn } from "@/lib/cn";
 
 const TABLE_ORDER: SeatId[] = ["p3", "p4", "p2", "p1"];
@@ -67,11 +67,11 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "extend
   }
 
   if (role !== "player" && role !== "extended") {
-    if (desk.gameId === "pokemon-vgc") {
+    if (isVgcTitle(desk.gameId)) {
       return <VgcJudgeTablet />;
     }
 
-    if (desk.gameId === "pokemon-tcg") {
+    if (isPtcgTitle(desk.gameId)) {
       return <TcgJudgeTablet />;
     }
 

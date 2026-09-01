@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useDeskStore } from "@/lib/desk-store";
+import { isPtcgTitle } from "@/lib/games";
 import { emptyPtcgSide, promoteBenchToActive, swapActiveWithBench, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { cn } from "@/lib/cn";
 
@@ -180,7 +181,7 @@ export function PtcgJudgeBoard({ side }: { side: "p1" | "p2" }) {
 export function PtcgBoardPanel() {
   const patch = useDeskStore((s) => s.patch);
   const desk = useDeskStore((s) => s.desk);
-  if (desk.gameId !== "pokemon-tcg") return null;
+  if (!isPtcgTitle(desk.gameId)) return null;
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
       <div className="mb-3 flex items-center justify-between gap-2">

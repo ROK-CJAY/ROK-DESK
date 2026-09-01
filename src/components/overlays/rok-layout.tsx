@@ -4,7 +4,7 @@ import { CardStackArt } from "@/components/overlays/card";
 import { useCardImageSrc } from "@/components/ui/remote-art";
 import { formatClock, remainingSeconds, resourceLimit, visibleCardStack, type DeskState, type SideId } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
-import { isMtgTitle } from "@/lib/games";
+import { isMtgTitle, isPtcgTitle } from "@/lib/games";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { cn } from "@/lib/cn";
 import { WinStings } from "@/components/overlays/winner";
@@ -14,7 +14,7 @@ const WELL = "20.5rem";
 export function rokCardBack(desk: DeskState): string {
   if (isMtgTitle(desk.gameId)) return "/mtg/card-back.png";
   if (desk.gameId === "yugioh") return "/ygo/card-back.png";
-  if (desk.gameId === "pokemon-tcg") return "/ptcg/card-back-v2.png";
+  if (isPtcgTitle(desk.gameId)) return "/ptcg/card-back-v2.png";
   if (desk.gameId === "riftbound") return "/riftbound/card-back.png";
   if (desk.gameId === "swu") return "/swu/card-back.png";
   if (desk.gameId === "one-piece") return "/op/card-back.png";
@@ -25,7 +25,7 @@ export function rokDiamondCount(desk: DeskState): number {
   if (
     isMtgTitle(desk.gameId) ||
     desk.gameId === "yugioh" ||
-    desk.gameId === "pokemon-tcg" ||
+    isPtcgTitle(desk.gameId) ||
     desk.gameId === "riftbound" ||
     desk.gameId === "swu" ||
     desk.gameId === "one-piece"
@@ -75,7 +75,7 @@ function RokSide({
   const lorcana = desk.gameId === "lorcana";
   const mtg = isMtgTitle(desk.gameId);
   const ygo = desk.gameId === "yugioh";
-  const ptcg = desk.gameId === "pokemon-tcg";
+  const ptcg = isPtcgTitle(desk.gameId);
   const riftbound = desk.gameId === "riftbound";
   const swu = desk.gameId === "swu";
   const op = desk.gameId === "one-piece";

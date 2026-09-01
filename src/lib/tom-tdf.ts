@@ -1,10 +1,10 @@
 import { COUNTRIES } from "@/lib/countries";
-import type { GameId } from "@/lib/games";
+import { inferPlayAgeDivision, isPtcgTitle, isVgcTitle, ptcgGameIdFor, vgcGameIdFor, type GameId, type TomTitleId } from "@/lib/games";
 import type { Entrant, TournamentState } from "@/lib/tournament-types";
 import type { TomPlayer } from "@/lib/tom-reports";
 
 export type TomTdfImport = {
-  gameId: Extract<GameId, "pokemon-tcg" | "pokemon-vgc">;
+  gameId: TomTitleId;
   name: string;
   city: string;
   state: string;
@@ -18,9 +18,13 @@ export type TomTdfImport = {
 export function parseTomTdf(xml: string): TomTdfImport {
   if (!/<tournament\b/i.test(xml)) throw new Error("This is not a TOM .tdf file.");
   const gametype = attr(xml, "gametype");
-  const gameId: TomTdfImport["gameId"] = /VIDEO_GAME/i.test(gametype) ? "pokemon-vgc" : "pokemon-tcg";
   const data = xml.match(/<data\b[^>]*>([\s\S]*?)<\/data>/i)?.[1] ?? xml;
   const organizer = data.match(/<organizer\b([^>]*)\/?>/i)?.[1] ?? "";
+  const name = tag(data, "name");
+  const namedDivision = inferPlayAgeDivision(name);
+  const gameId: TomTdfImport["gameId"] = /VIDEO_GAME/i.test(gametype)
+    ? ((namedDivision ? vgcGameIdFor(namedDivision) : "pokemon-vgc") as TomTitleId)
+    : ((namedDivision ? ptcgGameIdFor(namedDivision) : "pokemon-tcg") as TomTitleId);
   const players: TomPlayer[] = [];
   const playerRe = /<player\b([^>]*)>([\s\S]*?)<\/player>/gi;
   let row: RegExpExecArray | null;
@@ -42,7 +46,7 @@ export function parseTomTdf(xml: string): TomTdfImport {
   if (!players.length) throw new Error("That TDF has no players.");
   return {
     gameId,
-    name: tag(data, "name"),
+    name,
     city: tag(data, "city"),
     state: tag(data, "state"),
     country: tag(data, "country"),
@@ -51,6 +55,18 @@ export function parseTomTdf(xml: string): TomTdfImport {
     startDate: tag(data, "startdate"),
     players,
   };
+}
+
+export function resolveTomTdfGame(file: TomTdfImport, selected: GameId): TomTitleId {
+  const named = inferPlayAgeDivision(file.name);
+  if (isVgcTitle(file.gameId)) {
+    if (named) return vgcGameIdFor(named) as TomTitleId;
+    if (isVgcTitle(selected)) return selected as TomTitleId;
+    return "pokemon-vgc";
+  }
+  if (named) return ptcgGameIdFor(named) as TomTitleId;
+  if (isPtcgTitle(selected)) return selected as TomTitleId;
+  return "pokemon-tcg";
 }
 
 export function looksLikeTomTdf(name: string, text: string): boolean {
@@ -85,7 +101,7 @@ export function buildTomTdf(t: TournamentState, now = new Date()): TomTdfResult 
   const state = xml(t.tomState.trim());
   const country = xml(countryName(t.tomCountry || "US"));
   const name = xml(t.name.trim() || "Untitled");
-  const gametype = t.gameId === "pokemon-vgc" ? "VIDEO_GAME" : "TRADING_CARD_GAME";
+  const gametype = isVgcTitle(t.gameId) ? "VIDEO_GAME" : "TRADING_CARD_GAME";
 
   const playerXml = players
     .map((e) => {
@@ -98,7 +114,7 @@ export function buildTomTdf(t: TournamentState, now = new Date()): TomTdfResult 
         `\t\t\t<lastname>${xml(last)}</lastname>`,
         `\t\t\t<birthdate>${xml(dob)}</birthdate>`,
       ];
-      if (t.gameId === "pokemon-vgc" && trainer) {
+      if (isVgcTitle(t.gameId) && trainer) {
         rows.push(`\t\t\t<ingamename>${xml(trainer)}</ingamename>`);
       }
       rows.push(

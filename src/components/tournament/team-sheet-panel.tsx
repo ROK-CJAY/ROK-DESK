@@ -28,6 +28,7 @@ import {
   type PokeType,
   type TeamMon,
 } from "@/lib/pokemon-vgc";
+import { isVgcTitle, playAgeDivisionOf } from "@/lib/games";
 import { cn } from "@/lib/cn";
 
 export function TeamSheetPanel({
@@ -60,7 +61,7 @@ export function TeamSheetPanel({
     return () => window.clearTimeout(timer);
   }, [sent]);
 
-  if (t.gameId !== "pokemon-vgc") return null;
+  if (!isVgcTitle(t.gameId)) return null;
 
   const saveTeam = (team: TeamMon[]) => {
     if (!selected) return;
@@ -70,7 +71,7 @@ export function TeamSheetPanel({
 
   const sendSeat = (seat: "p1" | "p2") => {
     if (!selected) return;
-    if (deskGame !== "pokemon-vgc") applyGame("pokemon-vgc");
+    if (!isVgcTitle(deskGame)) applyGame(t.gameId);
     setPlayer(seat, {
       name: selected.name,
       tag: selected.tag,
@@ -121,7 +122,11 @@ export function TeamSheetPanel({
                 onSendP1={() => sendSeat("p1")}
                 onSendP2={() => sendSeat("p2")}
               />
-              <IdentityFields player={selected} onChange={(partial) => updateEntrant(selected.id, partial)} />
+              <IdentityFields
+                player={selected}
+                lockedDivision={playAgeDivisionOf(t.gameId)}
+                onChange={(partial) => updateEntrant(selected.id, partial)}
+              />
               <TeamSheetFields
                 key={selected.id}
                 listId={`sheet-${selected.id}`}
@@ -252,9 +257,11 @@ function SheetHeader({
 
 function IdentityFields({
   player,
+  lockedDivision,
   onChange,
 }: {
   player: Entrant;
+  lockedDivision: ReturnType<typeof playAgeDivisionOf>;
   onChange: (partial: Partial<Entrant>) => void;
 }) {
   return (
@@ -276,15 +283,19 @@ function IdentityFields({
         <Input value={player.birthDate} placeholder="YYYY-MM-DD" onChange={(e) => onChange({ birthDate: e.target.value })} />
       </Field>
       <Field label="Age division">
-        <NativeSelect
-          value={player.ageDivision}
-          onChange={(e) => onChange({ ageDivision: e.target.value as AgeDivision })}
-        >
-          <option value="">Not set</option>
-          <option value="juniors">Juniors</option>
-          <option value="seniors">Seniors</option>
-          <option value="masters">Masters</option>
-        </NativeSelect>
+        {lockedDivision ? (
+          <Input value={lockedDivision[0]!.toUpperCase() + lockedDivision.slice(1)} readOnly />
+        ) : (
+          <NativeSelect
+            value={player.ageDivision}
+            onChange={(e) => onChange({ ageDivision: e.target.value as AgeDivision })}
+          >
+            <option value="">Not set</option>
+            <option value="juniors">Juniors</option>
+            <option value="seniors">Seniors</option>
+            <option value="masters">Masters</option>
+          </NativeSelect>
+        )}
       </Field>
       <Field label="Battle team">
         <Input value={player.deck} onChange={(e) => onChange({ deck: e.target.value })} />

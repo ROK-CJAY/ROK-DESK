@@ -4,12 +4,13 @@ import { useDeskStore } from "@/lib/desk-store";
 import type { SeatId } from "@/lib/desk-types";
 import { cn } from "@/lib/cn";
 import { emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
+import { isVgcTitle } from "@/lib/games";
 
 export function TeamPanel() {
   const desk = useDeskStore((s) => s.desk);
   const setPlayer = useDeskStore((s) => s.setPlayer);
   const [seat, setSeat] = useState<SeatId>("p1");
-  if (desk.gameId !== "pokemon-vgc") return null;
+  if (!isVgcTitle(desk.gameId)) return null;
   const player = desk[seat];
 
   return (

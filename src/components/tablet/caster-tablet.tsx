@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { TypeIcon, TeraBadge } from "@/components/overlays/type-icon";
 import { InitiativeGlyph } from "@/components/desk/initiative";
-import { extraFieldFor, formatCommanderLine, gameOf, isCommanderLane } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, gameOf, isCommanderLane, isPtcgTitle, isVgcTitle } from "@/lib/games";
 import {
   MATCH_SLOT_SHORT,
   formatClock,
@@ -216,8 +216,8 @@ function PlayerSheet({
   const player = desk[seat];
   const game = gameOf(desk.gameId);
   const extra = extraFieldFor(desk.gameId, desk.formatName);
-  const vgc = desk.gameId === "pokemon-vgc";
-  const ptcg = desk.gameId === "pokemon-tcg";
+  const vgc = isVgcTitle(desk.gameId);
+  const ptcg = isPtcgTitle(desk.gameId);
   const board = ptcg ? (desk.ptcgBoard?.[seat === "p1" || seat === "p2" ? seat : "p1"] ?? emptyPtcgSide()) : null;
   const max = resourceLimit(desk);
   const remaining = vgc ? remainingFromDown(player.down, 6) : player.resource;

@@ -143,10 +143,14 @@
   }
 }
 
-[data-game="pokemon-vgc"] {
+[data-game="pokemon-vgc"],
+[data-game="pokemon-vgc-seniors"],
+[data-game="pokemon-vgc-juniors"] {
   --color-game: var(--color-game-vgc);
 }
-[data-game="pokemon-tcg"] {
+[data-game="pokemon-tcg"],
+[data-game="pokemon-tcg-seniors"],
+[data-game="pokemon-tcg-juniors"] {
   --color-game: var(--color-game-ptcg);
 }
 [data-game="one-piece"] {
