@@ -41,6 +41,27 @@ test("applyHydratedList refuses to replace a Pokémon with Energy", () => {
   assert.equal(printedNamesMatch("Lumineon V", "Basic Fire Energy"), false);
 });
 
+test("applyHydratedCard keeps the submitted id and copies HP", () => {
+  const orig = { id: "twm-129", name: "Drakloak", set: "TWM", number: "129", image: "https://x", type: "Pokémon", qty: 4 };
+  const hit = {
+    id: "sv6-129",
+    name: "Drakloak",
+    set: "TWM",
+    number: "129",
+    image: "https://y",
+    type: "Pokémon",
+    qty: 1,
+    hp: "90",
+    attacks: [{ name: "Dragon Headbutt", damage: "70" }],
+    abilities: [{ name: "Recon Directive", text: "Look at the top 2." }],
+  };
+  const next = applyHydratedList([orig], [hit])[0];
+  assert.equal(next.id, "twm-129");
+  assert.equal(next.hp, "90");
+  assert.equal(next.attacks?.[0]?.name, "Dragon Headbutt");
+  assert.equal(next.qty, 4);
+});
+
 test("hydrateDeckCards is 1:1 and keeps P2 Pokémon", async () => {
   const flat = deckCardsKeepOrder([...p1, ...p2]);
   const hydrated = await hydrateDeckCards(flat);
@@ -52,5 +73,6 @@ test("hydrateDeckCards is 1:1 and keeps P2 Pokémon", async () => {
   const p2out = applyHydratedList(p2, hydrated.slice(3));
   assert.equal(p2out[0]?.name, "Lumineon V");
   assert.equal(p2out[0]?.hp, "170");
+  assert.equal(p2out[0]?.id, "brs-40");
   assert.equal(p2out[2]?.name, "Basic Lightning Energy");
 });

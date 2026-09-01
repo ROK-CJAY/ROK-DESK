@@ -153,7 +153,20 @@ export function printedNamesMatch(a: string, b: string): boolean {
 export function applyHydratedCard(orig: DeckCard, hit?: DeckCard | null): DeckCard {
   if (!hit) return orig;
   if (orig.name && hit.name && !printedNamesMatch(orig.name, hit.name)) return orig;
-  return { ...hit, qty: orig.qty, name: orig.name || hit.name };
+  return {
+    ...orig,
+    ...hit,
+    id: orig.id,
+    qty: orig.qty,
+    name: orig.name || hit.name,
+    set: orig.set || hit.set,
+    number: orig.number || hit.number,
+    image: hit.image || orig.image,
+    hp: hit.hp || orig.hp,
+    text: hit.text || orig.text,
+    attacks: hit.attacks?.length ? hit.attacks : orig.attacks,
+    abilities: hit.abilities?.length ? hit.abilities : orig.abilities,
+  };
 }
 
 export function applyHydratedList(orig: DeckCard[], hits: DeckCard[] | undefined): DeckCard[] {

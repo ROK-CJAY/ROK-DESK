@@ -1,6 +1,6 @@
 import type { GameId } from "@/lib/games";
 import { isLimitlessArtCode, limitlessPrintedCodes, PRINTED_SETS } from "@/lib/ptcg-deck-match";
-import { applyHydratedList, type DeckCard } from "@/lib/decklist";
+import { applyHydratedList, printedNamesMatch, type DeckCard } from "@/lib/decklist";
 
 export type LookupAttack = {
   name: string;
@@ -358,9 +358,11 @@ export async function fetchCatalogCard(
   if (extra?.set) url.searchParams.set("set", extra.set);
   url.searchParams.set("local", "1");
   try {
-    const res = await fetch(url.toString(), { cache: "no-store", signal: AbortSignal.timeout(4000) });
+    const res = await fetch(url.toString(), { cache: "no-store", signal: AbortSignal.timeout(10000) });
     if (!res.ok) return null;
-    return normalizePtcgPayload(await res.json())[0] ?? null;
+    const card = normalizePtcgPayload(await res.json())[0] ?? null;
+    if (card && extra?.name && card.name && !printedNamesMatch(card.name, extra.name)) return null;
+    return card;
   } catch {
     return null;
   }
@@ -381,6 +383,109 @@ export async function hydrateDeckOnClient(cards: DeckCard[]): Promise<DeckCard[]
   } catch {
     return cards;
   }
+}
+
+function mergeLookup(base: LookupCard, extra: LookupCard): LookupCard {
+  return {
+    ...base,
+    ...extra,
+    id: base.id || extra.id,
+    name: base.name || extra.name,
+    image: extra.image || base.image,
+    set: base.set || extra.set,
+    number: base.number || extra.number,
+    hp: extra.hp || base.hp,
+    text: extra.text || base.text,
+    attacks: extra.attacks?.length ? extra.attacks : base.attacks,
+    abilities: extra.abilities?.length ? extra.abilities : base.abilities,
+    regulation: extra.regulation || base.regulation,
+  };
+}
+
+const lookupMemo = new Map<string, Promise<LookupCard | null>>();
+
+function lookupMemoKey(card: Pick<LookupCard, "id" | "name" | "number" | "set">): string {
+  return `${card.id ?? ""}|${card.name ?? ""}|${card.number ?? ""}|${card.set ?? ""}`.toLowerCase();
+}
+
+/** Catalog HP / attacks / trainer text for a tapped list card. Memoized per print. */
+export async function resolveLookupCard(card: LookupCard): Promise<LookupCard | null> {
+  const key = lookupMemoKey(card);
+  const cached = lookupMemo.get(key);
+  if (cached) return cached;
+  const pending = (async () => {
+    const fetched = await fetchCatalogCard(card.id, {
+      name: card.name,
+      number: card.number,
+      set: card.set,
+    });
+    if (fetched?.hp || fetched?.attacks?.length || fetched?.abilities?.length || fetched?.text) {
+      return mergeLookup(card, fetched);
+    }
+    const rows = await hydrateDeckOnClient([
+      {
+        id: card.id || card.name || "",
+        name: card.name,
+        set: card.set ?? "",
+        number: card.number ?? "",
+        image: card.image ?? "",
+        type: card.type ?? "",
+        qty: 1,
+      },
+    ]);
+    const rich = rows[0];
+    if (rich && (!card.name || !rich.name || printedNamesMatch(card.name, rich.name))) {
+      if (rich.hp || rich.attacks?.length || rich.abilities?.length || rich.text) {
+        return mergeLookup(card, {
+          id: rich.id,
+          name: rich.name,
+          set: rich.set,
+          number: rich.number,
+          image: rich.image,
+          type: rich.type,
+          hp: rich.hp,
+          text: rich.text,
+          attacks: rich.attacks,
+          abilities: rich.abilities,
+          regulation: rich.regulation,
+        });
+      }
+    }
+    if (card.name && card.name.trim().length >= 2) {
+      try {
+        const searched = await searchLookupCards(card.name, false);
+        const number = String(card.number ?? "")
+          .replace(/^0+/, "")
+          .toLowerCase();
+        const setNeedle = String(card.set ?? "").trim().toLowerCase();
+        const named = searched.filter((row) => printedNamesMatch(row.name, card.name));
+        const picked =
+          named.find(
+            (row) =>
+              (!number || String(row.number ?? "").replace(/^0+/, "").toLowerCase() === number) &&
+              (!setNeedle ||
+                String(row.set ?? "").toLowerCase().includes(setNeedle) ||
+                String(row.id ?? "").toLowerCase().startsWith(`${setNeedle}-`)),
+          ) ??
+          named.find(
+            (row) => !number || String(row.number ?? "").replace(/^0+/, "").toLowerCase() === number,
+          ) ??
+          named[0] ??
+          fetched;
+        if (picked) return mergeLookup(card, picked);
+      } catch {
+        /* catalog id path already tried */
+      }
+    }
+    return fetched ? mergeLookup(card, fetched) : null;
+  })();
+  lookupMemo.set(key, pending);
+  void pending.then((row) => {
+    if (!row?.hp && !row?.attacks?.length && !row?.abilities?.length && !row?.text) {
+      lookupMemo.delete(key);
+    }
+  });
+  return pending;
 }
 
 async function fetchPtcgProxy(url: string, label: string): Promise<unknown> {

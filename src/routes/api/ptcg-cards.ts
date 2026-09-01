@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { catalogCard, isStandardLegal, loadCatalog, resolveCatalogCard, searchCatalog, type PtcgCatalogCard } from "@/lib/ptcg-catalog";
+import { printedNamesMatch } from "@/lib/decklist";
 import { matchDeckLines } from "@/lib/ptcg-deck-match";
 import {
   allowedLimitlessUrl,
@@ -93,9 +94,11 @@ export const Route = createFileRoute("/api/ptcg-cards")({
           return Response.json({ error: "Missing query" }, { status: 400, headers: noStore });
         }
 
-        const resolved =
-          (id ? await catalogCard(id) : null) ??
-          (name || id ? await resolveCatalogCard({ id, name: name || undefined, number, set }) : null);
+        let resolved = id ? await catalogCard(id) : null;
+        if (resolved && name && resolved.name && !printedNamesMatch(resolved.name, name)) resolved = null;
+        if (!resolved && (name || id)) {
+          resolved = await resolveCatalogCard({ id, name: name || undefined, number, set });
+        }
         if (resolved) return json(JSON.stringify({ data: resolved }), 200);
         if (q) {
           const local = await searchCatalog(q, live);

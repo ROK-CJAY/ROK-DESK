@@ -233,7 +233,7 @@ export async function resolveCatalogCard(opts: {
   await loadCatalog();
   if (opts.id) {
     const hit = cardFromIndex(opts.id);
-    if (hit) return hit;
+    if (hit && (!opts.name || foldName(hit.name) === foldName(opts.name))) return hit;
   }
   const name = foldName(opts.name ?? "");
   if (!name) return null;

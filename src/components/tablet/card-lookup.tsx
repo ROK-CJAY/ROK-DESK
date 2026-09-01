@@ -2,13 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
-  fetchCatalogCard,
   fetchScryfallCard,
   fetchSwuCard,
   fetchYgoCard,
   fetchOpCard,
   fetchRiftCard,
   fetchLorcanaCard,
+  resolveLookupCard,
   scryfallLegalFor,
   searchLookupCards,
   searchScryfallCards,
@@ -206,7 +206,7 @@ export function CardLookup({
         return (await res.json()) as { cards?: DeckCard[] };
       })
       .then((data) => {
-        if (cancelled || !data?.cards?.length) return;
+        if (!data?.cards?.length) return;
         const next: Record<string, DeckCard> = {};
         let offset = 0;
         lists.forEach((list, playerIndex) => {
@@ -222,6 +222,7 @@ export function CardLookup({
           });
         });
         if (!Object.keys(next).length) return;
+        if (cancelled) return;
         setHydratedLists((current) => ({ ...current, ...next }));
         setSelected((current) => {
           if (!current) return current;
@@ -330,8 +331,7 @@ export function CardLookup({
   const setActive = (card: LookupCard, side: "p1" | "p2") => {
     const live = useDeskStore.getState().desk.ptcgBoard;
     patch({ ptcgBoard: { ...live, [side]: { ...live[side], active: monFromLookup(card) } } });
-    if (card.hp && (card.attacks?.length || card.abilities?.length)) return;
-    void hydratePtcgFromCatalog(card).then((detail) => {
+    void resolveLookupCard(card).then((detail) => {
       if (detail) fillBoardFromCatalog(card, detail);
     });
   };
@@ -339,8 +339,7 @@ export function CardLookup({
   const setBench = (card: LookupCard, side: "p1" | "p2") => {
     const live = useDeskStore.getState().desk.ptcgBoard;
     patch({ ptcgBoard: { ...live, [side]: addToBench(live[side], monFromLookup(card)) } });
-    if (card.hp && (card.attacks?.length || card.abilities?.length)) return;
-    void hydratePtcgFromCatalog(card).then((detail) => {
+    void resolveLookupCard(card).then((detail) => {
       if (detail) fillBoardFromCatalog(card, detail);
     });
   };
@@ -349,10 +348,10 @@ export function CardLookup({
     const rich = hydratedLists[card.id] ? lookupFromDeck(hydratedLists[card.id]!) : card;
     setSelected(rich);
     if (catalog === "ptcg") {
-      const ready = Boolean(rich.hp || rich.attacks?.length || rich.abilities?.length || rich.text);
-      if (ready) fillBoardFromCatalog(card, rich);
-      if (ready) return;
-      void hydratePtcgFromCatalog(rich).then((detail) => {
+      if (rich.hp || rich.attacks?.length || rich.abilities?.length || rich.text) {
+        fillBoardFromCatalog(card, rich);
+      }
+      void resolveLookupCard(rich).then((detail) => {
         if (!detail) return;
         setSelected((current) =>
           current?.id === card.id || current?.id === rich.id || current?.name === card.name
@@ -360,6 +359,7 @@ export function CardLookup({
                 ...current,
                 ...detail,
                 id: current.id,
+                name: current.name,
                 image: detail.image || current.image,
                 set: current.set || detail.set,
                 number: current.number || detail.number,
@@ -847,11 +847,6 @@ function MatchDeckStrip({
   );
 }
 
-function hydratePtcgFromCatalog(card: LookupCard): Promise<LookupCard | null> {
-  if (!card.id && !card.name) return Promise.resolve(null);
-  return fetchCatalogCard(card.id, { name: card.name, number: card.number, set: card.set });
-}
-
 function fillBoardFromCatalog(card: LookupCard, detail: LookupCard) {
   const live = useDeskStore.getState().desk.ptcgBoard;
   if (!live) return;
@@ -996,19 +991,47 @@ function CardDetail({
   onBenchP1?: () => void;
   onBenchP2?: () => void;
 }) {
+  const [extra, setExtra] = useState<LookupCard | null>(null);
+  useEffect(() => {
+    setExtra(null);
+    if (!ptcg) return;
+    let cancelled = false;
+    void resolveLookupCard(card).then((detail) => {
+      if (cancelled || !detail) return;
+      setExtra(detail);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [ptcg, card.id, card.name, card.number, card.set]);
+  const shown: LookupCard = extra
+    ? {
+        ...card,
+        ...extra,
+        id: card.id,
+        name: card.name,
+        image: extra.image || card.image,
+        set: card.set || extra.set,
+        number: card.number || extra.number,
+        hp: extra.hp || card.hp,
+        text: extra.text || card.text,
+        attacks: extra.attacks?.length ? extra.attacks : card.attacks,
+        abilities: extra.abilities?.length ? extra.abilities : card.abilities,
+      }
+    : card;
   return (
     <article className="mt-3 grid gap-3 rounded-lg bg-surface-2 p-3 sm:grid-cols-[8.5rem_1fr]">
-      {card.image || card.id ? (
-        <RemoteArt image={card.image} id={card.id} className="mx-auto w-32 rounded-md object-contain" eager />
+      {shown.image || shown.id ? (
+        <RemoteArt image={shown.image} id={shown.id} className="mx-auto w-32 rounded-md object-contain" eager />
       ) : (
         <div className="grid h-40 place-items-center rounded-md bg-surface text-xs text-muted">No art</div>
       )}
       <div className="min-w-0">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h3 className="font-display text-xl font-semibold uppercase">{card.name}</h3>
+            <h3 className="font-display text-xl font-semibold uppercase">{shown.name}</h3>
             <p className="text-xs text-muted">
-              {[card.mana, card.set, card.number, card.rarity, card.stage || card.trainerType || card.category, card.type, card.regulation ? `Reg ${card.regulation}` : "", card.hp ? `${card.hp} HP` : ""]
+              {[shown.mana, shown.set, shown.number, shown.rarity, shown.stage || shown.trainerType || shown.category, shown.type, shown.regulation ? `Reg ${shown.regulation}` : "", shown.hp ? `${shown.hp} HP` : ""]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
@@ -1076,14 +1099,14 @@ function CardDetail({
             <Button type="button" variant="outline" size="sm" onClick={onBenchP2}>P2 bench</Button>
           </div>
         ) : null}
-        {card.abilities?.map((ability) => (
+        {shown.abilities?.map((ability) => (
           <p key={ability.name} className="mt-2 text-sm leading-relaxed">
             <span className="text-muted">Ability · </span>
             <span className="font-medium">{ability.name}. </span>
             {ability.text}
           </p>
         ))}
-        {card.attacks?.map((attack) => (
+        {shown.attacks?.map((attack) => (
           <p key={attack.name} className="mt-2 text-sm leading-relaxed">
             <span className="font-medium">{attack.name}</span>
             {attack.cost?.length ? <span className="text-muted"> · {attack.cost.join(" ")}</span> : null}
@@ -1091,7 +1114,7 @@ function CardDetail({
             {attack.text ? <span className="mt-0.5 block text-muted">{attack.text}</span> : null}
           </p>
         ))}
-        {card.text ? <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-fg">{card.text}</p> : null}
+        {shown.text ? <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-fg">{shown.text}</p> : null}
       </div>
     </article>
   );
