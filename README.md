@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.8-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.9-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -327,7 +327,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.2.8-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.8-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
+1. Download **v1.2.9-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.9-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -378,7 +378,7 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
-### Unreleased (on `main`, not tagged)
+### v1.2.9-beta — 2 Sep 2026 · Play! Pokémon age divisions, TOM, PTCG lookup
 
 **Added**
 - **Play! Pokémon age divisions** — PTCG and VGC each run Masters, Seniors, and Juniors as three events on one host (own roster, kiosk, Stream / Floor 1 / Floor 2, overlays, TOM watch). Kiosks: `/ptcg/signup`, `/ptcg-seniors/signup`, `/ptcg-juniors/signup`, `/vgc/signup`, `/vgc-seniors/signup`, `/vgc-juniors/signup`
@@ -395,6 +395,9 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 - PTCG lookup uses the local catalog, then pokemontcg.io, then TCGdex as a last backup
 - PTCG import keeps the pasted **name** when the number is wrong (`Charmander PAF 26` → Charmander, not Xatu). Shared lists still match set + number
 - PTCG sign-up / Limitless art uses printed set folders (`PBL`, `JTG`, `MEG`) instead of pokemontcg.io ids that 403 (`ME5`, `SV9`). Art proxy races PNG/WebP and sniffs the bytes. Sign-up falls back across CDNs like overlays
+- Submitted PTCG lists stay on that title — they no longer fill Yu-Gi-Oh, MTG, Lorcana, or other card lookups
+- Masters lists stay on Masters. Seniors / Juniors tablets only show that division
+- Lorcana **player tablet extended** keeps P1 / P2 seats on smaller tablets (clock sits on one row)
 
 ### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
 
@@ -594,4 +597,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.8-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.9-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

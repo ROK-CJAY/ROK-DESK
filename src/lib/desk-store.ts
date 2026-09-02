@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { emptyDecklist } from "@/lib/decklist";
 import {
   defaultDesk,
   parseDesk,
@@ -386,6 +387,9 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       down: normalizeDown([]),
     };
     const seats = withSeats(prev, { ...resources, score: 0 });
+    for (const seat of ["p1", "p2", "p3", "p4"] as const) {
+      if (seats[seat]) seats[seat] = { ...seats[seat]!, decklist: emptyDecklist() };
+    }
     const desk = nextVersion(prev, {
       gameId,
       matchSlot: nextSlot,

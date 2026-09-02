@@ -31,12 +31,13 @@ import {
   visibleCardStack,
   type SeatId,
 } from "@/lib/desk-types";
-import { lookupFromDeck, filterDecklist, hasSavedDecklist, applyHydratedList, printedNamesMatch, type DeckCard } from "@/lib/decklist";
+import { lookupFromDeck, filterDecklist, hasSavedDecklist, applyHydratedList, printedNamesMatch, decklistForCatalog, type DeckCard } from "@/lib/decklist";
 import { addToBench, monFromLookup, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
-import { liveMatchForSlot } from "@/lib/caster-path";
-import { entrantById, matchEntrantIds, type TournamentState } from "@/lib/tournament-types";
+import { liveMatchForSlot, withDivisionDecklists } from "@/lib/caster-path";
+import { isPtcgTitle } from "@/lib/games";
+import { entrantById, matchEntrantIds } from "@/lib/tournament-types";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { Button } from "@/components/ui/button";
 import { RemoteArt } from "@/components/ui/remote-art";
@@ -63,6 +64,7 @@ export function CardLookup({
   const p4 = useDeskStore((s) => s.desk.p4);
   const tableSize = useDeskStore((s) => s.desk.tableSize);
   const matchSlot = useDeskStore((s) => s.desk.matchSlot);
+  const gameId = useDeskStore((s) => s.desk.gameId);
   const tournament = useTournamentStore((s) => s.tournament);
   const hydrateTournament = useTournamentStore((s) => s.hydrate);
   const tournamentReady = useTournamentStore((s) => s.ready);
@@ -99,11 +101,18 @@ export function CardLookup({
   const op = catalog === "op";
   const rift = catalog === "rift";
   const lorcana = catalog === "lorcana";
-  const rawMatchPlayers = withLiveDecklists(
-    [p1, p2, p3, p4].slice(0, Math.max(2, tableSize)),
-    tournament,
-    matchSlot,
-  );
+  const rawMatchPlayers =
+    catalog === "ptcg"
+      ? withDivisionDecklists(
+          [p1, p2, p3, p4].slice(0, Math.max(2, tableSize)),
+          tournament,
+          gameId,
+          matchSlot,
+        )
+      : [p1, p2, p3, p4].slice(0, Math.max(2, tableSize)).map((player) => ({
+          ...player,
+          decklist: decklistForCatalog(player.decklist, catalog),
+        }));
   const matchPlayers = rawMatchPlayers.map((player) => ({
     ...player,
     decklist: (player.decklist ?? []).map((card) => hydratedLists[card.id] ?? card),
@@ -491,6 +500,7 @@ export function CardLookup({
           onClear={() => patch(clearSpotlight())}
         />
       ) : null}
+      {catalog === "ptcg" || hasMatchDeck ? (
       <MatchDeckStrip
         players={{
           p1: matchPlayers[0] ?? p1,
@@ -512,6 +522,7 @@ export function CardLookup({
         layerLabel={stack.length >= CARD_STACK_MAX ? "Full" : stack.length ? "Layer" : "Show"}
         layerDisabled={stack.length >= CARD_STACK_MAX}
       />
+      ) : null}
       {selected ? (
         <CardDetail
           card={selected}
@@ -893,10 +904,11 @@ function persistPlayerDeck(index: number, next: DeckCard[]) {
         ),
     );
   const desk = useDeskStore.getState();
-  const current = desk.desk[side].decklist ?? [];
-  if (current.length && !same(current)) desk.setPlayer(side, { decklist: next });
-
+  if (!isPtcgTitle(desk.desk.gameId)) return;
   const tournament = useTournamentStore.getState();
+  if (tournament.tournament.gameId !== desk.desk.gameId) return;
+  const current = desk.desk[side].decklist ?? [];
+  if (!same(current)) desk.setPlayer(side, { decklist: next });
   const live = liveMatchForSlot(tournament.tournament, desk.desk.matchSlot);
   if (!live) return;
   const id = matchEntrantIds(live)[index];
@@ -917,21 +929,6 @@ function matchDeckHits(players: { decklist?: DeckCard[] }[], query: string) {
     }
   }
   return out;
-}
-
-function withLiveDecklists<T extends { name: string; decklist?: DeckCard[] }>(
-  players: T[],
-  tournament: TournamentState,
-  slot: 1 | 2 | 3,
-): T[] {
-  if (hasSavedDecklist(players)) return players;
-  const live = liveMatchForSlot(tournament, slot);
-  if (!live) return players;
-  const ids = matchEntrantIds(live);
-  return players.map((player, i) => {
-    const list = ids[i] ? (entrantById(tournament, ids[i])?.decklist ?? []) : [];
-    return list.length ? { ...player, decklist: list } : player;
-  });
 }
 
 function FilterChip({

@@ -3,10 +3,14 @@ import { test } from "node:test";
 import {
   applyHydratedList,
   deckCardsKeepOrder,
+  decklistForCatalog,
+  isPtcgDeckCard,
   mergeDecklist,
   printedNamesMatch,
 } from "../src/lib/decklist.ts";
 import { hydrateDeckCards } from "../src/lib/ptcg-deck-import.ts";
+import { withDivisionDecklists } from "../src/lib/caster-path.ts";
+import { blankEntrant, defaultTournament } from "../src/lib/tournament-types.ts";
 
 const p1 = [
   { id: "paf-26", name: "Xatu", set: "PAF", number: "26", image: "", type: "Pokémon", qty: 4 },
@@ -75,4 +79,52 @@ test("hydrateDeckCards is 1:1 and keeps P2 Pokémon", async () => {
   assert.equal(p2out[0]?.hp, "170");
   assert.equal(p2out[0]?.id, "brs-40");
   assert.equal(p2out[2]?.name, "Basic Lightning Energy");
+});
+
+test("PTCG submitted cards stay off other-game lookups", () => {
+  const ptcg = { id: "twm-129", name: "Drakloak", set: "TWM", number: "129", image: "https://images.pokemontcg.io/sv6/129.png", type: "Pokémon", qty: 4 };
+  const ygo = { id: "14558127", name: "Ash Blossom", set: "", number: "", image: "", type: "Monster", qty: 3 };
+  assert.equal(isPtcgDeckCard(ptcg), true);
+  assert.equal(isPtcgDeckCard(ygo), false);
+  const mixed = [ptcg, ygo];
+  assert.equal(decklistForCatalog(mixed, "ptcg").length, 2);
+  assert.deepEqual(decklistForCatalog(mixed, "ygo").map((c) => c.name), ["Ash Blossom"]);
+  assert.deepEqual(decklistForCatalog(mixed, "mtg").map((c) => c.name), ["Ash Blossom"]);
+  assert.equal(decklistForCatalog([ptcg], "lorcana").length, 0);
+});
+
+test("Masters lists do not appear on Seniors or Juniors lookup", () => {
+  const card = { id: "twm-129", name: "Drakloak", set: "TWM", number: "129", image: "", type: "Pokémon", qty: 4 };
+  const t = defaultTournament();
+  t.entrants = [blankEntrant({ id: "m1", name: "CJ Masters", decklist: [card] })];
+  t.matches = [
+    {
+      id: "match-1",
+      round: 1,
+      position: 1,
+      side: "swiss",
+      p1: { entrantId: "m1", score: 0 },
+      p2: { entrantId: null, score: 0 },
+      p3: { entrantId: null, score: 0 },
+      p4: { entrantId: null, score: 0 },
+      winnerId: null,
+      nextWinnerMatchId: null,
+      nextWinnerSlot: null,
+      nextLoserMatchId: null,
+      nextLoserSlot: null,
+      label: "R1",
+    },
+  ];
+  t.streamMatchId = "match-1";
+  const sitting = [
+    { name: "CJ Masters", decklist: [card] },
+    { name: "P2", decklist: [card] },
+  ];
+  const masters = withDivisionDecklists(sitting, t, "pokemon-tcg", 1);
+  assert.equal(masters[0]?.decklist?.[0]?.name, "Drakloak");
+  const seniors = withDivisionDecklists(sitting, t, "pokemon-tcg-seniors", 1);
+  assert.equal(seniors[0]?.decklist?.length ?? 0, 0);
+  assert.equal(seniors[1]?.decklist?.length ?? 0, 0);
+  const juniors = withDivisionDecklists(sitting, t, "pokemon-tcg-juniors", 1);
+  assert.equal(juniors[0]?.decklist?.length ?? 0, 0);
 });

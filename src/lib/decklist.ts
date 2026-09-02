@@ -250,3 +250,20 @@ export function filterDecklist(list: DeckCard[] | undefined, query: string): Dec
 export function hasSavedDecklist(players: { decklist?: DeckCard[] }[]): boolean {
   return players.some((player) => (player.decklist ?? []).length > 0);
 }
+
+/** PTCG prints (sv6-129, TWM, Limitless art). Used to keep those lists off other games. */
+export function isPtcgDeckCard(card: DeckCard): boolean {
+  const id = String(card.id ?? "").trim();
+  if (/^[a-z0-9.]+-\d+[a-z0-9]*$/i.test(id)) return true;
+  const image = String(card.image ?? "");
+  if (/tcgdex\.net|pokemontcg\.io|scrydex\.com|pokemon\.com\/static-assets|limitlesstcg/i.test(image)) return true;
+  const set = String(card.set ?? "").trim();
+  if (set && /^[A-Z]{3,5}$/.test(set) && /\d/.test(String(card.number ?? ""))) return true;
+  return false;
+}
+
+export function decklistForCatalog(list: DeckCard[] | undefined, catalog: string): DeckCard[] {
+  const rows = list ?? [];
+  if (catalog === "ptcg") return rows;
+  return rows.filter((card) => !isPtcgDeckCard(card));
+}

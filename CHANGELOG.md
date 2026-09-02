@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.2.9-beta — 2026-09-02
+
+Play! Pokémon age divisions. Official PDFs. TOM companion. PTCG lookup stays on the right game and age division.
+
 ### Added
 
 - **Official Play! Pokémon PDFs** — PTCG and VGC roster printers keep the in-app sheets and add **Official PDF**, which fills the published Play! Pokémon deck list / VGC team list from sign-up data. Age division follows the event (Masters / Seniors / Juniors). Form templates are bundled with the app so filling does not depend on `public/` files on disk.
@@ -39,6 +43,9 @@ Not tagged. Use the build on `main` until the next beta.
 - PTCG Limitless import — a stalled import no longer shows a raw JSON / `<!DOCTYPE` error; unmatched cards skip the slow TCGdex wait and resolve in parallel. Trainer pages such as Night Stretcher and Lana's Aid keep **Trainer**. HTML names decode (`Lana&#039;s Aid` → Lana's Aid).
 - PTCG card lookup no longer depends on TCGdex (currently down). Search goes catalog → pokemontcg.io (HTTP/1.1, retries, short cache) → TCGdex as a last backup. Art tries pokemontcg.io / Pokémon.com first, then TCGdex, and times out dead CDNs instead of hanging.
 - PTCG deck import no longer substitutes a random Energy, an old `N` printing, Temporal Forces, or Xatu/Ralts/Miriam when the paste has a name plus a mismatched number. Shared Limitless lists (`3xi:PBL~39`) match that set and number, or they stay unmatched.
+- **PTCG list isolation** — submitted PTCG decks stay on that title. Yu-Gi-Oh, MTG, Lorcana, and other tablets no longer show those lists in card lookup.
+- **Age-division lists** — Seniors and Juniors tablets only show that division's submitted decks. Switching PTCG → Seniors / Juniors starts with empty seats.
+- **Lorcana player tablet (extended)** — on smaller tablets, P1 and P2 seats stay visible under the clock and card lookup.
 
 ## v1.2.8-beta — 2026-08-28
 

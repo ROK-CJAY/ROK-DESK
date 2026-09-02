@@ -4,11 +4,14 @@ import {
   entrantById,
   matchById,
   matchEntrantIds,
+  viewTournament,
   type BracketMatch,
   type Entrant,
   type SlotId,
   type TournamentState,
 } from "@/lib/tournament-types";
+import type { GameId } from "@/lib/games";
+import type { DeckCard } from "@/lib/decklist";
 import type { PlayerSide, SeatId } from "@/lib/desk-types";
 
 export type CasterPlayed = {
@@ -39,6 +42,30 @@ export type HeadToHead = {
 export function liveMatchForSlot(t: TournamentState, slot: 1 | 2 | 3): BracketMatch | null {
   const id = slot === 2 ? t.streamMatchId2 : slot === 3 ? t.streamMatchId3 : t.streamMatchId;
   return matchById(t, id);
+}
+
+/** Submitted lists for this title only (Masters vs Seniors vs Juniors stay separate). */
+export function withDivisionDecklists<T extends { name: string; decklist?: DeckCard[] }>(
+  players: T[],
+  tournament: TournamentState,
+  deskGameId: GameId,
+  slot: 1 | 2 | 3,
+): T[] {
+  const book = viewTournament(tournament, deskGameId);
+  const live = liveMatchForSlot(book, slot);
+  if (live) {
+    const ids = matchEntrantIds(live);
+    return players.map((player, i) => {
+      const list = ids[i] ? (entrantById(book, ids[i])?.decklist ?? []) : [];
+      return { ...player, decklist: list };
+    });
+  }
+  return players.map((player) => {
+    const name = player.name.trim().toLowerCase();
+    if (!name) return { ...player, decklist: [] };
+    const hit = book.entrants.find((row) => row.name.trim().toLowerCase() === name);
+    return { ...player, decklist: hit?.decklist?.length ? hit.decklist : [] };
+  });
 }
 
 export function headToHeadFor(

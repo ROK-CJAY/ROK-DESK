@@ -1,11 +1,6 @@
 import { RotateCcw, Trash2 } from "lucide-react";
 import { useDeskStore } from "@/lib/desk-store";
-import {
-  blankPlayer,
-  formatClock,
-  remainingSeconds,
-  type SideId,
-} from "@/lib/desk-types";
+import { blankPlayer, type SideId } from "@/lib/desk-types";
 import { gameDiamonds } from "@/lib/lorcana";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { InkPicker } from "@/components/desk/ink-picker";
@@ -15,7 +10,6 @@ import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/ta
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
-import { useClockNow } from "@/lib/use-clock-now";
 
 export function LorcanaPlayerExtendedTablet() {
   const desk = useDeskStore((s) => s.desk);
@@ -23,8 +17,6 @@ export function LorcanaPlayerExtendedTablet() {
   const resetMatch = useDeskStore((s) => s.resetMatch);
   const resetInfo = useDeskStore((s) => s.resetInfo);
   const guide = useTabletGuide("lorcana-player-extended");
-  const now = useClockNow({ live: desk.timerRunning, pauseWhenHidden: true });
-  const clock = formatClock(remainingSeconds(desk, now));
 
   const clearTable = () => {
     if (!window.confirm("Clear both seats — names, inks, lore, games, and cards on stream?")) return;
@@ -32,20 +24,22 @@ export function LorcanaPlayerExtendedTablet() {
   };
 
   return (
-    <div className="flex h-dvh flex-col bg-bg text-fg" data-game="lorcana">
-      <header className="shrink-0 border-b border-border px-3 py-2 sm:px-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
+    <div
+      className="grid h-dvh grid-rows-[auto_minmax(11rem,1fr)_minmax(8rem,28vh)] bg-bg text-fg"
+      data-game="lorcana"
+    >
+      <header className="min-h-0 shrink-0 border-b border-border px-2 py-1.5 sm:px-3">
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
           <div className="min-w-0">
             <p className="font-mono text-[0.58rem] tracking-[0.2em] text-muted uppercase">
               ROK · Player tablet extended
             </p>
-            <p className="truncate font-display text-lg leading-tight font-semibold uppercase">
+            <p className="truncate font-display text-base leading-tight font-semibold uppercase sm:text-lg">
               {desk.eventName || "Self-run table"}
-              <span className="text-muted"> · {desk.roundName}</span>
+              {desk.roundName ? <span className="text-muted"> · {desk.roundName}</span> : null}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <p className="font-display mr-1 text-2xl font-semibold tabular-nums">{clock}</p>
             <Button variant="outline" size="sm" onClick={resetGame}>
               <RotateCcw className="size-3.5" />
               Reset game
@@ -60,17 +54,17 @@ export function LorcanaPlayerExtendedTablet() {
             <GuideButton onClick={guide.openGuide} />
           </div>
         </div>
-        <div className="mt-2">
+        <div className="mt-1.5">
           <RoundClock compact />
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-2 overflow-hidden">
+      <div className="grid min-h-0 grid-cols-2 overflow-hidden">
         <PlayerDesk side="p2" />
         <PlayerDesk side="p1" />
       </div>
 
-      <div className="max-h-[32vh] shrink-0 overflow-auto border-t border-border p-2 sm:p-3">
+      <div className="min-h-0 overflow-auto border-t border-border p-2 sm:p-3">
         <CardLookup catalog="lorcana" formatName={desk.formatName} compact />
       </div>
       <TabletGuide kind="lorcana-player-extended" open={guide.open} onClose={guide.close} />
@@ -109,13 +103,13 @@ function PlayerDesk({ side }: { side: SideId }) {
   };
 
   return (
-    <section className={cn("flex min-h-0 flex-col overflow-auto bg-surface p-3", side === "p1" ? "border-l border-border" : "")}>
+    <section className={cn("flex min-h-0 flex-col overflow-auto bg-surface p-2 sm:p-3", side === "p1" ? "border-l border-border" : "")}>
       <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">{label}</p>
       <Input
         value={player.name}
         onChange={(e) => setPlayer(side, { name: e.target.value })}
         placeholder="Name on stream"
-        className="mt-1.5 h-11 font-display text-lg font-semibold uppercase"
+        className="mt-1.5 h-9 font-display text-base font-semibold uppercase sm:h-11 sm:text-lg"
         autoComplete="name"
         aria-label={`${label} name`}
       />
@@ -194,7 +188,7 @@ function PlayerDesk({ side }: { side: SideId }) {
         </div>
         <p
           className="font-display min-w-0 flex-1 text-center leading-none font-semibold tabular-nums text-fg"
-          style={{ fontSize: "clamp(4.2rem, 12vw, 8rem)" }}
+          style={{ fontSize: "clamp(2.6rem, 9vw, 7rem)" }}
         >
           {lore}
         </p>
