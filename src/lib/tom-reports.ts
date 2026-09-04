@@ -299,13 +299,14 @@ function parseRoster(html: string, eventName = "", titles?: Set<string>): TomPla
   for (const table of extractTables(html)) {
     const start = hasHeader(table.rows[0], ["name", "player", "id", "division"]) ? 1 : 0;
     const headers = start === 1 ? table.rows[0].map((c) => c.toLowerCase()) : [];
+    const section = parseDivision(table.heading || table.caption);
     for (const row of table.rows.slice(start)) {
       if (row.length < 2) continue;
       if (row.some((c) => /^vs$/i.test(c.trim()))) continue;
       const rawName = cellBy(row, headers, ["name", "player", "first"]) || guessName(row);
       const parsed = splitNameId(rawName);
       const playerId = digits(cellBy(row, headers, ["id", "player id", "playerid"]) || parsed.playerId || guessId(row));
-      const division = parsed.division || parseDivision(cellBy(row, headers, ["division", "age"]) || row[2] || "");
+      const division = parsed.division || parseDivision(cellBy(row, headers, ["division", "age"]) || row[2] || "") || section;
       if (!parsed.name && !playerId) continue;
       if (isHeaderName(parsed.name) || isJunkTomPlayerName(parsed.name, eventName, titles)) continue;
       players.push({ name: parsed.name, playerId, division });
@@ -316,7 +317,12 @@ function parseRoster(html: string, eventName = "", titles?: Set<string>): TomPla
 
 function parseStandings(html: string, eventName = "", titles?: Set<string>): TomPlayer[] {
   const players: TomPlayer[] = [];
-  for (const table of extractTables(html)) {
+  const tables = extractTables(html);
+  const hasDivisions = tables.some((table) => parseDivision(table.heading || table.caption));
+  for (const table of tables) {
+    const heading = table.heading || table.caption;
+    if (hasDivisions && isCombinedTomSection(heading)) continue;
+    const section = parseDivision(heading);
     const start = hasHeader(table.rows[0], ["standing", "name", "record", "points"]) ? 1 : 0;
     for (const row of table.rows.slice(start)) {
       if (row.length < 5) continue;
@@ -331,7 +337,7 @@ function parseStandings(html: string, eventName = "", titles?: Set<string>): Tom
       players.push({
         name: parsed.name,
         playerId: parsed.playerId,
-        division: parsed.division || parseDivision(table.caption),
+        division: parsed.division || section,
         dropped: drop > 0,
         standing,
         recordW: record.w,
@@ -355,6 +361,7 @@ function parsePairings(
   const pairings: TomPairing[] = [];
   const seen = new Set<number>();
   for (const table of extractTables(html)) {
+    const section = parseDivision(table.heading || table.caption);
     const start = hasHeader(table.rows[0], ["table", "player", "vs"]) ? 1 : 0;
     for (const row of table.rows.slice(start)) {
       if (row.length < 2) continue;
@@ -370,8 +377,8 @@ function parsePairings(
       seen.add(tableNo);
       pairings.push({
         table: tableNo,
-        p1: { name: p1.name, playerId: p1.playerId, division: p1.division },
-        p2: bye ? null : { name: p2.name, playerId: p2.playerId, division: p2.division },
+        p1: { name: p1.name, playerId: p1.playerId, division: p1.division || section },
+        p2: bye ? null : { name: p2.name, playerId: p2.playerId, division: p2.division || section },
         bye,
       });
     }
@@ -380,13 +387,16 @@ function parsePairings(
   return { pairings, currentRound: rounds.currentRound, roundLabel: rounds.label };
 }
 
-function extractTables(html: string): { caption: string; rows: string[][] }[] {
-  const tables: { caption: string; rows: string[][] }[] = [];
+function extractTables(html: string): { caption: string; heading: string; rows: string[][] }[] {
+  const tables: { caption: string; heading: string; rows: string[][] }[] = [];
   const tableRe = /<table\b[^>]*>([\s\S]*?)<\/table>/gi;
   let match: RegExpExecArray | null;
   while ((match = tableRe.exec(html))) {
     const body = match[1] ?? "";
     const caption = decode(body.match(/<caption\b[^>]*>([\s\S]*?)<\/caption>/i)?.[1] ?? "");
+    const before = html.slice(Math.max(0, match.index - 2500), match.index);
+    const heads = [...before.matchAll(/<h([1-3])\b[^>]*>([\s\S]*?)<\/h\1>/gi)];
+    const heading = decode(heads.at(-1)?.[2] ?? "");
     const rows: string[][] = [];
     const trRe = /<tr\b[^>]*>([\s\S]*?)<\/tr>/gi;
     let tr: RegExpExecArray | null;
@@ -397,7 +407,7 @@ function extractTables(html: string): { caption: string; rows: string[][] }[] {
       while ((td = tdRe.exec(tr[1] ?? ""))) cells.push(decode(td[1] ?? ""));
       if (cells.some(Boolean)) rows.push(cells);
     }
-    if (rows.length) tables.push({ caption, rows });
+    if (rows.length) tables.push({ caption, heading, rows });
   }
   return tables;
 }
@@ -466,6 +476,56 @@ export function inferTomTitle(
   if (division === "seniors") return "pokemon-tcg-seniors";
   if (division === "juniors") return "pokemon-tcg-juniors";
   return "pokemon-tcg";
+}
+
+export function titleForTomDivision(
+  division: "juniors" | "seniors" | "masters",
+  fallback: Parameters<typeof inferTomTitle>[1],
+  kind: TomGameKind,
+): Parameters<typeof inferTomTitle>[1] {
+  return inferTomTitle(division, fallback, { html: kind === "vg" ? "video game" : kind === "tcg" ? "trading card" : "" });
+}
+
+/** One TOM event can list Masters, Seniors, and Juniors in the same standings file. */
+export function splitTomReportsByDivision(
+  reports: TomReports,
+): { division: "juniors" | "seniors" | "masters"; reports: TomReports }[] {
+  const buckets = {
+    juniors: [] as TomPlayer[],
+    seniors: [] as TomPlayer[],
+    masters: [] as TomPlayer[],
+    other: [] as TomPlayer[],
+  };
+  for (const row of reports.players) {
+    if (row.division === "juniors" || row.division === "seniors" || row.division === "masters") {
+      buckets[row.division].push(row);
+    } else {
+      buckets.other.push(row);
+    }
+  }
+  const present = (["juniors", "seniors", "masters"] as const).filter((d) => buckets[d].length);
+  if (present.length <= 1) {
+    const division = present[0] ?? "masters";
+    return [{ division, reports: { ...reports, players: [...buckets[division], ...buckets.other] } }];
+  }
+  const majority = present.slice().sort((a, b) => buckets[b].length - buckets[a].length)[0]!;
+  buckets[majority].push(...buckets.other);
+  return present.map((division) => {
+    const names = new Set(buckets[division].map((p) => p.name.trim().toLowerCase()));
+    const pairings =
+      division === majority
+        ? reports.pairings
+        : reports.pairings.filter((m) => {
+            const p1 = names.has(m.p1.name.trim().toLowerCase());
+            const p2 = !m.p2 || names.has(m.p2.name.trim().toLowerCase());
+            return p1 && p2;
+          });
+    return { division, reports: { ...reports, players: buckets[division], pairings } };
+  });
+}
+
+function isCombinedTomSection(raw: string): boolean {
+  return /^(all|combined|overall|total)\b/i.test(raw.trim());
 }
 
 function headingTexts(html: string): string[] {

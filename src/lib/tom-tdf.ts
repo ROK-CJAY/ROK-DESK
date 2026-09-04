@@ -44,6 +44,7 @@ export function parseTomTdf(xml: string): TomTdfImport {
     });
   }
   if (!players.length) throw new Error("That TDF has no players.");
+  assignTomTdfDivisions(xml, players);
   return {
     gameId,
     name,
@@ -67,6 +68,24 @@ export function resolveTomTdfGame(file: TomTdfImport, selected: GameId): TomTitl
   if (named) return ptcgGameIdFor(named) as TomTitleId;
   if (isPtcgTitle(selected)) return selected as TomTitleId;
   return "pokemon-tcg";
+}
+
+function assignTomTdfDivisions(xml: string, players: TomPlayer[]): void {
+  const standings = xml.match(/<standings\b[^>]*>([\s\S]*?)<\/standings>/i)?.[1];
+  if (!standings) return;
+  const byId = new Map(players.filter((p) => p.playerId).map((p) => [p.playerId, p]));
+  const podRe = /<pod\b([^>]*)>([\s\S]*?)<\/pod>/gi;
+  let pod: RegExpExecArray | null;
+  while ((pod = podRe.exec(standings))) {
+    const cat = attr(`<x ${pod[1] ?? ""}>`, "category");
+    const division: TomPlayer["division"] = cat === "0" ? "juniors" : cat === "1" ? "seniors" : cat === "2" ? "masters" : "";
+    if (!division) continue;
+    for (const m of (pod[2] ?? "").matchAll(/<player\b([^>]*)\/?>/gi)) {
+      const id = digits(attr(`<x ${m[1] ?? ""}>`, "id") || attr(`<x ${m[1] ?? ""}>`, "userid"));
+      const row = byId.get(id);
+      if (row && !row.division) row.division = division;
+    }
+  }
 }
 
 export function looksLikeTomTdf(name: string, text: string): boolean {

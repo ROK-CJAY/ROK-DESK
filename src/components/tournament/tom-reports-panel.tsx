@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { parseTomFiles, withVgcSampleTrainers, inferTomTitle, detectTomGameKind } from "@/lib/tom-reports";
+import { parseTomFiles, withVgcSampleTrainers, detectTomGameKind, splitTomReportsByDivision, titleForTomDivision } from "@/lib/tom-reports";
 import { isTomTitle, isVgcTitle, playAgeDivisionOf, playDivisionsFor, TOM_TITLE_IDS, tomTitleOf, type TomTitleId } from "@/lib/games";
 import { parseTomTdf, looksLikeTomTdf, resolveTomTdfGame } from "@/lib/tom-tdf";
 import {
@@ -100,25 +100,31 @@ export function TomReportsPanel() {
         setDetail("Those TOM reports are Pokémon GO. Desk only imports Trading Card Game (PTCG) and Video Game (VGC).");
         return;
       }
-      const target = inferTomTitle(reports.eventName, game, { html, players: reports.players });
-      const crossFamily = target.includes("vgc") !== game.includes("vgc");
-      applyTom(isVgcTitle(target) ? withVgcSampleTrainers(reports) : reports, target);
-      if (!crossFamily && target !== tomGameRef.current) setTomGame(target);
+      const slices = splitTomReportsByDivision(reports);
+      const applied: string[] = [];
+      for (const slice of slices) {
+        if (!slice.reports.players.length && !slice.reports.pairings.length) continue;
+        const target = titleForTomDivision(slice.division, game, kind);
+        applyTom(isVgcTitle(target) ? withVgcSampleTrainers(slice.reports) : slice.reports, target);
+        applied.push(
+          `${tomKindLabel(target)} ${slice.reports.players.length} player${slice.reports.players.length === 1 ? "" : "s"}`,
+        );
+      }
+      if (applied.length === 1) {
+        const only = titleForTomDivision(slices[0]!.division, game, kind);
+        const crossFamily = only.includes("vgc") !== game.includes("vgc");
+        if (!crossFamily && only !== tomGameRef.current) setTomGame(only);
+      }
       const tables = reports.pairings.length;
-      const players = reports.players.length;
       setStatus("ok");
       setDetail(
         [
           viaWatch ? "Watch" : null,
           kind === "vg" ? "Video Game" : kind === "tcg" ? "Trading Card Game" : null,
-          tomKindLabel(target),
           reports.eventName || null,
           reports.roundLabel || null,
-          players ? `${players} players` : null,
+          applied.join(" · ") || `${reports.players.length} players`,
           tables ? `${tables} tables` : null,
-          crossFamily
-            ? `PTCG only takes TCG; VGC only takes VG. Open that title to see this roster.`
-            : null,
         ]
           .filter(Boolean)
           .join(" · ") || "Imported",
@@ -141,11 +147,25 @@ export function TomReportsPanel() {
     try {
       if (tdfs[0]) {
         const parsed = parseTomTdf(await tdfs[0].text());
-        const gameId = resolveTomTdfGame(parsed, tomGame);
-        applyTomTdf({ ...parsed, gameId });
-        setTomGame(gameId);
+        const fallback = resolveTomTdfGame(parsed, tomGame);
+        const kind: "tcg" | "vg" | "go" | "unknown" = isVgcTitle(parsed.gameId) ? "vg" : "tcg";
+        const slices = splitTomReportsByDivision({
+          eventName: parsed.name,
+          roundLabel: "",
+          currentRound: 0,
+          totalRounds: 0,
+          players: parsed.players,
+          pairings: [],
+        });
+        const applied: string[] = [];
+        for (const slice of slices) {
+          const gameId = titleForTomDivision(slice.division, fallback, kind);
+          applyTomTdf({ ...parsed, players: slice.reports.players, gameId });
+          applied.push(`${tomKindLabel(gameId)} ${slice.reports.players.length}`);
+        }
+        if (slices.length === 1) setTomGame(titleForTomDivision(slices[0]!.division, fallback, kind));
         setStatus("ok");
-        setDetail(`${tomKindLabel(gameId)} · ${parsed.players.length} players from ${tdfs[0].name}`);
+        setDetail(`${parsed.name} · ${applied.join(" · ")} from ${tdfs[0].name}`);
       }
       if (htmls.length) {
         const rows = await Promise.all(htmls.map(async (file) => ({ name: file.name, html: await file.text() })));

@@ -8,6 +8,8 @@ import {
   isJunkTomPlayerName,
   parseTomFiles,
   sampleTomFiles,
+  splitTomReportsByDivision,
+  titleForTomDivision,
 } from "../src/lib/tom-reports.ts";
 
 test("sample TOM reports still yield eight named players", () => {
@@ -145,4 +147,45 @@ test("TOM Game Type TCG never lands on VGC, VG never lands on PTCG", () => {
     inferTomTitle("Friday Night", "pokemon-tcg", { html: "<p>Video Game</p>" }),
     "pokemon-vgc",
   );
+});
+
+test("TOM standings Senior Division player is not swallowed by Masters", () => {
+  const html = `<html><body class="report">
+<h3>Standings - Round 3/3 </h3>
+<p>Tournament: <b>Worlds VG cup at ROK</b></p>
+<h2>Senior Division</h2>
+<table class="report border">
+<tr><th>Standing</th><th>Name</th><th>Flight</th><th>Drop</th><th>Record</th><th>Points</th><th>Opp%</th><th>OppOpp%</th></tr>
+<tr><td>1</td><td>Brady Walker</td><td>1</td><td></td><td>0/3/0 (0)</td><td>0</td><td>44.44%</td><td>52.78%</td></tr>
+</table>
+<h2>Masters Division</h2>
+<table class="report border">
+<tr><th>Standing</th><th>Name</th><th>Flight</th><th>Drop</th><th>Record</th><th>Points</th><th>Opp%</th><th>OppOpp%</th></tr>
+<tr><td>1</td><td>James Dimarco</td><td>1</td><td></td><td>3/0/0 (9)</td><td>9</td><td>55.56%</td><td>61.11%</td></tr>
+<tr><td>2</td><td>Kevin Guzman</td><td>1</td><td></td><td>2/1/0 (6)</td><td>6</td><td>66.67%</td><td>47.22%</td></tr>
+</table>
+<h2>All</h2>
+<table class="report border">
+<tr><th>Standing</th><th>Name</th><th>Flight</th><th>Drop</th><th>Record</th><th>Points</th><th>Opp%</th><th>OppOpp%</th></tr>
+<tr><td>1</td><td>James Dimarco</td><td>1</td><td></td><td>3/0/0 (9)</td><td>9</td><td>55.56%</td><td>61.11%</td></tr>
+<tr><td>2</td><td>Kevin Guzman</td><td>1</td><td></td><td>2/1/0 (6)</td><td>6</td><td>66.67%</td><td>47.22%</td></tr>
+<tr><td>3</td><td>Brady Walker</td><td>1</td><td></td><td>0/3/0 (0)</td><td>0</td><td>44.44%</td><td>52.78%</td></tr>
+</table>
+</body></html>`;
+  const reports = parseTomFiles([{ name: "standings.html", html }]);
+  const brady = reports.players.find((p) => p.name === "Brady Walker");
+  const james = reports.players.find((p) => p.name === "James Dimarco");
+  assert.equal(brady?.division, "seniors");
+  assert.equal(brady?.standing, 1);
+  assert.equal(james?.division, "masters");
+  const slices = splitTomReportsByDivision(reports);
+  assert.deepEqual(
+    slices.map((s) => [s.division, s.reports.players.map((p) => p.name)]).sort(),
+    [
+      ["masters", ["James Dimarco", "Kevin Guzman"]],
+      ["seniors", ["Brady Walker"]],
+    ].sort(),
+  );
+  assert.equal(titleForTomDivision("seniors", "pokemon-vgc", "vg"), "pokemon-vgc-seniors");
+  assert.equal(titleForTomDivision("masters", "pokemon-vgc", "vg"), "pokemon-vgc");
 });

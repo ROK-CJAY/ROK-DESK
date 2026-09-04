@@ -11,6 +11,7 @@ Not tagged. Use the build on `main` until the next beta.
 ### Fixed
 
 - **TOM Game Type** — PTCG only imports Trading Card Game reports. VGC only imports Video Game. Pokémon GO is skipped. The tournament list tags TCG / VG from the report or TDF `gametype`.
+- **TOM age divisions** — a VG/TCG event with Masters and Seniors in one standings file registers each player on the matching desk. Combined "All" tables no longer hide the Senior.
 
 ## v1.2.11-beta — 2026-09-04
 
