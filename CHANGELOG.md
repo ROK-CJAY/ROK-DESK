@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Fixed
+
+- **TOM reports watch** — pairings that print `Name (W/L/T (pts) - MA)` no longer add a second copy of that player. The event title is not imported as a player. While watching a folder, pick which tournament to pull if more than one report set is in that tree. TOM only writes HTML for the event that is open.
+
 ## v1.2.9-beta — 2026-09-02
 
 Play! Pokémon age divisions. Official PDFs. TOM companion. PTCG lookup stays on the right game and age division.

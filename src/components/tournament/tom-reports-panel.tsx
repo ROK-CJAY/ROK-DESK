@@ -6,14 +6,14 @@ import {
   canWatchTomFolder,
   clearDirectoryHandle,
   ensureDirectoryRead,
-  fingerprintTomReports,
   loadDirectoryHandle,
-  pickTomReportSet,
+  loadReportPick,
   pickTomReportsDirectory,
   queryDirectoryRead,
   readTomReportSet,
-  listTomHtmlFiles,
+  saveReportPick,
   tomWatchIntervalMs,
+  type TomWatchSet,
 } from "@/lib/tom-folder-watch";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { deskForGame, viewTournament } from "@/lib/tournament-types";
@@ -46,6 +46,8 @@ export function TomReportsPanel() {
     emptyTomWatch("off"),
   );
   const [folderNames, setFolderNames] = useState<Record<TomTitleId, string>>(() => emptyTomWatch(""));
+  const [watchSets, setWatchSets] = useState<Record<TomTitleId, TomWatchSet[]>>(() => emptyTomWatch([] as TomWatchSet[]));
+  const [watchPick, setWatchPick] = useState<Record<TomTitleId, string | null>>(() => emptyTomWatch(null));
   const dirRefs = useRef<Partial<Record<TomTitleId, FileSystemDirectoryHandle>>>({});
   const tomGameRef = useRef(tomGame);
   tomGameRef.current = tomGame;
@@ -63,6 +65,13 @@ export function TomReportsPanel() {
   const watchSupported = canWatchTomFolder();
   const watch = watchStatus[tomGame];
   const folderName = folderNames[tomGame];
+  const sets = watchSets[tomGame] ?? [];
+  const selectedDir = watchPick[tomGame];
+
+  const selectWatchSet = (dir: string | null) => {
+    setWatchPick((prev) => ({ ...prev, [tomGame]: dir }));
+    void saveReportPick(dir, tomGame);
+  };
 
   const patchTom = (partial: Partial<typeof t>) => {
     if (t.gameId === tomGame) {
@@ -181,6 +190,9 @@ export function TomReportsPanel() {
         if (!handle || cancelled) continue;
         dirRefs.current[game] = handle;
         setFolderNames((prev) => ({ ...prev, [game]: handle.name }));
+        const savedPick = await loadReportPick(game);
+        if (cancelled) return;
+        setWatchPick((prev) => ({ ...prev, [game]: savedPick }));
         const perm = await queryDirectoryRead(handle);
         if (cancelled) return;
         setWatchStatus((prev) => ({ ...prev, [game]: perm === "granted" ? "on" : "need-gesture" }));
@@ -202,9 +214,13 @@ export function TomReportsPanel() {
         const dir = dirRefs.current[game];
         if (!dir || !alive) continue;
         try {
-          const listed = await listTomHtmlFiles(dir);
-          const picked = pickTomReportSet(listed);
-          const fp = fingerprintTomReports(picked);
+          const deskName = deskForGame(useTournamentStore.getState().tournament, game).name;
+          const { files, fingerprint: fp, sets: found } = await readTomReportSet(dir, {
+            preferDir: watchPick[game],
+            preferName: deskName,
+          });
+          if (!alive) return;
+          setWatchSets((prev) => ({ ...prev, [game]: found }));
           if (!fp) continue;
           if (!last[game]) {
             pending[game] = fp;
@@ -213,8 +229,7 @@ export function TomReportsPanel() {
             continue;
           }
           if (fp === last[game]) continue;
-          const { files } = await readTomReportSet(dir);
-          if (!alive || !files.length) continue;
+          if (!files.length) continue;
           ingest(
             files.map((f) => ({ name: f.name, html: f.html })),
             true,
@@ -235,7 +250,7 @@ export function TomReportsPanel() {
       alive = false;
       window.clearInterval(id);
     };
-  }, [watchStatus]);
+  }, [watchStatus, watchPick]);
 
   if (!isTomTitle(t.gameId)) return null;
 
@@ -249,6 +264,9 @@ export function TomReportsPanel() {
       watchSupported={watchSupported}
       watch={watch}
       folderName={folderName}
+      watchSets={sets}
+      watchDir={selectedDir}
+      onWatchDir={selectWatchSet}
       status={status}
       detail={detail}
       tdfStatus={tdfStatus}

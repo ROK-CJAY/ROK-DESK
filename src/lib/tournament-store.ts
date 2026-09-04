@@ -25,7 +25,7 @@ import { clearLegacyTournament, tournamentLooksLikeTest, toggleTestTournament } 
 import { remainingSeconds } from "@/lib/desk-types";
 import { useDeskStore } from "@/lib/desk-store";
 import { withDeskJudgeNotes } from "@/lib/judge-notes-sync";
-import { applyTomTdf as mergeTomTdf, applyTomToGame } from "@/lib/tom-apply";
+import { applyTomTdf as mergeTomTdf, applyTomToGame, sanitizeTomRoster } from "@/lib/tom-apply";
 import { hasTomSample, isTomSamplePlayer, SAMPLE_EVENT_NAME, type TomReports } from "@/lib/tom-reports";
 import type { TomTdfImport } from "@/lib/tom-tdf";
 
@@ -78,7 +78,7 @@ function startTournamentPoll() {
         if (!res.ok) return;
         const parsed = parseTournament(await res.json());
         if (!parsed) return;
-        const incoming = clearLegacyTournament(parsed);
+        const incoming = sanitizeTomRoster(clearLegacyTournament(parsed));
         const local = useTournamentStore.getState().tournament;
         if (incoming.version > local.version) {
           useTournamentStore.setState({ tournament: incoming });
@@ -110,6 +110,12 @@ function persist(t: TournamentState) {
   }, 160);
 }
 
+function withSanitizedTomRoster(parsed: TournamentState): TournamentState {
+  const base = clearLegacyTournament(parsed);
+  const cleaned = sanitizeTomRoster(base);
+  return cleaned === base ? cleaned : { ...cleaned, version: cleaned.version + 1 };
+}
+
 function nextVersion(t: TournamentState, patch: Partial<TournamentState>): TournamentState {
   const merged = { ...t, ...patch, version: t.version + 1 };
   return {
@@ -131,13 +137,13 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       const res = await fetch("/api/tournament", { cache: "no-store" });
       if (res.ok) {
         const parsed = parseTournament(await res.json());
-        if (parsed) next = clearLegacyTournament(parsed);
+        if (parsed) next = withSanitizedTomRoster(parsed);
       }
     } catch {
       if (typeof window !== "undefined") {
         const raw = window.localStorage.getItem("rok-tournament");
         const parsed = raw ? parseTournament(raw) : null;
-        if (parsed) next = clearLegacyTournament(parsed);
+        if (parsed) next = withSanitizedTomRoster(parsed);
       }
     }
     set({ tournament: next, ready: true });

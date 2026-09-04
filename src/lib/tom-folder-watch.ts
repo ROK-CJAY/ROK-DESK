@@ -1,6 +1,7 @@
 const DB_NAME = "rok-desk-tom";
 const STORE = "handles";
 const HANDLE_KEY = "reports-dir";
+const PICK_KEY = "reports-pick";
 const POLL_MS = 2500;
 const MAX_DEPTH = 5;
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -13,6 +14,15 @@ export type TomWatchFile = {
 };
 
 export type TomWatchRead = TomWatchFile & { html: string };
+
+export type TomWatchSet = {
+  dir: string;
+  label: string;
+  eventName: string;
+  roundLabel: string;
+  newest: number;
+  files: TomWatchFile[];
+};
 
 type FsDir = FileSystemDirectoryHandle & {
   entries?: () => AsyncIterableIterator<[string, FileSystemHandle]>;
@@ -42,33 +52,75 @@ export function fingerprintTomReports(files: { path: string; lastModified: numbe
     .join("|");
 }
 
-export function pickTomReportSet(files: TomWatchFile[]): TomWatchFile[] {
-  if (!files.length) return [];
+export function reportDirOf(path: string): string {
+  const slash = path.lastIndexOf("/");
+  return slash === -1 ? "" : path.slice(0, slash);
+}
+
+export function listTomReportSets(files: TomWatchFile[]): TomWatchSet[] {
   const groups = new Map<string, TomWatchFile[]>();
   for (const file of files) {
-    const slash = file.path.lastIndexOf("/");
-    const dir = slash === -1 ? "" : file.path.slice(0, slash);
+    const dir = reportDirOf(file.path);
     const list = groups.get(dir) ?? [];
     list.push(file);
     groups.set(dir, list);
   }
-
-  let best: TomWatchFile[] = [];
-  let bestScore = -1;
-  for (const list of groups.values()) {
+  const sets: TomWatchSet[] = [];
+  for (const [dir, list] of groups) {
     const pairings = list.filter((f) => /pairing/i.test(f.name));
     const standings = list.filter((f) => /standing/i.test(f.name));
     const roster = list.filter((f) => /roster/i.test(f.name));
-    const newest = Math.max(0, ...list.map((f) => f.lastModified));
-    const score =
-      (pairings.length ? 8 : 0) + (standings.length ? 4 : 0) + (roster.length ? 2 : 0) + newest / 1e13;
+    const picked = [...pairings, ...standings, ...roster];
+    const filesForSet = picked.length ? picked : list;
+    if (!filesForSet.length) continue;
+    sets.push({
+      dir,
+      label: dir || ".",
+      eventName: "",
+      roundLabel: "",
+      newest: Math.max(0, ...filesForSet.map((f) => f.lastModified)),
+      files: filesForSet,
+    });
+  }
+  return sets.sort((a, b) => b.newest - a.newest);
+}
+
+export function chooseTomReportSet(
+  sets: TomWatchSet[],
+  opts?: { preferDir?: string | null; preferName?: string },
+): TomWatchSet | undefined {
+  if (!sets.length) return undefined;
+  if (opts && "preferDir" in opts && opts.preferDir != null) {
+    const hit = sets.find((s) => s.dir === opts.preferDir);
+    if (hit) return hit;
+  }
+  const want = opts?.preferName?.trim().toLowerCase();
+  if (want) {
+    const hit = sets.find((s) => s.eventName.trim().toLowerCase() === want);
+    if (hit) return hit;
+  }
+  let best: TomWatchSet | undefined;
+  let bestScore = -1;
+  for (const set of sets) {
+    const pairings = set.files.some((f) => /pairing/i.test(f.name));
+    const standings = set.files.some((f) => /standing/i.test(f.name));
+    const roster = set.files.some((f) => /roster/i.test(f.name));
+    const score = (pairings ? 8 : 0) + (standings ? 4 : 0) + (roster ? 2 : 0) + set.newest / 1e13;
     if (score > bestScore) {
       bestScore = score;
-      const picked = [...pairings, ...standings, ...roster];
-      best = picked.length ? picked : list;
+      best = set;
     }
   }
   return best;
+}
+
+export function pickTomReportSet(files: TomWatchFile[], preferDir?: string): TomWatchFile[] {
+  return chooseTomReportSet(listTomReportSets(files), { preferDir })?.files ?? [];
+}
+
+export function tomWatchSetTitle(set: TomWatchSet): string {
+  const name = set.eventName.trim() || set.label;
+  return set.roundLabel ? `${name} · ${set.roundLabel}` : name;
 }
 
 export async function pickTomReportsDirectory(gameId?: string): Promise<FileSystemDirectoryHandle> {
@@ -123,6 +175,7 @@ export async function clearDirectoryHandle(gameId?: string): Promise<void> {
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
       tx.objectStore(STORE).delete(handleKey(gameId));
+      tx.objectStore(STORE).delete(pickKey(gameId));
     });
     db.close();
   } catch {
@@ -130,8 +183,40 @@ export async function clearDirectoryHandle(gameId?: string): Promise<void> {
   }
 }
 
+export async function saveReportPick(dir: string | null, gameId?: string): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    if (dir == null) tx.objectStore(STORE).delete(pickKey(gameId));
+    else tx.objectStore(STORE).put(dir, pickKey(gameId));
+  });
+  db.close();
+}
+
+export async function loadReportPick(gameId?: string): Promise<string | null> {
+  try {
+    const db = await openDb();
+    const dir = await new Promise<string | null>((resolve, reject) => {
+      const tx = db.transaction(STORE, "readonly");
+      const req = tx.objectStore(STORE).get(pickKey(gameId));
+      req.onsuccess = () => resolve(typeof req.result === "string" ? req.result : null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return dir;
+  } catch {
+    return null;
+  }
+}
+
 function handleKey(gameId?: string): string {
   return gameId ? `${HANDLE_KEY}:${gameId}` : HANDLE_KEY;
+}
+
+function pickKey(gameId?: string): string {
+  return gameId ? `${PICK_KEY}:${gameId}` : PICK_KEY;
 }
 
 export async function ensureDirectoryRead(handle: FileSystemDirectoryHandle): Promise<boolean> {
@@ -163,13 +248,39 @@ export async function listTomHtmlFiles(root: FileSystemDirectoryHandle): Promise
   return found.map(({ handle: _h, ...rest }) => rest);
 }
 
-export async function readTomReportSet(root: FileSystemDirectoryHandle): Promise<{ files: TomWatchRead[]; fingerprint: string }> {
+export async function readTomReportSet(
+  root: FileSystemDirectoryHandle,
+  opts?: { preferDir?: string | null; preferName?: string },
+): Promise<{ files: TomWatchRead[]; fingerprint: string; sets: TomWatchSet[] }> {
   const found: (TomWatchFile & { handle: FsFile })[] = [];
   await walk(root, "", 0, found);
-  const picked = pickTomReportSet(found);
-  const withHandle = picked.map((file) => found.find((f) => f.path === file.path)!);
+  const listed = found.map(({ handle: _h, ...rest }) => rest);
+  const sets = listTomReportSets(listed);
+  const { tomHeadingsFromHtml } = await import("@/lib/tom-reports");
+  for (const set of sets) {
+    const sample =
+      set.files.find((f) => /pairing/i.test(f.name)) ??
+      set.files.find((f) => /standing/i.test(f.name)) ??
+      set.files.find((f) => /roster/i.test(f.name)) ??
+      set.files[0];
+    if (!sample) continue;
+    const row = found.find((f) => f.path === sample.path);
+    if (!row) continue;
+    try {
+      const html = await (await row.handle.getFile()).text();
+      const heads = tomHeadingsFromHtml(html);
+      set.eventName = heads.eventName;
+      set.roundLabel = heads.roundLabel;
+    } catch {
+      /* keep empty labels */
+    }
+  }
+  const chosen = chooseTomReportSet(sets, opts);
+  const picked = chosen?.files ?? [];
   const files: TomWatchRead[] = [];
-  for (const row of withHandle) {
+  for (const file of picked) {
+    const row = found.find((f) => f.path === file.path);
+    if (!row) continue;
     const blob = await row.handle.getFile();
     files.push({
       path: row.path,
@@ -179,7 +290,7 @@ export async function readTomReportSet(root: FileSystemDirectoryHandle): Promise
       html: await blob.text(),
     });
   }
-  return { files, fingerprint: fingerprintTomReports(files) };
+  return { files, fingerprint: fingerprintTomReports(files), sets };
 }
 
 export function tomWatchIntervalMs(): number {

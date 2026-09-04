@@ -53,13 +53,38 @@ export function parseTomFiles(files: { name: string; html: string }[]): TomRepor
     players: [],
     pairings: [],
   };
+  const titles = new Set<string>();
+  for (const file of files) {
+    for (const title of headingTexts(file.html)) {
+      if (!out.eventName) out.eventName = title;
+      titles.add(title.trim().toLowerCase());
+    }
+  }
+  const eventName = out.eventName;
   const byId = new Map<string, TomPlayer>();
   const byName = new Map<string, TomPlayer>();
   const upsert = (row: TomPlayer) => {
-    if (!row.name && !row.playerId) return;
-    const nameKey = row.name.trim().toLowerCase();
-    const prev = (row.playerId ? byId.get(row.playerId) : undefined) ?? (nameKey ? byName.get(nameKey) : undefined);
-    const merged: TomPlayer = prev ? { ...prev, ...stripEmpty(row), name: row.name || prev.name, playerId: row.playerId || prev.playerId } : row;
+    const parsed = splitNameId(row.name);
+    const name = parsed.name || cleanTomPlayerName(row.name);
+    if (isJunkTomPlayerName(name, eventName, titles) && !row.playerId && !parsed.playerId) return;
+    const next: TomPlayer = {
+      ...row,
+      name,
+      playerId: row.playerId || parsed.playerId,
+      division: row.division || parsed.division || "",
+    };
+    if (!next.name && !next.playerId) return;
+    const nameKey = next.name.trim().toLowerCase();
+    const prev = (next.playerId ? byId.get(next.playerId) : undefined) ?? (nameKey ? byName.get(nameKey) : undefined);
+    const merged: TomPlayer = prev
+      ? {
+          ...prev,
+          ...stripEmpty(next),
+          name: preferPlayerName(prev.name, next.name),
+          playerId: next.playerId || prev.playerId,
+          division: next.division || prev.division,
+        }
+      : next;
     if (merged.playerId) byId.set(merged.playerId, merged);
     if (nameKey) byName.set(nameKey, merged);
     if (prev?.playerId && prev.playerId !== merged.playerId) byId.set(prev.playerId, merged);
@@ -68,8 +93,6 @@ export function parseTomFiles(files: { name: string; html: string }[]): TomRepor
 
   for (const file of files) {
     const kind = detectTomKind(file.name, file.html);
-    const title = headingText(file.html);
-    if (title && !out.eventName) out.eventName = title;
     const rounds = parseRoundHeader(file.html);
     if (rounds.currentRound) {
       out.currentRound = rounds.currentRound;
@@ -77,11 +100,11 @@ export function parseTomFiles(files: { name: string; html: string }[]): TomRepor
       out.roundLabel = rounds.label || out.roundLabel;
     }
     if (kind === "roster") {
-      for (const row of parseRoster(file.html)) upsert(row);
+      for (const row of parseRoster(file.html, eventName, titles)) upsert(row);
     } else if (kind === "standings") {
-      for (const row of parseStandings(file.html)) upsert(row);
+      for (const row of parseStandings(file.html, eventName, titles)) upsert(row);
     } else if (kind === "pairings") {
-      const parsed = parsePairings(file.html);
+      const parsed = parsePairings(file.html, eventName, titles);
       if (parsed.roundLabel && !out.roundLabel) out.roundLabel = parsed.roundLabel;
       if (parsed.currentRound) out.currentRound = parsed.currentRound;
       out.pairings = parsed.pairings;
@@ -90,9 +113,9 @@ export function parseTomFiles(files: { name: string; html: string }[]): TomRepor
         if (match.p2) upsert(match.p2);
       }
     } else {
-      const roster = parseRoster(file.html);
-      const standings = parseStandings(file.html);
-      const pairings = parsePairings(file.html);
+      const roster = parseRoster(file.html, eventName, titles);
+      const standings = parseStandings(file.html, eventName, titles);
+      const pairings = parsePairings(file.html, eventName, titles);
       for (const row of roster) upsert(row);
       for (const row of standings) upsert(row);
       if (pairings.pairings.length) {
@@ -108,7 +131,7 @@ export function parseTomFiles(files: { name: string; html: string }[]): TomRepor
     .filter((row) => {
       if (seen.has(row)) return false;
       seen.add(row);
-      return true;
+      return !isJunkTomPlayerName(row.name, eventName, titles) || Boolean(row.playerId);
     })
     .sort((a, b) => (a.standing ?? 999) - (b.standing ?? 999) || a.name.localeCompare(b.name));
   if (!out.roundLabel && out.currentRound) {
@@ -187,25 +210,111 @@ export function hasTomSample(t: { name?: string; entrants?: { name?: string; pla
   return (t.entrants ?? []).some(isTomSamplePlayer);
 }
 
-function parseRoster(html: string): TomPlayer[] {
+/** TOM pairings print `Name (W/L/T (pts) - MA)`. Keep the printed name only. */
+export function cleanTomPlayerName(raw: string): string {
+  let s = String(raw ?? "")
+    .replace(/\*+/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!s) return "";
+  const withParens = s.match(
+    /^(.*?)\s*\(\s*\d+\s*[/\-]\s*\d+\s*[/\-]\s*\d+(?:\s*\(\s*\d+\s*\))?\s*[-–]\s*[A-Za-z]+\s*\)\s*$/,
+  );
+  if (withParens) return withParens[1]!.trim();
+  const bare = s.match(
+    /^(.*?)\s+\d+\s*[/\-]\s*\d+\s*[/\-]\s*\d+(?:\s*\(\s*\d+\s*\))?\s*[-–]\s*[A-Za-z]+\s*$/,
+  );
+  if (bare) return bare[1]!.trim();
+  const idWrap = s.match(/^(.*?)\s*\(\s*\d{6,}\s*\)\s*$/);
+  if (idWrap) return idWrap[1]!.trim();
+  return s;
+}
+
+export function isJunkTomPlayerName(name: string, eventName = "", extraTitles?: Iterable<string>): boolean {
+  const n = cleanTomPlayerName(name).trim();
+  if (!n) return true;
+  if (isHeaderName(n)) return true;
+  const key = n.toLowerCase();
+  if (eventName && key === eventName.trim().toLowerCase()) return true;
+  if (extraTitles) {
+    for (const title of extraTitles) {
+      if (title && key === String(title).trim().toLowerCase()) return true;
+    }
+  }
+  if (/^(pairings|standings|roster|players|player list|report|round\s+\d+(?:\s+of\s+\d+)?)\b/i.test(n)) return true;
+  if (/\b(vg cup|league cup|league challenge|video game championships?|trading card)\b/i.test(n)) return true;
+  if (
+    /\b(worlds|regionals?|internationals?|championships?)\b/i.test(n) &&
+    (/\b(at|cup|open|challenge)\b/i.test(n) || n.split(/\s+/).length >= 3)
+  ) {
+    return true;
+  }
+  if (/^\d+\s*[/\-]\s*\d+/.test(n)) return true;
+  return false;
+}
+
+export function collapseTomEntrants<T extends { id: string; name: string; playerId?: string }>(
+  rows: T[],
+  eventName = "",
+): { rows: T[]; idMap: Map<string, string> } {
+  const kept: T[] = [];
+  const idMap = new Map<string, string>();
+  const byId = new Map<string, number>();
+  const byName = new Map<string, number>();
+  for (const row of rows) {
+    const name = cleanTomPlayerName(row.name);
+    if (isJunkTomPlayerName(name || row.name, eventName) && !row.playerId) continue;
+    const nameKey = (name || row.name).trim().toLowerCase();
+    const idx = (row.playerId ? byId.get(row.playerId) : undefined) ?? (nameKey ? byName.get(nameKey) : undefined);
+    if (idx == null) {
+      const next = { ...row, name: name || row.name };
+      idMap.set(row.id, next.id);
+      if (row.playerId) byId.set(row.playerId, kept.length);
+      if (nameKey) byName.set(nameKey, kept.length);
+      kept.push(next);
+      continue;
+    }
+    const prev = kept[idx]!;
+    idMap.set(row.id, prev.id);
+    kept[idx] = {
+      ...prev,
+      name: preferPlayerName(prev.name, name || row.name),
+      playerId: prev.playerId || row.playerId || "",
+    };
+  }
+  return { rows: kept, idMap };
+}
+
+function preferPlayerName(a: string, b: string): string {
+  const ca = cleanTomPlayerName(a);
+  const cb = cleanTomPlayerName(b);
+  const score = (s: string) => (/\d+\s*[/\-]\s*\d+/.test(s) ? 10 : 0) + s.length;
+  if (!ca) return cb || a || b;
+  if (!cb) return ca;
+  return score(ca) <= score(cb) ? ca : cb;
+}
+
+function parseRoster(html: string, eventName = "", titles?: Set<string>): TomPlayer[] {
   const players: TomPlayer[] = [];
   for (const table of extractTables(html)) {
     const start = hasHeader(table.rows[0], ["name", "player", "id", "division"]) ? 1 : 0;
     const headers = start === 1 ? table.rows[0].map((c) => c.toLowerCase()) : [];
     for (const row of table.rows.slice(start)) {
       if (row.length < 2) continue;
-      const name = cellBy(row, headers, ["name", "player", "first"]) || guessName(row);
-      const playerId = digits(cellBy(row, headers, ["id", "player id", "playerid"]) || guessId(row));
-      const division = parseDivision(cellBy(row, headers, ["division", "age"]) || row[2] || "");
-      if (!name && !playerId) continue;
-      if (isHeaderName(name)) continue;
-      players.push({ name: nameFrom(name), playerId, division });
+      if (row.some((c) => /^vs$/i.test(c.trim()))) continue;
+      const rawName = cellBy(row, headers, ["name", "player", "first"]) || guessName(row);
+      const parsed = splitNameId(rawName);
+      const playerId = digits(cellBy(row, headers, ["id", "player id", "playerid"]) || parsed.playerId || guessId(row));
+      const division = parsed.division || parseDivision(cellBy(row, headers, ["division", "age"]) || row[2] || "");
+      if (!parsed.name && !playerId) continue;
+      if (isHeaderName(parsed.name) || isJunkTomPlayerName(parsed.name, eventName, titles)) continue;
+      players.push({ name: parsed.name, playerId, division });
     }
   }
   return players;
 }
 
-function parseStandings(html: string): TomPlayer[] {
+function parseStandings(html: string, eventName = "", titles?: Set<string>): TomPlayer[] {
   const players: TomPlayer[] = [];
   for (const table of extractTables(html)) {
     const start = hasHeader(table.rows[0], ["standing", "name", "record", "points"]) ? 1 : 0;
@@ -213,7 +322,7 @@ function parseStandings(html: string): TomPlayer[] {
       if (row.length < 5) continue;
       const standing = Number(row[0].replace(/[^\d]/g, "")) || 0;
       const parsed = splitNameId(row[1] ?? "");
-      if (!parsed.name || isHeaderName(parsed.name)) continue;
+      if (!parsed.name || isHeaderName(parsed.name) || isJunkTomPlayerName(parsed.name, eventName, titles)) continue;
       const record = parseRecord(row.find((c, i) => i >= 3 && /\d/.test(c) && /[-/]/.test(c)) ?? row[4] ?? "");
       const points = Number((row[5] ?? "").replace(/[^\d.]/g, "")) || record.w * 3 + record.d;
       const opp = parsePct(row[6] ?? "");
@@ -222,7 +331,7 @@ function parseStandings(html: string): TomPlayer[] {
       players.push({
         name: parsed.name,
         playerId: parsed.playerId,
-        division: parseDivision(table.caption),
+        division: parsed.division || parseDivision(table.caption),
         dropped: drop > 0,
         standing,
         recordW: record.w,
@@ -237,7 +346,11 @@ function parseStandings(html: string): TomPlayer[] {
   return players;
 }
 
-function parsePairings(html: string): { pairings: TomPairing[]; currentRound: number; roundLabel: string } {
+function parsePairings(
+  html: string,
+  eventName = "",
+  titles?: Set<string>,
+): { pairings: TomPairing[]; currentRound: number; roundLabel: string } {
   const rounds = parseRoundHeader(html);
   const pairings: TomPairing[] = [];
   const seen = new Set<number>();
@@ -251,14 +364,14 @@ function parsePairings(html: string): { pairings: TomPairing[]; currentRound: nu
       const p2raw = row[3] ?? row[2] ?? "";
       if (isHeaderName(p1raw) || /^table$/i.test(p1raw)) continue;
       const p1 = splitNameId(p1raw);
-      if (!p1.name) continue;
+      if (!p1.name || isJunkTomPlayerName(p1.name, eventName, titles)) continue;
       const p2 = splitNameId(p2raw);
-      const bye = !p2.name || isBye(p2.name);
+      const bye = !p2.name || isBye(p2.name) || isJunkTomPlayerName(p2.name, eventName, titles);
       seen.add(tableNo);
       pairings.push({
         table: tableNo,
-        p1: { name: p1.name, playerId: p1.playerId, division: "" },
-        p2: bye ? null : { name: p2.name, playerId: p2.playerId, division: "" },
+        p1: { name: p1.name, playerId: p1.playerId, division: p1.division },
+        p2: bye ? null : { name: p2.name, playerId: p2.playerId, division: p2.division },
         bye,
       });
     }
@@ -289,11 +402,22 @@ function extractTables(html: string): { caption: string; rows: string[][] }[] {
   return tables;
 }
 
-function headingText(html: string): string {
-  const h = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i) ?? html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
-  const text = decode(h?.[1] ?? "");
-  if (!text || /pairings|standings|roster|report/i.test(text)) return "";
-  return text;
+export function tomHeadingsFromHtml(html: string): { eventName: string; roundLabel: string } {
+  return { eventName: headingTexts(html)[0] ?? "", roundLabel: parseRoundHeader(html).label };
+}
+
+function headingTexts(html: string): string[] {
+  const found: string[] = [];
+  const push = (raw: string) => {
+    let text = decode(raw);
+    text = text.replace(/\s*[-–:|]\s*(pairings|standings|roster|report|player list).*$/i, "").trim();
+    if (!text) return;
+    if (/^(pairings|standings|roster|report|players|player list|round\s+\d+)/i.test(text)) return;
+    if (!found.some((x) => x.toLowerCase() === text.toLowerCase())) found.push(text);
+  };
+  for (const m of html.matchAll(/<(?:h[1-3]|title)\b[^>]*>([\s\S]*?)<\/(?:h[1-3]|title)>/gi)) push(m[1] ?? "");
+  for (const m of html.matchAll(/<font\b[^>]*size\s*=\s*["']?[4-7]["']?[^>]*>([\s\S]*?)<\/font>/gi)) push(m[1] ?? "");
+  return found;
 }
 
 function parseRoundHeader(html: string): { currentRound: number; totalRounds: number; label: string } {
@@ -323,17 +447,13 @@ function decode(raw: string): string {
     .trim();
 }
 
-function splitNameId(raw: string): { name: string; playerId: string } {
+function splitNameId(raw: string): { name: string; playerId: string; division: TomPlayer["division"] } {
   const clean = raw.replace(/\*+/g, "").trim();
-  const wrapped = clean.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-  if (wrapped) {
-    return { name: wrapped[1].trim(), playerId: digits(wrapped[2]) };
-  }
-  return { name: nameFrom(clean), playerId: digits(clean) === clean.replace(/\s/g, "") ? digits(clean) : "" };
-}
-
-function nameFrom(raw: string): string {
-  return raw.replace(/\*+/g, "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const name = cleanTomPlayerName(clean);
+  const rest = name && clean.startsWith(name) ? clean.slice(name.length) : clean;
+  const idInParens = digits(rest.match(/\(\s*(\d{6,})\s*\)/)?.[1] ?? "");
+  const division = parseDivision(rest);
+  return { name, playerId: idInParens, division };
 }
 
 function digits(raw: string): string {
@@ -343,9 +463,9 @@ function digits(raw: string): string {
 
 function parseDivision(raw: string): TomPlayer["division"] {
   const t = raw.toLowerCase();
-  if (t.includes("junior") || t === "jr") return "juniors";
-  if (t.includes("senior") || t === "sr") return "seniors";
-  if (t.includes("master") || t === "ma" || t === "md") return "masters";
+  if (t.includes("junior") || /\bjr\b/.test(t)) return "juniors";
+  if (t.includes("senior") || /\bsr\b/.test(t)) return "seniors";
+  if (t.includes("master") || /\bma\b/.test(t) || /\bmd\b/.test(t)) return "masters";
   return "";
 }
 
@@ -365,7 +485,9 @@ function isBye(name: string): boolean {
 }
 
 function isHeaderName(name: string): boolean {
-  return /^(player|name|first player|second player|player 1|player 2|table|vs|record)$/i.test(name.trim());
+  return /^(player|name|first player|second player|player 1|player 2|table|vs|record|standing|standings|points|division|id|player id|pairings|roster|players|player list)$/i.test(
+    name.trim(),
+  );
 }
 
 function hasHeader(row: string[] | undefined, needles: string[]): boolean {

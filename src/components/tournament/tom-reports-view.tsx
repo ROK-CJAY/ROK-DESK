@@ -1,5 +1,5 @@
 import { Download, FolderOpen, Pause, Trash2, Upload } from "lucide-react";
-import { Field } from "@/components/desk/field";
+import { Field, NativeSelect } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { sampleTomFiles, hasTomSample } from "@/lib/tom-reports";
@@ -7,6 +7,7 @@ import { isVgcTitle, ptcgGameIdFor, vgcGameIdFor, type TomTitleId } from "@/lib/
 import { downloadTomTdf } from "@/lib/tom-tdf";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament, type TournamentState } from "@/lib/tournament-types";
+import { tomWatchSetTitle, type TomWatchSet } from "@/lib/tom-folder-watch";
 import { cn } from "@/lib/cn";
 
 export function TomReportsView({
@@ -18,6 +19,9 @@ export function TomReportsView({
   watchSupported,
   watch,
   folderName,
+  watchSets,
+  watchDir,
+  onWatchDir,
   status,
   detail,
   tdfStatus,
@@ -44,6 +48,9 @@ export function TomReportsView({
   watchSupported: boolean;
   watch: "off" | "on" | "need-gesture";
   folderName: string;
+  watchSets: TomWatchSet[];
+  watchDir: string | null;
+  onWatchDir: (dir: string | null) => void;
   status: "idle" | "ok" | "err";
   detail: string;
   tdfStatus: string;
@@ -205,11 +212,41 @@ export function TomReportsView({
             ) : null}
           </div>
           {watchSupported ? (
-            <p className="mt-2 text-[0.65rem] text-subtle">
-              {watch === "on"
-                ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. TOM writes pairings.html — Desk imports onto this title only.`
-                : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. Each PTCG division and VGC watch stays separate.`}
-            </p>
+            <div className="mt-2 grid gap-2">
+              {watch === "on" && watchSets.length > 1 ? (
+                <Field label="Tournament in that folder">
+                  <NativeSelect
+                    value={watchDir == null ? "__auto__" : watchDir === "" ? "__root__" : watchDir}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "__auto__") onWatchDir(null);
+                      else if (v === "__root__") onWatchDir("");
+                      else onWatchDir(v);
+                    }}
+                  >
+                    <option value="__auto__">Newest reports (auto)</option>
+                    {watchSets.map((set) => (
+                      <option key={set.dir || "__root__"} value={set.dir === "" ? "__root__" : set.dir}>
+                        {tomWatchSetTitle(set)}
+                        {set.label && set.eventName ? `  ·  ${set.label}` : ""}
+                      </option>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              ) : watch === "on" && watchSets[0] ? (
+                <p className="text-xs text-fg">
+                  Pulling {tomWatchSetTitle(watchSets[0])}
+                  {watchSets[0].label && watchSets[0].eventName ? ` from ${watchSets[0].label}` : ""}
+                </p>
+              ) : null}
+              <p className="text-[0.65rem] text-subtle">
+                {watch === "on"
+                  ? watchSets.length
+                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. TOM only writes pairings for the event that is open — in TOM, open that tournament, then File → Reports → Pairings / Standings. If this folder has more than one report set, pick it above.`
+                    : `Watching ${folderName} for ${tomKindLabel(tomGame)}. No pairings.html / standings.html / roster.html yet. Open the tournament in TOM and generate those reports.`
+                  : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. Each PTCG division and VGC watch stays separate. TOM writes reports for the event that is open in TOM.`}
+              </p>
+            </div>
           ) : (
             <p className="mt-2 text-[0.65rem] text-subtle">Folder watch needs Chrome, Edge, or ROK Desk desktop. Drop files here otherwise.</p>
           )}
