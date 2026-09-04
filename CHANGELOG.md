@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.2.12-beta — 2026-09-04
+
+TOM Game Type and age-combined Swiss.
+
 ### Fixed
 
 - **TOM Game Type** — PTCG only imports Trading Card Game reports. VGC only imports Video Game. Pokémon GO is skipped. The tournament list tags TCG / VG from the report or TDF `gametype`.
