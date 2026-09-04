@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   cleanTomPlayerName,
   collapseTomEntrants,
+  detectTomGameKind,
   inferTomTitle,
   isJunkTomPlayerName,
   parseTomFiles,
@@ -126,5 +127,22 @@ test("inferTomTitle sends VG cup reports to VGC, not PTCG", () => {
       ],
     }),
     "pokemon-vgc-seniors",
+  );
+});
+
+test("TOM Game Type TCG never lands on VGC, VG never lands on PTCG", () => {
+  assert.equal(detectTomGameKind("gametype=\"VIDEO_GAME\" mode=\"CUSTOM\""), "vg");
+  assert.equal(detectTomGameKind("gametype=\"TRADING_CARD_GAME\""), "tcg");
+  assert.equal(detectTomGameKind("VG Cup or Challenge"), "vg");
+  assert.equal(detectTomGameKind("TCG League Challenge"), "tcg");
+  assert.equal(detectTomGameKind("Pokémon Trading Card Game"), "tcg");
+  assert.equal(detectTomGameKind("Pokémon Video Game"), "vg");
+  assert.equal(
+    inferTomTitle("Friday Night", "pokemon-vgc", { html: "<p>Trading Card Game</p>" }),
+    "pokemon-tcg",
+  );
+  assert.equal(
+    inferTomTitle("Friday Night", "pokemon-tcg", { html: "<p>Video Game</p>" }),
+    "pokemon-vgc",
   );
 });

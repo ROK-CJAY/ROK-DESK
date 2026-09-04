@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { parseTomFiles, withVgcSampleTrainers, inferTomTitle } from "@/lib/tom-reports";
+import { parseTomFiles, withVgcSampleTrainers, inferTomTitle, detectTomGameKind } from "@/lib/tom-reports";
 import { isTomTitle, isVgcTitle, playAgeDivisionOf, playDivisionsFor, TOM_TITLE_IDS, tomTitleOf, type TomTitleId } from "@/lib/games";
 import { parseTomTdf, looksLikeTomTdf, resolveTomTdfGame } from "@/lib/tom-tdf";
 import {
@@ -93,25 +93,32 @@ export function TomReportsPanel() {
   const ingest = (files: { name: string; html: string }[], viaWatch = false, game = tomGameRef.current) => {
     try {
       const reports = parseTomFiles(files);
-      const target = viaWatch
-        ? inferTomTitle(reports.eventName, game, {
-            html: files.map((f) => f.html).join("\n"),
-            players: reports.players,
-          })
-        : game;
+      const html = files.map((f) => f.html).join("\n");
+      const kind = detectTomGameKind(`${reports.eventName}\n${html}`);
+      if (kind === "go") {
+        setStatus("err");
+        setDetail("Those TOM reports are Pokémon GO. Desk only imports Trading Card Game (PTCG) and Video Game (VGC).");
+        return;
+      }
+      const target = inferTomTitle(reports.eventName, game, { html, players: reports.players });
+      const crossFamily = target.includes("vgc") !== game.includes("vgc");
       applyTom(isVgcTitle(target) ? withVgcSampleTrainers(reports) : reports, target);
-      if (target !== tomGameRef.current) setTomGame(target);
+      if (!crossFamily && target !== tomGameRef.current) setTomGame(target);
       const tables = reports.pairings.length;
       const players = reports.players.length;
       setStatus("ok");
       setDetail(
         [
           viaWatch ? "Watch" : null,
+          kind === "vg" ? "Video Game" : kind === "tcg" ? "Trading Card Game" : null,
           tomKindLabel(target),
           reports.eventName || null,
           reports.roundLabel || null,
           players ? `${players} players` : null,
           tables ? `${tables} tables` : null,
+          crossFamily
+            ? `PTCG only takes TCG; VGC only takes VG. Open that title to see this roster.`
+            : null,
         ]
           .filter(Boolean)
           .join(" · ") || "Imported",
@@ -239,9 +246,11 @@ export function TomReportsPanel() {
         const fallback = (await sameTomDirectory(selectedDir, dir)) ? selected : game;
         try {
           const deskName = deskForGame(useTournamentStore.getState().tournament, fallback).name;
+          const preferKind = isVgcTitle(fallback) ? "vg" : "tcg";
           const { files, fingerprint: fp, sets: found } = await readTomReportSet(dir, {
             preferDir: watchPick[fallback] ?? watchPick[game],
             preferName: deskName,
+            preferKind,
           });
           if (!alive) return;
           setWatchSets((prev) => {
@@ -249,7 +258,16 @@ export function TomReportsPanel() {
             if (fallback !== game) next[fallback] = found;
             return next;
           });
-          if (!fp) continue;
+          if (!fp) {
+            const other = found.find((s) => s.gameKind === "vg" || s.gameKind === "tcg");
+            if (other && other.gameKind !== preferKind) {
+              setStatus("ok");
+              setDetail(
+                `${other.eventName || "That TOM event"} is ${other.gameKind === "vg" ? "Video Game" : "Trading Card Game"}. ${isVgcTitle(fallback) ? "VGC" : "PTCG"} only pulls ${preferKind === "vg" ? "VG" : "TCG"} reports — switch the TOM card or open that Game Type in TOM.`,
+              );
+            }
+            continue;
+          }
           if (!last[game]) {
             pending[game] = fp;
           } else if (fp !== pending[game]) {

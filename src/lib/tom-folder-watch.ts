@@ -20,6 +20,7 @@ export type TomWatchSet = {
   label: string;
   eventName: string;
   roundLabel: string;
+  gameKind: "tcg" | "vg" | "go" | "unknown";
   newest: number;
   files: TomWatchFile[];
 };
@@ -78,6 +79,7 @@ export function listTomReportSets(files: TomWatchFile[]): TomWatchSet[] {
       label: dir || ".",
       eventName: "",
       roundLabel: "",
+      gameKind: "unknown",
       newest: Math.max(0, ...filesForSet.map((f) => f.lastModified)),
       files: filesForSet,
     });
@@ -87,25 +89,34 @@ export function listTomReportSets(files: TomWatchFile[]): TomWatchSet[] {
 
 export function chooseTomReportSet(
   sets: TomWatchSet[],
-  opts?: { preferDir?: string | null; preferName?: string },
+  opts?: { preferDir?: string | null; preferName?: string; preferKind?: "tcg" | "vg" },
 ): TomWatchSet | undefined {
   if (!sets.length) return undefined;
+  const kind = opts?.preferKind;
   if (opts && "preferDir" in opts && opts.preferDir != null) {
     const hit = sets.find((s) => s.dir === opts.preferDir);
-    if (hit) return hit;
+    if (hit) {
+      if (kind && hit.gameKind !== "unknown" && hit.gameKind !== kind) return undefined;
+      return hit;
+    }
   }
+  const pool = kind
+    ? sets.filter((s) => s.gameKind === kind || s.gameKind === "unknown")
+    : sets;
+  if (!pool.length) return undefined;
   const want = opts?.preferName?.trim().toLowerCase();
   if (want) {
-    const hit = sets.find((s) => s.eventName.trim().toLowerCase() === want);
+    const hit = pool.find((s) => s.eventName.trim().toLowerCase() === want);
     if (hit) return hit;
   }
   let best: TomWatchSet | undefined;
   let bestScore = -1;
-  for (const set of sets) {
+  for (const set of pool) {
     const pairings = set.files.some((f) => /pairing/i.test(f.name));
     const standings = set.files.some((f) => /standing/i.test(f.name));
     const roster = set.files.some((f) => /roster/i.test(f.name));
-    const score = (pairings ? 8 : 0) + (standings ? 4 : 0) + (roster ? 2 : 0) + set.newest / 1e13;
+    const kindBoost = kind && set.gameKind === kind ? 16 : 0;
+    const score = kindBoost + (pairings ? 8 : 0) + (standings ? 4 : 0) + (roster ? 2 : 0) + set.newest / 1e13;
     if (score > bestScore) {
       bestScore = score;
       best = set;
@@ -119,8 +130,10 @@ export function pickTomReportSet(files: TomWatchFile[], preferDir?: string): Tom
 }
 
 export function tomWatchSetTitle(set: TomWatchSet): string {
+  const kind = set.gameKind === "vg" ? "VG" : set.gameKind === "tcg" ? "TCG" : set.gameKind === "go" ? "GO" : "";
   const name = set.eventName.trim() || set.label;
-  return set.roundLabel ? `${name} · ${set.roundLabel}` : name;
+  const base = kind ? `${kind} · ${name}` : name;
+  return set.roundLabel ? `${base} · ${set.roundLabel}` : base;
 }
 
 /** Chromium `showDirectoryPicker({ id })` rejects ids longer than 32 characters. */
@@ -278,13 +291,14 @@ export async function listTomHtmlFiles(root: FileSystemDirectoryHandle): Promise
 
 export async function readTomReportSet(
   root: FileSystemDirectoryHandle,
-  opts?: { preferDir?: string | null; preferName?: string },
+  opts?: { preferDir?: string | null; preferName?: string; preferKind?: "tcg" | "vg" },
 ): Promise<{ files: TomWatchRead[]; fingerprint: string; sets: TomWatchSet[] }> {
   const found: (TomWatchFile & { handle: FsFile })[] = [];
-  await walk(root, "", 0, found);
+  const tdfs: (TomWatchFile & { handle: FsFile })[] = [];
+  await walk(root, "", 0, found, tdfs);
   const listed = found.map(({ handle: _h, ...rest }) => rest);
   const sets = listTomReportSets(listed);
-  const { tomHeadingsFromHtml } = await import("@/lib/tom-reports");
+  const { tomHeadingsFromHtml, detectTomGameKind } = await import("@/lib/tom-reports");
   for (const set of sets) {
     const sample =
       set.files.find((f) => /pairing/i.test(f.name)) ??
@@ -299,8 +313,25 @@ export async function readTomReportSet(
       const heads = tomHeadingsFromHtml(html);
       set.eventName = heads.eventName;
       set.roundLabel = heads.roundLabel;
+      set.gameKind = detectTomGameKind(`${heads.eventName}\n${html}`);
     } catch {
       /* keep empty labels */
+    }
+  }
+  for (const tdf of tdfs) {
+    try {
+      const xml = await (await tdf.handle.getFile()).text();
+      const kind = detectTomGameKind(xml);
+      if (kind === "unknown") continue;
+      const name = xml.match(/<name>([^<]*)<\/name>/i)?.[1]?.trim().toLowerCase() ?? "";
+      const dir = reportDirOf(tdf.path);
+      const hit =
+        (name && sets.find((s) => s.eventName.trim().toLowerCase() === name)) ||
+        sets.find((s) => s.dir === dir) ||
+        sets.find((s) => s.dir === "" && dir === "");
+      if (hit && (hit.gameKind === "unknown" || hit.gameKind === kind)) hit.gameKind = kind;
+    } catch {
+      /* ignore tdf */
     }
   }
   const chosen = chooseTomReportSet(sets, opts);
@@ -341,11 +372,25 @@ async function walk(
   prefix: string,
   depth: number,
   out: (TomWatchFile & { handle: FsFile })[],
+  tdfs: (TomWatchFile & { handle: FsFile })[] = [],
 ): Promise<void> {
   const entries = await iterateDir(dir as FsDir);
   for (const handle of entries) {
     if (handle.kind === "file") {
       const name = handle.name;
+      if (/\.tdf$/i.test(name)) {
+        const file = await (handle as FsFile).getFile();
+        if (file.size <= MAX_BYTES) {
+          tdfs.push({
+            path: prefix + name,
+            name,
+            lastModified: file.lastModified,
+            size: file.size,
+            handle: handle as FsFile,
+          });
+        }
+        continue;
+      }
       if (!/\.html?$/i.test(name)) continue;
       if (!/roster|pairing|standing/i.test(name) && depth > 0) continue;
       const file = await (handle as FsFile).getFile();
@@ -362,7 +407,7 @@ async function walk(
     if (handle.kind === "directory" && depth < MAX_DEPTH) {
       const skip = /^(app|jre|runtime|node_modules|\.git)$/i.test(handle.name);
       if (skip) continue;
-      await walk(handle as FileSystemDirectoryHandle, `${prefix}${handle.name}/`, depth + 1, out);
+      await walk(handle as FileSystemDirectoryHandle, `${prefix}${handle.name}/`, depth + 1, out, tdfs);
     }
   }
 }

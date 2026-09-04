@@ -56,6 +56,26 @@ test("fingerprint changes when TOM rewrites pairings", () => {
   assert.notEqual(a, b);
 });
 
+test("preferKind skips VG reports when the desk wants TCG", () => {
+  const sets = listTomReportSets([
+    { path: "vg/pairings.html", name: "pairings.html", lastModified: 900, size: 20 },
+    { path: "tcg/pairings.html", name: "pairings.html", lastModified: 100, size: 10 },
+  ]).map((set) => ({
+    ...set,
+    gameKind: set.dir === "vg" ? "vg" : "tcg",
+    eventName: set.dir === "vg" ? "VG Cup" : "TCG League Challenge",
+  }));
+  const tcg = chooseTomReportSet(sets, { preferKind: "tcg" });
+  assert.equal(tcg?.dir, "tcg");
+  const vg = chooseTomReportSet(sets, { preferKind: "vg" });
+  assert.equal(vg?.dir, "vg");
+  const blocked = chooseTomReportSet(
+    sets.filter((s) => s.gameKind === "vg"),
+    { preferKind: "tcg" },
+  );
+  assert.equal(blocked, undefined);
+});
+
 test("directory picker ids stay at or under Chromium's 32-character limit", () => {
   const ids = [
     "pokemon-tcg",

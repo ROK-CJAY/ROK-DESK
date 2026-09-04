@@ -406,7 +406,32 @@ export function tomHeadingsFromHtml(html: string): { eventName: string; roundLab
   return { eventName: headingTexts(html)[0] ?? "", roundLabel: parseRoundHeader(html).label };
 }
 
-/** Route a TOM HTML report onto PTCG vs VGC and Masters / Seniors / Juniors. */
+export type TomGameKind = "tcg" | "vg" | "go" | "unknown";
+
+/** TOM Step 1 Game Type: Trading Card Game, Video Game, or GO. */
+export function detectTomGameKind(text: string): TomGameKind {
+  const t = String(text ?? "").toLowerCase();
+  const vg =
+    /\bvideo\s*game\b/.test(t) ||
+    /gametype\s*=\s*["']?video_game["']?/.test(t) ||
+    /\bvg\s*(cup|challenge|championship|premier)\b/.test(t) ||
+    /\bvgc\b/.test(t);
+  const tcg =
+    /\btrading\s*card\b/.test(t) ||
+    /gametype\s*=\s*["']?trading_card_game["']?/.test(t) ||
+    /\btcg\s*(league|cup|championship|prerelease|draft|premier|one[\s-]?day|two[\s-]?day)\b/.test(t) ||
+    /\bptcg\b/.test(t);
+  const go =
+    /\bpok[eé]mon\s*go\b/.test(t) ||
+    /\bgo\s*(cup|challenge)\b/.test(t) ||
+    /gametype\s*=\s*["']?go["']?/.test(t);
+  if (go && !vg && !tcg) return "go";
+  if (vg && !tcg) return "vg";
+  if (tcg && !vg) return "tcg";
+  return "unknown";
+}
+
+/** Route a TOM HTML report onto PTCG vs VGC and Masters / Seniors / Juniors. TCG never lands on VGC. */
 export function inferTomTitle(
   eventName: string,
   fallback:
@@ -418,9 +443,8 @@ export function inferTomTitle(
     | "pokemon-tcg-juniors",
   extra: { html?: string; players?: { division?: string }[] } = {},
 ): typeof fallback {
-  const blob = `${eventName}\n${extra.html ?? ""}`.toLowerCase();
-  const vgcHint = /\b(vgc|vg cup|video game)\b/.test(blob);
-  const tcgHint = /\b(ptcg|trading card)\b/.test(blob) || (/\btcg\b/.test(blob) && !vgcHint);
+  const blob = `${eventName}\n${extra.html ?? ""}`;
+  const kind = detectTomGameKind(blob);
   let division = parseDivision(eventName);
   if (!division && extra.players?.length) {
     const counts = { juniors: 0, seniors: 0, masters: 0 };
@@ -433,7 +457,7 @@ export function inferTomTitle(
     if (counts[ranked[0]!] > 0) division = ranked[0]!;
   }
   if (!division) division = parseDivision(fallback) || "masters";
-  const vgc = vgcHint && !tcgHint ? true : tcgHint && !vgcHint ? false : fallback.includes("vgc");
+  const vgc = kind === "vg" ? true : kind === "tcg" ? false : fallback.includes("vgc");
   if (vgc) {
     if (division === "seniors") return "pokemon-vgc-seniors";
     if (division === "juniors") return "pokemon-vgc-juniors";

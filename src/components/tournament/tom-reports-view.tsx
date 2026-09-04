@@ -249,9 +249,9 @@ export function TomReportsView({
               <p className="text-[0.65rem] text-subtle">
                 {watch === "on"
                   ? watchSets.length
-                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. TOM only writes pairings for the event that is open — in TOM, open that tournament, then File → Reports → Pairings / Standings. If this folder has more than one report set, pick it above. VG cup reports land on VGC; TCG reports land on PTCG. Seniors / Juniors follow the event name.`
+                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. PTCG only pulls TOM events with Game Type Trading Card Game. VGC only pulls Video Game. Open that tournament in TOM, then File → Reports → Pairings / Standings. If this folder has more than one report set, pick it above.`
                     : `Watching ${folderName} for ${tomKindLabel(tomGame)}. No pairings.html / standings.html / roster.html yet. Open the tournament in TOM and generate those reports.`
-                  : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. Each PTCG division and VGC watch stays separate. TOM writes reports for the event that is open in TOM.`}
+                  : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. PTCG matches TOM Game Type Trading Card Game; VGC matches Video Game. TOM writes reports for the event that is open.`}
               </p>
             </div>
           ) : (
