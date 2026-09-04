@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { parseTomFiles, withVgcSampleTrainers } from "@/lib/tom-reports";
+import { parseTomFiles, withVgcSampleTrainers, inferTomTitle } from "@/lib/tom-reports";
 import { isTomTitle, isVgcTitle, playAgeDivisionOf, playDivisionsFor, TOM_TITLE_IDS, tomTitleOf, type TomTitleId } from "@/lib/games";
 import { parseTomTdf, looksLikeTomTdf, resolveTomTdfGame } from "@/lib/tom-tdf";
 import {
@@ -12,6 +12,7 @@ import {
   queryDirectoryRead,
   readTomReportSet,
   saveReportPick,
+  sameTomDirectory,
   tomWatchIntervalMs,
   type TomWatchSet,
 } from "@/lib/tom-folder-watch";
@@ -46,7 +47,9 @@ export function TomReportsPanel() {
     emptyTomWatch("off"),
   );
   const [folderNames, setFolderNames] = useState<Record<TomTitleId, string>>(() => emptyTomWatch(""));
-  const [watchSets, setWatchSets] = useState<Record<TomTitleId, TomWatchSet[]>>(() => emptyTomWatch([] as TomWatchSet[]));
+  const [watchSets, setWatchSets] = useState<Record<TomTitleId, TomWatchSet[]>>(() =>
+    Object.fromEntries(TOM_TITLE_IDS.map((id) => [id, [] as TomWatchSet[]])) as Record<TomTitleId, TomWatchSet[]>,
+  );
   const [watchPick, setWatchPick] = useState<Record<TomTitleId, string | null>>(() => emptyTomWatch(null));
   const dirRefs = useRef<Partial<Record<TomTitleId, FileSystemDirectoryHandle>>>({});
   const tomGameRef = useRef(tomGame);
@@ -90,14 +93,22 @@ export function TomReportsPanel() {
   const ingest = (files: { name: string; html: string }[], viaWatch = false, game = tomGameRef.current) => {
     try {
       const reports = parseTomFiles(files);
-      applyTom(isVgcTitle(game) ? withVgcSampleTrainers(reports) : reports, game);
+      const target = viaWatch
+        ? inferTomTitle(reports.eventName, game, {
+            html: files.map((f) => f.html).join("\n"),
+            players: reports.players,
+          })
+        : game;
+      applyTom(isVgcTitle(target) ? withVgcSampleTrainers(reports) : reports, target);
+      if (target !== tomGameRef.current) setTomGame(target);
       const tables = reports.pairings.length;
       const players = reports.players.length;
       setStatus("ok");
       setDetail(
         [
           viaWatch ? "Watch" : null,
-          tomKindLabel(game),
+          tomKindLabel(target),
+          reports.eventName || null,
           reports.roundLabel || null,
           players ? `${players} players` : null,
           tables ? `${tables} tables` : null,
@@ -210,17 +221,34 @@ export function TomReportsPanel() {
     const last: Partial<Record<TomTitleId, string>> = {};
     const pending: Partial<Record<TomTitleId, string>> = {};
     const tick = async () => {
+      const seen: FileSystemDirectoryHandle[] = [];
       for (const game of active) {
         const dir = dirRefs.current[game];
         if (!dir || !alive) continue;
+        let skip = false;
+        for (const prev of seen) {
+          if (await sameTomDirectory(prev, dir)) {
+            skip = true;
+            break;
+          }
+        }
+        if (skip) continue;
+        seen.push(dir);
+        const selected = tomGameRef.current;
+        const selectedDir = dirRefs.current[selected];
+        const fallback = (await sameTomDirectory(selectedDir, dir)) ? selected : game;
         try {
-          const deskName = deskForGame(useTournamentStore.getState().tournament, game).name;
+          const deskName = deskForGame(useTournamentStore.getState().tournament, fallback).name;
           const { files, fingerprint: fp, sets: found } = await readTomReportSet(dir, {
-            preferDir: watchPick[game],
+            preferDir: watchPick[fallback] ?? watchPick[game],
             preferName: deskName,
           });
           if (!alive) return;
-          setWatchSets((prev) => ({ ...prev, [game]: found }));
+          setWatchSets((prev) => {
+            const next = { ...prev, [game]: found };
+            if (fallback !== game) next[fallback] = found;
+            return next;
+          });
           if (!fp) continue;
           if (!last[game]) {
             pending[game] = fp;
@@ -233,7 +261,7 @@ export function TomReportsPanel() {
           ingest(
             files.map((f) => ({ name: f.name, html: f.html })),
             true,
-            game,
+            fallback,
           );
           last[game] = fp;
           pending[game] = fp;

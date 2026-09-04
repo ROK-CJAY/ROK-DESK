@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   cleanTomPlayerName,
   collapseTomEntrants,
+  inferTomTitle,
   isJunkTomPlayerName,
   parseTomFiles,
   sampleTomFiles,
@@ -105,4 +106,25 @@ test("collapseTomEntrants merges decorated duplicates already on the desk", () =
   );
   assert.equal(idMap.get("b"), "a");
   assert.equal(idMap.has("c"), false);
+});
+
+test("inferTomTitle sends VG cup reports to VGC, not PTCG", () => {
+  assert.equal(inferTomTitle("Worlds VG cup at ROK", "pokemon-tcg"), "pokemon-vgc");
+  assert.equal(inferTomTitle("Juniors League Challenge", "pokemon-vgc"), "pokemon-vgc-juniors");
+  assert.equal(
+    inferTomTitle("League Challenge", "pokemon-tcg", {
+      html: "<h1>Pokémon Trading Card Game</h1>",
+    }),
+    "pokemon-tcg",
+  );
+  assert.equal(
+    inferTomTitle("City Championship", "pokemon-vgc", {
+      players: [
+        { division: "seniors" },
+        { division: "seniors" },
+        { division: "masters" },
+      ],
+    }),
+    "pokemon-vgc-seniors",
+  );
 });

@@ -123,9 +123,37 @@ export function tomWatchSetTitle(set: TomWatchSet): string {
   return set.roundLabel ? `${name} · ${set.roundLabel}` : name;
 }
 
+/** Chromium `showDirectoryPicker({ id })` rejects ids longer than 32 characters. */
+export function tomDirectoryPickerId(gameId?: string): string {
+  const key = String(gameId ?? "")
+    .replace(/^pokemon-/, "")
+    .replace("tcg-seniors", "ptcg-sr")
+    .replace("tcg-juniors", "ptcg-jr")
+    .replace("vgc-seniors", "vgc-sr")
+    .replace("vgc-juniors", "vgc-jr")
+    .replace(/^tcg$/, "ptcg")
+    .replace(/[^a-z0-9-]+/gi, "")
+    .slice(0, 20);
+  return (key ? `rok-tom-${key}` : "rok-tom-reports").slice(0, 32);
+}
+
+export async function sameTomDirectory(
+  a: FileSystemDirectoryHandle | null | undefined,
+  b: FileSystemDirectoryHandle | null | undefined,
+): Promise<boolean> {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  try {
+    if (typeof a.isSameEntry === "function") return await a.isSameEntry(b);
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+
 export async function pickTomReportsDirectory(gameId?: string): Promise<FileSystemDirectoryHandle> {
   if (!window.showDirectoryPicker) throw new Error("This browser cannot watch a folder. Use Chrome, Edge, or ROK Desk desktop.");
-  const dir = await window.showDirectoryPicker({ id: gameId ? `rok-tom-reports-${gameId}` : "rok-tom-reports", mode: "read" });
+  const dir = await window.showDirectoryPicker({ id: tomDirectoryPickerId(gameId), mode: "read" });
   await saveDirectoryHandle(dir, gameId);
   return dir;
 }
@@ -150,7 +178,7 @@ export async function loadDirectoryHandle(gameId?: string): Promise<FileSystemDi
       const req = store.get(handleKey(gameId));
       req.onsuccess = () => {
         const found = (req.result as FileSystemDirectoryHandle | undefined) ?? null;
-        if (found || !gameId) {
+        if (found || !gameId || gameId !== "pokemon-tcg") {
           resolve(found);
           return;
         }

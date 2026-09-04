@@ -213,36 +213,43 @@ export function TomReportsView({
           </div>
           {watchSupported ? (
             <div className="mt-2 grid gap-2">
-              {watch === "on" && watchSets.length > 1 ? (
+              {watch === "on" ? (
                 <Field label="Tournament in that folder">
-                  <NativeSelect
-                    value={watchDir == null ? "__auto__" : watchDir === "" ? "__root__" : watchDir}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "__auto__") onWatchDir(null);
-                      else if (v === "__root__") onWatchDir("");
-                      else onWatchDir(v);
-                    }}
-                  >
-                    <option value="__auto__">Newest reports (auto)</option>
-                    {watchSets.map((set) => (
-                      <option key={set.dir || "__root__"} value={set.dir === "" ? "__root__" : set.dir}>
-                        {tomWatchSetTitle(set)}
-                        {set.label && set.eventName ? `  ·  ${set.label}` : ""}
-                      </option>
-                    ))}
-                  </NativeSelect>
+                  {watchSets.length ? (
+                    <NativeSelect
+                      value={watchDir == null ? "__auto__" : watchDir === "" ? "__root__" : watchDir}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === "__auto__") onWatchDir(null);
+                        else if (v === "__root__") onWatchDir("");
+                        else onWatchDir(v);
+                      }}
+                    >
+                      <option value="__auto__">Newest reports (auto)</option>
+                      {watchSets.map((set) => (
+                        <option key={set.dir || "__root__"} value={set.dir === "" ? "__root__" : set.dir}>
+                          {tomWatchSetTitle(set)}
+                          {set.label && set.eventName ? `  ·  ${set.label}` : ""}
+                        </option>
+                      ))}
+                    </NativeSelect>
+                  ) : (
+                    <p className="rounded-md border border-border bg-surface-2 px-3 py-2 text-xs text-muted">
+                      No pairings.html / standings.html / roster.html in this folder yet.
+                    </p>
+                  )}
                 </Field>
-              ) : watch === "on" && watchSets[0] ? (
+              ) : null}
+              {watch === "on" && watchSets[0] ? (
                 <p className="text-xs text-fg">
-                  Pulling {tomWatchSetTitle(watchSets[0])}
-                  {watchSets[0].label && watchSets[0].eventName ? ` from ${watchSets[0].label}` : ""}
+                  Pulling {tomWatchSetTitle(watchSets.find((s) => s.dir === (watchDir ?? s.dir)) ?? watchSets[0])}
+                  {watchDir == null ? " (auto)" : ""}
                 </p>
               ) : null}
               <p className="text-[0.65rem] text-subtle">
                 {watch === "on"
                   ? watchSets.length
-                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. TOM only writes pairings for the event that is open — in TOM, open that tournament, then File → Reports → Pairings / Standings. If this folder has more than one report set, pick it above.`
+                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. TOM only writes pairings for the event that is open — in TOM, open that tournament, then File → Reports → Pairings / Standings. If this folder has more than one report set, pick it above. VG cup reports land on VGC; TCG reports land on PTCG. Seniors / Juniors follow the event name.`
                     : `Watching ${folderName} for ${tomKindLabel(tomGame)}. No pairings.html / standings.html / roster.html yet. Open the tournament in TOM and generate those reports.`
                   : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. Each PTCG division and VGC watch stays separate. TOM writes reports for the event that is open in TOM.`}
               </p>

@@ -5,6 +5,7 @@ import {
   fingerprintTomReports,
   listTomReportSets,
   pickTomReportSet,
+  tomDirectoryPickerId,
 } from "../src/lib/tom-folder-watch.ts";
 
 test("picks the newest reports folder that has pairings", () => {
@@ -53,4 +54,18 @@ test("fingerprint changes when TOM rewrites pairings", () => {
   const a = fingerprintTomReports([{ path: "pairings.html", lastModified: 1, size: 10 }]);
   const b = fingerprintTomReports([{ path: "pairings.html", lastModified: 2, size: 12 }]);
   assert.notEqual(a, b);
+});
+
+test("directory picker ids stay at or under Chromium's 32-character limit", () => {
+  const ids = [
+    "pokemon-tcg",
+    "pokemon-tcg-seniors",
+    "pokemon-tcg-juniors",
+    "pokemon-vgc",
+    "pokemon-vgc-seniors",
+    "pokemon-vgc-juniors",
+  ].map((id) => tomDirectoryPickerId(id));
+  assert.ok(ids.every((id) => id.length <= 32));
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(tomDirectoryPickerId().length <= 32);
 });

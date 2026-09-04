@@ -406,6 +406,44 @@ export function tomHeadingsFromHtml(html: string): { eventName: string; roundLab
   return { eventName: headingTexts(html)[0] ?? "", roundLabel: parseRoundHeader(html).label };
 }
 
+/** Route a TOM HTML report onto PTCG vs VGC and Masters / Seniors / Juniors. */
+export function inferTomTitle(
+  eventName: string,
+  fallback:
+    | "pokemon-vgc"
+    | "pokemon-vgc-seniors"
+    | "pokemon-vgc-juniors"
+    | "pokemon-tcg"
+    | "pokemon-tcg-seniors"
+    | "pokemon-tcg-juniors",
+  extra: { html?: string; players?: { division?: string }[] } = {},
+): typeof fallback {
+  const blob = `${eventName}\n${extra.html ?? ""}`.toLowerCase();
+  const vgcHint = /\b(vgc|vg cup|video game)\b/.test(blob);
+  const tcgHint = /\b(ptcg|trading card)\b/.test(blob) || (/\btcg\b/.test(blob) && !vgcHint);
+  let division = parseDivision(eventName);
+  if (!division && extra.players?.length) {
+    const counts = { juniors: 0, seniors: 0, masters: 0 };
+    for (const row of extra.players) {
+      if (row.division === "juniors" || row.division === "seniors" || row.division === "masters") {
+        counts[row.division] += 1;
+      }
+    }
+    const ranked = (["juniors", "seniors", "masters"] as const).slice().sort((a, b) => counts[b] - counts[a]);
+    if (counts[ranked[0]!] > 0) division = ranked[0]!;
+  }
+  if (!division) division = parseDivision(fallback) || "masters";
+  const vgc = vgcHint && !tcgHint ? true : tcgHint && !vgcHint ? false : fallback.includes("vgc");
+  if (vgc) {
+    if (division === "seniors") return "pokemon-vgc-seniors";
+    if (division === "juniors") return "pokemon-vgc-juniors";
+    return "pokemon-vgc";
+  }
+  if (division === "seniors") return "pokemon-tcg-seniors";
+  if (division === "juniors") return "pokemon-tcg-juniors";
+  return "pokemon-tcg";
+}
+
 function headingTexts(html: string): string[] {
   const found: string[] = [];
   const push = (raw: string) => {

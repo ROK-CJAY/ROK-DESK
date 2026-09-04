@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Fixed
+
+- **TOM folder watch** — Seniors and Juniors can pick a reports folder (Chromium id length). The tournament dropdown always shows while watching. VG cup reports land on VGC, TCG reports on PTCG; watching the same TOM_DATA folder no longer copies one roster onto every title.
+
 ## v1.2.10-beta — 2026-09-04
 
 TOM reports watch no longer duplicates players or imports the event title as a player. Pick which tournament to pull while watching a folder.
