@@ -10,6 +10,7 @@ import {
   sampleTomFiles,
   splitTomReportsByDivision,
   titleForTomDivision,
+  ageCombinedSwissGroups,
 } from "../src/lib/tom-reports.ts";
 
 test("sample TOM reports still yield eight named players", () => {
@@ -179,13 +180,34 @@ test("TOM standings Senior Division player is not swallowed by Masters", () => {
   assert.equal(brady?.standing, 1);
   assert.equal(james?.division, "masters");
   const slices = splitTomReportsByDivision(reports);
-  assert.deepEqual(
-    slices.map((s) => [s.division, s.reports.players.map((p) => p.name)]).sort(),
-    [
-      ["masters", ["James Dimarco", "Kevin Guzman"]],
-      ["seniors", ["Brady Walker"]],
-    ].sort(),
-  );
+  const seniors = slices.find((s) => s.division === "seniors");
+  const masters = slices.find((s) => s.division === "masters");
+  assert.deepEqual(seniors?.reports.players.map((p) => p.name), ["Brady Walker"]);
+  assert.ok(masters?.reports.players.some((p) => p.name === "Brady Walker"));
+  assert.equal(masters?.reports.players.length, 3);
+  assert.equal(seniors?.swissHost, "masters");
   assert.equal(titleForTomDivision("seniors", "pokemon-vgc", "vg"), "pokemon-vgc-seniors");
   assert.equal(titleForTomDivision("masters", "pokemon-vgc", "vg"), "pokemon-vgc");
+});
+
+test("5.2.1 age-combined Swiss groups", () => {
+  assert.deepEqual(ageCombinedSwissGroups({ juniors: 0, seniors: 1, masters: 7 }), [["seniors", "masters"]]);
+  assert.deepEqual(ageCombinedSwissGroups({ juniors: 3, seniors: 8, masters: 10 }), [
+    ["juniors", "seniors"],
+    ["masters"],
+  ]);
+  assert.deepEqual(ageCombinedSwissGroups({ juniors: 2, seniors: 2, masters: 10 }), [["juniors", "seniors", "masters"]]);
+  assert.deepEqual(ageCombinedSwissGroups({ juniors: 8, seniors: 3, masters: 10 }), [
+    ["juniors"],
+    ["seniors", "masters"],
+  ]);
+  assert.deepEqual(ageCombinedSwissGroups({ juniors: 8, seniors: 8, masters: 3 }), [
+    ["juniors"],
+    ["seniors", "masters"],
+  ]);
+  assert.deepEqual(ageCombinedSwissGroups({ juniors: 8, seniors: 8, masters: 8 }), [
+    ["juniors"],
+    ["seniors"],
+    ["masters"],
+  ]);
 });

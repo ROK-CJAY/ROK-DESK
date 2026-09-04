@@ -478,8 +478,55 @@ export function inferTomTitle(
   return "pokemon-tcg";
 }
 
+export type TomAgeDivision = "juniors" | "seniors" | "masters";
+
+/** Play! Pokémon 5.2.1 — minimum for an age-separated pod. */
+export const TOM_MIN_AGE_POD = 6;
+
+/**
+ * Age-combined Swiss (handbook 5.2.1).
+ * Juniors < 6 combine with Seniors; if still < 6, both join Masters.
+ * Seniors < 6 (with Juniors already ≥ 6) join Masters.
+ * If only Masters is < 6, Masters join Seniors.
+ * Combined pods share Swiss pairings only; each division keeps its own standings.
+ */
+export function ageCombinedSwissGroups(counts: Record<TomAgeDivision, number>): TomAgeDivision[][] {
+  const j = counts.juniors;
+  const s = counts.seniors;
+  const m = counts.masters;
+  const groups: TomAgeDivision[][] = [];
+  if (j) groups.push(["juniors"]);
+  if (s) groups.push(["seniors"]);
+  if (m) groups.push(["masters"]);
+
+  const sizeOf = (group: TomAgeDivision[]) => group.reduce((n, d) => n + counts[d], 0);
+  const find = (d: TomAgeDivision) => groups.findIndex((g) => g.includes(d));
+  const merge = (a: TomAgeDivision, b: TomAgeDivision) => {
+    const ia = find(a);
+    const ib = find(b);
+    if (ia < 0 || ib < 0 || ia === ib) return;
+    const [lo, hi] = ia < ib ? [ia, ib] : [ib, ia];
+    const combined = [...groups[lo]!, ...groups[hi]!];
+    groups.splice(hi, 1);
+    groups.splice(lo, 1, combined);
+  };
+
+  if (j > 0 && j < TOM_MIN_AGE_POD && s > 0) merge("juniors", "seniors");
+  const juniorGroup = find("juniors") >= 0 ? groups[find("juniors")]! : [];
+  if (j > 0 && sizeOf(juniorGroup) < TOM_MIN_AGE_POD && m > 0) merge("juniors", "masters");
+  if (s > 0 && s < TOM_MIN_AGE_POD && m > 0 && !(j > 0 && j < TOM_MIN_AGE_POD)) merge("seniors", "masters");
+  if (m > 0 && m < TOM_MIN_AGE_POD && s > 0) merge("masters", "seniors");
+  return groups;
+}
+
+export function ageCombinedSwissHost(group: TomAgeDivision[]): TomAgeDivision {
+  if (group.includes("masters")) return "masters";
+  if (group.includes("seniors")) return "seniors";
+  return "juniors";
+}
+
 export function titleForTomDivision(
-  division: "juniors" | "seniors" | "masters",
+  division: TomAgeDivision,
   fallback: Parameters<typeof inferTomTitle>[1],
   kind: TomGameKind,
 ): Parameters<typeof inferTomTitle>[1] {
@@ -489,12 +536,12 @@ export function titleForTomDivision(
 /** One TOM event can list Masters, Seniors, and Juniors in the same standings file. */
 export function splitTomReportsByDivision(
   reports: TomReports,
-): { division: "juniors" | "seniors" | "masters"; reports: TomReports }[] {
-  const buckets = {
-    juniors: [] as TomPlayer[],
-    seniors: [] as TomPlayer[],
-    masters: [] as TomPlayer[],
-    other: [] as TomPlayer[],
+): { division: TomAgeDivision; reports: TomReports; swissHost: TomAgeDivision }[] {
+  const buckets: Record<TomAgeDivision | "other", TomPlayer[]> = {
+    juniors: [],
+    seniors: [],
+    masters: [],
+    other: [],
   };
   for (const row of reports.players) {
     if (row.division === "juniors" || row.division === "seniors" || row.division === "masters") {
@@ -503,24 +550,40 @@ export function splitTomReportsByDivision(
       buckets.other.push(row);
     }
   }
-  const present = (["juniors", "seniors", "masters"] as const).filter((d) => buckets[d].length);
+  const counts = {
+    juniors: buckets.juniors.length,
+    seniors: buckets.seniors.length,
+    masters: buckets.masters.length,
+  };
+  const present = (["juniors", "seniors", "masters"] as const).filter((d) => counts[d] > 0);
   if (present.length <= 1) {
     const division = present[0] ?? "masters";
-    return [{ division, reports: { ...reports, players: [...buckets[division], ...buckets.other] } }];
+    return [
+      {
+        division,
+        swissHost: division,
+        reports: { ...reports, players: [...buckets[division], ...buckets.other] },
+      },
+    ];
   }
-  const majority = present.slice().sort((a, b) => buckets[b].length - buckets[a].length)[0]!;
-  buckets[majority].push(...buckets.other);
+  const groups = ageCombinedSwissGroups(counts);
+  const defaultHost = ageCombinedSwissHost(groups.find((g) => g.includes("masters")) ?? groups[0] ?? ["masters"]);
+  buckets[defaultHost].push(...buckets.other);
+
   return present.map((division) => {
+    const group = groups.find((g) => g.includes(division)) ?? [division];
+    const swissHost = ageCombinedSwissHost(group);
     const names = new Set(buckets[division].map((p) => p.name.trim().toLowerCase()));
-    const pairings =
-      division === majority
-        ? reports.pairings
-        : reports.pairings.filter((m) => {
-            const p1 = names.has(m.p1.name.trim().toLowerCase());
-            const p2 = !m.p2 || names.has(m.p2.name.trim().toLowerCase());
-            return p1 && p2;
-          });
-    return { division, reports: { ...reports, players: buckets[division], pairings } };
+    const isHost = division === swissHost && group.length > 1;
+    const players = isHost ? group.flatMap((d) => buckets[d]) : buckets[division];
+    const pairings = isHost
+      ? reports.pairings
+      : reports.pairings.filter((match) => {
+          const p1 = names.has(match.p1.name.trim().toLowerCase());
+          const p2 = !match.p2 || names.has(match.p2.name.trim().toLowerCase());
+          return p1 && p2;
+        });
+    return { division, swissHost, reports: { ...reports, players, pairings } };
   });
 }
 

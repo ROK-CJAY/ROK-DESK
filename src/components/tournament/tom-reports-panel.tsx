@@ -107,7 +107,9 @@ export function TomReportsPanel() {
         const target = titleForTomDivision(slice.division, game, kind);
         applyTom(isVgcTitle(target) ? withVgcSampleTrainers(slice.reports) : slice.reports, target);
         applied.push(
-          `${tomKindLabel(target)} ${slice.reports.players.length} player${slice.reports.players.length === 1 ? "" : "s"}`,
+          `${tomKindLabel(target)} ${slice.reports.players.length} player${slice.reports.players.length === 1 ? "" : "s"}${
+            slice.swissHost !== slice.division ? ` (Swiss with ${slice.swissHost})` : ""
+          }`,
         );
       }
       if (applied.length === 1) {
