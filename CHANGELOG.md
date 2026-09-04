@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.2.10-beta — 2026-09-04
+
+TOM reports watch no longer duplicates players or imports the event title as a player. Pick which tournament to pull while watching a folder.
+
 ### Fixed
 
 - **TOM reports watch** — pairings that print `Name (W/L/T (pts) - MA)` no longer add a second copy of that player. The event title is not imported as a player. While watching a folder, pick which tournament to pull if more than one report set is in that tree. TOM only writes HTML for the event that is open.

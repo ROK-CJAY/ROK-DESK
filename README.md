@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.9-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.2.10-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -327,7 +327,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.2.9-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.9-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
+1. Download **v1.2.10-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.2.10-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -377,6 +377,12 @@ npm run dist
 ## Changelog
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### v1.2.10-beta — 4 Sep 2026 · TOM watch duplicates and event pick
+
+**Fixed**
+- Watching TOM reports no longer adds `Name (W/L/T - MA)` copies or the event title as a player
+- While watching a folder, pick which tournament to pull if more than one report set is in that tree
 
 ### v1.2.9-beta — 2 Sep 2026 · Play! Pokémon age divisions, TOM, PTCG lookup
 
@@ -597,4 +603,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.9-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.2.10-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.

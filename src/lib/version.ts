@@ -1,4 +1,4 @@
-/** Semver. Play! Pokémon age divisions; TOM companion; PTCG list isolation. */
-export const APP_VERSION = "1.2.9";
+/** Semver. TOM watch no longer duplicates players; pick which event to pull. */
+export const APP_VERSION = "1.2.10";
 export const APP_CHANNEL = "beta";
 export const APP_VERSION_LABEL = `v${APP_VERSION} ${APP_CHANNEL}`;
