@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Fixed
+
+- **Commander player tablet** — Facing-out seats no longer squash life, poison, and commander damage on top of each other. Each pad scales to its cell; poison / commander use compact +/− instead of a second stepper.
+
 ## v1.2.12-beta — 2026-09-04
 
 TOM Game Type and age-combined Swiss.

@@ -147,8 +147,8 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "extend
 
       <div
         className={cn(
-          "min-h-0 flex-1 p-1.5",
-          seats.length === 2 ? "grid grid-cols-2" : "grid grid-cols-2 grid-rows-2",
+          "grid min-h-0 flex-1 gap-1.5 p-1.5",
+          seats.length === 2 ? "grid-cols-2" : "grid-cols-2 grid-rows-2",
         )}
       >
         {seats.map((seat) => (
@@ -194,67 +194,66 @@ function SeatPad({
   return (
     <section
       className={cn(
-        "relative m-1 flex flex-col overflow-hidden rounded-xl border border-border bg-surface",
+        "@container/seat relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface",
         (out || lethal) && "opacity-80",
       )}
+      style={{ containerType: "size" }}
     >
-      <div className={cn("flex h-full flex-col p-3", rotate && "rotate-180")}>
-        <div className="flex items-start justify-between gap-2">
+      <div className={cn("flex h-full min-h-0 flex-col gap-1 p-2", rotate && "rotate-180")}>
+        <div className="flex shrink-0 items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-mono text-[0.6rem] tracking-[0.18em] text-muted uppercase">
+            <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">
               {SEAT_LABELS[seat]}
               {out ? " · Out" : lethal ? " · Lethal" : ""}
             </p>
-            <p className="font-display truncate text-xl leading-none font-semibold uppercase">
+            <p className="font-display truncate text-base leading-tight font-semibold uppercase @[18rem]/seat:text-lg">
               {player.name || "Open"}
             </p>
-            <p className="truncate text-xs text-muted">
+            <p className="truncate text-[0.7rem] leading-tight text-muted">
               {commander
                 ? formatCommanderLine(player.archetype, player.extra) || "Commander"
                 : player.archetype || "Open"}
             </p>
           </div>
-          {out || lethal ? <Skull className="size-4 text-live" /> : null}
+          {out || lethal ? <Skull className="size-4 shrink-0 text-live" /> : null}
         </div>
 
-        <div className="relative my-1 flex min-h-0 flex-1 items-center justify-center">
+        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
           <button
             type="button"
             onClick={() => onLife(-1)}
-            className="absolute inset-y-0 left-0 w-1/3 text-3xl text-subtle/50 active:bg-fg/5"
+            className="absolute inset-y-0 left-0 z-10 flex w-[28%] items-center justify-start pl-1 text-2xl text-subtle/40 active:bg-fg/5"
             aria-label={`${player.name || seat} minus one`}
           >
             −
           </button>
-          <div className="pointer-events-none text-center">
-            <p
-              className={cn(
-                "font-display leading-none font-semibold tabular-nums",
-                life <= 0 ? "text-live" : "text-fg",
-              )}
-              style={{ fontSize: "clamp(3.6rem, 14vw, 7rem)" }}
-            >
-              {life}
-            </p>
-          </div>
+          <p
+            className={cn(
+              "pointer-events-none max-h-full max-w-full overflow-hidden px-[22%] text-center font-display leading-none font-semibold tabular-nums",
+              life <= 0 ? "text-live" : "text-fg",
+            )}
+            style={{ fontSize: "clamp(2.1rem, 38cqmin, 5.2rem)" }}
+          >
+            {life}
+          </p>
           <button
             type="button"
             onClick={() => onLife(1)}
-            className="absolute inset-y-0 right-0 w-1/3 text-3xl text-subtle/50 active:bg-fg/5"
+            className="absolute inset-y-0 right-0 z-10 flex w-[28%] items-center justify-end pr-1 text-2xl text-subtle/40 active:bg-fg/5"
             aria-label={`${player.name || seat} plus one`}
           >
             +
           </button>
         </div>
 
-        <div className="flex justify-center">
-          <DeltaPad onDelta={onLife} size="tablet" />
+        <div className="flex shrink-0 justify-center">
+          <DeltaPad onDelta={onLife} size="desk" />
         </div>
 
-        <div className={cn("mt-3 grid gap-2", commander ? "grid-cols-2" : "grid-cols-1")}>
-          <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} max={10} />
+        <div className={cn("grid shrink-0 gap-1.5", commander ? "grid-cols-2" : "grid-cols-1")}>
+          <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} />
           {commander ? (
-            <CounterChip label="Cmd" value={cmd} danger={cmd >= 21} onDelta={onCmd} max={21} />
+            <CounterChip label="Cmd" value={cmd} danger={cmd >= 21} onDelta={onCmd} />
           ) : null}
         </div>
       </div>
@@ -267,26 +266,39 @@ function CounterChip({
   value,
   danger,
   onDelta,
-  max,
 }: {
   label: string;
   value: number;
   danger?: boolean;
   onDelta: (delta: number) => void;
-  max: number;
 }) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-1 rounded-md border px-1 py-1.5",
+        "flex min-w-0 items-center justify-between gap-1 rounded-md border px-1 py-1",
         danger ? "border-live" : "border-border",
       )}
     >
-      <div className="text-center">
-        <p className="font-mono text-[0.55rem] tracking-[0.16em] text-muted uppercase">{label}</p>
-        <p className="font-display text-2xl leading-none font-semibold tabular-nums">{value}</p>
+      <button
+        type="button"
+        onClick={() => onDelta(-1)}
+        aria-label={`${label} minus one`}
+        className="grid size-9 shrink-0 place-items-center rounded-md text-xl leading-none text-fg active:bg-fg/10"
+      >
+        −
+      </button>
+      <div className="min-w-0 text-center">
+        <p className="font-mono text-[0.52rem] tracking-[0.16em] text-muted uppercase">{label}</p>
+        <p className="font-display text-xl leading-none font-semibold tabular-nums">{value}</p>
       </div>
-      <DeltaPad onDelta={onDelta} max={max} size="tablet" />
+      <button
+        type="button"
+        onClick={() => onDelta(1)}
+        aria-label={`${label} plus one`}
+        className="grid size-9 shrink-0 place-items-center rounded-md text-xl leading-none text-fg active:bg-fg/10"
+      >
+        +
+      </button>
     </div>
   );
 }
