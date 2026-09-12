@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { type BestOf, type GameId, type ScorebugStyle, coerceDeskGameId, gameOf } from "@/lib/games";
-import { mergeCommanderLayout, mergeLayout, type LayoutMap } from "@/lib/layout";
+import { DEFAULT_LAYOUT, mergeCommanderLayout, mergeLayout, type LayoutMap } from "@/lib/layout";
 import { DEFAULT_LOOK_BOOK, mergeLookBook, type OverlayLookBook } from "@/lib/overlay-look";
 import { type Sponsor } from "@/lib/sponsors";
 import {
