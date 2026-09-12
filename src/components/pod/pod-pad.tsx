@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { RotateCcw, RotateCw, Skull } from "lucide-react";
 import { useDeskStore } from "@/lib/desk-store";
 import { SEAT_LABELS, seatsFor, type SeatId } from "@/lib/desk-types";
@@ -218,7 +218,7 @@ function SeatPad({
           {out || lethal ? <Skull className="size-4 shrink-0 text-live" /> : null}
         </div>
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           <button
             type="button"
             onClick={() => onLife(-1)}
@@ -227,15 +227,7 @@ function SeatPad({
           >
             −
           </button>
-          <p
-            className={cn(
-              "pointer-events-none max-h-full max-w-full overflow-hidden px-[22%] text-center font-display leading-none font-semibold tabular-nums",
-              life <= 0 ? "text-live" : "text-fg",
-            )}
-            style={{ fontSize: "clamp(2.1rem, 38cqmin, 5.2rem)" }}
-          >
-            {life}
-          </p>
+          <FitLife value={life} danger={life <= 0} />
           <button
             type="button"
             onClick={() => onLife(1)}
@@ -258,6 +250,52 @@ function SeatPad({
         </div>
       </div>
     </section>
+  );
+}
+
+function FitLife({ value, danger }: { value: number; danger?: boolean }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const text = textRef.current;
+    if (!box || !text) return;
+
+    const fit = () => {
+      const width = box.clientWidth * 0.52;
+      const height = box.clientHeight * 0.96;
+      if (width < 12 || height < 12) return;
+      let lo = 16;
+      let hi = Math.min(width * 1.15, height);
+      for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        text.style.fontSize = `${mid}px`;
+        if (text.scrollWidth <= width + 1 && text.scrollHeight <= height + 1) lo = mid;
+        else hi = mid;
+      }
+      text.style.fontSize = `${Math.max(16, Math.floor(lo))}px`;
+    };
+
+    fit();
+    void document.fonts?.ready.then(fit);
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [value]);
+
+  return (
+    <div ref={boxRef} className="grid h-full w-full place-items-center overflow-hidden px-[24%]">
+      <p
+        ref={textRef}
+        className={cn(
+          "pointer-events-none font-display leading-none font-semibold tabular-nums",
+          danger ? "text-live" : "text-fg",
+        )}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 
