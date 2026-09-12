@@ -378,6 +378,19 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
+### Unreleased · Commander tablet and overlay
+
+On `main`, not in a tagged installer yet.
+
+**Fixed**
+- Commander player tablet no longer overlaps life / poison / commander damage on facing-out seats
+- Life total scales to the seat instead of clipping
+
+**Changed**
+- Commander overlay plates tint from the commander’s color identity (partners merge)
+- Partner is on its own line; double-faced names show the front face
+- Scorebugs are larger; round clock sits at bottom center, same chip as the round plate
+
 ### v1.2.12-beta — 4 Sep 2026 · TOM Game Type and age-combined Swiss
 
 **Fixed**

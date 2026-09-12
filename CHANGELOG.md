@@ -15,6 +15,7 @@ Not tagged. Use the build on `main` until the next beta.
 ### Fixed
 
 - **Commander player tablet** — Facing-out seats no longer squash life, poison, and commander damage on top of each other. Each pad scales to its cell; the life total shrinks to fit the seat; poison / commander use compact +/− instead of a second stepper.
+- **Boot** — overlay no longer crashes with `DEFAULT_LAYOUT is not defined` after the Commander layout helper split.
 
 ## v1.2.12-beta — 2026-09-04
 
