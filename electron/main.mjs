@@ -27,6 +27,8 @@ import {
   saveTabs,
   switchProfile,
 } from "./browser-session.mjs";
+import { applyStableUserData, deskDataRoot } from "./desk-data.mjs";
+import { initUpdater } from "./updater.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 8080;
@@ -365,6 +367,7 @@ async function openBrowserWindow(go) {
 }
 
 app.setName("ROK Desk");
+applyStableUserData();
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -420,6 +423,12 @@ if (!gotLock) {
       void shell.openPath(browserDataRoot());
       return true;
     });
+    ipcMain.handle("rok:desk-data-path", () => deskDataRoot());
+    ipcMain.handle("rok:desk-open-data", () => {
+      void shell.openPath(deskDataRoot());
+      return true;
+    });
+    initUpdater();
     ipcMain.handle("rok:browser-new-window", async (_event, url) => {
       await openBrowserWindow(isHttpUrl(url) ? url : "");
       return true;

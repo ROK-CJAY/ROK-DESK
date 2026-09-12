@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Clapperboard,
@@ -16,6 +17,8 @@ import { FloorLinks } from "@/components/app/floor-links";
 import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
 import { TITLE_STRIP } from "@/lib/games";
 import { APP_VERSION_LABEL } from "@/lib/version";
+import { UpdateBadge } from "@/components/app/update-badge";
+import { rokDesktop } from "@/lib/rok-desktop";
 
 const STEPS = [
   {
@@ -57,9 +60,7 @@ export function Landing() {
                 <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
                   ROK Desk
                 </p>
-                <span className="font-mono text-[0.62rem] font-medium tracking-[0.12em] text-muted">
-                  {APP_VERSION_LABEL}
-                </span>
+                <UpdateBadge />
               </div>
               <p className="text-xs text-muted">Broadcast production desk</p>
             </div>
@@ -262,8 +263,27 @@ export function Landing() {
             </a>
             .
           </p>
+          <DeskDataNote />
         </section>
       </main>
     </div>
+  );
+}
+
+function DeskDataNote() {
+  const desktop = typeof window !== "undefined" ? rokDesktop() : null;
+  const [folder, setFolder] = useState("");
+  useEffect(() => {
+    void desktop?.deskDataPath?.().then(setFolder);
+  }, [desktop]);
+  if (!desktop?.openDeskData) return null;
+  return (
+    <p className="mt-3 flex flex-wrap items-center gap-2 text-xs text-subtle">
+      <FolderOpen className="size-3.5" />
+      Event data stays in {folder || "AppData / ROK Desk"} if you uninstall.
+      <button type="button" className="underline hover:text-muted" onClick={() => void desktop.openDeskData()}>
+        Open folder
+      </button>
+    </p>
   );
 }

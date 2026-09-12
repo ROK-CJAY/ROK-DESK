@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Clapperboard, House, Trophy } from "lucide-react";
 import { SupportButtons } from "@/components/app/support-links";
+import { UpdateBadge } from "@/components/app/update-badge";
 import { cn } from "@/lib/cn";
-import { APP_VERSION_LABEL } from "@/lib/version";
 import { useDeskStore } from "@/lib/desk-store";
 import { streamChannelLabel, streamChannelUrl } from "@/lib/stream-channel";
 
@@ -29,9 +29,7 @@ export function AppChrome({
                   <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">
                     ROK Desk
                   </p>
-                  <span className="font-mono text-[0.62rem] font-medium tracking-[0.12em] text-muted">
-                    {APP_VERSION_LABEL}
-                  </span>
+                  <UpdateBadge />
                 </div>
                 <p className="text-xs text-muted">
                   {eyebrow ??

@@ -1,3 +1,5 @@
+import type { AppUpdateStatus } from "@/lib/app-update";
+
 export type BrowserBounds = {
   x: number;
   y: number;
@@ -81,6 +83,14 @@ export type RokDeskBridge = {
   openDownloads: () => Promise<boolean>;
   browserDataPath: () => Promise<string>;
   openBrowserData: () => Promise<boolean>;
+  deskDataPath: () => Promise<string>;
+  openDeskData: () => Promise<boolean>;
+  updateStatus: () => Promise<AppUpdateStatus>;
+  checkForUpdates: () => Promise<AppUpdateStatus>;
+  downloadUpdate: () => Promise<AppUpdateStatus>;
+  installUpdate: () => Promise<AppUpdateStatus>;
+  openRelease: () => Promise<boolean>;
+  onUpdateStatus: (cb: (status: AppUpdateStatus) => void) => () => void;
   onBrowserUrl: (cb: (url: string) => void) => () => void;
   onBrowserTitle: (cb: (title: string) => void) => () => void;
   onBrowserHistory: (cb: (rows: BrowserHistoryRow[]) => void) => () => void;

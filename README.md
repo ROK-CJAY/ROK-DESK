@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.2.12-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.3.0-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -327,12 +327,12 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.2.12-beta** from [Releases](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.2.12-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
+1. Download **v1.3.0-beta** from [Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.3.0-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag).
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
    - Linux: `.AppImage`
-3. Run **ROK Desk**. The desk window opens. Event data is saved on that PC.
+3. Run **ROK Desk**. The desk window opens. Event data is saved on that PC under **ROK Desk** in AppData (not next to a portable exe). Uninstalling keeps players and tournament state. Click the version label to check for updates on [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases). Windows installer builds can apply the update in-app.
 4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi.
 5. Windows Firewall: allow ROK Desk on **private** networks or iPads will not connect.
 
@@ -351,7 +351,7 @@ This build is a **local desk** (TSH-style): one process, one event, devices on t
 - Two titles in one venue (PTCG streamed on one PC, Commander on another) = **two hosts**
 - Login / multi-account isolation is not in this beta. Do not share one running instance across unrelated organizers
 
-Local persistence uses PGLite on disk in the desktop app. Set a Postgres URL if you deploy the web build. Production web build is Vercel-ready (`nitro` preset).
+Local persistence uses PGLite on disk in the desktop app (`AppData/ROK Desk`). Set a Postgres URL if you deploy the web build. Production web build is Vercel-ready (`nitro` preset).
 
 ### From source (developers)
 
@@ -378,18 +378,19 @@ npm run dist
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 
-### Unreleased · Commander tablet and overlay
+### v1.3.0-beta — 12 Sep 2026 · software update
 
-On `main`, not in a tagged installer yet.
+**Changed**
+- Desktop event data lives in the ROK Desk AppData folder (survives uninstall / portable replace)
+- Version label checks [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases); Windows installer can update in-app
+- Commander overlay plates tint from the commander’s color identity (partners merge)
+- Partner is on its own line; double-faced names show the front face
+- Scorebugs are larger; round clock sits at bottom center, same chip as the round plate
 
 **Fixed**
 - Commander player tablet no longer overlaps life / poison / commander damage on facing-out seats
 - Life total scales to the seat instead of clipping
-
-**Changed**
-- Commander overlay plates tint from the commander’s color identity (partners merge)
-- Partner is on its own line; double-faced names show the front face
-- Scorebugs are larger; round clock sits at bottom center, same chip as the round plate
+- Overlay no longer crashes with `DEFAULT_LAYOUT is not defined`
 
 ### v1.2.12-beta — 4 Sep 2026 · TOM Game Type and age-combined Swiss
 
@@ -630,4 +631,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.2.12-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2. Expect polish.
+This build is **v1.3.0-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3. Expect polish.

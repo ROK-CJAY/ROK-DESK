@@ -8,8 +8,14 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.3.0-beta — 2026-09-12
+
+Software update: event data survives reinstall, in-app update check, Commander overlay.
+
 ### Changed
 
+- **Desktop data** — players, tournament state, and the local database live in the ROK Desk AppData folder (not next to the portable exe). Uninstall / replace the app and the last event comes back.
+- **Updates** — the version label checks [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases). An Update badge appears when a newer tag is out. Windows NSIS builds can download and restart in-app (`electron-updater`). Portable / mac / Linux still open the release page.
 - **Commander overlay** — player plates pick up the commander’s color identity (partners merge). Partner is on its own line. Bugs are larger. Round clock sits at bottom center, same chip as the round plate at the top.
 
 ### Fixed

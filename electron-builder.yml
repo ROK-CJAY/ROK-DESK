@@ -13,6 +13,12 @@ extraResources:
     to: output
 extraMetadata:
   main: electron/main.mjs
+publish:
+  provider: github
+  owner: ROK-CJAY
+  repo: ROK-DESK
+  vPrefixedTagName: true
+  releaseType: prerelease
 win:
   target:
     - portable
@@ -25,6 +31,7 @@ nsis:
   allowToChangeInstallationDirectory: false
   shortcutName: ROK Desk
   deleteAppDataOnUninstall: false
+  artifactName: ROK-Desk-${version}-${os}-${arch}-setup.${ext}
 linux:
   target:
     - AppImage

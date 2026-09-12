@@ -31,6 +31,18 @@ contextBridge.exposeInMainWorld("rokDesk", {
   openDownloads: () => ipcRenderer.invoke("rok:browser-open-downloads"),
   browserDataPath: () => ipcRenderer.invoke("rok:browser-data-path"),
   openBrowserData: () => ipcRenderer.invoke("rok:browser-open-data"),
+  deskDataPath: () => ipcRenderer.invoke("rok:desk-data-path"),
+  openDeskData: () => ipcRenderer.invoke("rok:desk-open-data"),
+  updateStatus: () => ipcRenderer.invoke("rok:update-status"),
+  checkForUpdates: () => ipcRenderer.invoke("rok:update-check"),
+  downloadUpdate: () => ipcRenderer.invoke("rok:update-download"),
+  installUpdate: () => ipcRenderer.invoke("rok:update-install"),
+  openRelease: () => ipcRenderer.invoke("rok:update-open"),
+  onUpdateStatus: (cb) => {
+    const listener = (_event, next) => cb(next);
+    ipcRenderer.on("rok:update-status", listener);
+    return () => ipcRenderer.removeListener("rok:update-status", listener);
+  },
   onBrowserUrl: (cb) => {
     const listener = (_event, next) => cb(next);
     ipcRenderer.on("rok:browser-url", listener);
