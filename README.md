@@ -6,7 +6,8 @@ ROK Desk is the control room for a live TCG / VGC event. One host machine runs t
 
 It is built for a venue with a stream: a TO laptop, a production PC, tablets on feature tables, and a monitor showing the room clock.
 
-ROK Desk is **free and in beta**. If it saves you a night, [donate via PayPal](https://www.paypal.com/donate/?hosted_button_id=XM6K2Y4MXJZC4). Not affiliated with Pokémon, Wizards, Ravensburger, or the other publishers.
+ROK Desk is **free and in beta**. If it saves you a night, [donate via PayPal](https://www.paypal.com/donate/?hosted_button_id=XM6K2Y4MXJZC4). See **[License](#license)** for venue / personal-use terms.
+
 
 Version history: **[CHANGELOG.md](./CHANGELOG.md)**.
 
@@ -68,7 +69,8 @@ Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switc
 | Stream clock | `/{game}/overlay/stream-clock` | Monitor at the streamed table |
 | Browser | `/browser` | In-app Chromium for pairings, downloads, card DBs |
 
-Header on Production / Tournament: **Home · Production · Tournament**, plus **Browser · Donate · Feedback**. Feedback goes to the [ROK Desk form](https://forms.gle/Re5mt8RXU7qNEN8W9).
+Header on Production / Tournament: **Home · Production · Tournament**, plus **Browser · License · Donate · Feedback**. Feedback goes to the [ROK Desk form](https://forms.gle/Re5mt8RXU7qNEN8W9). License is the same notice as Home and this README.
+
 
 ---
 
@@ -374,7 +376,24 @@ npm run dist
 
 ---
 
+## License
+
+ROK Desk is provided by ROK Esports for **ROK Gaming Lounge** and for **personal, non-commercial** use.
+
+You may run it on your own machine to organize or stream an event you are staffing. You may not sell ROK Desk, bundle it as a paid product, or use it as the licensed software of another business without written permission from ROK Esports.
+
+ROK Desk is provided **as-is**, in beta, with no warranty. ROK Esports is not liable for lost pairings, missed matches, or broadcast downtime.
+
+ROK Desk is not affiliated with Nintendo, The Pokémon Company, Wizards of the Coast, Ravensburger, or other game publishers.
+
+Event data stays on this PC. If a future build sends anonymous usage stats, that will be disclosed in-app.
+
+This copy also appears on Home and behind **License** in the desk header. It is not a substitute for legal advice.
+
+---
+
 ## Changelog
+
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 

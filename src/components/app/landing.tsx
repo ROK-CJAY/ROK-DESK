@@ -18,6 +18,7 @@ import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
 import { TITLE_STRIP } from "@/lib/games";
 import { APP_VERSION_LABEL } from "@/lib/version";
 import { UpdateBadge } from "@/components/app/update-badge";
+import { LicenseCopy, LICENSE_HEADING } from "@/components/app/license-notice";
 import { rokDesktop } from "@/lib/rok-desktop";
 
 const STEPS = [
@@ -266,6 +267,13 @@ export function Landing() {
           <DeskDataNote />
         </section>
       </main>
+
+      <footer className="border-t border-border">
+        <div className="mx-auto max-w-5xl px-4 py-8">
+          <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">{LICENSE_HEADING}</p>
+          <LicenseCopy className="mt-3 max-w-2xl text-xs leading-relaxed text-subtle" />
+        </div>
+      </footer>
     </div>
   );
 }

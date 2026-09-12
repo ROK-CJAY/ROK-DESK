@@ -8,6 +8,11 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Added
+
+- **License** — venue / personal-use notice on Home, in the header (**License**), and in the README.
+
+
 ## v1.3.0-beta — 2026-09-12
 
 Software update: event data survives reinstall, in-app update check, Commander overlay.
