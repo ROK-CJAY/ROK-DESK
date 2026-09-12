@@ -1,6 +1,9 @@
-import { formatCommanderLine, gameOf, isCommanderLane } from "@/lib/games";
+import { useEffect, useState } from "react";
+import { commanderFaceName, gameOf, isCommanderLane } from "@/lib/games";
 import {
+  formatClock,
   isCommanderTable,
+  remainingSeconds,
   seatsFor,
   type DeskState,
   type SeatId,
@@ -8,6 +11,9 @@ import {
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { FadeValue } from "@/components/overlays/fade-value";
+import { fetchCommanderColors } from "@/lib/card-lookup";
+import { commanderPlateGradient, mergeColorIdentity } from "@/lib/commander-colors";
+import { cn } from "@/lib/cn";
 
 const SEAT_WIDGET: Record<SeatId, "scorebugP1" | "scorebugP2" | "scorebugP3" | "scorebugP4"> = {
   p1: "scorebugP1",
@@ -16,11 +22,16 @@ const SEAT_WIDGET: Record<SeatId, "scorebugP1" | "scorebugP2" | "scorebugP3" | "
   p4: "scorebugP4",
 };
 
+const CHIP =
+  "w-[280px] rounded-md border border-ov-fg/12 bg-ov-bg/88 px-3 py-1.5 text-center shadow-[0_8px_24px_rgb(0_0_0_/_0.35)]";
+
 export function CommanderScorebug({
   desk,
+  now = Date.now(),
   edit = null,
 }: {
   desk: DeskState;
+  now?: number;
   edit?: OverlayEdit | null;
 }) {
   const seats = seatsFor(desk.tableSize);
@@ -42,7 +53,7 @@ export function CommanderScorebug({
           );
         })}
         <Placed id="scorebugCenter">
-          <div className="w-[280px] rounded-md border border-ov-fg/10 bg-ov-bg/88 px-3 py-1.5 text-center">
+          <div className={CHIP}>
             <div className="font-mono text-[0.65rem] tracking-[0.18em] text-game uppercase">
               {desk.formatName} · {desk.tableSize} pod
             </div>
@@ -51,9 +62,49 @@ export function CommanderScorebug({
             </div>
           </div>
         </Placed>
+        <Placed id="timer">
+          <CommanderClock desk={desk} now={now} />
+        </Placed>
       </div>
     </OverlayEditProvider>
   );
+}
+
+export function CommanderClock({ desk, now }: { desk: DeskState; now: number }) {
+  const left = remainingSeconds(desk, now);
+  return (
+    <div className={CHIP}>
+      <div className="font-mono text-[0.65rem] tracking-[0.18em] text-game uppercase">Round clock</div>
+      <div
+        className={cn(
+          "font-display text-sm font-semibold tracking-wide tabular-nums uppercase",
+          left === 0 ? "text-live" : "text-ov-fg",
+        )}
+      >
+        {formatClock(left)}
+      </div>
+    </div>
+  );
+}
+
+function usePlateColors(commander: string, partner: string): string[] {
+  const [colors, setColors] = useState<string[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    const names = [commander, partner].map((n) => n.trim()).filter(Boolean);
+    if (!names.length) {
+      setColors([]);
+      return;
+    }
+    void Promise.all(names.map((n) => fetchCommanderColors(n))).then((rows) => {
+      if (cancelled) return;
+      setColors(mergeColorIdentity(...rows));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [commander, partner]);
+  return colors;
 }
 
 function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
@@ -61,35 +112,50 @@ function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
   const right = seat === "p2" || seat === "p3";
   const out = player.resource <= 0;
   const lethal = player.cmdDamage >= 21 || player.secondary >= 10;
+  const commander = commanderFaceName(player.archetype);
+  const partner = commanderFaceName(player.extra);
+  const showPartner = Boolean(partner && partner.toLowerCase() !== commander.toLowerCase());
+  const colors = usePlateColors(commander, partner);
+  const tinted = colors.length > 0;
+
   return (
     <div
-      className={`w-[300px] rounded-md border border-ov-fg/10 bg-ov-bg/88 px-3 py-2 ${
-        right ? "text-right" : ""
-      } ${out || lethal ? "opacity-65" : ""}`}
+      className={cn(
+        "w-[380px] overflow-hidden rounded-md border px-3.5 py-2.5 shadow-[0_10px_28px_rgb(0_0_0_/_0.4)]",
+        tinted ? "border-ov-fg/20" : "border-ov-fg/10 bg-ov-bg/88",
+        right && "text-right",
+        (out || lethal) && "opacity-70",
+      )}
+      style={tinted ? { backgroundImage: commanderPlateGradient(colors, right) } : undefined}
     >
-      <div className={`flex items-start gap-3 ${right ? "flex-row-reverse" : ""}`}>
+      <div className={cn("flex items-start gap-3", right && "flex-row-reverse")}>
         <div className="min-w-0 flex-1">
-          <p className="font-display truncate text-xl leading-none font-semibold tracking-tight text-ov-fg uppercase">
+          <p className="font-display truncate text-2xl leading-none font-semibold tracking-tight text-ov-fg uppercase [text-shadow:0_1px_8px_rgb(0_0_0_/_0.65)]">
             {player.name || "TBD"}
           </p>
-          <p className="mt-0.5 truncate text-xs text-ov-muted">
-            {formatCommanderLine(player.archetype, player.extra) || "Commander"}
+          <p className="mt-1 truncate text-[0.92rem] leading-tight text-ov-fg/90 [text-shadow:0_1px_6px_rgb(0_0_0_/_0.55)]">
+            {commander || "Commander"}
             {out ? " · Out" : lethal ? " · Lethal" : ""}
           </p>
+          {showPartner ? (
+            <p className="mt-0.5 truncate text-[0.82rem] leading-tight text-ov-fg/80 [text-shadow:0_1px_6px_rgb(0_0_0_/_0.55)]">
+              {partner}
+            </p>
+          ) : null}
         </div>
-        <p className="font-display text-3xl leading-none font-semibold tabular-nums text-ov-fg">
+        <p className="font-display text-4xl leading-none font-semibold tabular-nums text-ov-fg [text-shadow:0_1px_8px_rgb(0_0_0_/_0.65)]">
           <FadeValue value={player.resource} />
         </p>
       </div>
       <p
-        className={`mt-1 font-mono text-[0.62rem] tracking-[0.14em] text-ov-muted uppercase ${
-          right ? "" : ""
-        }`}
+        className={cn(
+          "mt-1.5 font-mono text-[0.68rem] tracking-[0.14em] text-ov-fg/80 uppercase [text-shadow:0_1px_6px_rgb(0_0_0_/_0.55)]",
+        )}
       >
         <span className={player.secondary > 0 ? "text-ov-fg" : ""}>
           Poi <FadeValue value={player.secondary} />
         </span>
-        <span className="text-ov-fg/25"> · </span>
+        <span className="text-ov-fg/35"> · </span>
         <span className={player.cmdDamage > 0 ? "text-ov-fg" : ""}>
           Cmd <FadeValue value={player.cmdDamage} />
         </span>
@@ -116,12 +182,12 @@ export function CommanderVersus({ desk }: { desk: DeskState }) {
               <img src={desk.eventLogo} alt="" className="max-h-28 max-w-56 object-contain" />
             ) : null}
             <div className="min-w-0">
-            <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">
-              {desk.sponsorLine}
-            </p>
-            <h1 className="font-display mt-1 text-5xl font-semibold tracking-tight text-ov-fg uppercase">
-              {desk.eventName}
-            </h1>
+              <p className="font-mono text-ov-kicker tracking-[0.28em] text-game uppercase">
+                {desk.sponsorLine}
+              </p>
+              <h1 className="font-display mt-1 text-5xl font-semibold tracking-tight text-ov-fg uppercase">
+                {desk.eventName}
+              </h1>
             </div>
           </div>
           <div className="text-right">
@@ -138,6 +204,9 @@ export function CommanderVersus({ desk }: { desk: DeskState }) {
           {(desk.tableSize === 4 ? (["p1", "p2", "p4", "p3"] as SeatId[]) : seats).map((seat) => {
             const player = desk[seat];
             const right = seat === "p2" || seat === "p3";
+            const commander = commanderFaceName(player.archetype);
+            const partner = commanderFaceName(player.extra);
+            const showPartner = Boolean(partner && partner.toLowerCase() !== commander.toLowerCase());
             return (
               <div key={seat} className={right ? "text-right" : ""}>
                 <p className="font-mono text-ov-kicker tracking-[0.22em] text-game uppercase">
@@ -146,7 +215,8 @@ export function CommanderVersus({ desk }: { desk: DeskState }) {
                 <h2 className="font-display text-5xl leading-none font-semibold tracking-tight text-ov-fg uppercase">
                   {player.name || "TBD"}
                 </h2>
-                <p className="mt-2 text-xl text-ov-muted">{formatCommanderLine(player.archetype, player.extra) || "Commander"}</p>
+                <p className="mt-2 text-xl text-ov-muted">{commander || "Commander"}</p>
+                {showPartner ? <p className="text-lg text-ov-muted">{partner}</p> : null}
               </div>
             );
           })}

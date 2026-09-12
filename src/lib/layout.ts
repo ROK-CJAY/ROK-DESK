@@ -107,6 +107,28 @@ const LEGACY_SPLIT = {
   scorebugCenter: { x: 780, y: 48 },
 } as const;
 
+export const COMMANDER_LAYOUT: Partial<LayoutMap> = {
+  scorebugP1: { x: 24, y: 18 },
+  scorebugP2: { x: 1516, y: 18 },
+  scorebugP3: { x: 1516, y: 930 },
+  scorebugP4: { x: 24, y: 930 },
+  scorebugCenter: { x: 820, y: 16 },
+  timer: { x: 820, y: 1010 },
+};
+
+export const VERSUS_PLATE_LAYOUT: Partial<LayoutMap> = {
+  scorebugP1: { x: 48, y: 40 },
+  scorebugP2: { x: 1352, y: 40 },
+  scorebugCenter: { x: 780, y: 48 },
+};
+
+const LEGACY_COMMANDER = {
+  scorebugP1: { x: 24, y: 20 },
+  scorebugP2: { x: 1596, y: 20 },
+  scorebugP3: { x: 1596, y: 978 },
+  scorebugP4: { x: 24, y: 978 },
+} as const;
+
 export function mergeLayout(raw: unknown): LayoutMap {
   const incoming =
     raw && typeof raw === "object" ? (raw as Partial<Record<WidgetId, Partial<WidgetPos>>>) : {};
@@ -119,10 +141,25 @@ export function mergeLayout(raw: unknown): LayoutMap {
         next[id] = DEFAULT_LAYOUT[id];
         continue;
       }
+      const legacyCmd = LEGACY_COMMANDER[id as keyof typeof LEGACY_COMMANDER];
+      if (legacyCmd && pos.x === legacyCmd.x && pos.y === legacyCmd.y) {
+        next[id] = COMMANDER_LAYOUT[id] ?? DEFAULT_LAYOUT[id];
+        continue;
+      }
       next[id] = clampPos({ x: pos.x, y: pos.y }, id === "scorebugBar");
     }
   }
   return next;
+}
+
+export function mergeCommanderLayout(layout: LayoutMap, tableSize: unknown): LayoutMap {
+  if (typeof tableSize !== "number" || tableSize <= 2) return layout;
+  const timer = layout.timer;
+  const def = DEFAULT_LAYOUT.timer;
+  if (timer.x === def.x && timer.y === def.y) {
+    return { ...layout, timer: COMMANDER_LAYOUT.timer ?? def };
+  }
+  return layout;
 }
 
 export function layoutsEqual(a: LayoutMap, b: LayoutMap): boolean {
@@ -140,17 +177,3 @@ export function cloneLayout(layout: LayoutMap): LayoutMap {
 export function isDefaultLayout(layout: LayoutMap): boolean {
   return layoutsEqual(layout, DEFAULT_LAYOUT);
 }
-
-export const COMMANDER_LAYOUT: Partial<LayoutMap> = {
-  scorebugP1: { x: 24, y: 20 },
-  scorebugP2: { x: 1596, y: 20 },
-  scorebugP3: { x: 1596, y: 978 },
-  scorebugP4: { x: 24, y: 978 },
-  scorebugCenter: { x: 820, y: 16 },
-};
-
-export const VERSUS_PLATE_LAYOUT: Partial<LayoutMap> = {
-  scorebugP1: { x: 48, y: 40 },
-  scorebugP2: { x: 1352, y: 40 },
-  scorebugCenter: { x: 780, y: 48 },
-};

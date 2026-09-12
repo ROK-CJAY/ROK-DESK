@@ -1,6 +1,9 @@
 import type { FormatFamily, FormatPreset, GameDef, GameId } from "./games-core";
 import { isMtgTitle, isPtcgTitle, isVgcTitle } from "./games-core";
 import { GAME_SLUG, GAMES } from "./game-catalog";
+import { commanderFaceName } from "./commander-colors";
+
+export { commanderFaceName };
 
 export function isGameId(value: string): value is GameId {
   return value in GAMES;
@@ -88,9 +91,9 @@ export function extraFieldFor(gameId: GameId, formatName: string): { label: stri
 }
 
 export function formatCommanderLine(commander: string, partner = ""): string {
-  const a = commander.trim();
-  const b = partner.trim();
-  if (a && b) return `${a} / ${b}`;
+  const a = commanderFaceName(commander);
+  const b = commanderFaceName(partner);
+  if (a && b && a.toLowerCase() !== b.toLowerCase()) return `${a} / ${b}`;
   return a || b;
 }
 

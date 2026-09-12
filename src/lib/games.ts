@@ -17,6 +17,7 @@ export {
   formatsInFamily,
   extraFieldFor,
   formatCommanderLine,
+  commanderFaceName,
   playerIdField,
   coerceDeskGameId,
   isCommanderLane,

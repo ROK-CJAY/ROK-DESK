@@ -155,7 +155,7 @@ export function ScorebugView({
 }) {
   const game = gameOf(desk.gameId);
   if (useCommanderOverlay(desk)) {
-    return <CommanderScorebug desk={desk} edit={edit} />;
+    return <CommanderScorebug desk={desk} now={now} edit={edit} />;
   }
   if (desk.scorebugStyle === "play" && isPtcgTitle(desk.gameId)) {
     return (

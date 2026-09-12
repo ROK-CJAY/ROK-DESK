@@ -12,7 +12,7 @@ import { ResourcePips } from "@/components/overlays/pips";
 import { OverlayEditProvider, Placed, useOverlayEdit } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { ScorebugView } from "@/components/overlays/scorebug";
-import { CommanderScorebug, CommanderVersus, useCommanderOverlay } from "@/components/overlays/commander";
+import { CommanderScorebug, CommanderVersus, CommanderClock, useCommanderOverlay } from "@/components/overlays/commander";
 import { RosterView } from "@/components/overlays/roster";
 import { CardSpotlightView } from "@/components/overlays/card";
 import { EventLogoMark, EventLogoView } from "@/components/overlays/event-logo";
@@ -272,6 +272,15 @@ export function TimerView({
   edit?: OverlayEdit | null;
 }) {
   const left = remainingSeconds(desk, now);
+  if (useCommanderOverlay(desk)) {
+    return (
+      <Shell desk={desk} edit={edit}>
+        <Placed id="timer">
+          <CommanderClock desk={desk} now={now} />
+        </Placed>
+      </Shell>
+    );
+  }
   return (
     <Shell desk={desk} edit={edit}>
       <Placed id="timer">
@@ -396,7 +405,7 @@ export function HudView({
   return (
     <div className="pointer-events-none absolute inset-0">
       <ScorebugView desk={desk} now={now} edit={edit} />
-      {rok || play ? null : <TimerView desk={desk} now={now} edit={edit} />}
+      {rok || play || commander ? null : <TimerView desk={desk} now={now} edit={edit} />}
       {commander || rok || play ? null : <ResourceView desk={desk} edit={edit} />}
       {commander || rok || play ? null : <CastersView desk={desk} edit={edit} />}
       {play ? null : <LowerThirdView desk={desk} edit={edit} />}

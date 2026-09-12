@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Changed
+
+- **Commander overlay** — player plates pick up the commander’s color identity (partners merge). Partner is on its own line. Bugs are larger. Round clock sits at bottom center, same chip as the round plate at the top.
+
 ### Fixed
 
 - **Commander player tablet** — Facing-out seats no longer squash life, poison, and commander damage on top of each other. Each pad scales to its cell; the life total shrinks to fit the seat; poison / commander use compact +/− instead of a second stepper.

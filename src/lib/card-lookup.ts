@@ -32,6 +32,7 @@ export type LookupCard = {
   regulation?: string;
   attacks?: LookupAttack[];
   abilities?: LookupAbility[];
+  colors?: string[];
 };
 
 export const PTCG_PROXY = "/api/ptcg-cards";
@@ -542,8 +543,56 @@ export async function searchCommanderCards(query: string): Promise<LookupCard[]>
   return data.data.flatMap((row) => {
     if (!isRecord(row)) return [];
     const card = normalizeScryfall(row);
+    if (card.name && card.colors) rememberCommanderColors(card.name, card.colors);
     return card.name ? [card] : [];
   });
+}
+
+const commanderColorCache = new Map<string, string[]>();
+const commanderColorInflight = new Map<string, Promise<string[]>>();
+
+function colorCacheKey(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+function rememberCommanderColors(name: string, colors: string[]): void {
+  const key = colorCacheKey(name);
+  if (key) commanderColorCache.set(key, colors);
+  const face = name.split(/\s*\/\/\s*/)[0]?.trim() ?? "";
+  if (face && colorCacheKey(face) !== key) commanderColorCache.set(colorCacheKey(face), colors);
+}
+
+export async function fetchCommanderColors(name: string): Promise<string[]> {
+  const raw = name.trim();
+  if (!raw) return [];
+  const key = colorCacheKey(raw);
+  const hit = commanderColorCache.get(key);
+  if (hit) return hit;
+  const pending = commanderColorInflight.get(key);
+  if (pending) return pending;
+  const job = (async () => {
+    try {
+      const url = new URL(`${SCRYFALL_BASE}/cards/named`);
+      url.searchParams.set("fuzzy", raw);
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        commanderColorCache.set(key, []);
+        return [];
+      }
+      const data = (await res.json()) as unknown;
+      const card = isRecord(data) ? normalizeScryfall(data) : null;
+      const colors = card?.colors ?? [];
+      rememberCommanderColors(raw, colors);
+      if (card?.name) rememberCommanderColors(card.name, colors);
+      return colors;
+    } catch {
+      return [];
+    } finally {
+      commanderColorInflight.delete(key);
+    }
+  })();
+  commanderColorInflight.set(key, job);
+  return job;
 }
 
 export async function fetchScryfallCard(id: string): Promise<LookupCard | null> {
@@ -860,6 +909,9 @@ function normalizeScryfall(item: Record<string, unknown>): LookupCard {
     text: textParts,
     mana: item.mana_cost ? String(item.mana_cost) : face?.mana_cost ? String(face.mana_cost) : undefined,
     rarity: item.rarity ? String(item.rarity) : undefined,
+    colors: Array.isArray(item.color_identity)
+      ? item.color_identity.map(String).filter((c) => /^[WUBRG]$/i.test(c)).map((c) => c.toUpperCase())
+      : undefined,
   };
 }
 
