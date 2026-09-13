@@ -8,11 +8,15 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.3.1-beta — 2026-09-13
+
+Android companion and Home QR. Cut on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.3.1-beta).
+
 ### Added
 
 - **License** — venue / personal-use notice on Home, in the header (**License**), and in the README.
 - **Home QR** — pick title, table, and surface; scan onto a pad. Default desk port is still 8080.
-- **ROK Desk Tablet** — sideload Android APK (`android-tablet/`) that opens those URLs fullscreen (judge, player, extended, commentary, sign-up, floor clock, stream clock). Scan or type the LAN address.
+- **ROK Desk Tablet** — sideload Android APK (`android-tablet/ROK-Desk-Tablet-0.1.apk`) that opens those URLs fullscreen (judge, player, extended, commentary, sign-up, floor clock, stream clock). Scan or type the LAN address.
 
 
 ## v1.3.0-beta — 2026-09-12
