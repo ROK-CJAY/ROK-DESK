@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   build:
@@ -31,16 +32,33 @@ jobs:
       - run: npm ci
       - run: npm run build:desktop
       - run: npx electron-builder ${{ matrix.args }} --publish never
-      - uses: actions/upload-artifact@v4
-        with:
-          name: rok-desk-${{ matrix.os }}
-          path: release/*
+      # Release assets do not count toward the Actions artifact quota.
+      # Attach installers first so a full storage bucket cannot skip the release.
       - if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release/ROK-Desk-*
+            release/ROK-Desk-*.exe
+            release/ROK-Desk-*.dmg
+            release/ROK-Desk-*.AppImage
+            release/ROK-Desk-*.zip
             release/*.yml
             release/*.blockmap
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Manual runs only: a few installer files, 1-day retention. Never upload unpacked Electron trees.
+      - if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: rok-desk-${{ matrix.os }}
+          retention-days: 1
+          if-no-files-found: warn
+          path: |
+            release/ROK-Desk-*.exe
+            release/ROK-Desk-*.dmg
+            release/ROK-Desk-*.AppImage
+            release/ROK-Desk-*.zip
+            release/*.yml
+            release/*.blockmap

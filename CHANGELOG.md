@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Changed
+
+- **Desktop CI** — tag builds attach only installers / updater files to the GitHub release. Unpacked Electron trees are not uploaded as Actions artifacts (those were filling the 500 MB quota).
+
 ## v1.3.1-beta — 2026-09-13
 
 Android companion and Home QR. Cut on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.3.1-beta).
