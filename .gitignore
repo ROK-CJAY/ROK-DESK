@@ -21,6 +21,11 @@ attachments
 screenshots
 public/pwa-icon.png
 .pglite
+android-tablet/.gradle
+android-tablet/**/build
+android-tablet/local.properties
+android-tablet/.idea
+
 data
 *.db
 *.sqlite

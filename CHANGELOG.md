@@ -11,6 +11,8 @@ Not tagged. Use the build on `main` until the next beta.
 ### Added
 
 - **License** — venue / personal-use notice on Home, in the header (**License**), and in the README.
+- **Home QR** — pick title, table, and surface; scan onto a pad. Default desk port is still 8080.
+- **ROK Desk Tablet** — sideload Android APK (`android-tablet/`) that opens those URLs fullscreen (judge, player, extended, commentary, sign-up, floor clock, stream clock). Scan or type the LAN address.
 
 
 ## v1.3.0-beta — 2026-09-12

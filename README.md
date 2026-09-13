@@ -335,8 +335,10 @@ For stores and stream PCs — **no terminal**.
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
    - Linux: `.AppImage`
 3. Run **ROK Desk**. The desk window opens. Event data is saved on that PC under **ROK Desk** in AppData (not next to a portable exe). Uninstalling keeps players and tournament state. Click the version label to check for updates on [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases). Windows installer builds can apply the update in-app.
-4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi.
-5. Windows Firewall: allow ROK Desk on **private** networks or iPads will not connect.
+4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi. Home also has a **Scan onto a tablet** QR: pick title, Stream / Floor 1 / Floor 2, and Judge / Player / Extended / Commentary / sign-up / clocks.
+5. Windows Firewall: allow ROK Desk on **private** networks or tablets will not connect.
+
+**Android companion (sideload)** — download [ROK-Desk-Tablet-0.1.apk](https://github.com/ROK-CJAY/ROK-DESK/raw/main/android-tablet/ROK-Desk-Tablet-0.1.apk) and drop it in Discord. Pads scan the Home QR (or type LAN + port **8080**) and run fullscreen with no browser bar. Source and rebuild notes: [android-tablet/README.md](./android-tablet/README.md). Not on Play Store. Same lounge / personal-use license.
 
 Keep the app open while you stream. Closing it stops overlays and tablets.
 

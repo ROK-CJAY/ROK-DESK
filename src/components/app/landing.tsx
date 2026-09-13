@@ -14,6 +14,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { FloorLinks } from "@/components/app/floor-links";
+import { TabletQr } from "@/components/app/tablet-qr";
 import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
 import { TITLE_STRIP } from "@/lib/games";
 import { APP_VERSION_LABEL } from "@/lib/version";
@@ -109,6 +110,7 @@ export function Landing() {
         </div>
 
         <FloorLinks />
+        <TabletQr />
 
         <section className="mt-12">
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Get started</p>
