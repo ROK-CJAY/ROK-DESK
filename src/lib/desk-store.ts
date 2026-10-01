@@ -5,8 +5,8 @@ import {
   parseDesk,
   remainingSeconds,
   OP_OT_SECONDS,
-  OP_OT_LAST_TURN,
   opOtRemaining,
+  overtimeLastTurn,
   seatsFor,
   emptyCmdFrom,
   emptySpotlight,
@@ -93,7 +93,7 @@ type DeskStore = {
   matchWin: (side: SideId) => void;
   clearWinners: () => void;
   setInitiative: (side: SideId | null) => void;
-  startOpOt: (side: "p1" | "p2") => void;
+  startOpOt: (side: SeatId) => void;
   toggleOpOt: () => void;
   nextOpTurn: () => void;
   clearOpOt: () => void;
@@ -175,6 +175,16 @@ function persist(desk: DeskState, immediate = false) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function nextOvertimeSeat(desk: DeskState): SeatId {
+  if (desk.gameId === "riftbound") {
+    const seats = seatsFor(desk.tableSize);
+    const current = desk.otSide && seats.includes(desk.otSide) ? desk.otSide : (seats[0] ?? "p1");
+    const index = seats.indexOf(current);
+    return seats[(index + 1) % seats.length] ?? "p1";
+  }
+  return desk.otSide === "p2" ? "p1" : "p2";
 }
 
 function clearedOpOt() {
@@ -753,12 +763,25 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   },
 
   startOpOt: (side) => {
-    const desk = nextVersion(get().desk, {
+    const prev = get().desk;
+    if (prev.gameId === "riftbound") {
+      const desk = nextVersion(prev, {
+        otRunning: false,
+        otEndsAt: null,
+        otSeconds: 0,
+        otTurn: 0,
+        otSide: side,
+      });
+      persist(desk);
+      set({ desk });
+      return;
+    }
+    const desk = nextVersion(prev, {
       otRunning: true,
       otEndsAt: Date.now() + OP_OT_SECONDS * 1000,
       otSeconds: OP_OT_SECONDS,
       otTurn: 0,
-      otSide: side,
+      otSide: side === "p3" || side === "p4" ? "p1" : side,
     });
     persist(desk);
     set({ desk });
@@ -786,12 +809,13 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   nextOpTurn: () => {
     const prev = get().desk;
-    if (prev.otTurn == null || prev.otTurn > OP_OT_LAST_TURN) return;
-    if (opOtRemaining(prev) <= 0) return;
-    if (prev.otTurn === OP_OT_LAST_TURN) {
-      const left = opOtRemaining(prev);
+    const last = overtimeLastTurn(prev.gameId);
+    if (last == null || prev.otTurn == null || prev.otTurn > last) return;
+    if (prev.gameId === "one-piece" && opOtRemaining(prev) <= 0) return;
+    if (prev.otTurn === last) {
+      const left = prev.gameId === "one-piece" ? opOtRemaining(prev) : 0;
       const desk = nextVersion(prev, {
-        otTurn: OP_OT_LAST_TURN + 1,
+        otTurn: last + 1,
         otRunning: false,
         otEndsAt: null,
         otSeconds: left,
@@ -802,7 +826,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     }
     const desk = nextVersion(prev, {
       otTurn: prev.otTurn + 1,
-      otSide: prev.otSide === "p1" ? "p2" : "p1",
+      otSide: nextOvertimeSeat(prev),
     });
     persist(desk);
     set({ desk });

@@ -305,6 +305,10 @@ const COPY: Record<
         body: "This clock is the streamed match only. Type a time and Set, then Start / Pause. +1m / +3m / −1m adjust it. The floor clock lives on Tournament control.",
       },
       {
+        title: "Time is 3 turns",
+        body: "When the round clock hits time, pick whoever was on turn. That player is turn 0. Next turn moves to the next seat. After those 3 turns the procedure is done. There is no extra overtime clock.",
+      },
+      {
         title: "Card lookup",
         body: "Search at the bottom. Tap a result to read the printed text. Show on stream puts the art on the Card overlay. Clear takes it off.",
       },

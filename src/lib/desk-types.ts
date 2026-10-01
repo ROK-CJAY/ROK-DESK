@@ -167,7 +167,7 @@ export type DeskState = {
   otEndsAt: number | null;
   otSeconds: number;
   otTurn: number | null;
-  otSide: "p1" | "p2" | null;
+  otSide: SeatId | null;
   streamMatchId: string | null;
   queue: QueueMatch[];
   sponsorLine: string;
@@ -281,7 +281,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   otEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
   otSeconds: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 300)),
   otTurn: z.number().nullable().optional().transform((v) => (typeof v === "number" ? v : null)),
-  otSide: z.enum(["p1", "p2"]).nullable().optional().transform((v) => v ?? null),
+  otSide: z.enum(["p1", "p2", "p3", "p4"]).nullable().optional().transform((v) => v ?? null),
   streamMatchId: z.string().nullable().optional().transform((v) => v ?? null),
   queue: z.array(
     z.object({
@@ -550,6 +550,13 @@ export function resourceResetValue(desk: Pick<DeskState, "gameId" | "formatName"
 
 export const OP_OT_SECONDS = 5 * 60;
 export const OP_OT_LAST_TURN = 3;
+export const RIFT_OT_LAST_TURN = 2;
+
+export function overtimeLastTurn(gameId: GameId): number | null {
+  if (gameId === "one-piece") return OP_OT_LAST_TURN;
+  if (gameId === "riftbound") return RIFT_OT_LAST_TURN;
+  return null;
+}
 
 export function opOtRemaining(
   clock: { otRunning: boolean; otEndsAt: number | null; otSeconds: number; otTurn: number | null },

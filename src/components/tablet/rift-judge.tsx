@@ -6,6 +6,7 @@ import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { RoundClock } from "@/components/desk/round-clock";
+import { RiftOvertime } from "@/components/desk/rift-overtime";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -88,8 +89,9 @@ export function RiftJudgeTablet() {
               <p className="font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">
                 {desk.formatName} · first to 8 · strictly ahead
               </p>
-              <div className="min-w-[12rem] flex-1">
+              <div className="min-w-[12rem] flex-1 space-y-2">
                 <RoundClock compact />
+                <RiftOvertime compact />
               </div>
             </div>
             <div
@@ -140,8 +142,9 @@ export function RiftJudgeTablet() {
               <p className="mt-1 font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">
                 {desk.formatName} · first to 8
               </p>
-              <div className="mt-3 w-full">
+              <div className="mt-3 w-full space-y-2">
                 <RoundClock compact />
+                <RiftOvertime compact />
               </div>
             </div>
             <RiftSide
@@ -199,9 +202,15 @@ function RiftSide({
   onGame: () => void;
   onMatch: () => void;
 }) {
+  const otTurn = useDeskStore((s) => s.desk.otTurn);
+  const otSide = useDeskStore((s) => s.desk.otSide);
+  const onTurn = otSide === side && otTurn != null && otTurn <= 2;
   return (
     <div className={cn("rounded-lg bg-surface p-3", align === "right" && "lg:text-right")}>
-      <p className="font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">{SEAT_COPY[side]}</p>
+      <p className="font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">
+        {SEAT_COPY[side]}
+        {onTurn ? ` · Turn ${otTurn}` : ""}
+      </p>
       <p className="font-display truncate text-lg font-semibold uppercase">{name || "Open"}</p>
       <p className="truncate text-sm text-muted">{deck || "—"}</p>
       <div className={cn("mt-2 flex items-center gap-2", align === "right" && "lg:justify-end")}>
