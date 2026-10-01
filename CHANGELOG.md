@@ -8,6 +8,12 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.3.3-beta — 2026-10-01
+
+### Fixed
+
+- **PTCG lookup** — search always calls the live card API first (TCGdex, then pokemontcg.io). The downloaded catalog is only used when that call fails or returns nothing.
+
 ## v1.3.2-beta — 2026-10-01
 
 Test cut on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.3.2-beta). Local card catalogs and Legends Z-A VGC data.

@@ -12,7 +12,7 @@ type CatalogInfo = {
 };
 
 const BLURB: Record<LookupCatalog, string> = {
-  ptcg: "Save every English card on this machine so lookup works even when the live API flakes.",
+  ptcg: "Optional backup. Search always tries the live card API first and only uses this copy if that call fails.",
   mtg: "Save Scryfall’s Oracle list on this machine so lookup works when Scryfall flakes.",
   swu: "Save the SWU-DB card list on this machine so lookup works offline.",
   ygo: "Save the YGOPRODeck card list on this machine so lookup works when the API flakes.",
@@ -75,7 +75,9 @@ export function PtcgCatalogButton({ compact = false, catalog = "ptcg" }: { compa
     : info?.status === "error"
       ? info.error || "Catalog update failed. Try again."
       : info?.count
-        ? `${info.count.toLocaleString()} cards on this machine${when ? ` · ${when}` : ""}. Searches use this copy.`
+        ? catalog === "ptcg"
+          ? `${info.count.toLocaleString()} cards saved${when ? ` · ${when}` : ""}. Used only if the live lookup fails.`
+          : `${info.count.toLocaleString()} cards on this machine${when ? ` · ${when}` : ""}. Searches use this copy.`
         : BLURB[catalog];
 
   return (

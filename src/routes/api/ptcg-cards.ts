@@ -94,6 +94,11 @@ export const Route = createFileRoute("/api/ptcg-cards")({
           return Response.json({ error: "Missing query" }, { status: 400, headers: noStore });
         }
 
+        if (!localOnly && (q || id) && !name) {
+          const liveBody = await liveLookup(id, q, live);
+          if (liveBody) return json(liveBody, 200);
+        }
+
         let resolved = id ? await catalogCard(id) : null;
         if (resolved && name && resolved.name && !printedNamesMatch(resolved.name, name)) resolved = null;
         if (!resolved && (name || id)) {
@@ -102,32 +107,47 @@ export const Route = createFileRoute("/api/ptcg-cards")({
         if (resolved) return json(JSON.stringify({ data: resolved }), 200);
         if (q) {
           const local = await searchCatalog(q, live);
-          if (local) return json(JSON.stringify({ data: local }), 200);
+          if (local?.length) return json(JSON.stringify({ data: local }), 200);
         }
         if (localOnly) return json(JSON.stringify({ data: [] }), 200);
-
-        const cacheKey = id ? `id:${id}` : `q:${live ? "1" : "0"}:${q.toLowerCase()}`;
-        const hit = cache.get(cacheKey);
-        if (hit && Date.now() - hit.at < CACHE_MS) return json(hit.body, 200);
-
-        const target = id ? `${PTCG_IO}/${encodeURIComponent(id)}` : pokemonTcgIoUrl(q, true);
-        const ioBody =
-          (await getWithRetries(target, 1, 2000)) ?? (id ? null : await getWithRetries(pokemonTcgIoUrl(q, false), 1, 2000));
-        const body = ioBody
-          ? live && !id
-            ? preferStandard(ioBody)
-            : ioBody
-          : await tcgdexFallback(id, q, live);
-        if (body) {
-          cache.set(cacheKey, { at: Date.now(), body });
-          return json(body, 200);
-        }
 
         return Response.json({ error: "Card lookup unavailable" }, { status: 502, headers: noStore });
       },
     },
   },
 });
+
+async function liveLookup(id: string, q: string, live: boolean): Promise<string | null> {
+  const cacheKey = id ? `id:${id}` : `q:${live ? "1" : "0"}:${q.toLowerCase()}`;
+  const hit = cache.get(cacheKey);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.body;
+
+  const tcg = await tcgdexFallback(id, q, live);
+  if (hasCards(tcg)) {
+    cache.set(cacheKey, { at: Date.now(), body: tcg! });
+    return tcg;
+  }
+
+  const target = id ? `${PTCG_IO}/${encodeURIComponent(id)}` : pokemonTcgIoUrl(q, true);
+  const ioBody = await getWithRetries(target, 1, 1500);
+  const body = ioBody && live && !id ? preferStandard(ioBody) : ioBody;
+  if (hasCards(body)) {
+    cache.set(cacheKey, { at: Date.now(), body: body! });
+    return body;
+  }
+  return null;
+}
+
+function hasCards(body: string | null): boolean {
+  if (!body) return false;
+  try {
+    const parsed = JSON.parse(body) as { data?: unknown; name?: unknown };
+    if (Array.isArray(parsed.data)) return parsed.data.length > 0;
+    return Boolean(parsed.name || parsed.data);
+  } catch {
+    return false;
+  }
+}
 
 async function resolveDeckSource(raw: string): Promise<string> {
   const url = allowedLimitlessUrl(raw);
