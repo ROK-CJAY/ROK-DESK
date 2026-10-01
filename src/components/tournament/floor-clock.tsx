@@ -15,7 +15,7 @@ export function FloorClock({ compact = false }: { compact?: boolean }) {
     <ClockPad
       label="Floor clock"
       note="all other tables"
-      remaining={remainingSeconds(t, now)}
+      remaining={remainingSeconds(t, now, t.gameId)}
       preset={t.timerPresetSeconds}
       running={t.timerRunning}
       compact={compact}

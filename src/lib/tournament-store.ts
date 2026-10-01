@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { gameOf, isCommanderPodFormat, type GameId } from "@/lib/games";
+import { gameOf, isCommanderPodFormat, isPtcgTitle, type GameId } from "@/lib/games";
 import {
   blankEntrant,
   blankStaff,
@@ -487,7 +487,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
   toggleFloorTimer: () => {
     const prev = get().tournament;
     if (prev.timerRunning) {
-      const left = remainingSeconds(prev);
+      const left = remainingSeconds(prev, Date.now(), prev.gameId);
       const tournament = nextVersion(prev, {
         timerRunning: false,
         timerEndsAt: null,
@@ -497,7 +497,7 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
       set({ tournament });
       return;
     }
-    const left = remainingSeconds(prev);
+    const left = remainingSeconds(prev, Date.now(), prev.gameId);
     const tournament = nextVersion(prev, {
       timerRunning: true,
       timerEndsAt: Date.now() + left * 1000,
@@ -521,7 +521,9 @@ export const useTournamentStore = create<TournamentStore>((set, get) => ({
 
   addFloorSeconds: (delta) => {
     const prev = get().tournament;
-    const left = Math.max(0, remainingSeconds(prev) + delta);
+    const overtime = isPtcgTitle(prev.gameId);
+    const next = remainingSeconds(prev, Date.now(), prev.gameId) + delta;
+    const left = overtime ? next : Math.max(0, next);
     const tournament = nextVersion(prev, {
       timerSeconds: left,
       timerEndsAt: prev.timerRunning ? Date.now() + left * 1000 : null,

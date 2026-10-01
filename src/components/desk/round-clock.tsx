@@ -17,7 +17,7 @@ export function RoundClock({ compact = false }: { compact?: boolean }) {
       key={slot}
       label={MATCH_SLOT_CLOCK[slot]}
       note={slot === 1 ? "featured match" : `${MATCH_SLOT_SHORT[slot]} table`}
-      remaining={remainingSeconds(desk, now)}
+      remaining={remainingSeconds(desk, now, desk.gameId)}
       preset={desk.timerPresetSeconds}
       running={desk.timerRunning}
       compact={compact}

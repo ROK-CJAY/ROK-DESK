@@ -199,7 +199,7 @@ export function ScorebugView({
       </OverlayEditProvider>
     );
   }
-  const clock = formatClock(remainingSeconds(desk, now));
+  const clock = formatClock(remainingSeconds(desk, now, desk.gameId));
   const center = (
     <div className="flex min-w-[220px] flex-col items-center justify-center px-4">
       <div className="font-mono text-[0.82rem] tracking-[0.16em] text-ov-fg/80 uppercase">

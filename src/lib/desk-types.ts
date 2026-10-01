@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type BestOf, type GameId, type ScorebugStyle, coerceDeskGameId, gameOf } from "@/lib/games";
+import { type BestOf, type GameId, type ScorebugStyle, coerceDeskGameId, gameOf, isPtcgTitle } from "@/lib/games";
 import { DEFAULT_LAYOUT, mergeCommanderLayout, mergeLayout, type LayoutMap } from "@/lib/layout";
 import { DEFAULT_LOOK_BOOK, mergeLookBook, type OverlayLookBook } from "@/lib/overlay-look";
 import { type Sponsor } from "@/lib/sponsors";
@@ -536,11 +536,20 @@ export function resourceResetValue(desk: Pick<DeskState, "gameId" | "formatName"
 export function remainingSeconds(
   clock: { timerRunning: boolean; timerEndsAt: number | null; timerSeconds: number },
   now = Date.now(),
+  gameId?: GameId | null,
 ): number {
-  if (clock.timerRunning && clock.timerEndsAt) {
-    return Math.max(0, Math.ceil((clock.timerEndsAt - now) / 1000));
-  }
-  return Math.max(0, clock.timerSeconds);
+  const raw =
+    clock.timerRunning && clock.timerEndsAt != null
+      ? signedCountdown(clock.timerEndsAt - now)
+      : clock.timerSeconds;
+  if (gameId && isPtcgTitle(gameId)) return raw;
+  return Math.max(0, raw);
+}
+
+function signedCountdown(ms: number): number {
+  const sec = ms / 1000;
+  if (sec >= 0) return Math.ceil(sec);
+  return Math.floor(sec);
 }
 
 export function formatClock(total: number): string {

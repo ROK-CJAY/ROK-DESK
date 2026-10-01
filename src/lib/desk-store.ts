@@ -25,7 +25,7 @@ import {
   type SideId,
   type TableSize,
 } from "@/lib/desk-types";
-import { gameOf, isCommanderLane, slugOf, supportsRokLayout, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
+import { gameOf, isCommanderLane, isPtcgTitle, slugOf, supportsRokLayout, type FormatFamily, type FormatPreset, type GameId } from "@/lib/games";
 import { DEFAULT_LOOK_BOOK } from "@/lib/overlay-look";
 import { emptyPtcgBoard } from "@/lib/ptcg-board";
 import { clearLegacyDesk, deskLooksLikeTest, toggleTestDesk } from "@/lib/test-fixtures";
@@ -412,7 +412,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       sideSpotlight: emptySideSpotlight(),
       gameClocks: {
         ...prev.gameClocks,
-        [prev.gameId]: { remaining: remainingSeconds(prev), preset: prev.timerPresetSeconds },
+        [prev.gameId]: { remaining: remainingSeconds(prev, Date.now(), prev.gameId), preset: prev.timerPresetSeconds },
       },
       lanes,
     });
@@ -731,7 +731,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
   toggleTimer: () => {
     const prev = get().desk;
     if (prev.timerRunning) {
-      const left = remainingSeconds(prev);
+      const left = remainingSeconds(prev, Date.now(), prev.gameId);
       const desk = nextVersion(prev, {
         timerRunning: false,
         timerEndsAt: null,
@@ -741,7 +741,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       set({ desk });
       return;
     }
-    const left = remainingSeconds(prev);
+    const left = remainingSeconds(prev, Date.now(), prev.gameId);
     const desk = nextVersion(prev, {
       timerRunning: true,
       timerEndsAt: Date.now() + left * 1000,
@@ -774,13 +774,15 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   addTimerSeconds: (delta) => {
     const prev = get().desk;
-    const left = Math.max(0, remainingSeconds(prev) + delta);
+    const overtime = isPtcgTitle(prev.gameId);
+    const left = remainingSeconds(prev, Date.now(), prev.gameId) + delta;
+    const next = overtime ? left : Math.max(0, left);
     const desk = nextVersion(prev, {
-      timerSeconds: left,
-      timerEndsAt: prev.timerRunning ? Date.now() + left * 1000 : null,
+      timerSeconds: next,
+      timerEndsAt: prev.timerRunning ? Date.now() + next * 1000 : null,
       gameClocks: {
         ...prev.gameClocks,
-        [prev.gameId]: { remaining: left, preset: prev.timerPresetSeconds },
+        [prev.gameId]: { remaining: next, preset: prev.timerPresetSeconds },
       },
     });
     persist(desk);

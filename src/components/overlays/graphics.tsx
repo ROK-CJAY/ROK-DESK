@@ -271,7 +271,7 @@ export function TimerView({
   now?: number;
   edit?: OverlayEdit | null;
 }) {
-  const left = remainingSeconds(desk, now);
+  const left = remainingSeconds(desk, now, desk.gameId);
   if (useCommanderOverlay(desk)) {
     return (
       <Shell desk={desk} edit={edit}>

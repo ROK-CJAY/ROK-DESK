@@ -277,7 +277,7 @@ function Rail({
 }
 
 export function PtcgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
-  const clock = formatClock(remainingSeconds(desk, now));
+  const clock = formatClock(remainingSeconds(desk, now, desk.gameId));
   const title = [desk.eventName, desk.eventPhase, desk.roundName].filter(Boolean).join(" · ") || "Round";
   return (
     <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">

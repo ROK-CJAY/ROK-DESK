@@ -36,7 +36,7 @@ export function rokDiamondCount(desk: DeskState): number {
 }
 
 export function RokLayoutView({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
-  const clock = formatClock(remainingSeconds(desk, now));
+  const clock = formatClock(remainingSeconds(desk, now, desk.gameId));
   const card = desk.cardSpotlight;
   const fallback = rokCardBack(desk);
   const stack = visibleCardStack(desk);

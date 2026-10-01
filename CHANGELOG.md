@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Changed
+
+- **PTCG clocks** — floor clock and stream-table clocks keep counting past 0 (`-0:01`, `-1:00`, …). Other games still stop at 0.
+
 ## v1.3.4-beta — 2026-10-01
 
 ### Added

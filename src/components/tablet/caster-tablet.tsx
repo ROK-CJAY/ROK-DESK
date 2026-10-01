@@ -71,8 +71,8 @@ export function CasterTablet() {
   const tournament = live ? viewTournament(live, desk.gameId) : null;
   const commander = isCommanderLane(desk) || isCommanderTable(desk);
   const seats = commander && desk.tableSize >= 3 ? seatsFor(desk.tableSize) : (["p1", "p2"] as SeatId[]);
-  const left = remainingSeconds(desk, now);
-  const clockStatus = left === 0 ? "Time" : desk.timerRunning ? "Live" : "Paused";
+  const left = remainingSeconds(desk, now, desk.gameId);
+  const clockStatus = left < 0 ? "Overtime" : left === 0 ? "Time" : desk.timerRunning ? "Live" : "Paused";
   const slot = desk.matchSlot ?? 1;
   const liveMatch = tournament ? liveMatchForSlot(tournament, slot) : null;
   const casters = desk.casters.filter((c) => c.name.trim());
@@ -134,7 +134,7 @@ export function CasterTablet() {
               <p
                 className={cn(
                   "font-mono text-[0.62rem] tracking-[0.16em] uppercase",
-                  left === 0 ? "text-live" : desk.timerRunning ? "text-ok" : "text-muted",
+                  left <= 0 ? "text-live" : desk.timerRunning ? "text-ok" : "text-muted",
                 )}
               >
                 {clockStatus}

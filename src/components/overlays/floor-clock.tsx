@@ -16,20 +16,21 @@ export function FloorClockOverlay({
   desk?: DeskState | null;
   variant?: "floor" | "stream";
 }) {
-  const clock = variant === "stream" ? (desk ?? IDLE_CLOCK) : tournament;
+  const stream = variant === "stream";
+  const clock = stream ? (desk ?? IDLE_CLOCK) : tournament;
   const now = useClockNow({
     live: Boolean(clock.timerRunning),
     pauseWhenHidden: false,
     liveMs: 200,
   });
-  const left = remainingSeconds(clock, now);
+  const clockGame = stream ? (desk?.gameId ?? tournament.gameId) : tournament.gameId;
+  const left = remainingSeconds(clock, now, clockGame);
   const running = Boolean(clock.timerRunning);
   const preset = variant === "stream" ? (desk?.timerPresetSeconds ?? 0) : tournament.timerPresetSeconds;
   const game = gameOf(tournament.gameId);
-  const status = left === 0 ? "Time" : running ? "Running" : "Paused";
+  const status = left < 0 ? "Overtime" : left === 0 ? "Time" : running ? "Running" : "Paused";
   const sponsor = desk ? currentSponsor(desk.sponsors, now, desk.sponsorSeconds) : null;
   const sponsorCount = desk ? liveSponsors(desk.sponsors).length : 0;
-  const stream = variant === "stream";
 
   return (
     <div data-game={tournament.gameId} className="relative h-full w-full overflow-hidden bg-ov-bg">
@@ -81,7 +82,7 @@ export function FloorClockOverlay({
         <div className="flex flex-1 flex-col items-center justify-center">
           <p
             className={`font-display leading-none font-semibold tabular-nums tracking-tight ${
-              left === 0 ? "text-live" : "text-ov-fg"
+              left <= 0 ? "text-live" : "text-ov-fg"
             }`}
             style={{ fontSize: "calc(clamp(6rem, 28vmin, 22rem) * var(--ov-scale, 1))" }}
           >
@@ -89,7 +90,7 @@ export function FloorClockOverlay({
           </p>
           <p
             className={`font-mono mt-[2vh] text-[clamp(1rem,2vw,1.6rem)] tracking-[0.32em] uppercase ${
-              left === 0 ? "text-live" : running ? "text-ok" : "text-ov-muted"
+              left <= 0 ? "text-live" : running ? "text-ok" : "text-ov-muted"
             }`}
           >
             {status}
