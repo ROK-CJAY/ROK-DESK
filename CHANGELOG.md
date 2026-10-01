@@ -14,6 +14,7 @@ Not tagged. Use the build on `main` until the next beta.
 - **One Piece overtime** — a separate 5:00 clock. The active player starts as turn 0. The game ends after turn 3 or when that clock hits 0:00, whichever comes first. Shown on the desk, the OP judge tablet, and the play overlay.
 - **Riftbound time** — when the round clock hits time, the player on turn is turn 0. Three turns, then the procedure ends. No extra clock. Yu-Gi-Oh and Star Wars Unlimited are unchanged.
 - **Magic end of match** — constructed only. Turn 0, then five more turns. Team and Two-Headed Giant use three. An unfinished game is a draw. Commander is unchanged.
+- **Caster Twitter** — Production has a Twitter field on each caster. It shows on the caster graphic, the caster lower third, and the commentary tablet.
 
 ## v1.3.4-beta — 2026-10-01
 

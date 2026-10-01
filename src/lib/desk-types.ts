@@ -107,7 +107,13 @@ export type Caster = {
   name: string;
   handle: string;
   role: string;
+  twitter: string;
 };
+
+export function casterAt(raw: string | undefined): string {
+  const text = (raw ?? "").trim().replace(/^@+/, "");
+  return text ? `@${text}` : "";
+}
 
 export type QueueMatch = {
   id: string;
@@ -242,6 +248,7 @@ const casterSchema: z.ZodType<Caster> = z.object({
   name: z.string(),
   handle: z.string(),
   role: z.string(),
+  twitter: z.string().optional().transform((v) => v ?? ""),
 });
 
 export const deskSchema: z.ZodType<DeskState> = z.object({
@@ -479,8 +486,8 @@ export function defaultDesk(): DeskState {
     p3: blankPlayer({ resource: 40 }),
     p4: blankPlayer({ resource: 40 }),
     casters: [
-      { name: "", handle: "", role: "Play-by-play" },
-      { name: "", handle: "", role: "Color" },
+      { name: "", handle: "", twitter: "", role: "Play-by-play" },
+      { name: "", handle: "", twitter: "", role: "Color" },
     ],
     timerSeconds: 0,
     timerPresetSeconds: 0,

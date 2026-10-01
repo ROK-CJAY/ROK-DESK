@@ -5,6 +5,7 @@ import {
   remainingSeconds,
   monogram,
   resourceLimit,
+  casterAt,
   type DeskState,
   type SlateKind,
 } from "@/lib/desk-types";
@@ -196,7 +197,7 @@ export function CastersView({ desk, edit = null }: { desk: DeskState; edit?: Ove
   return (
     <Shell desk={desk} edit={edit}>
       {desk.casters.map((caster, index) => (
-        <Placed key={caster.name + caster.handle + index} id={index === 0 ? "caster1" : "caster2"}>
+        <Placed key={caster.name + caster.handle + (caster.twitter ?? "") + index} id={index === 0 ? "caster1" : "caster2"}>
           <div
             className={`w-[400px] rounded-lg border border-ov-fg/10 bg-ov-bg/92 px-6 py-4 ${
               index === 1 ? "text-right" : ""
@@ -210,7 +211,10 @@ export function CastersView({ desk, edit = null }: { desk: DeskState; edit?: Ove
               {caster.name}
             </p>
             {caster.handle ? (
-              <p className="text-sm text-ov-muted">@{caster.handle}</p>
+              <p className="text-sm text-ov-muted">@{caster.handle.replace(/^@+/, "")}</p>
+            ) : null}
+            {casterAt(caster.twitter) && casterAt(caster.twitter).toLowerCase() !== casterAt(caster.handle).toLowerCase() ? (
+              <p className="text-sm text-ov-muted">{casterAt(caster.twitter)}</p>
             ) : null}
           </div>
         </Placed>
@@ -241,7 +245,8 @@ function LowerThirdBody({ desk }: { desk: DeskState }) {
   } else if (lt.mode === "caster") {
     const c = lt.side === "c2" ? desk.casters[1] : desk.casters[0];
     title = c.name;
-    subtitle = c.role || (c.handle ? `@${c.handle}` : "");
+    const social = casterAt(c.twitter) || casterAt(c.handle);
+    subtitle = [c.role, social].filter(Boolean).join(" · ");
   }
 
   return (

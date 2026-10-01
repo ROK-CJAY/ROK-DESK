@@ -116,7 +116,10 @@ export function CasterTablet() {
               <p className="mt-0.5 truncate text-xs text-muted">
                 On comms{" "}
                 {casters
-                  .map((c) => (c.handle ? `${c.name} (@${c.handle})` : c.name))
+                  .map((c) => {
+                    const social = (c.twitter || c.handle || "").trim().replace(/^@+/, "");
+                    return social ? `${c.name} (@${social})` : c.name;
+                  })
                   .join(" · ")}
               </p>
             ) : null}

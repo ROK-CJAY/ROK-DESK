@@ -257,6 +257,15 @@ export function CasterPanel() {
                 }}
               />
             </div>
+            <Input
+              value={caster.twitter ?? ""}
+              placeholder="Twitter"
+              onChange={(e) => {
+                const next = [...desk.casters] as typeof desk.casters;
+                next[index] = { ...next[index]!, twitter: e.target.value };
+                patch({ casters: next });
+              }}
+            />
           </div>
         ))}
       </div>

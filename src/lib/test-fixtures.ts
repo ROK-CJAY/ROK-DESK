@@ -154,15 +154,15 @@ const COMMANDER_PARTNERS = ["", "", "", "Kraum, Ludevic's Opus", "", "", "", "Br
 
 export function emptyCasters(): [Caster, Caster] {
   return [
-    { name: "", handle: "", role: "Play-by-play" },
-    { name: "", handle: "", role: "Color" },
+    { name: "", handle: "", twitter: "", role: "Play-by-play" },
+    { name: "", handle: "", twitter: "", role: "Color" },
   ];
 }
 
 export function testCasters(): [Caster, Caster] {
   return [
-    { name: "Rook", handle: "rookcasts", role: "Play-by-play" },
-    { name: "Marisol Vega", handle: "mariplays", role: "Color" },
+    { name: "Rook", handle: "rookcasts", twitter: "rookcasts", role: "Play-by-play" },
+    { name: "Marisol Vega", handle: "mariplays", twitter: "mariplays", role: "Color" },
   ];
 }
 
