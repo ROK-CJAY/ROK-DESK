@@ -72,6 +72,7 @@ export function CardLookup({
   const ready = useDeskStore((s) => s.ready);
   const [query, setQuery] = useState("");
   const [liveOnly, setLiveOnly] = useState(true);
+  const [catalogFirst, setCatalogFirst] = useState(false);
   const [scope, setScope] = useState<"match" | "catalog">("catalog");
   const [results, setResults] = useState<LookupCard[]>([]);
   const [selected, setSelected] = useState<LookupCard | null>(null);
@@ -126,6 +127,23 @@ export function CardLookup({
   listsRef.current = rawMatchPlayers.map((player) => player.decklist ?? []);
 
   useEffect(() => {
+    try {
+      if (localStorage.getItem("rok.ptcg.searchSource") === "catalog") setCatalogFirst(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const chooseSearchSource = (next: boolean) => {
+    setCatalogFirst(next);
+    try {
+      localStorage.setItem("rok.ptcg.searchSource", next ? "catalog" : "api");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  useEffect(() => {
     if (!ready) void hydrate();
     if (!tournamentReady) void hydrateTournament();
   }, [ready, hydrate, tournamentReady, hydrateTournament]);
@@ -161,7 +179,7 @@ export function CardLookup({
                 ? searchRiftCards(q)
                 : lorcana
                   ? searchLorcanaCards(q)
-                  : searchLookupCards(q, liveOnly);
+                  : searchLookupCards(q, liveOnly, catalogFirst);
       void run
         .then((rows) => {
           if (cancelled) return;
@@ -179,7 +197,7 @@ export function CardLookup({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, liveOnly, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat, matchScope, hasMatchDeck, p1.decklist, p2.decklist, p3.decklist, p4.decklist, tournament, matchSlot]);
+  }, [query, liveOnly, catalogFirst, mtg, swu, ygo, op, rift, lorcana, legal, ygoFormat, matchScope, hasMatchDeck, p1.decklist, p2.decklist, p3.decklist, p4.decklist, tournament, matchSlot]);
 
   useEffect(() => {
     setQuery("");
@@ -453,6 +471,16 @@ export function CardLookup({
               </FilterChip>
               <FilterChip active={scope === "catalog"} onClick={() => setScope("catalog")}>
                 Catalog
+              </FilterChip>
+            </div>
+          ) : null}
+          {catalog === "ptcg" && !matchScope ? (
+            <div className="flex rounded-md bg-surface-2 p-0.5">
+              <FilterChip active={!catalogFirst} onClick={() => chooseSearchSource(false)}>
+                API first
+              </FilterChip>
+              <FilterChip active={catalogFirst} onClick={() => chooseSearchSource(true)}>
+                Catalog first
               </FilterChip>
             </div>
           ) : null}

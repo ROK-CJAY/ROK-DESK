@@ -76,7 +76,7 @@ export function PtcgCatalogButton({ compact = false, catalog = "ptcg" }: { compa
       ? info.error || "Catalog update failed. Try again."
       : info?.count
         ? catalog === "ptcg"
-          ? `${info.count.toLocaleString()} cards saved${when ? ` · ${when}` : ""}. Used only if the live lookup fails.`
+          ? `${info.count.toLocaleString()} cards saved${when ? ` · ${when}` : ""}. Lookup can try this first, or only if the live API fails.`
           : `${info.count.toLocaleString()} cards on this machine${when ? ` · ${when}` : ""}. Searches use this copy.`
         : BLURB[catalog];
 

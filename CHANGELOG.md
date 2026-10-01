@@ -8,6 +8,12 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.3.4-beta — 2026-10-01
+
+### Added
+
+- **PTCG lookup** — API first / Catalog first switch on the card lookup. The choice is remembered on that machine. The other source is still the backup.
+
 ## v1.3.3-beta — 2026-10-01
 
 ### Fixed

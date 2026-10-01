@@ -359,12 +359,13 @@ function inferTcgdexSerie(setId: string): string | null {
   return best;
 }
 
-export async function searchLookupCards(query: string, liveOnly = true): Promise<LookupCard[]> {
+export async function searchLookupCards(query: string, liveOnly = true, catalogFirst = false): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
   const url = new URL(PTCG_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   if (liveOnly) url.searchParams.set("live", "1");
+  if (catalogFirst) url.searchParams.set("source", "catalog");
   const data = await fetchPtcgProxy(url.toString(), "Card lookup failed");
   return normalizePtcgPayload(data);
 }

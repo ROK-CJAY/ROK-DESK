@@ -90,25 +90,35 @@ export const Route = createFileRoute("/api/ptcg-cards")({
         const set = params.get("set")?.trim() ?? "";
         const live = params.get("live") === "1" || params.get("live") === "true";
         const localOnly = params.get("local") === "1" || params.get("local") === "true";
+        const catalogFirst = params.get("source") === "catalog";
         if (!id && !q && !name) {
           return Response.json({ error: "Missing query" }, { status: 400, headers: noStore });
         }
 
+        const catalogBody = async () => {
+          let resolved = id ? await catalogCard(id) : null;
+          if (resolved && name && resolved.name && !printedNamesMatch(resolved.name, name)) resolved = null;
+          if (!resolved && (name || id)) {
+            resolved = await resolveCatalogCard({ id, name: name || undefined, number, set });
+          }
+          if (resolved) return JSON.stringify({ data: resolved });
+          if (q) {
+            const local = await searchCatalog(q, live);
+            if (local?.length) return JSON.stringify({ data: local });
+          }
+          return null;
+        };
+
         if (!localOnly && (q || id) && !name) {
-          const liveBody = await liveLookup(id, q, live);
-          if (liveBody) return json(liveBody, 200);
+          const first = catalogFirst ? await catalogBody() : await liveLookup(id, q, live);
+          if (first) return json(first, 200);
+          const second = catalogFirst ? await liveLookup(id, q, live) : await catalogBody();
+          if (second) return json(second, 200);
+          return Response.json({ error: "Card lookup unavailable" }, { status: 502, headers: noStore });
         }
 
-        let resolved = id ? await catalogCard(id) : null;
-        if (resolved && name && resolved.name && !printedNamesMatch(resolved.name, name)) resolved = null;
-        if (!resolved && (name || id)) {
-          resolved = await resolveCatalogCard({ id, name: name || undefined, number, set });
-        }
-        if (resolved) return json(JSON.stringify({ data: resolved }), 200);
-        if (q) {
-          const local = await searchCatalog(q, live);
-          if (local?.length) return json(JSON.stringify({ data: local }), 200);
-        }
+        const saved = await catalogBody();
+        if (saved) return json(saved, 200);
         if (localOnly) return json(JSON.stringify({ data: [] }), 200);
 
         return Response.json({ error: "Card lookup unavailable" }, { status: 502, headers: noStore });
