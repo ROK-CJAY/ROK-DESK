@@ -1,5 +1,6 @@
 import { SPECIES as NATIONAL_SPECIES } from "./pokedex-national";
 import { ALL_MOVES } from "./pokedex-moves";
+import { ZA_ABILITY_FILL, ZA_FORMES, ZA_MOVES } from "./pokedex-za";
 
 export const POKE_TYPES = [
   "normal",
@@ -199,7 +200,22 @@ function pokeapiArt(dex: number): string {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${dex}.png`;
 }
 
-export const SPECIES: SpeciesDef[] = NATIONAL_SPECIES as unknown as SpeciesDef[];
+export const SPECIES: SpeciesDef[] = mergeNationalWithZa();
+
+function mergeNationalWithZa(): SpeciesDef[] {
+  const rows = (NATIONAL_SPECIES as unknown as SpeciesDef[]).map((row) => {
+    const fill = ZA_ABILITY_FILL[row.name];
+    if (!fill || row.abilities.length) return row;
+    return { ...row, abilities: fill };
+  });
+  const seen = new Set(rows.map((row) => row.name.toLowerCase()));
+  for (const forme of ZA_FORMES) {
+    if (seen.has(forme.name.toLowerCase())) continue;
+    seen.add(forme.name.toLowerCase());
+    rows.push({ ...forme, types: [...forme.types] as PokeType[], abilities: [...forme.abilities] });
+  }
+  return rows;
+}
 
 export const VGC_ITEMS_RAW = [
   "Ability Shield",
@@ -392,11 +408,121 @@ export const VGC_ITEMS_RAW = [
   "Booster Energy",
 ];
 
-export const VGC_ITEMS = [...new Set(VGC_ITEMS_RAW)].sort((a, b) => a.localeCompare(b));
+/** Held Mega Stones (XY/ORAS + Legends Z-A / Mega Dimension). */
+export const MEGA_STONES = [
+  "Abomasite",
+  "Absolite",
+  "Absolite Z",
+  "Aerodactylite",
+  "Aggronite",
+  "Alakazite",
+  "Altarianite",
+  "Ampharosite",
+  "Audinite",
+  "Banettite",
+  "Barbaracite",
+  "Baxcalibrite",
+  "Beedrillite",
+  "Blastoisinite",
+  "Blazikenite",
+  "Cameruptite",
+  "Chandelurite",
+  "Charizardite X",
+  "Charizardite Y",
+  "Chesnaughtite",
+  "Chimechite",
+  "Clefablite",
+  "Crabominite",
+  "Darkranite",
+  "Delphoxite",
+  "Diancite",
+  "Dragalgite",
+  "Dragoninite",
+  "Drampanite",
+  "Eelektrossite",
+  "Emboarite",
+  "Excadrite",
+  "Falinksite",
+  "Feraligite",
+  "Floettite",
+  "Froslassite",
+  "Galladite",
+  "Garchompite",
+  "Garchompite Z",
+  "Gardevoirite",
+  "Gengarite",
+  "Glalitite",
+  "Glimmoranite",
+  "Golisopite",
+  "Golurkite",
+  "Greninjite",
+  "Gyaradosite",
+  "Hawluchanite",
+  "Heatranite",
+  "Heracronite",
+  "Houndoominite",
+  "Kangaskhanite",
+  "Latiasite",
+  "Latiosite",
+  "Lopunnite",
+  "Lucarionite",
+  "Lucarionite Z",
+  "Magearnite",
+  "Malamarite",
+  "Manectite",
+  "Mawilite",
+  "Medichamite",
+  "Meganiumite",
+  "Meowsticite",
+  "Metagrossite",
+  "Mewtwonite X",
+  "Mewtwonite Y",
+  "Pidgeotite",
+  "Pinsirite",
+  "Pyroarite",
+  "Raichunite X",
+  "Raichunite Y",
+  "Sablenite",
+  "Salamencite",
+  "Sceptilite",
+  "Scizorite",
+  "Scolipite",
+  "Scovillainite",
+  "Scraftinite",
+  "Sharpedonite",
+  "Skarmorite",
+  "Slowbronite",
+  "Staraptite",
+  "Starminite",
+  "Steelixite",
+  "Swampertite",
+  "Tatsugirinite",
+  "Tyranitarite",
+  "Venusaurite",
+  "Victreebelite",
+  "Zeraorite",
+  "Zygardite",
+] as const;
+
+export const VGC_ITEMS = [...new Set([...VGC_ITEMS_RAW, ...MEGA_STONES])].sort((a, b) =>
+  a.localeCompare(b),
+);
 
 export type MoveDef = { name: string; type: PokeType };
 
-export const VGC_MOVES: MoveDef[] = ALL_MOVES as MoveDef[];
+export const VGC_MOVES: MoveDef[] = mergeMoves();
+
+function mergeMoves(): MoveDef[] {
+  const seen = new Set<string>();
+  const out: MoveDef[] = [];
+  for (const move of [...(ALL_MOVES as MoveDef[]), ...(ZA_MOVES as MoveDef[])]) {
+    const key = move.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(move);
+  }
+  return out;
+}
 
 export function findMove(name: string): MoveDef | undefined {
   const key = name.trim().toLowerCase();
@@ -413,12 +539,21 @@ export const VGC_ABILITIES = [...new Set(SPECIES.flatMap((s) => s.abilities))].s
 export function findSpecies(name: string): SpeciesDef | undefined {
   const key = name.trim().toLowerCase();
   if (!key) return undefined;
-  const exact = SPECIES.find((s) => s.name.toLowerCase() === key);
+  const aliased = SPECIES_ALIASES[key] ?? key;
+  const exact = SPECIES.find((s) => s.name.toLowerCase() === aliased);
   if (exact) return exact;
-  const starts = SPECIES.filter((s) => s.name.toLowerCase().startsWith(key));
+  const starts = SPECIES.filter((s) => s.name.toLowerCase().startsWith(aliased) || s.name.toLowerCase().startsWith(key));
   if (starts.length === 1 && key.length >= 4) return starts[0];
   return undefined;
 }
+
+const SPECIES_ALIASES: Record<string, string> = {
+  "eternal flower floette": "floette eternal",
+  "floette eternal flower": "floette eternal",
+  "eternal floette": "floette eternal",
+  "mega eternal flower floette": "mega floette",
+  "mega eternal floette": "mega floette",
+};
 
 export const SPECIES_OPTIONS = SPECIES.map((species) => ({
   value: species.name,

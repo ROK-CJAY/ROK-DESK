@@ -444,7 +444,7 @@ export function CardLookup({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {catalog === "ptcg" ? <PtcgCatalogButton compact /> : null}
+          {catalog ? <PtcgCatalogButton compact catalog={catalog} /> : null}
           <GuideButton onClick={guide.openGuide} />
           {hasMatchDeck ? (
             <div className="flex rounded-md bg-surface-2 p-0.5">

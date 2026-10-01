@@ -1,5 +1,5 @@
-import { execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { execFile, spawn } from "node:child_process";
+import { mkdtemp, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { PRINTED_SETS, printedCodesForSet } from "@/lib/ptcg-deck-match";
@@ -31,6 +31,10 @@ export type PtcgCatalogCard = {
 export type PtcgCatalogStatus = {
   status: "idle" | "running" | "ok" | "error";
   phase?: string;
+  /** 0–100 while a sync is running. Null means the bar is indeterminate. */
+  progress?: number | null;
+  received?: number;
+  total?: number;
   count: number;
   updatedAt: number | null;
   error?: string;
@@ -303,25 +307,34 @@ export function startCatalogSync(): PtcgCatalogStatus {
 }
 
 async function runSync() {
-  const setPhase = (phase: string, count = g.__ptcgCatalogJob__?.count ?? 0) => {
+  const setPhase = (
+    phase: string,
+    extra: { count?: number; progress?: number | null; received?: number; total?: number } = {},
+  ) => {
     g.__ptcgCatalogJob__ = {
       status: "running",
       phase,
-      count,
+      count: extra.count ?? g.__ptcgCatalogJob__?.count ?? 0,
+      progress: extra.progress === undefined ? (g.__ptcgCatalogJob__?.progress ?? null) : extra.progress,
+      received: extra.received ?? g.__ptcgCatalogJob__?.received,
+      total: extra.total ?? g.__ptcgCatalogJob__?.total,
       updatedAt: g.__ptcgCatalogMem__?.updatedAt ?? null,
       file: catalogPath(),
     };
   };
 
-  setPhase("Downloading card database…");
+  setPhase("Listing sets…", { progress: 0 });
   const scratch = await mkdtemp(path.join(tmpdir(), "ptcg-catalog-"));
-  const zipPath = path.join(scratch, "cards.zip");
   try {
-    await curlToFile(ZIP_URL, zipPath, 120000);
-    setPhase("Unpacking sets…");
-    await unzipTo(zipPath, scratch);
-    setPhase("Building catalog…");
-    const catalog = await buildFromExtract(scratch, setPhase);
+    const listed = await listEnglishSets();
+    if (listed) {
+      await downloadListedSets(scratch, listed, setPhase);
+    } else {
+      await downloadZipFallback(scratch, setPhase);
+    }
+    setPhase("Building catalog…", { progress: listed ? 93 : 78 });
+    const catalog = await buildFromExtract(scratch, setPhase, listed ? 93 : 78, listed ? 5 : 20);
+    setPhase("Saving catalog…", { progress: 98, count: catalog.count });
     const out = catalogPath();
     await mkdir(path.dirname(out), { recursive: true });
     const tmp = `${out}.tmp`;
@@ -331,6 +344,7 @@ async function runSync() {
     g.__ptcgCatalogJob__ = {
       status: "ok",
       phase: "Ready",
+      progress: 100,
       count: catalog.count,
       updatedAt: catalog.updatedAt,
       file: out,
@@ -342,7 +356,12 @@ async function runSync() {
 
 async function buildFromExtract(
   root: string,
-  setPhase: (phase: string, count?: number) => void,
+  setPhase: (
+    phase: string,
+    extra?: { count?: number; progress?: number | null; received?: number; total?: number },
+  ) => void,
+  progressStart = 78,
+  progressSpan = 20,
 ): Promise<CatalogFile> {
   const { readdir } = await import("node:fs/promises");
   const walk = await readdir(root, { withFileTypes: true });
@@ -356,7 +375,12 @@ async function buildFromExtract(
   const cards: PtcgCatalogCard[] = [];
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    setPhase(`Reading ${file.replace(".json", "")} (${i + 1}/${files.length})`, cards.length);
+    const done = i + 1;
+    const progress = progressStart + Math.round((done / files.length) * progressSpan);
+    setPhase(`Reading ${file.replace(".json", "")} (${done}/${files.length})`, {
+      count: cards.length,
+      progress,
+    });
     const rows = JSON.parse(await readFile(path.join(cardsDir, file), "utf8")) as Record<string, unknown>[];
     const setId = file.replace(/\.json$/, "");
     const set = setMap.get(setId);
@@ -391,17 +415,155 @@ function slimCard(row: Record<string, unknown>, set?: { id?: string; name?: stri
   };
 }
 
-function curlToFile(url: string, dest: string, timeoutMs: number) {
-  return new Promise<void>((resolve, reject) => {
+type ListedSet = { name: string; download_url: string; size: number };
+
+async function listEnglishSets(): Promise<ListedSet[] | null> {
+  try {
+    const res = await fetch("https://api.github.com/repos/PokemonTCG/pokemon-tcg-data/contents/cards/en?ref=master", {
+      headers: { Accept: "application/vnd.github+json", "User-Agent": UA },
+    });
+    if (!res.ok) return null;
+    const rows = (await res.json()) as { name?: string; download_url?: string; size?: number; type?: string }[];
+    if (!Array.isArray(rows)) return null;
+    const files = rows
+      .filter((row) => row.type === "file" && row.name?.endsWith(".json") && row.download_url)
+      .map((row) => ({ name: row.name!, download_url: row.download_url!, size: row.size ?? 0 }));
+    return files.length ? files : null;
+  } catch {
+    return null;
+  }
+}
+
+async function downloadListedSets(
+  scratch: string,
+  files: ListedSet[],
+  setPhase: (
+    phase: string,
+    extra?: { count?: number; progress?: number | null; received?: number; total?: number },
+  ) => void,
+) {
+  const root = path.join(scratch, "pokemon-tcg-data-master");
+  const cardsDir = path.join(root, "cards", "en");
+  const setsDir = path.join(root, "sets");
+  await mkdir(cardsDir, { recursive: true });
+  await mkdir(setsDir, { recursive: true });
+  const total = files.reduce((sum, file) => sum + file.size, 0);
+  setPhase(`Downloading sets 0/${files.length}`, { progress: 0, received: 0, total });
+  await curlToFile(
+    "https://raw.githubusercontent.com/PokemonTCG/pokemon-tcg-data/master/sets/en.json",
+    path.join(setsDir, "en.json"),
+    60000,
+  );
+  let done = 0;
+  let received = 0;
+  await mapPool(files, 6, async (file) => {
+    await curlToFile(file.download_url, path.join(cardsDir, file.name), 60000);
+    done += 1;
+    received += file.size;
+    const progress = Math.min(92, Math.round((done / files.length) * 92));
+    setPhase(`Downloading sets ${done}/${files.length} · ${formatBytes(received)} / ${formatBytes(total)}`, {
+      progress,
+      received,
+      total,
+    });
+  });
+}
+
+async function downloadZipFallback(
+  scratch: string,
+  setPhase: (
+    phase: string,
+    extra?: { count?: number; progress?: number | null; received?: number; total?: number },
+  ) => void,
+) {
+  const zipPath = path.join(scratch, "cards.zip");
+  const total = await contentLength(ZIP_URL);
+  setPhase("Downloading card database…", { progress: total ? 0 : null, received: 0, total });
+  await curlToFile(ZIP_URL, zipPath, 180000, (received) => {
+    const progress = total > 0 ? Math.min(70, Math.round((received / total) * 70)) : null;
+    const label = total > 0 ? `${formatBytes(received)} / ${formatBytes(total)}` : formatBytes(received);
+    setPhase(`Downloading ${label}`, { progress, received, total });
+  });
+  setPhase("Unpacking sets…", { progress: 74 });
+  await unzipTo(zipPath, scratch);
+}
+
+async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>) {
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const item = items[next];
+      next += 1;
+      await fn(item);
+    }
+  });
+  await Promise.all(workers);
+}
+
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 MB";
+  const mb = bytes / (1024 * 1024);
+  if (mb < 0.1) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${mb.toFixed(mb >= 10 ? 0 : 1)} MB`;
+}
+
+function contentLength(url: string): Promise<number> {
+  return new Promise((resolve) => {
     execFile(
       "curl",
-      ["-sS", "-L", "-f", "--http1.1", "-m", String(Math.ceil(timeoutMs / 1000)), "-A", UA, "-o", dest, url],
-      { timeout: timeoutMs + 1000 },
-      (error) => {
-        if (error) reject(new Error("Could not download the card database"));
-        else resolve();
+      ["-sI", "-L", "--http1.1", "-m", "20", "-A", UA, url],
+      { timeout: 25000 },
+      (error, stdout) => {
+        if (error) {
+          resolve(0);
+          return;
+        }
+        const matches = [...String(stdout).matchAll(/content-length:\s*(\d+)/gi)];
+        const last = matches.at(-1);
+        resolve(last ? Number(last[1]) : 0);
       },
     );
+  });
+}
+
+function curlToFile(url: string, dest: string, timeoutMs: number, onBytes?: (received: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(
+      "curl",
+      ["-sS", "-L", "-f", "--http1.1", "-m", String(Math.ceil(timeoutMs / 1000)), "-A", UA, "-o", dest, url],
+      { stdio: "ignore" },
+    );
+    let settled = false;
+    const timer = onBytes
+      ? setInterval(() => {
+          void stat(dest)
+            .then((info) => onBytes(info.size))
+            .catch(() => undefined);
+        }, 400)
+      : null;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearInterval(timer);
+      if (error) reject(error);
+      else resolve();
+    };
+    const killer = setTimeout(() => {
+      child.kill("SIGTERM");
+      finish(new Error("Could not download the card database"));
+    }, timeoutMs + 1000);
+    child.on("error", () => finish(new Error("Could not download the card database")));
+    child.on("close", (code) => {
+      clearTimeout(killer);
+      if (code === 0) {
+        void stat(dest)
+          .then((info) => onBytes?.(info.size))
+          .catch(() => undefined)
+          .finally(() => finish());
+        return;
+      }
+      finish(new Error("Could not download the card database"));
+    });
   });
 }
 

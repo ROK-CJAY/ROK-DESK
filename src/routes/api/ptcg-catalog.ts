@@ -9,7 +9,7 @@ export const Route = createFileRoute("/api/ptcg-catalog")({
   server: {
     handlers: {
       GET: async () => {
-        await loadCatalog();
+        if (catalogStatus().status !== "running") await loadCatalog();
         return Response.json(catalogStatus(), { headers: noStore });
       },
       POST: async () => {

@@ -46,6 +46,37 @@ export const LORCANA_PROXY = "/api/lorcana-cards";
 
 export type LookupCatalog = "ptcg" | "mtg" | "swu" | "ygo" | "op" | "rift" | "lorcana";
 
+async function searchSavedCatalog(game: Exclude<LookupCatalog, "ptcg">, query: string, legal?: string | null): Promise<LookupCard[] | null> {
+  const url = new URL("/api/tcg-catalog", window.location.origin);
+  url.searchParams.set("game", game);
+  url.searchParams.set("q", query);
+  if (legal) url.searchParams.set("legal", legal);
+  try {
+    const res = await fetch(url.toString(), { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { local?: boolean; cards?: LookupCard[] };
+    if (!data.local) return null;
+    return data.cards ?? [];
+  } catch {
+    return null;
+  }
+}
+
+async function savedCatalogCard(game: Exclude<LookupCatalog, "ptcg">, id: string): Promise<LookupCard | null | undefined> {
+  const url = new URL("/api/tcg-catalog", window.location.origin);
+  url.searchParams.set("game", game);
+  url.searchParams.set("id", id);
+  try {
+    const res = await fetch(url.toString(), { cache: "no-store", signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return undefined;
+    const data = (await res.json()) as { local?: boolean; card?: LookupCard | null };
+    if (!data.local) return undefined;
+    return data.card ?? null;
+  } catch {
+    return undefined;
+  }
+}
+
 export function catalogForGame(gameId: GameId): LookupCatalog | null {
   switch (gameId) {
     case "pokemon-tcg":
@@ -510,6 +541,10 @@ export function scryfallLegalFor(formatName: string): string | null {
 export async function searchScryfallCards(query: string, legal: string | null = null, uniquePrints = false): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
+  if (!uniquePrints) {
+    const local = await searchSavedCatalog("mtg", q, legal);
+    if (local) return local;
+  }
   const parts = [`${q}`];
   if (legal && !uniquePrints) parts.push(`legal:${legal}`);
   const url = new URL(`${SCRYFALL_BASE}/cards/search`);
@@ -531,6 +566,13 @@ export async function searchScryfallCards(query: string, legal: string | null = 
 export async function searchCommanderCards(query: string): Promise<LookupCard[]> {
   const q = query.trim().replace(/[:"()]/g, " ").replace(/\s+/g, " ").trim();
   if (q.length < 2) return [];
+  const local = await searchSavedCatalog("mtg", q, "commander");
+  if (local) {
+    return local.filter((card) => {
+      const type = (card.type ?? "").toLowerCase();
+      return type.includes("background") || (type.includes("legendary") && (type.includes("creature") || type.includes("planeswalker")));
+    });
+  }
   const url = new URL(`${SCRYFALL_BASE}/cards/search`);
   url.searchParams.set("q", `${q} (is:commander OR t:background)`);
   url.searchParams.set("unique", "cards");
@@ -596,6 +638,8 @@ export async function fetchCommanderColors(name: string): Promise<string[]> {
 }
 
 export async function fetchScryfallCard(id: string): Promise<LookupCard | null> {
+  const saved = await savedCatalogCard("mtg", id);
+  if (saved !== undefined) return saved;
   const res = await fetch(`${SCRYFALL_BASE}/cards/${encodeURIComponent(id)}`, { cache: "no-store" });
   if (!res.ok) return null;
   const data = (await res.json()) as unknown;
@@ -606,6 +650,8 @@ export async function fetchScryfallCard(id: string): Promise<LookupCard | null> 
 export async function searchSwuCards(query: string): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
+  const local = await searchSavedCatalog("swu", q);
+  if (local) return local;
   const url = new URL(SWU_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -621,6 +667,8 @@ export async function searchSwuCards(query: string): Promise<LookupCard[]> {
 }
 
 export async function fetchSwuCard(id: string): Promise<LookupCard | null> {
+  const saved = await savedCatalogCard("swu", id);
+  if (saved !== undefined) return saved;
   const [set, number] = id.split("-");
   if (!set || !number) return null;
   const url = new URL(SWU_PROXY, window.location.origin);
@@ -645,6 +693,8 @@ export function ygoFormatFor(formatName: string): string | null {
 export async function searchYgoCards(query: string, format: string | null = null): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
+  const local = await searchSavedCatalog("ygo", q, format);
+  if (local) return local;
   const url = new URL(YGO_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   if (format) url.searchParams.set("format", format);
@@ -662,6 +712,8 @@ export async function searchYgoCards(query: string, format: string | null = null
 
 export async function fetchYgoCard(id: string): Promise<LookupCard | null> {
   if (!id) return null;
+  const saved = await savedCatalogCard("ygo", id);
+  if (saved !== undefined) return saved;
   const url = new URL(YGO_PROXY, window.location.origin);
   url.searchParams.set("id", id);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -675,6 +727,8 @@ export async function fetchYgoCard(id: string): Promise<LookupCard | null> {
 export async function searchOpCards(query: string): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
+  const local = await searchSavedCatalog("op", q);
+  if (local) return local;
   const url = new URL(OP_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -690,6 +744,8 @@ export async function searchOpCards(query: string): Promise<LookupCard[]> {
 
 export async function fetchOpCard(id: string): Promise<LookupCard | null> {
   if (!id) return null;
+  const saved = await savedCatalogCard("op", id);
+  if (saved !== undefined) return saved;
   const url = new URL(OP_PROXY, window.location.origin);
   url.searchParams.set("id", id);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -702,6 +758,8 @@ export async function fetchOpCard(id: string): Promise<LookupCard | null> {
 export async function searchRiftCards(query: string): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
+  const local = await searchSavedCatalog("rift", q);
+  if (local) return local;
   const url = new URL(RIFT_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -717,6 +775,8 @@ export async function searchRiftCards(query: string): Promise<LookupCard[]> {
 
 export async function fetchRiftCard(id: string): Promise<LookupCard | null> {
   if (!id) return null;
+  const saved = await savedCatalogCard("rift", id);
+  if (saved !== undefined) return saved;
   const url = new URL(RIFT_PROXY, window.location.origin);
   url.searchParams.set("id", id);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -729,6 +789,8 @@ export async function fetchRiftCard(id: string): Promise<LookupCard | null> {
 export async function searchLorcanaCards(query: string): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
+  const local = await searchSavedCatalog("lorcana", q);
+  if (local) return local;
   const url = new URL(LORCANA_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   const res = await fetch(url.toString(), { cache: "no-store" });
@@ -744,6 +806,8 @@ export async function searchLorcanaCards(query: string): Promise<LookupCard[]> {
 
 export async function fetchLorcanaCard(id: string): Promise<LookupCard | null> {
   if (!id) return null;
+  const saved = await savedCatalogCard("lorcana", id);
+  if (saved !== undefined) return saved;
   const url = new URL(LORCANA_PROXY, window.location.origin);
   url.searchParams.set("id", id);
   const res = await fetch(url.toString(), { cache: "no-store" });

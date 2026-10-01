@@ -26,6 +26,7 @@ import {
   type MatchSlot,
 } from "@/lib/desk-types";
 import { PtcgCatalogButton } from "@/components/desk/ptcg-catalog-button";
+import { catalogForGame } from "@/lib/card-lookup";
 import { useEffect, useState } from "react";
 
 export function EventPanel() {
@@ -841,6 +842,7 @@ export function PodPanel() {
   const op = desk.gameId === "one-piece";
   const rift = desk.gameId === "riftbound";
   const lorcana = desk.gameId === "lorcana";
+  const catalog = catalogForGame(desk.gameId);
   const slot = desk.matchSlot ?? 1;
   const path = tabletPath(desk.gameId, slot);
   const playerPath = playerTabletPath(desk.gameId, slot);
@@ -879,13 +881,13 @@ export function PodPanel() {
                     ? "Judge tablet — life, DON!!, score, clock, and official OP card lookup."
                     : rift
                       ? "Judge tablet — first-to-8 points, Duel / Match / Skirmish / War, clock, and Riftcodex card lookup."
-                      : lorcana
+                      : catalog === "lorcana"
                         ? "Three tablets: player pad for lore and games, player tablet extended if the table is self-running names / inks / cards, judge tablet for Lorcast and match report."
                         : "Player tablet for the live table. Each game uses its own layout."}
       </p>
-      {tcg ? (
+      {catalog ? (
         <div className="mt-3">
-          <PtcgCatalogButton />
+          <PtcgCatalogButton catalog={catalog} />
         </div>
       ) : vgc ? (
         <p className="mt-2 text-xs text-ok">Tap a Pokémon to mark it KO. Game / Match report to the desk.</p>

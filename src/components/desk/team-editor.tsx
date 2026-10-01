@@ -96,7 +96,7 @@ function MonEditor({
           <CatalogSelect
             value={mon.species}
             placeholder="Select Pokémon"
-            searchPlaceholder="Search 1,045 Pokémon…"
+            searchPlaceholder="Search Pokémon…"
             options={SPECIES_OPTIONS}
             onChange={(name) => onChange(applySpeciesChoice(mon, name))}
           />

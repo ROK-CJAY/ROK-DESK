@@ -8,9 +8,19 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+## v1.3.2-beta — 2026-10-01
+
+Test cut on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.3.2-beta). Local card catalogs and Legends Z-A VGC data.
+
+### Added
+
+- **TCG catalogs** — Magic, Yu-Gi-Oh, One Piece, Lorcana, Star Wars Unlimited, and Riftbound can download a local card list the same way as Pokémon TCG. Lookup uses that copy when it is on the machine. Files live in `%APPDATA%\ROK Desk\pgdata\`. VGC is unchanged.
+- **VGC held items** — Mega Stones (XY/ORAS and Legends Z-A / Mega Dimension, including Z variants) appear in signup / roster item search.
+- **VGC species** — Eternal Flower Floette (`Floette Eternal`) with Flower Veil / Symbiosis / Fairy Aura. Legends Z-A and Mega Dimension Mega formes (Mega Dragonite, Mega Raichu X/Y, Mega Lucario Z, Mega Floette, etc.) are selectable with types. Z-A move Nihil Light is in the move list.
+
 ### Changed
 
-- **Desktop CI** — tag builds attach only installers / updater files to the GitHub release. Unpacked Electron trees are not uploaded as Actions artifacts (those were filling the 500 MB quota).
+- **PTCG catalog** — download shows a progress bar with set count and size, then set-by-set while the local catalog is built.
 
 ## v1.3.1-beta — 2026-09-13
 

@@ -32,6 +32,7 @@ import { Route as ApiPtcgCatalogRouteImport } from './routes/api/ptcg-catalog'
 import { Route as ApiPtcgDeckImportRouteImport } from './routes/api/ptcg-deck-import'
 import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
+import { Route as ApiTcgCatalogRouteImport } from './routes/api/tcg-catalog'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
 import { Route as ApiYgoCardsRouteImport } from './routes/api/ygo-cards'
 import { Route as OverlayIndexRouteImport } from './routes/overlay/index'
@@ -177,6 +178,11 @@ const ApiRiftCardsRoute = ApiRiftCardsRouteImport.update({
 const ApiSwuCardsRoute = ApiSwuCardsRouteImport.update({
   id: '/api/swu-cards',
   path: '/api/swu-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTcgCatalogRoute = ApiTcgCatalogRouteImport.update({
+  id: '/api/tcg-catalog',
+  path: '/api/tcg-catalog',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiTournamentRoute = ApiTournamentRouteImport.update({
@@ -360,6 +366,7 @@ export interface FileRoutesByFullPath {
   '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
+  '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
   '/overlay/bracket': typeof OverlayBracketRoute
@@ -415,6 +422,7 @@ export interface FileRoutesByTo {
   '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
+  '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
   '/overlay/bracket': typeof OverlayBracketRoute
@@ -472,6 +480,7 @@ export interface FileRoutesById {
   '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
+  '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
   '/overlay/bracket': typeof OverlayBracketRoute
@@ -530,6 +539,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-deck-import'
     | '/api/rift-cards'
     | '/api/swu-cards'
+    | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
     | '/overlay/bracket'
@@ -585,6 +595,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-deck-import'
     | '/api/rift-cards'
     | '/api/swu-cards'
+    | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
     | '/overlay/bracket'
@@ -641,6 +652,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-deck-import'
     | '/api/rift-cards'
     | '/api/swu-cards'
+    | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
     | '/overlay/bracket'
@@ -698,6 +710,7 @@ export interface RootRouteChildren {
   ApiPtcgDeckImportRoute: typeof ApiPtcgDeckImportRoute
   ApiRiftCardsRoute: typeof ApiRiftCardsRoute
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
+  ApiTcgCatalogRoute: typeof ApiTcgCatalogRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
   ApiYgoCardsRoute: typeof ApiYgoCardsRoute
   PrintDeckListRoute: typeof PrintDeckListRoute
@@ -869,6 +882,13 @@ declare module '@tanstack/react-router' {
       path: '/api/swu-cards'
       fullPath: '/api/swu-cards'
       preLoaderRoute: typeof ApiSwuCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/tcg-catalog': {
+      id: '/api/tcg-catalog'
+      path: '/api/tcg-catalog'
+      fullPath: '/api/tcg-catalog'
+      preLoaderRoute: typeof ApiTcgCatalogRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/tournament': {
@@ -1181,6 +1201,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPtcgDeckImportRoute: ApiPtcgDeckImportRoute,
   ApiRiftCardsRoute: ApiRiftCardsRoute,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
+  ApiTcgCatalogRoute: ApiTcgCatalogRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,
   ApiYgoCardsRoute: ApiYgoCardsRoute,
   PrintDeckListRoute: PrintDeckListRoute,
