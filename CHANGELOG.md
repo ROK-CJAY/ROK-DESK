@@ -11,6 +11,7 @@ Not tagged. Use the build on `main` until the next beta.
 ### Changed
 
 - **PTCG clocks** — floor clock and stream-table clocks keep counting past 0 (`-0:01`, `-1:00`, …). Other games still stop at 0.
+- **One Piece overtime** — a separate 5:00 clock. The active player starts as turn 0. The game ends after turn 3 or when that clock hits 0:00, whichever comes first. Shown on the desk, the OP judge tablet, and the play overlay.
 
 ## v1.3.4-beta — 2026-10-01
 

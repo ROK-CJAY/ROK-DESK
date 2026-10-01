@@ -8,6 +8,7 @@ import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/ta
 import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { RoundClock } from "@/components/desk/round-clock";
+import { OpOvertime } from "@/components/desk/op-overtime";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
@@ -105,8 +106,9 @@ export function OpJudgeTablet() {
             <p className="font-display text-4xl leading-none font-semibold tabular-nums">
               {desk.p1.score}–{desk.p2.score}
             </p>
-            <div className="mt-3 w-full">
+            <div className="mt-3 w-full space-y-2">
               <RoundClock compact />
+              <OpOvertime compact />
             </div>
           </div>
           <OpSeat
@@ -166,6 +168,7 @@ function OpSeat({
     >
       <p className="font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">
         {side === "p1" ? "Player 1" : "Player 2"}
+        {desk.otSide === side && desk.otTurn != null && desk.otTurn <= 3 ? ` · Turn ${desk.otTurn}` : ""}
         {out ? " · 0 life" : ""}
       </p>
       <p className="font-display truncate text-lg font-semibold uppercase">{player.name || "Open"}</p>

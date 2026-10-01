@@ -4,6 +4,9 @@ import {
   defaultDesk,
   parseDesk,
   remainingSeconds,
+  OP_OT_SECONDS,
+  OP_OT_LAST_TURN,
+  opOtRemaining,
   seatsFor,
   emptyCmdFrom,
   emptySpotlight,
@@ -90,6 +93,10 @@ type DeskStore = {
   matchWin: (side: SideId) => void;
   clearWinners: () => void;
   setInitiative: (side: SideId | null) => void;
+  startOpOt: (side: "p1" | "p2") => void;
+  toggleOpOt: () => void;
+  nextOpTurn: () => void;
+  clearOpOt: () => void;
   toggleTimer: () => void;
   setTimerMinutes: (minutes: number) => void;
   setTimerClock: (seconds: number) => void;
@@ -168,6 +175,16 @@ function persist(desk: DeskState, immediate = false) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
+}
+
+function clearedOpOt() {
+  return {
+    otRunning: false,
+    otEndsAt: null,
+    otSeconds: OP_OT_SECONDS,
+    otTurn: null,
+    otSide: null,
+  } as const;
 }
 
 function nextVersion(desk: DeskState, patch: Partial<DeskState>): DeskState {
@@ -410,6 +427,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       cardSpotlight: emptySpotlight(),
       cardStack: [],
       sideSpotlight: emptySideSpotlight(),
+      ...clearedOpOt(),
       gameClocks: {
         ...prev.gameClocks,
         [prev.gameId]: { remaining: remainingSeconds(prev, Date.now(), prev.gameId), preset: prev.timerPresetSeconds },
@@ -446,6 +464,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       cardSpotlight: emptySpotlight(),
       cardStack: [],
       sideSpotlight: emptySideSpotlight(),
+      ...clearedOpOt(),
       roundName: "",
       timerSeconds: 0,
       timerPresetSeconds: 0,
@@ -574,6 +593,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
           prev.gameWinnerSide === "p1" ? "p2" : prev.gameWinnerSide === "p2" ? "p1" : prev.gameWinnerSide,
         initiativeSide:
           prev.initiativeSide === "p1" ? "p2" : prev.initiativeSide === "p2" ? "p1" : prev.initiativeSide,
+        otSide: prev.otSide === "p1" ? "p2" : prev.otSide === "p2" ? "p1" : null,
       });
       persist(desk);
       set({ desk });
@@ -605,6 +625,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         p2: { ...prev.ptcgBoard.p2, energy: true, supporter: true, retreat: true, spotlight: null },
       },
       sideSpotlight: emptySideSpotlight(),
+      ...clearedOpOt(),
     });
     persist(desk);
     set({ desk });
@@ -620,6 +641,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       initiativeSide: null,
       ptcgBoard: emptyPtcgBoard(),
       sideSpotlight: emptySideSpotlight(),
+      ...clearedOpOt(),
     });
     persist(desk);
     set({ desk });
@@ -641,6 +663,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       cardSpotlight: emptySpotlight(),
       cardStack: [],
       sideSpotlight: emptySideSpotlight(),
+      ...clearedOpOt(),
       ptcgBoard: emptyPtcgBoard(),
       lowerThird: { ...prev.lowerThird, visible: false },
     });
@@ -672,6 +695,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       cardSpotlight: emptySpotlight(),
       cardStack: [],
       sideSpotlight: emptySideSpotlight(),
+      ...clearedOpOt(),
     };
     const desk = nextVersion(prev, {
       lanes: { ...prev.lanes, [key]: stripLane(cleaned) },
@@ -724,6 +748,68 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const desk = nextVersion(prev, {
       initiativeSide: prev.initiativeSide === side ? null : side,
     });
+    persist(desk);
+    set({ desk });
+  },
+
+  startOpOt: (side) => {
+    const desk = nextVersion(get().desk, {
+      otRunning: true,
+      otEndsAt: Date.now() + OP_OT_SECONDS * 1000,
+      otSeconds: OP_OT_SECONDS,
+      otTurn: 0,
+      otSide: side,
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  toggleOpOt: () => {
+    const prev = get().desk;
+    if (prev.otTurn == null) return;
+    if (prev.otRunning) {
+      const left = opOtRemaining(prev);
+      const desk = nextVersion(prev, { otRunning: false, otEndsAt: null, otSeconds: left });
+      persist(desk);
+      set({ desk });
+      return;
+    }
+    const left = opOtRemaining(prev);
+    const desk = nextVersion(prev, {
+      otRunning: left > 0,
+      otEndsAt: left > 0 ? Date.now() + left * 1000 : null,
+      otSeconds: left,
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  nextOpTurn: () => {
+    const prev = get().desk;
+    if (prev.otTurn == null || prev.otTurn > OP_OT_LAST_TURN) return;
+    if (opOtRemaining(prev) <= 0) return;
+    if (prev.otTurn === OP_OT_LAST_TURN) {
+      const left = opOtRemaining(prev);
+      const desk = nextVersion(prev, {
+        otTurn: OP_OT_LAST_TURN + 1,
+        otRunning: false,
+        otEndsAt: null,
+        otSeconds: left,
+      });
+      persist(desk);
+      set({ desk });
+      return;
+    }
+    const desk = nextVersion(prev, {
+      otTurn: prev.otTurn + 1,
+      otSide: prev.otSide === "p1" ? "p2" : "p1",
+    });
+    persist(desk);
+    set({ desk });
+  },
+
+  clearOpOt: () => {
+    const desk = nextVersion(get().desk, clearedOpOt());
     persist(desk);
     set({ desk });
   },

@@ -5,6 +5,8 @@ import {
   remainingSeconds,
   resourceLimit,
   emptySpotlight,
+  opOtDone,
+  opOtRemaining,
   type DeskState,
   type PlayerSide,
 } from "@/lib/desk-types";
@@ -39,7 +41,15 @@ function Chip({
   );
 }
 
-function CameraWell({ player, align }: { player: PlayerSide; align: "left" | "right" }) {
+function CameraWell({
+  player,
+  align,
+  turn,
+}: {
+  player: PlayerSide;
+  align: "left" | "right";
+  turn: number | null;
+}) {
   const photo = player.photoUrl.trim();
   return (
     <div className="relative h-[20.5rem] w-full shrink-0 bg-transparent">
@@ -71,6 +81,16 @@ function CameraWell({ player, align }: { player: PlayerSide; align: "left" | "ri
         >
           {player.name || (align === "right" ? "Player 2" : "Player 1")}
         </p>
+        {turn != null ? (
+          <p
+            className={cn(
+              "font-mono mt-1 text-[0.85rem] tracking-[0.22em] text-live uppercase",
+              align === "right" && "text-right",
+            )}
+          >
+            Turn {turn}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -155,17 +175,19 @@ function SideColumn({
   desk,
   player,
   align,
+  turn,
 }: {
   desk: DeskState;
   player: PlayerSide;
   align: "left" | "right";
+  turn: number | null;
 }) {
   return (
     <aside
       className={cn("absolute top-[5.6rem] flex flex-col gap-3", align === "left" ? "left-4" : "right-4")}
       style={{ width: COL_W, bottom: "6.75rem" }}
     >
-      <CameraWell player={player} align={align} />
+      <CameraWell player={player} align={align} turn={turn} />
       <InfoWell desk={desk} player={player} side={align === "left" ? "p1" : "p2"} />
     </aside>
   );
@@ -212,6 +234,17 @@ function EventMark({ desk }: { desk: DeskState }) {
 
 export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
   const clock = formatClock(remainingSeconds(desk, now));
+  const otOn = desk.otTurn != null;
+  const otLeft = opOtRemaining(desk, now);
+  const otDone = opOtDone(desk, otLeft);
+  const turnLabel =
+    desk.otTurn == null
+      ? ""
+      : desk.otTurn > 3
+        ? "After turn 3"
+        : `Turn ${desk.otTurn}`;
+  const activeTurn = (side: "p1" | "p2") =>
+    otOn && otDone == null && desk.otSide === side && desk.otTurn != null && desk.otTurn <= 3 ? desk.otTurn : null;
   return (
     <div data-game="one-piece" className="pointer-events-none absolute inset-0">
       <Chip align="left">
@@ -220,12 +253,31 @@ export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?
         </p>
       </Chip>
       <Chip align="right">
-        <p className="font-display text-[2.7rem] leading-none font-semibold tabular-nums tracking-wide text-ov-fg">
-          {clock}
-        </p>
+        {otOn ? (
+          <div className="text-right">
+            <p className="font-mono text-[0.72rem] tracking-[0.2em] text-ov-fg/55 uppercase">
+              Round {clock}
+            </p>
+            <p
+              className={cn(
+                "font-display text-[2.7rem] leading-none font-semibold tabular-nums tracking-wide",
+                otDone === "time" ? "text-live" : "text-ov-fg",
+              )}
+            >
+              OT {formatClock(otLeft)}
+            </p>
+            <p className="font-mono mt-1 text-[0.85rem] tracking-[0.18em] text-live uppercase">
+              {otDone === "time" ? `Time · turn ${desk.otTurn}` : turnLabel}
+            </p>
+          </div>
+        ) : (
+          <p className="font-display text-[2.7rem] leading-none font-semibold tabular-nums tracking-wide text-ov-fg">
+            {clock}
+          </p>
+        )}
       </Chip>
-      <SideColumn desk={desk} player={desk.p1} align="left" />
-      <SideColumn desk={desk} player={desk.p2} align="right" />
+      <SideColumn desk={desk} player={desk.p1} align="left" turn={activeTurn("p1")} />
+      <SideColumn desk={desk} player={desk.p2} align="right" turn={activeTurn("p2")} />
       <SponsorRow desk={desk} />
       <EventMark desk={desk} />
       <WinStings desk={desk} />

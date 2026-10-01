@@ -2,6 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { RoundClock } from "@/components/desk/round-clock";
+import { OpOvertime } from "@/components/desk/op-overtime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -183,6 +184,7 @@ export function EventPanel() {
           <Switch checked={deskLooksLikeTest(desk)} onCheckedChange={() => loadTestMode()} aria-label="Toggle test mode" />
         </div>
         <RoundClock />
+        <OpOvertime />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="flex-1" asChild>
             <a

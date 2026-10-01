@@ -163,6 +163,11 @@ export type DeskState = {
   winnerSide: SeatId | null;
   gameWinnerSide: SeatId | null;
   initiativeSide: SeatId | null;
+  otRunning: boolean;
+  otEndsAt: number | null;
+  otSeconds: number;
+  otTurn: number | null;
+  otSide: "p1" | "p2" | null;
   streamMatchId: string | null;
   queue: QueueMatch[];
   sponsorLine: string;
@@ -272,6 +277,11 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   winnerSide: z.enum(["p1", "p2", "p3", "p4"]).nullable(),
   gameWinnerSide: z.enum(["p1", "p2", "p3", "p4"]).nullable().optional().transform((v) => v ?? null),
   initiativeSide: z.enum(["p1", "p2", "p3", "p4"]).nullable().optional().transform((v) => v ?? null),
+  otRunning: z.boolean().optional().transform((v) => v ?? false),
+  otEndsAt: z.number().nullable().optional().transform((v) => v ?? null),
+  otSeconds: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 300)),
+  otTurn: z.number().nullable().optional().transform((v) => (typeof v === "number" ? v : null)),
+  otSide: z.enum(["p1", "p2"]).nullable().optional().transform((v) => v ?? null),
   streamMatchId: z.string().nullable().optional().transform((v) => v ?? null),
   queue: z.array(
     z.object({
@@ -486,6 +496,11 @@ export function defaultDesk(): DeskState {
     winnerSide: null,
     gameWinnerSide: null,
     initiativeSide: null,
+    otRunning: false,
+    otEndsAt: null,
+    otSeconds: 300,
+    otTurn: null,
+    otSide: null,
     streamMatchId: null,
     queue: [],
     sponsorLine: "",
@@ -531,6 +546,27 @@ export function resourceResetValue(desk: Pick<DeskState, "gameId" | "formatName"
     return desk.resourceCap;
   }
   return format?.resourceStart ?? game.resource.start;
+}
+
+export const OP_OT_SECONDS = 5 * 60;
+export const OP_OT_LAST_TURN = 3;
+
+export function opOtRemaining(
+  clock: { otRunning: boolean; otEndsAt: number | null; otSeconds: number; otTurn: number | null },
+  now = Date.now(),
+): number {
+  if (clock.otTurn == null) return OP_OT_SECONDS;
+  return remainingSeconds(
+    { timerRunning: clock.otRunning, timerEndsAt: clock.otEndsAt, timerSeconds: clock.otSeconds },
+    now,
+  );
+}
+
+export function opOtDone(clock: { otTurn: number | null }, nowRemaining: number): "time" | "turns" | null {
+  if (clock.otTurn == null) return null;
+  if (clock.otTurn > OP_OT_LAST_TURN) return "turns";
+  if (nowRemaining <= 0) return "time";
+  return null;
 }
 
 export function remainingSeconds(

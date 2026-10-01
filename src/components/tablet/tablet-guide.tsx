@@ -179,6 +179,10 @@ const COPY: Record<
         body: "Type an amount and hit + or −. Most tables start at 1 and climb to 10.",
       },
       {
+        title: "Overtime is 5:00 or turn 3",
+        body: "When time is called, pick who is active. That player is turn 0 and a 5:00 clock starts. Next turn swaps the active player. The game ends when that clock hits 0:00 or after turn 3, whichever comes first. Clear drops it for the next game.",
+      },
+      {
         title: "Game vs Match",
         body: "Game awards the game and resets life / DON!! for the next one. Match is the match winner — it reports into the bracket when the pair is linked from Tournament.",
       },
