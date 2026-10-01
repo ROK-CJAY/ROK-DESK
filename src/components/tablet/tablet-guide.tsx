@@ -455,8 +455,12 @@ const COPY: Record<
   caster: {
     kicker: "Commentary tablet",
     title: "How this caster pad works",
-    lead: "This is a read-only cheat sheet for the featured table. It does not punch scores — Production and the judge tablet do that.",
+    lead: "This is a cheat sheet for the featured table. It does not punch scores — Production and the judge tablet do that. Casters can edit their own name, handle, and Twitter here.",
     steps: [
+      {
+        title: "Your card is editable",
+        body: "On the desk shows both caster slots. Name, handle, and Twitter save straight to Production and the caster graphic. Role stays set on Production.",
+      },
       {
         title: "It follows one table",
         body: "Open it from Production on Stream, Floor 1, or Floor 2. The URL stays on that table even if Production switches games on another monitor.",

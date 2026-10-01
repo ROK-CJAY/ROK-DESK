@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { Input } from "@/components/ui/input";
 import { TypeIcon, TeraBadge } from "@/components/overlays/type-icon";
 import { InitiativeGlyph } from "@/components/desk/initiative";
 import { extraFieldFor, formatCommanderLine, gameOf, isCommanderLane, isPtcgTitle, isVgcTitle } from "@/lib/games";
@@ -14,6 +15,7 @@ import {
   SEAT_LABELS,
   type DeskState,
   type SeatId,
+  type Caster,
 } from "@/lib/desk-types";
 import { COUNTRIES } from "@/lib/countries";
 import { formatRecord, inkSrc, isLorcanaInk } from "@/lib/lorcana";
@@ -34,6 +36,56 @@ import { useClockNow } from "@/lib/use-clock-now";
 
 function countryName(code: string) {
   return COUNTRIES.find((c) => c.code === code)?.name || code || "—";
+}
+
+function CasterCards() {
+  const casters = useDeskStore((s) => s.desk.casters);
+  const patch = useDeskStore((s) => s.patch);
+
+  const setCaster = (index: 0 | 1, partial: Partial<Caster>) => {
+    const next = [...casters] as typeof casters;
+    next[index] = { ...next[index]!, ...partial };
+    patch({ casters: next });
+  };
+
+  return (
+    <section className="shrink-0 border-b border-border px-3 py-2.5 sm:px-4">
+      <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">On the desk</p>
+      <div className="mt-2 grid gap-3 sm:grid-cols-2">
+        {casters.map((caster, index) => {
+          const slot = index as 0 | 1;
+          return (
+            <div key={slot} className="grid gap-1.5 rounded-lg bg-surface px-3 py-2.5">
+              <p className="text-xs text-subtle">
+                Caster {slot + 1}
+                {caster.role.trim() ? ` · ${caster.role}` : ""}
+              </p>
+              <Input
+                value={caster.name}
+                placeholder="Name"
+                aria-label={`Caster ${slot + 1} name`}
+                onChange={(e) => setCaster(slot, { name: e.target.value })}
+              />
+              <div className="grid grid-cols-2 gap-1.5">
+                <Input
+                  value={caster.handle}
+                  placeholder="Handle"
+                  aria-label={`Caster ${slot + 1} handle`}
+                  onChange={(e) => setCaster(slot, { handle: e.target.value })}
+                />
+                <Input
+                  value={caster.twitter ?? ""}
+                  placeholder="Twitter"
+                  aria-label={`Caster ${slot + 1} Twitter`}
+                  onChange={(e) => setCaster(slot, { twitter: e.target.value })}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 export function CasterTablet() {
@@ -147,9 +199,11 @@ export function CasterTablet() {
           </div>
         </div>
         <p className="mt-1 text-xs text-subtle">
-          Read-only desk for casters. Scores, teams, bracket path, staff, and the queue update from Production / Tournament.
+          Scores, teams, and the bracket stay with Production and the judge tablet. Name, handle, and Twitter can be edited here.
         </p>
       </header>
+
+      <CasterCards />
 
       {queue.length || h2h.length ? (
         <div className="shrink-0 border-b border-border px-3 py-2 sm:px-4">
