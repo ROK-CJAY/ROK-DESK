@@ -108,6 +108,14 @@ function RokSide({
               <p className="font-mono text-[0.85rem] tracking-[0.18em] text-live uppercase">Turn {desk.otTurn}</p>
             </div>
           ) : null}
+          {desk.gameId === "mtg" &&
+          desk.otSide === side &&
+          desk.otTurn != null &&
+          desk.otTurn <= (desk.otCap === 3 ? 3 : 5) ? (
+            <div className={cn("absolute top-2.5", right ? "left-2.5" : "right-2.5")}>
+              <p className="font-mono text-[0.85rem] tracking-[0.18em] text-live uppercase">Turn {desk.otTurn}</p>
+            </div>
+          ) : null}
         </div>
         <div className="flex min-h-0 flex-1 flex-col bg-black px-3 pt-2 pb-4">
           {mtg ? <MtgMeters life={player.resource} poison={player.secondary} /> : null}
@@ -159,6 +167,11 @@ function RokSide({
                   {riftbound && desk.otTurn != null ? (
                     <p className="font-mono mt-1 text-center text-[0.72rem] tracking-[0.18em] text-live uppercase">
                       {desk.otTurn > RIFT_OT_LAST_TURN ? "3 turns played" : `Turn ${desk.otTurn}`}
+                    </p>
+                  ) : null}
+                  {desk.gameId === "mtg" && desk.otTurn != null ? (
+                    <p className="font-mono mt-1 text-center text-[0.72rem] tracking-[0.18em] text-live uppercase">
+                      {desk.otTurn > (desk.otCap === 3 ? 3 : 5) ? "Turns done" : `Turn ${desk.otTurn}`}
                     </p>
                   ) : null}
                 </div>

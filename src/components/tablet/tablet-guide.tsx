@@ -106,6 +106,10 @@ const COPY: Record<
         body: "Type a time and Set, then Start. The floor clock for the rest of the room lives on Tournament control.",
       },
       {
+        title: "Constructed time is turn 0 plus 5",
+        body: "Not used for Commander. After any time extension, pick who is on turn. That player finishes as turn 0, then five more turns are shared. Extra-turn cards count against those five. An unfinished game is a draw, and you do not start another game. Team events, including Two-Headed Giant, use three turns instead. In single elim, if game wins are tied, highest life wins that game.",
+      },
+      {
         title: "Card lookup is Scryfall",
         body: "Search at the bottom. Filter to this format or All printings. Show on stream puts the art on the Card overlay. Clear takes it off.",
       },

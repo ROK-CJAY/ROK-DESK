@@ -4,6 +4,7 @@ import { Field, NativeSelect } from "@/components/desk/field";
 import { RoundClock } from "@/components/desk/round-clock";
 import { OpOvertime } from "@/components/desk/op-overtime";
 import { RiftOvertime } from "@/components/desk/rift-overtime";
+import { MtgOvertime } from "@/components/desk/mtg-overtime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -187,6 +188,7 @@ export function EventPanel() {
         <RoundClock />
         <OpOvertime />
         <RiftOvertime />
+        <MtgOvertime />
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" size="sm" className="flex-1" asChild>
             <a

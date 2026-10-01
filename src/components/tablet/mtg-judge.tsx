@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { Trophy } from "lucide-react";
 import { DeltaPad } from "@/components/desk/delta-pad";
 import { RoundClock } from "@/components/desk/round-clock";
+import { MtgOvertime } from "@/components/desk/mtg-overtime";
 import { Button } from "@/components/ui/button";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
@@ -149,8 +150,9 @@ export function MtgJudgeTablet() {
               <p className="font-display text-4xl leading-none font-semibold tabular-nums">
                 {desk.p1.score}–{desk.p2.score}
               </p>
-              <div className="mt-3 w-full">
+              <div className="mt-3 w-full space-y-2">
                 <RoundClock compact />
+                <MtgOvertime compact />
               </div>
             </div>
             <MtgSeat
@@ -221,6 +223,9 @@ function MtgSeat({
         <div className="min-w-0">
           <p className="font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">
             {pod ? SEAT_LABELS[seat] : seat === "p1" ? "Player 1" : "Player 2"}
+            {!commander && desk.otSide === seat && desk.otTurn != null && desk.otTurn <= (desk.otCap === 3 ? 3 : 5)
+              ? ` · Turn ${desk.otTurn}`
+              : ""}
             {out ? " · Out" : lethal ? " · Lethal" : ""}
           </p>
           <p className="font-display truncate text-lg font-semibold uppercase">{player.name || "Open"}</p>
