@@ -397,6 +397,8 @@ function MonSheetRow({
               placeholder="Select Pokémon"
               searchPlaceholder="Search Pokémon…"
               options={SPECIES_OPTIONS}
+              allowCustom={false}
+              emptyText="Not in Regulation M-C"
               onChange={(name) => onChange(applySpeciesChoice(mon, name))}
             />
           </Field>

@@ -58,7 +58,7 @@ export function OfficialVgcForm({
           </p>
           <h1 className="font-display text-3xl font-semibold uppercase">Official team list</h1>
           <p className="mt-1 text-sm text-muted">
-            {eventName} · {formatName}. Same fields as the Play! Pokémon VG team list.
+            {eventName} · {formatName.includes("M-C") ? formatName : `${formatName} · Regulation M-C`}. Mega Evolutions are not listed — hold the Mega Stone on the base Pokémon.
           </p>
         </div>
         <button type="button" className="text-sm text-muted underline-offset-2 hover:underline" onClick={onCancel}>
@@ -171,6 +171,8 @@ function OfficialMonBlock({
             placeholder="Select Pokémon"
             searchPlaceholder="Search Pokémon…"
             options={SPECIES_OPTIONS}
+            allowCustom={false}
+            emptyText="Not in Regulation M-C"
             onChange={(name) => onChange(applySpeciesChoice(mon, name))}
           />
         </Field>

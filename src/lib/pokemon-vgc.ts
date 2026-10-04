@@ -1,6 +1,7 @@
 import { SPECIES as NATIONAL_SPECIES } from "./pokedex-national";
 import { ALL_MOVES } from "./pokedex-moves";
 import { ZA_ABILITY_FILL, ZA_FORMES, ZA_MOVES } from "./pokedex-za";
+import { REG_MC_FORMES, REG_MC_NAME_SET } from "./pokedex-reg-mc";
 
 export const POKE_TYPES = [
   "normal",
@@ -214,6 +215,11 @@ function mergeNationalWithZa(): SpeciesDef[] {
     seen.add(forme.name.toLowerCase());
     rows.push({ ...forme, types: [...forme.types] as PokeType[], abilities: [...forme.abilities] });
   }
+  for (const forme of REG_MC_FORMES) {
+    if (seen.has(forme.name.toLowerCase())) continue;
+    seen.add(forme.name.toLowerCase());
+    rows.push({ ...forme, types: [...forme.types] as PokeType[], abilities: [...forme.abilities] });
+  }
   return rows;
 }
 
@@ -231,6 +237,8 @@ export const VGC_ITEMS_RAW = [
   "Focus Sash",
   "Life Orb",
   "Loaded Dice",
+  "Leek",
+  "Normal Gem",
   "Mental Herb",
   "Mirror Herb",
   "Power Herb",
@@ -537,14 +545,18 @@ export function findMove(name: string): MoveDef | undefined {
 export const VGC_ABILITIES = [...new Set(SPECIES.flatMap((s) => s.abilities))].sort((a, b) => a.localeCompare(b));
 
 export function findSpecies(name: string): SpeciesDef | undefined {
-  const key = name.trim().toLowerCase();
+  const key = speciesKey(name);
   if (!key) return undefined;
   const aliased = SPECIES_ALIASES[key] ?? key;
-  const exact = SPECIES.find((s) => s.name.toLowerCase() === aliased);
+  const exact = SPECIES.find((s) => speciesKey(s.name) === aliased);
   if (exact) return exact;
-  const starts = SPECIES.filter((s) => s.name.toLowerCase().startsWith(aliased) || s.name.toLowerCase().startsWith(key));
-  if (starts.length === 1 && key.length >= 4) return starts[0];
+  const starts = SPECIES.filter((s) => speciesKey(s.name).startsWith(aliased) || speciesKey(s.name).startsWith(key));
+  if (starts.length === 1 && key.length >= 4 && !isMegaForme(starts[0].name)) return starts[0];
   return undefined;
+}
+
+function speciesKey(name: string): string {
+  return name.trim().toLowerCase().replaceAll("’", "'").replaceAll("‘", "'");
 }
 
 const SPECIES_ALIASES: Record<string, string> = {
@@ -553,13 +565,130 @@ const SPECIES_ALIASES: Record<string, string> = {
   "eternal floette": "floette eternal",
   "mega eternal flower floette": "mega floette",
   "mega eternal floette": "mega floette",
+  "raichu (alolan form)": "raichu-a",
+  "alolan raichu": "raichu-a",
+  "ninetales (alolan form)": "ninetales-a",
+  "alolan ninetales": "ninetales-a",
+  "persian (alolan form)": "persian-a",
+  "alolan persian": "persian-a",
+  "arcanine (hisuian form)": "arcanine-h",
+  "hisuian arcanine": "arcanine-h",
+  "slowbro (galarian form)": "slowbro-g",
+  "galarian slowbro": "slowbro-g",
+  "slowking (galarian form)": "slowking-g",
+  "galarian slowking": "slowking-g",
+  "tauros (paldean form (combat breed))": "tauros-paldea",
+  "tauros (paldean combat breed)": "tauros-paldea",
+  "paldean tauros": "tauros-paldea",
+  "tauros (paldean form (blaze breed))": "tauros-paldea-blaze",
+  "tauros (paldean form (aqua breed))": "tauros-paldea-aqua",
+  "typhlosion (hisuian form)": "typhlosion-h",
+  "hisuian typhlosion": "typhlosion-h",
+  "samurott (hisuian form)": "samurott-h",
+  "hisuian samurott": "samurott-h",
+  "zoroark (hisuian form)": "zoroark-h",
+  "hisuian zoroark": "zoroark-h",
+  "stunfisk (galarian form)": "stunfisk-g",
+  "galarian stunfisk": "stunfisk-g",
+  "goodra (hisuian form)": "goodra-h",
+  "hisuian goodra": "goodra-h",
+  "avalugg (hisuian form)": "avalugg-h",
+  "hisuian avalugg": "avalugg-h",
+  "decidueye (hisuian form)": "decidueye-h",
+  "hisuian decidueye": "decidueye-h",
+  "rotom (rotom)": "rotom",
+  "rotom (heat rotom)": "rotom-heat",
+  "heat rotom": "rotom-heat",
+  "rotom-h": "rotom-heat",
+  "rotom (wash rotom)": "rotom-wash",
+  "wash rotom": "rotom-wash",
+  "rotom-w": "rotom-wash",
+  "rotom (frost rotom)": "rotom-frost",
+  "frost rotom": "rotom-frost",
+  "rotom-f": "rotom-frost",
+  "rotom (fan rotom)": "rotom-fan",
+  "fan rotom": "rotom-fan",
+  "rotom-s": "rotom-fan",
+  "rotom (mow rotom)": "rotom-mow",
+  "mow rotom": "rotom-mow",
+  "rotom-c": "rotom-mow",
+  "meowstic (male)": "meowstic",
+  "meowstic (female)": "meowstic-f",
+  "female meowstic": "meowstic-f",
+  "gourgeist (medium variety)": "gourgeist",
+  "gourgeist (small variety)": "gourgeist-small",
+  "gourgeist (large variety)": "gourgeist-large",
+  "gourgeist (jumbo variety)": "gourgeist-super",
+  "gourgeist-jumbo": "gourgeist-super",
+  "lycanroc (midday form)": "lycanroc",
+  "lycanroc (midnight form)": "lycanroc-midnight",
+  "lycanroc (dusk form)": "lycanroc-dusk",
+  "toxtricity (amped form)": "toxtricity",
+  "toxtricity (low key form)": "toxtricity-low-key",
+  "indeedee (male)": "indeedee m",
+  "indeedee (female)": "indeedee f",
+  "indeedee-m": "indeedee m",
+  "indeedee-f": "indeedee f",
+  "basculegion (male)": "basculegion",
+  "basculegion (female)": "basculegion-f",
 };
 
-export const SPECIES_OPTIONS = SPECIES.map((species) => ({
-  value: species.name,
-  label: species.name,
-  hint: `#${String(species.dex).padStart(4, "0")}`,
-}));
+export function isMegaForme(name: string): boolean {
+  return speciesKey(name).startsWith("mega ");
+}
+
+export function isRegMcSpecies(name: string): boolean {
+  const key = speciesKey(name);
+  return REG_MC_NAME_SET.has(SPECIES_ALIASES[key] ?? key);
+}
+
+const FORM_SEARCH: Record<string, string> = {
+  "Raichu-A": "Alolan",
+  "Ninetales-A": "Alolan",
+  "Persian-A": "Alolan",
+  "Arcanine-H": "Hisuian",
+  "Slowbro-G": "Galarian",
+  "Slowking-G": "Galarian",
+  "Tauros-Paldea": "Paldea Combat",
+  "Tauros-Paldea-Blaze": "Paldea Blaze",
+  "Tauros-Paldea-Aqua": "Paldea Aqua",
+  "Typhlosion-H": "Hisuian",
+  "Samurott-H": "Hisuian",
+  "Rotom-Heat": "Heat",
+  "Rotom-Wash": "Wash",
+  "Rotom-Frost": "Frost",
+  "Rotom-Fan": "Fan",
+  "Rotom-Mow": "Mow",
+  "Zoroark-H": "Hisuian",
+  "Stunfisk-G": "Galarian",
+  "Floette Eternal": "Eternal Flower",
+  "Meowstic-F": "Female",
+  "Goodra-H": "Hisuian",
+  "Gourgeist-Small": "Small",
+  "Gourgeist-Large": "Large",
+  "Gourgeist-Super": "Jumbo",
+  "Avalugg-H": "Hisuian",
+  "Decidueye-H": "Hisuian",
+  "Lycanroc-Midnight": "Midnight",
+  "Lycanroc-Dusk": "Dusk",
+  "Toxtricity-Low-Key": "Low Key",
+  "Indeedee M": "Male",
+  "Indeedee F": "Female",
+  "Basculegion-F": "Female",
+};
+
+export const SPECIES_OPTIONS = SPECIES.filter((species) => isRegMcSpecies(species.name) && !isMegaForme(species.name))
+  .slice()
+  .sort((a, b) => a.dex - b.dex || a.name.localeCompare(b.name))
+  .map((species) => {
+    const form = FORM_SEARCH[species.name];
+    const dex = `#${String(species.dex).padStart(4, "0")}`;
+    return {
+      value: species.name,
+      label: species.name,
+      hint: form ? `${dex} · ${form}` : dex,
+    };
+  });
 
 export const ITEM_OPTIONS = VGC_ITEMS.map((item) => ({
   value: item,

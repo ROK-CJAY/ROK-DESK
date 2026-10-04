@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Changed
+
+- **VGC signup** — species list is Regulation M-C (Champions, the current ruleset). Mega formes are not selectable. Mega Stones stay in the held-item list, with Leek and Normal Gem added.
+
 ## v1.4.0-beta — 2026-10-04
 
 End-of-match procedure, overtime clocks, and caster Twitter.
