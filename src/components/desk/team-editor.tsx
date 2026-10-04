@@ -2,6 +2,7 @@ import { Field, NativeSelect } from "@/components/desk/field";
 import { CatalogSelect } from "@/components/desk/catalog-select";
 import { Input } from "@/components/ui/input";
 import {
+  ABILITY_OPTIONS,
   ITEM_OPTIONS,
   MOVE_OPTIONS,
   POKE_TYPES,
@@ -11,7 +12,6 @@ import {
   applyMoveChoice,
   applySpeciesChoice,
   emptyTeam,
-  findSpecies,
   spriteFallbackUrl,
   spriteUrl,
   typesFromSpecies,
@@ -49,7 +49,6 @@ export function TeamSixEditor({
             key={i}
             index={i}
             mon={mon}
-            listId={listId}
             onChange={(next) => update(i, next)}
           />
         ))}
@@ -61,16 +60,12 @@ export function TeamSixEditor({
 function MonEditor({
   mon,
   index,
-  listId,
   onChange,
 }: {
   mon: TeamMon;
   index: number;
-  listId: string;
   onChange: (next: TeamMon) => void;
 }) {
-  const species = findSpecies(mon.species);
-  const abilities = species?.abilities ?? [];
   const art = spriteUrl(mon);
   const types: MonTypes = mon.types ?? typesFromSpecies(mon.species);
 
@@ -121,25 +116,16 @@ function MonEditor({
 
       <div className="mt-3 grid gap-2 @min-[24rem]:grid-cols-2">
         <Field label="Ability">
-          {abilities.length ? (
-            <NativeSelect value={mon.ability} onChange={(e) => onChange({ ...mon, ability: e.target.value })}>
-              {abilities.map((ability) => (
-                <option key={ability} value={ability}>
-                  {ability}
-                </option>
-              ))}
-              {mon.ability && !abilities.includes(mon.ability) ? (
-                <option value={mon.ability}>{mon.ability}</option>
-              ) : null}
-            </NativeSelect>
-          ) : (
-            <Input
-              list={`${listId}-abilities`}
-              value={mon.ability}
-              placeholder="Ability"
-              onChange={(e) => onChange({ ...mon, ability: e.target.value })}
-            />
-          )}
+          <CatalogSelect
+            value={mon.ability}
+            placeholder="Ability"
+            searchPlaceholder="Search abilities…"
+            options={ABILITY_OPTIONS}
+            allowCustom={false}
+            emptyText="No ability"
+            limit={ABILITY_OPTIONS.length}
+            onChange={(ability) => onChange({ ...mon, ability })}
+          />
         </Field>
         <Field label="Item">
           <CatalogSelect

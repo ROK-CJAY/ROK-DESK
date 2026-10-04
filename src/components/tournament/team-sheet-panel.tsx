@@ -9,6 +9,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { teamSheetLabel, type AgeDivision, type Entrant } from "@/lib/tournament-types";
 import {
+  ABILITY_OPTIONS,
   ITEM_OPTIONS,
   MOVE_OPTIONS,
   POKE_TYPES,
@@ -19,7 +20,6 @@ import {
   applySpeciesChoice,
   countFilledMons,
   emptyTeam,
-  findSpecies,
   spriteFallbackUrl,
   spriteUrl,
   teamHasMons,
@@ -335,7 +335,6 @@ function TeamSheetFields({
             <MonSheetRow
               index={i}
               mon={mon}
-              listId={listId}
               onChange={(next) => update(i, next)}
             />
           </li>
@@ -348,16 +347,12 @@ function TeamSheetFields({
 function MonSheetRow({
   mon,
   index,
-  listId,
   onChange,
 }: {
   mon: TeamMon;
   index: number;
-  listId: string;
   onChange: (next: TeamMon) => void;
 }) {
-  const species = findSpecies(mon.species);
-  const abilities = species?.abilities ?? [];
   const art = spriteUrl(mon);
   const types: MonTypes = mon.types ?? typesFromSpecies(mon.species);
 
@@ -418,26 +413,16 @@ function MonSheetRow({
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <Field label="Ability">
-          {abilities.length ? (
-            <NativeSelect value={mon.ability} onChange={(e) => onChange({ ...mon, ability: e.target.value })}>
-              {abilities.map((ability) => (
-                <option key={ability} value={ability}>
-                  {ability}
-                </option>
-              ))}
-              {mon.ability && !abilities.includes(mon.ability) ? (
-                <option value={mon.ability}>{mon.ability}</option>
-              ) : null}
-            </NativeSelect>
-          ) : (
-            <Input
-              list={`${listId}-abilities`}
-              value={mon.ability}
-              placeholder="Ability"
-              autoComplete="off"
-              onChange={(e) => onChange({ ...mon, ability: e.target.value })}
-            />
-          )}
+          <CatalogSelect
+            value={mon.ability}
+            placeholder="Ability"
+            searchPlaceholder="Search abilities…"
+            options={ABILITY_OPTIONS}
+            allowCustom={false}
+            emptyText="No ability"
+            limit={ABILITY_OPTIONS.length}
+            onChange={(ability) => onChange({ ...mon, ability })}
+          />
         </Field>
         <Field label="Held item">
           <CatalogSelect

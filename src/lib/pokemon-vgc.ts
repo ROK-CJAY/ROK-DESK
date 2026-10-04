@@ -2,6 +2,7 @@ import { SPECIES as NATIONAL_SPECIES } from "./pokedex-national";
 import { ALL_MOVES } from "./pokedex-moves";
 import { ZA_ABILITY_FILL, ZA_FORMES, ZA_MOVES } from "./pokedex-za";
 import { REG_MC_FORMES, REG_MC_NAME_SET } from "./pokedex-reg-mc";
+import { MAIN_ABILITIES } from "./pokedex-abilities";
 
 export const POKE_TYPES = [
   "normal",
@@ -550,7 +551,14 @@ export function findMove(name: string): MoveDef | undefined {
   return undefined;
 }
 
-export const VGC_ABILITIES = [...new Set(SPECIES.flatMap((s) => s.abilities))].sort((a, b) => a.localeCompare(b));
+export const VGC_ABILITIES = [
+  ...new Set([...MAIN_ABILITIES, ...SPECIES.flatMap((species) => species.abilities)]),
+].sort((a, b) => a.localeCompare(b));
+
+export const ABILITY_OPTIONS = VGC_ABILITIES.map((ability) => ({
+  value: ability,
+  label: ability,
+}));
 
 export function findSpecies(name: string): SpeciesDef | undefined {
   const key = speciesKey(name);

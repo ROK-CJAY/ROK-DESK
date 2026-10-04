@@ -3,16 +3,15 @@ import { CatalogSelect } from "@/components/desk/catalog-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  ABILITY_OPTIONS,
   ITEM_OPTIONS,
   MOVE_OPTIONS,
   NATURES,
   SPECIES_OPTIONS,
   TYPE_LABEL,
-  VGC_ABILITIES,
   applyMoveChoice,
   applySpeciesChoice,
   countFilledMons,
-  findSpecies,
   typesFromSpecies,
   type TeamMon,
 } from "@/lib/pokemon-vgc";
@@ -161,8 +160,6 @@ function OfficialMonBlock({
   mon: TeamMon;
   onChange: (next: TeamMon) => void;
 }) {
-  const species = findSpecies(mon.species);
-  const abilities = species?.abilities?.length ? species.abilities : VGC_ABILITIES;
   const types = typesFromSpecies(mon.species);
   return (
     <article className="rounded-lg border border-border bg-surface-2 p-3 sm:p-4">
@@ -182,14 +179,16 @@ function OfficialMonBlock({
         <ReadOnlyType label="Type 1" value={types[0]} />
         <ReadOnlyType label="Type 2" value={types[1]} />
         <Field label="Ability">
-          <NativeSelect value={mon.ability} onChange={(e) => onChange({ ...mon, ability: e.target.value })}>
-            <option value="">—</option>
-            {abilities.map((ability) => (
-              <option key={ability} value={ability}>
-                {ability}
-              </option>
-            ))}
-          </NativeSelect>
+          <CatalogSelect
+            value={mon.ability}
+            placeholder="Ability"
+            searchPlaceholder="Search abilities…"
+            options={ABILITY_OPTIONS}
+            allowCustom={false}
+            emptyText="No ability"
+            limit={ABILITY_OPTIONS.length}
+            onChange={(ability) => onChange({ ...mon, ability })}
+          />
         </Field>
         <Field label="Held Item" className="sm:col-span-2">
           <CatalogSelect

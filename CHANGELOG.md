@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Changed
+
+- **VGC abilities** — the ability picker is the full main-series list (313), including Reckless, Tangled Feet, and Protean. It is searchable on the sign-up sheet and the team editor.
+
 ## v1.4.1-beta — 2026-10-04
 
 VGC sign-up sheet for Regulation M-C.
