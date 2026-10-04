@@ -5,6 +5,7 @@ export const ZA_FORMES = [
     name: "Floette Eternal",
     slug: "floette-eternal",
     dex: 670,
+    spriteDex: 10061,
     types: ["fairy"],
     abilities: ["Flower Veil", "Symbiosis", "Fairy Aura"],
   },

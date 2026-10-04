@@ -173,7 +173,7 @@ export function emptyTeam(): TeamMon[] {
 export function spriteUrl(input: number | { dex?: number; species?: string } | string): string {
   if (typeof input === "string") {
     const found = findSpecies(input);
-    if (found?.slug) return pokemondbSprite(found.slug);
+    if (found) return speciesSprite(found);
     return "";
   }
   if (typeof input === "number") {
@@ -183,14 +183,22 @@ export function spriteUrl(input: number | { dex?: number; species?: string } | s
     return pokeapiArt(input);
   }
   const found = input.species ? findSpecies(input.species) : undefined;
-  if (found?.slug) return pokemondbSprite(found.slug);
+  if (found) return speciesSprite(found);
   if (input.dex) return pokeapiArt(input.dex);
   return "";
 }
 
 export function spriteFallbackUrl(input: { dex?: number; species?: string }): string {
-  const dex = input.dex || findSpecies(input.species ?? "")?.dex || 0;
+  const species = input.species ? findSpecies(input.species) : undefined;
+  const dex = species ? speciesArtDex(species) : input.dex || 0;
   return dex ? pokeapiArt(dex) : "";
+}
+
+function speciesSprite(species: SpeciesDef): string {
+  // HOME has no Eternal Flower sheet. 10061 is that forme, not regular Floette.
+  if (species.slug === "floette-eternal" && species.spriteDex) return pokeapiArt(species.spriteDex);
+  if (species.slug) return pokemondbSprite(species.slug);
+  return pokeapiArt(speciesArtDex(species));
 }
 
 function pokemondbSprite(slug: string): string {
