@@ -10,7 +10,7 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Changed
 
-- **VGC signup** — species list is Regulation M-C (Champions, the current ruleset). Mega formes are not selectable. Mega Stones stay in the held-item list, with Leek and Normal Gem added.
+- **VGC signup** — species list is Regulation M-C (Champions, the current ruleset). Mega formes are not selectable. Mega Stones stay in the held-item list, with Leek and Normal Gem added. Rotom, Meowstic, Lycanroc, Toxtricity, Indeedee, Basculegion, and Maushold keep the form that changes the sheet (appliance, gender, midday/midnight/dusk, Amped/Low Key, Family of Four).
 
 ## v1.4.0-beta — 2026-10-04
 

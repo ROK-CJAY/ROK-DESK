@@ -659,6 +659,8 @@ const FORM_SEARCH: Record<string, string> = {
   "Rotom-Frost": "Frost",
   "Rotom-Fan": "Fan",
   "Rotom-Mow": "Mow",
+  Rotom: "Normal",
+  Meowstic: "Male",
   "Zoroark-H": "Hisuian",
   "Stunfisk-G": "Galarian",
   "Floette Eternal": "Eternal Flower",
@@ -671,10 +673,34 @@ const FORM_SEARCH: Record<string, string> = {
   "Decidueye-H": "Hisuian",
   "Lycanroc-Midnight": "Midnight",
   "Lycanroc-Dusk": "Dusk",
+  Lycanroc: "Midday",
   "Toxtricity-Low-Key": "Low Key",
+  Toxtricity: "Amped",
   "Indeedee M": "Male",
   "Indeedee F": "Female",
   "Basculegion-F": "Female",
+  Basculegion: "Male",
+  Maushold: "Family of Four",
+};
+
+const FORM_LABEL: Record<string, string> = {
+  "Rotom-Heat": "Rotom (Heat)",
+  "Rotom-Wash": "Rotom (Wash)",
+  "Rotom-Frost": "Rotom (Frost)",
+  "Rotom-Fan": "Rotom (Fan)",
+  "Rotom-Mow": "Rotom (Mow)",
+  Meowstic: "Meowstic (Male)",
+  "Meowstic-F": "Meowstic (Female)",
+  Lycanroc: "Lycanroc (Midday)",
+  "Lycanroc-Midnight": "Lycanroc (Midnight)",
+  "Lycanroc-Dusk": "Lycanroc (Dusk)",
+  Toxtricity: "Toxtricity (Amped)",
+  "Toxtricity-Low-Key": "Toxtricity (Low Key)",
+  "Indeedee M": "Indeedee (Male)",
+  "Indeedee F": "Indeedee (Female)",
+  Basculegion: "Basculegion (Male)",
+  "Basculegion-F": "Basculegion (Female)",
+  Maushold: "Maushold (Family of Four)",
 };
 
 export const SPECIES_OPTIONS = SPECIES.filter((species) => isRegMcSpecies(species.name) && !isMegaForme(species.name))
@@ -685,7 +711,7 @@ export const SPECIES_OPTIONS = SPECIES.filter((species) => isRegMcSpecies(specie
     const dex = `#${String(species.dex).padStart(4, "0")}`;
     return {
       value: species.name,
-      label: species.name,
+      label: FORM_LABEL[species.name] ?? species.name,
       hint: form ? `${dex} · ${form}` : dex,
     };
   });
