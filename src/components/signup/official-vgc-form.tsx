@@ -7,11 +7,13 @@ import {
   MOVE_OPTIONS,
   NATURES,
   SPECIES_OPTIONS,
+  TYPE_LABEL,
   VGC_ABILITIES,
   applyMoveChoice,
   applySpeciesChoice,
   countFilledMons,
   findSpecies,
+  typesFromSpecies,
   type TeamMon,
 } from "@/lib/pokemon-vgc";
 import type { SignupDraft } from "@/components/signup/signup-types";
@@ -161,6 +163,7 @@ function OfficialMonBlock({
 }) {
   const species = findSpecies(mon.species);
   const abilities = species?.abilities?.length ? species.abilities : VGC_ABILITIES;
+  const types = typesFromSpecies(mon.species);
   return (
     <article className="rounded-lg border border-border bg-surface-2 p-3 sm:p-4">
       <p className="font-mono mb-3 text-[0.62rem] tracking-[0.16em] text-muted uppercase">Pokémon {index + 1}</p>
@@ -176,6 +179,8 @@ function OfficialMonBlock({
             onChange={(name) => onChange(applySpeciesChoice(mon, name))}
           />
         </Field>
+        <ReadOnlyType label="Type 1" value={types[0]} />
+        <ReadOnlyType label="Type 2" value={types[1]} />
         <Field label="Ability">
           <NativeSelect value={mon.ability} onChange={(e) => onChange({ ...mon, ability: e.target.value })}>
             <option value="">—</option>
@@ -240,5 +245,15 @@ function OfficialMonBlock({
         ))}
       </div>
     </article>
+  );
+}
+
+function ReadOnlyType({ label, value }: { label: string; value: "" | keyof typeof TYPE_LABEL }) {
+  return (
+    <Field label={label}>
+      <p className="flex h-10 items-center rounded-md border border-border bg-surface px-3 text-sm text-muted">
+        {value ? TYPE_LABEL[value] : "—"}
+      </p>
+    </Field>
   );
 }

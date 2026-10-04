@@ -10,7 +10,7 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Changed
 
-- **VGC signup** — species list is Regulation M-C (Champions, the current ruleset). Mega formes are not selectable. Mega Stones stay in the held-item list, with Leek and Normal Gem added. Rotom, Meowstic, Lycanroc, Toxtricity, Indeedee, Basculegion, and Maushold keep the form that changes the sheet. Maushold can be Family of Three or Family of Four.
+- **VGC signup** — species list is Regulation M-C (Champions, the current ruleset). Mega formes are not selectable. Mega Stones stay in the held-item list, with Leek and Normal Gem added. Rotom, Meowstic, Lycanroc, Toxtricity, Indeedee, Basculegion, and Maushold keep the form that changes the sheet. Maushold can be Family of Three or Family of Four. Type 1 and Type 2 show for the selected Pokémon and cannot be edited.
 
 ## v1.4.0-beta — 2026-10-04
 
