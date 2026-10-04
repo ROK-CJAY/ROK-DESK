@@ -925,7 +925,7 @@ export const SPECIES = [
   { name: "Pawmo", slug: "pawmo", dex: 922, types: ["electric", "fighting"], abilities: [] },
   { name: "Pawmot", slug: "pawmot", dex: 923, types: ["electric", "fighting"], abilities: [] },
   { name: "Tandemaus", slug: "tandemaus", dex: 924, types: ["normal"], abilities: [] },
-  { name: "Maushold", slug: "maushold", dex: 925, types: ["normal"], abilities: ["Friend Guard", "Cheek Pouch", "Technician"] },
+  { name: "Maushold", slug: "maushold-family4", dex: 925, types: ["normal"], abilities: ["Friend Guard", "Cheek Pouch", "Technician"] },
   { name: "Fidough", slug: "fidough", dex: 926, types: ["fairy"], abilities: [] },
   { name: "Dachsbun", slug: "dachsbun", dex: 927, types: ["fairy"], abilities: [] },
   { name: "Smoliv", slug: "smoliv", dex: 928, types: ["grass", "normal"], abilities: [] },

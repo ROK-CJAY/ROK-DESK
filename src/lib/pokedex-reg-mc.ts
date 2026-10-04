@@ -23,6 +23,7 @@ export const REG_MC_FORMES = [
   { name: "Lycanroc-Dusk", slug: "lycanroc-dusk", dex: 745, types: ["rock"], abilities: ["Tough Claws"] },
   { name: "Toxtricity-Low-Key", slug: "toxtricity-low-key", dex: 849, types: ["electric", "poison"], abilities: ["Punk Rock", "Minus", "Technician"] },
   { name: "Basculegion-F", slug: "basculegion-female", dex: 902, types: ["water", "ghost"], abilities: ["Swift Swim", "Adaptability", "Mold Breaker"] },
+  { name: "Maushold-Three", slug: "maushold-family3", dex: 925, types: ["normal"], abilities: ["Friend Guard", "Cheek Pouch", "Technician"] },
 ] as const;
 
 /** Species legal on the Regulation M-C signup sheet. Mega Evolutions are not listed. */
@@ -54,7 +55,7 @@ export const REG_MC_NAMES = [
   "Toxtricity-Low-Key", "Grapploct", "Polteageist", "Hatterene", "Grimmsnarl", "Perrserker", "Sirfetch'd",
   "Mr. Rime", "Runerigus", "Alcremie", "Falinks", "Pincurchin", "Indeedee M", "Indeedee F", "Morpeko", "Dragapult",
   "Wyrdeer", "Kleavor", "Basculegion", "Basculegion-F", "Sneasler", "Overqwil", "Meowscarada", "Skeledirge",
-  "Quaquaval", "Pawmot", "Maushold", "Arboliva", "Squawkabilly", "Garganacl", "Armarouge", "Ceruledge", "Bellibolt",
+  "Quaquaval", "Pawmot", "Maushold", "Maushold-Three", "Arboliva", "Squawkabilly", "Garganacl", "Armarouge", "Ceruledge", "Bellibolt",
   "Mabosstiff", "Scovillain", "Espathra", "Tinkaton", "Palafin", "Orthworm", "Glimmora", "Houndstone", "Annihilape",
   "Farigiraf", "Kingambit", "Baxcalibur", "Gholdengo", "Sinistcha", "Archaludon", "Hydrapple",
 ] as const;

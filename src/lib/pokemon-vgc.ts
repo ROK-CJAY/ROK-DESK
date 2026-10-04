@@ -631,6 +631,12 @@ const SPECIES_ALIASES: Record<string, string> = {
   "indeedee-f": "indeedee f",
   "basculegion (male)": "basculegion",
   "basculegion (female)": "basculegion-f",
+  "maushold (family of three)": "maushold-three",
+  "maushold family of three": "maushold-three",
+  "maushold-family3": "maushold-three",
+  "maushold (family of four)": "maushold",
+  "maushold family of four": "maushold",
+  "maushold-family4": "maushold",
 };
 
 export function isMegaForme(name: string): boolean {
@@ -681,6 +687,7 @@ const FORM_SEARCH: Record<string, string> = {
   "Basculegion-F": "Female",
   Basculegion: "Male",
   Maushold: "Family of Four",
+  "Maushold-Three": "Family of Three",
 };
 
 const FORM_LABEL: Record<string, string> = {
@@ -701,6 +708,7 @@ const FORM_LABEL: Record<string, string> = {
   Basculegion: "Basculegion (Male)",
   "Basculegion-F": "Basculegion (Female)",
   Maushold: "Maushold (Family of Four)",
+  "Maushold-Three": "Maushold (Family of Three)",
 };
 
 export const SPECIES_OPTIONS = SPECIES.filter((species) => isRegMcSpecies(species.name) && !isMegaForme(species.name))
