@@ -120,7 +120,7 @@ export function OfficialVgcForm({
       </div>
 
       <p className="font-mono mt-6 text-[0.62rem] tracking-[0.18em] text-muted uppercase">
-        Pokémon · {countFilledMons(draft.team)} / 6
+        Pokémon · {countFilledMons(draft.team)} / 6 · 4 minimum
       </p>
       <div className="mt-3 grid gap-4">
         {draft.team.map((mon, i) => (

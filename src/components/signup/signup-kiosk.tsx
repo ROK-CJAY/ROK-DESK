@@ -15,6 +15,7 @@ import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament } from "@/lib/tournament-types";
+import { countFilledMons } from "@/lib/pokemon-vgc";
 
 export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
   const ready = useTournamentStore((s) => s.ready);
@@ -79,6 +80,10 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
     }
     if (needDeck && decklistCount(draft.decklist) === 0) {
       setError("This event requires a decklist. Import a Limitless / PTCGL list or add cards.");
+      return;
+    }
+    if (vgc && countFilledMons(draft.team) < 4) {
+      setError("Enter at least 4 Pokémon to complete sign-up.");
       return;
     }
     setBusy(true);

@@ -2,9 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { blankEntrant, emptyDesk, snapshotDesk } from "@/lib/tournament-types";
 import { loadTournament, saveTournament } from "@/lib/tournament-server";
-import { mergeTeam } from "@/lib/pokemon-vgc";
+import { countFilledMons, mergeTeam } from "@/lib/pokemon-vgc";
 import { mergeDecklist } from "@/lib/decklist";
-import { gameIdFromSlug, playAgeDivisionOf } from "@/lib/games";
+import { gameIdFromSlug, isVgcTitle, playAgeDivisionOf } from "@/lib/games";
 import { sanitizeInk } from "@/lib/lorcana";
 
 const noStore = {
@@ -66,6 +66,11 @@ export const Route = createFileRoute("/api/tournament/signup")({
           return Response.json({ error: "Decklist is required for this event" }, { status: 400, headers: noStore });
         }
 
+        const team = mergeTeam(parsed.data.team);
+        if (isVgcTitle(gameId) && countFilledMons(team) < 4) {
+          return Response.json({ error: "Enter at least 4 Pokémon to complete sign-up." }, { status: 400, headers: noStore });
+        }
+
         const seed = lane.entrants.reduce((max, e) => Math.max(max, e.seed), 0) + 1;
         const entrant = blankEntrant({
           name: parsed.data.name,
@@ -80,7 +85,7 @@ export const Route = createFileRoute("/api/tournament/signup")({
           ageDivision: playAgeDivisionOf(gameId) ?? parsed.data.ageDivision,
           birthDate: parsed.data.birthDate,
           seed,
-          team: mergeTeam(parsed.data.team),
+          team,
           ink1: sanitizeInk(parsed.data.ink1),
           ink2: sanitizeInk(parsed.data.ink2),
           note: parsed.data.note,
