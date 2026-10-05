@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.4.2-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.4.3-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -329,7 +329,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.4.2-beta** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.2-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.2-beta). The Android APK from v1.3.1-beta is unchanged.
+1. Download **v1.4.3-beta** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.3-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.3-beta). The Android APK from v1.3.1-beta is unchanged.
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -398,6 +398,19 @@ This copy also appears on Home and behind **License** in the desk header. It is 
 
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### v1.4.3-beta — 5 Oct 2026 · Public sign-up
+
+**Added**
+- Tournament can open a public sign-up code. Players use `/join/CODE`. The desk pulls those entrants in and can close the form.
+
+**Changed**
+- VGC formats drop Regulation I and Regulation H. Regulation M-C, Bo1 Swiss, and Pre-release stay.
+
+**Fixed**
+- TOM folder watch imports one event, not every player in the folder.
+- PTCG sign-up searches the live card API first and uses the card’s own image.
+- Phone dropdowns no longer jump the page to the top.
 
 ### v1.4.2-beta — 4 Oct 2026 · VGC abilities
 
@@ -703,4 +716,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.4.2-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.
+This build is **v1.4.3-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.
