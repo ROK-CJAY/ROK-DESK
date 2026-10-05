@@ -9,8 +9,15 @@ function PopoverContent({
   className,
   align = "start",
   sideOffset = 4,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: PopoverPrimitive.PopoverContentProps) {
+  const keepScrollOnPhone = (event: Event) => {
+    if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) {
+      event.preventDefault();
+    }
+  };
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Content
@@ -20,6 +27,14 @@ function PopoverContent({
           "z-50 rounded-md border border-border bg-surface text-fg shadow-lg outline-none",
           className,
         )}
+        onOpenAutoFocus={(event) => {
+          keepScrollOnPhone(event);
+          onOpenAutoFocus?.(event);
+        }}
+        onCloseAutoFocus={(event) => {
+          keepScrollOnPhone(event);
+          onCloseAutoFocus?.(event);
+        }}
         {...props}
       />
     </PopoverPrimitive.Portal>

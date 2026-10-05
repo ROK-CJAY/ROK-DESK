@@ -8,6 +8,7 @@ import {
   parsePtcgDeckText,
 } from "@/lib/ptcg-deck-parse";
 import { execFile } from "node:child_process";
+import { tcgdexImagePrefix } from "@/lib/card-lookup";
 
 const noStore = {
   "cache-control": "no-store, no-cache, must-revalidate",
@@ -189,7 +190,7 @@ function pokemonTcgIoUrl(q: string, newestFirst: boolean): string {
   const name = /\s/.test(safe) ? `name:"${safe}"` : `name:${safe}`;
   const url = new URL(PTCG_IO);
   url.searchParams.set("q", name);
-  url.searchParams.set("pageSize", "20");
+  url.searchParams.set("pageSize", "40");
   if (newestFirst) url.searchParams.set("orderBy", "-set.releaseDate");
   return url.toString();
 }
@@ -198,7 +199,7 @@ function tcgdexUrl(id: string, q: string, live: boolean): string {
   if (id) return `${TCGDEX}/${encodeURIComponent(id)}`;
   const url = new URL(TCGDEX);
   url.searchParams.set("name", q.replace(/["\\]/g, " ").replace(/\s+/g, " ").trim());
-  url.searchParams.set("pagination:itemsPerPage", "20");
+  url.searchParams.set("pagination:itemsPerPage", "40");
   if (live) url.searchParams.set("legal.standard", "true");
   return url.toString();
 }
@@ -225,8 +226,15 @@ async function tcgdexFallback(id: string, q: string, live: boolean): Promise<str
 function toTcgIo(row: unknown): Record<string, unknown> {
   const item = isRecord(row) ? row : {};
   const set = isRecord(item.set) ? item.set : {};
-  const image = item.image ? String(item.image).replace(/\/+$/, "") : "";
   const number = item.localId != null ? String(item.localId) : item.number != null ? String(item.number) : undefined;
+  const setId = set.id
+    ? String(set.id)
+    : String(item.id ?? "").includes("-")
+      ? String(item.id).slice(0, String(item.id).lastIndexOf("-"))
+      : "";
+  const image = item.image
+    ? String(item.image).replace(/\/+$/, "")
+    : tcgdexImagePrefix(setId, number);
   const category = item.category ? String(item.category) : item.supertype ? String(item.supertype) : "";
   const stage = item.stage ? String(item.stage) : "";
   const trainerType = item.trainerType ? String(item.trainerType) : "";

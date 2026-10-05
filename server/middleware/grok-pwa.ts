@@ -60,14 +60,48 @@ function injectHeadStreaming(response: Response, host: string): Response {
   });
 }
 
+function publicHostBlocked(path: string): boolean {
+  if (process.env.ROK_PUBLIC_HOST !== "1") return false;
+  if (path === "/join" || path.startsWith("/join/")) return false;
+  if (path === "/api/remote-signup") return false;
+  if (path.startsWith("/api/ptcg-") || path === "/api/tcg-catalog") return false;
+  if (/^\/api\/(swu-cards|ygo-cards|op-cards|op-art|rift-cards|lorcana-cards)$/.test(path)) return false;
+  if (path.startsWith("/__grok/") || path.startsWith("/brand/") || path.startsWith("/assets/")) return false;
+  if (/\.[a-z0-9]{2,8}$/i.test(path)) return false;
+  return true;
+}
+
+const signupCors = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type, x-rok-signup-secret",
+  "access-control-max-age": "86400",
+  "cache-control": "no-store",
+};
+
 export default async function grokPwaMiddleware(
   event: GrokPwaEvent,
   next: () => unknown | Promise<unknown>,
 ): Promise<unknown> {
+  const path = event.url.pathname;
   const method = (event.req.method ?? "GET").toUpperCase();
+
+  if (path === "/api/remote-signup" && method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: signupCors });
+  }
+
+  if (publicHostBlocked(path)) {
+    if (path.startsWith("/api/")) {
+      return new Response(JSON.stringify({ error: "Not available on the public sign-up host." }), {
+        status: 404,
+        headers: { "content-type": "application/json", "cache-control": "no-store" },
+      });
+    }
+    return Response.redirect(new URL("/join", event.url), 302);
+  }
+
   if (method !== "GET") return next();
 
-  const path = event.url.pathname;
   const urlWithQuery = path + event.url.search;
 
   if (path === "/__grok/manifest.webmanifest" || path === "/__grok/manifest.json") {

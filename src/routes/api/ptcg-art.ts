@@ -48,6 +48,10 @@ export const Route = createFileRoute("/api/ptcg-art")({
 });
 
 async function artSources(id: string, image: string, size: "low" | "high"): Promise<string[]> {
+  if (/^https?:\/\//i.test(image)) {
+    const direct = ptcgArtSources(image, size, id, { guess: false });
+    if (direct.length) return direct;
+  }
   const out: string[] = [];
   const add = (src?: string) => {
     const url = src?.trim();

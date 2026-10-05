@@ -12,10 +12,10 @@ export function Field({
   className?: string;
 }) {
   return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
-      <Label>{label}</Label>
+    <div className={cn("flex flex-col gap-1.5", className)}>
+      <Label className="pointer-events-none">{label}</Label>
       {children}
-    </label>
+    </div>
   );
 }
 
@@ -73,8 +73,17 @@ function regroupMagicOptions(children: ReactNode): ReactNode {
 export function NativeSelect({
   className,
   children,
+  onChange,
+  onBlur,
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement>) {
+  const keepPlace = () => {
+    const x = window.scrollX;
+    const y = window.scrollY;
+    requestAnimationFrame(() => {
+      if (y > 48 && window.scrollY < 8) window.scrollTo(x, y);
+    });
+  };
   return (
     <select
       className={cn(
@@ -82,6 +91,14 @@ export function NativeSelect({
         "focus-visible:ring-ring/60 focus-visible:ring-2 focus-visible:outline-none",
         className,
       )}
+      onChange={(event) => {
+        keepPlace();
+        onChange?.(event);
+      }}
+      onBlur={(event) => {
+        keepPlace();
+        onBlur?.(event);
+      }}
       {...props}
     >
       {regroupMagicOptions(children)}

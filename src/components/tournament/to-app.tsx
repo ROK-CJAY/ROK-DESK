@@ -12,6 +12,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isPlayPokemonTitle, isVgcTitle, MTG_LANES, PTCG_DIVISIONS, playAgeDivisionOf, playDivisionsFor, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath, VGC_DIVISIONS } from "@/lib/games";
 import { catalogForGame, hydrateDeckOnClient } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
+import { RemoteSignupPanel } from "@/components/tournament/remote-signup-panel";
 import { decklistCount } from "@/lib/decklist";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
@@ -861,6 +862,14 @@ function RosterPanel({
           ) : null}
         </div>
       </div>
+      <RemoteSignupPanel
+        gameId={t.gameId}
+        title={t.name}
+        formatName={t.formatName}
+        requireDecklist={Boolean(t.requireDecklist)}
+        bestOf={t.bestOf}
+        bracketType={t.bracketType}
+      />
 
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_8rem_10rem_1fr_6rem_auto]">
         <Input

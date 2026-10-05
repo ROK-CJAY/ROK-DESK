@@ -8,10 +8,23 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Added
+
+- **Public sign-up** — Tournament Organizer can open an event code on the public host. Players use `/join/CODE`. The desk pulls those entrants in, and can close the form without losing them. Set `DATABASE_URL`, `SIGNUP_PULL_SECRET`, and `ROK_PUBLIC_HOST=1` on that host so the rest of the desk stays closed.
+
+### Changed
+
+- **VGC formats** — Regulation I and Regulation H are removed. Regulation M-C, Bo1 Swiss, and Pre-release stay.
+
 ### Fixed
 
 - **TOM folder watch** — a reports folder that holds more than one event no longer imports every player saved in TOM. Auto uses the newest tournament. Pick another event in **Tournament in that folder**. Players who are not in that report are removed from the desk.
-- **Framework** — `@tanstack/react-start` is 1.168.60 so Vercel will accept a deploy.
+- **PTCG signup search** — the deck builder searches the live card API first, with the downloaded catalog as fallback. A Catalog / API switch flips that order. A card’s own image is used instead of a guessed card back.
+- **Phone dropdowns** — choosing a native select or a catalog menu no longer jumps the page back to the top.
+
+### Later
+
+- **Venue keys** — if other stores share this public site, each venue gets its own key. A sign-up code belongs to the venue that opened it, and another venue cannot pull that list. Not needed while ROK is the only desk on this host.
 
 ## v1.4.2-beta — 2026-10-04
 

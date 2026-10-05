@@ -34,6 +34,7 @@ export function DecklistEditor({
   const [importing, setImporting] = useState(false);
   const [importNote, setImportNote] = useState("");
   const [importErr, setImportErr] = useState("");
+  const [catalogFirst, setCatalogFirst] = useState(false);
   const total = decklistCount(value);
   const ptcg = catalog === "ptcg";
 
@@ -47,10 +48,10 @@ export function DecklistEditor({
     let cancelled = false;
     setStatus("loading");
     const timer = window.setTimeout(() => {
-      void searchCatalogCards(catalog, q, { formatName, liveOnly: true })
+      void searchCatalogCards(catalog, q, { formatName, liveOnly: true, catalogFirst: ptcg && catalogFirst })
         .then((rows) => {
           if (cancelled) return;
-          setHits(rows.slice(0, 10));
+          setHits(rows.filter((card) => card.name.trim()).slice(0, 30));
           setStatus("idle");
         })
         .catch(() => {
@@ -62,7 +63,7 @@ export function DecklistEditor({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [query, catalog, formatName]);
+  }, [query, catalog, formatName, ptcg, catalogFirst]);
 
   const add = (card: LookupCard) => {
     onChange(addDeckCard(value, card, 1));
@@ -144,6 +145,22 @@ export function DecklistEditor({
       <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">
         {ptcg ? "ROK Desk builder · backup" : "Search"}
       </p>
+      {ptcg ? (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[0.7rem] text-muted">
+            {catalogFirst
+              ? "Catalog on this desk first. API is the fallback."
+              : "API first. The desk catalog is the fallback if the live sites miss."}
+          </p>
+          <button
+            type="button"
+            onClick={() => setCatalogFirst((v) => !v)}
+            className="shrink-0 rounded-md border border-border bg-surface px-2 py-1 text-[0.65rem] text-fg"
+          >
+            {catalogFirst ? "Catalog" : "API"}
+          </button>
+        </div>
+      ) : null}
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted" />
         <Input

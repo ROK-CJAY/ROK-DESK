@@ -14,24 +14,52 @@ import { emptySignupDraft, type SignupDraft } from "@/components/signup/signup-t
 import { PlayerIdPrivacy } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { useTournamentStore } from "@/lib/tournament-store";
-import { viewTournament } from "@/lib/tournament-types";
+import { viewTournament, type TournamentState } from "@/lib/tournament-types";
 import { countFilledMons } from "@/lib/pokemon-vgc";
 
-export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
+export type RemoteSignupCard = {
+  code: string;
+  gameId: GameId;
+  name: string;
+  formatName: string;
+  requireDecklist: boolean;
+  closed: boolean;
+  count: number;
+  bestOf: 1 | 3 | 5 | 7;
+  bracketType: "single" | "double" | "swiss";
+};
+
+export function SignupKiosk({ gameId: pinnedGame, remote }: { gameId?: GameId; remote?: RemoteSignupCard } = {}) {
   const ready = useTournamentStore((s) => s.ready);
   const hydrate = useTournamentStore((s) => s.hydrate);
   const live = useTournamentStore((s) => s.tournament);
-  const t = pinnedGame ? viewTournament(live, pinnedGame) : live;
-  const lockedDivision = playAgeDivisionOf(t.gameId);
   const [step, setStep] = useState<"welcome" | "form" | "done">("welcome");
   const [draft, setDraft] = useState<SignupDraft>(() => emptySignupDraft());
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ seed: number; name: string; count: number } | null>(null);
 
+  const base = pinnedGame ? viewTournament(live, pinnedGame) : live;
+  const t: TournamentState = remote
+    ? {
+        ...viewTournament(live, remote.gameId),
+        name: remote.name,
+        gameId: remote.gameId,
+        formatName: remote.formatName,
+        requireDecklist: remote.requireDecklist,
+        phase: remote.closed ? "complete" : "setup",
+        bestOf: remote.bestOf,
+        bracketType: remote.bracketType,
+        entrants: [],
+      }
+    : base;
+  const registered = remote ? remote.count : t.entrants.length;
+  const lockedDivision = playAgeDivisionOf(t.gameId);
+
   useEffect(() => {
+    if (remote) return;
     void hydrate();
-  }, [hydrate]);
+  }, [hydrate, remote]);
 
   useEffect(() => {
     if (!lockedDivision) return;
@@ -53,7 +81,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
     };
   }, []);
 
-  if (!ready) {
+  if (!remote && !ready) {
     return <div className="grid h-dvh place-items-center bg-bg text-muted">Loading sign-up…</div>;
   }
 
@@ -89,10 +117,11 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/tournament/signup", {
+      const res = await fetch(remote ? "/api/remote-signup" : "/api/tournament/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          ...(remote ? { action: "submit", code: remote.code } : { game: slugOf(t.gameId) }),
           name,
           tag: draft.tag.trim(),
           pronouns: draft.pronouns.trim(),
@@ -109,7 +138,6 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
           ink2: t.gameId === "lorcana" ? draft.ink2 : undefined,
           note: draft.note.trim(),
           decklist: draft.decklist,
-          game: slugOf(t.gameId),
         }),
       });
       const data = (await res.json()) as { error?: string; seed?: number; name?: string; count?: number };
@@ -118,9 +146,9 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
         return;
       }
       setResult({
-        seed: data.seed ?? t.entrants.length + 1,
+        seed: data.seed ?? registered + 1,
         name: data.name ?? name,
-        count: data.count ?? t.entrants.length + 1,
+        count: data.count ?? registered + 1,
       });
       setStep("done");
     } catch {
@@ -161,7 +189,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
             <p className="font-mono text-[0.62rem] tracking-[0.18em] text-muted uppercase">Your turn</p>
             <h1 className="font-display mt-1 text-4xl font-semibold uppercase">Sign in to the event</h1>
             <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
-              This tablet is the walk-up desk for <span className="text-fg">{t.name}</span>
+              {remote ? "Sign up for" : "This tablet is the walk-up desk for"} <span className="text-fg">{t.name}</span>
               {vgc
                 ? ". Fill the official Video Game Team List — player info plus all six Pokémon — then submit."
                 : t.gameId === "lorcana"
@@ -179,7 +207,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
             <ul className="mt-5 grid gap-2 text-sm text-muted">
               <li className="rounded-lg bg-surface-2 px-3 py-3">One player at a time. When you’re done, hand it back.</li>
               <li className="rounded-lg bg-surface-2 px-3 py-3">
-                {t.entrants.length} already registered · Bo{t.bestOf} ·{" "}
+                {registered} already registered · Bo{t.bestOf} ·{" "}
                 {t.bracketType === "double" ? "Double elim" : t.bracketType === "swiss" ? "Swiss" : "Single elim"}
               </li>
             </ul>
@@ -197,7 +225,7 @@ export function SignupKiosk({ gameId: pinnedGame }: { gameId?: GameId } = {}) {
             <p className="mt-2 text-lg text-muted">
               {result.name} · seed {result.seed} · {result.count} in the field
             </p>
-            <p className="mt-3 text-sm text-muted">Hand the tablet to the next player.</p>
+            <p className="mt-3 text-sm text-muted">{remote ? "You’re registered. See you at the lounge." : "Hand the tablet to the next player."}</p>
             <Button className="mt-6 min-h-12" onClick={reset}>
               Next player
             </Button>

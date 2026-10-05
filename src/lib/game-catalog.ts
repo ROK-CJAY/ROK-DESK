@@ -25,8 +25,6 @@ export const GAME_LIST: GameDef[] = [
     defaultScorebug: "play",
     formats: [
       { id: "reg-mc", label: "VGC 2026 Regulation M-C" },
-      { id: "reg-i", label: "VGC 2026 Regulation I" },
-      { id: "reg-h", label: "VGC 2026 Regulation H" },
       { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
     ],
@@ -44,8 +42,6 @@ export const GAME_LIST: GameDef[] = [
     defaultScorebug: "play",
     formats: [
       { id: "reg-mc", label: "VGC 2026 Regulation M-C" },
-      { id: "reg-i", label: "VGC 2026 Regulation I" },
-      { id: "reg-h", label: "VGC 2026 Regulation H" },
       { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
     ],
@@ -63,8 +59,6 @@ export const GAME_LIST: GameDef[] = [
     defaultScorebug: "play",
     formats: [
       { id: "reg-mc", label: "VGC 2026 Regulation M-C" },
-      { id: "reg-i", label: "VGC 2026 Regulation I" },
-      { id: "reg-h", label: "VGC 2026 Regulation H" },
       { id: "bo1", label: "Bo1 Swiss", bestOf: 1 },
       { id: "prerelease", label: "Pre-release", bestOf: 1 },
     ],

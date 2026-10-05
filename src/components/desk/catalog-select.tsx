@@ -68,7 +68,7 @@ export function CatalogSelect({
             value={query}
             onValueChange={setQuery}
             placeholder={searchPlaceholder}
-            autoFocus
+            autoFocus={typeof window !== "undefined" && !window.matchMedia("(pointer: coarse)").matches}
             className="h-10 w-full border-b border-border bg-transparent px-3 text-sm text-fg outline-none placeholder:text-subtle"
           />
           <Command.List className="max-h-72 overflow-y-auto p-1">

@@ -104,7 +104,7 @@ export function catalogForGame(gameId: GameId): LookupCatalog | null {
 export async function searchCatalogCards(
   catalog: LookupCatalog,
   query: string,
-  opts: { formatName?: string; liveOnly?: boolean } = {},
+  opts: { formatName?: string; liveOnly?: boolean; catalogFirst?: boolean } = {},
 ): Promise<LookupCard[]> {
   const liveOnly = opts.liveOnly ?? true;
   const formatName = opts.formatName ?? "";
@@ -114,7 +114,7 @@ export async function searchCatalogCards(
   if (catalog === "op") return searchOpCards(query);
   if (catalog === "rift") return searchRiftCards(query);
   if (catalog === "lorcana") return searchLorcanaCards(query);
-  return searchLookupCards(query, liveOnly);
+  return searchLookupCards(query, liveOnly, opts.catalogFirst ?? false);
 }
 
 export function cardLookupReady(): boolean {
@@ -161,7 +161,13 @@ export function cardImageCandidates(image?: string, size: "low" | "high" = "high
 }
 
 /** Direct CDN URLs. The /api/ptcg-art proxy walks these and only returns a real 200 image. */
-export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id?: string): string[] {
+export function ptcgArtSources(
+  image?: string,
+  size: "low" | "high" = "high",
+  id?: string,
+  opts?: { guess?: boolean },
+): string[] {
+  const guess = opts?.guess !== false;
   const out: string[] = [];
   const add = (url?: string) => {
     const src = url?.trim();
@@ -178,11 +184,21 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
   if (isScrydex) {
     add(prefix.replace(/\/(small|large)$/i, "/large"));
     add(prefix);
-  } else if (isFile && !isTcgdex && keepProvided && !isLimitlessScan(prefix)) {
+  } else if (isFile && isTcgdex) {
+    add(prefix);
+  } else if (prefix && !prefix.startsWith("/api/") && !isFile && !isScrydex) {
+    const other = size === "high" ? "low" : "high";
+    add(`${prefix}/${size}.webp`);
+    add(`${prefix}/${other}.webp`);
+    add(`${prefix}/${size}.png`);
+    add(`${prefix}/${other}.png`);
+  } else if (isFile && keepProvided && !isLimitlessScan(prefix)) {
     add(prefix);
   } else if (prefix.startsWith("/api/")) {
     add(prefix);
   }
+
+  if (!guess) return out;
 
   if (parsed) {
     const num = parsed.number.replace(/^0+/, "") || "0";
@@ -209,26 +225,6 @@ export function ptcgArtSources(image?: string, size: "low" | "high" = "high", id
     for (const scry of scryIds) {
       add(`https://images.scrydex.com/pokemon/${scry}/large`);
       add(`https://images.scrydex.com/pokemon/${scry}/small`);
-    }
-  }
-
-  if (isFile && isTcgdex) add(prefix);
-  else if (prefix && !prefix.startsWith("/api/") && !isFile && !isScrydex) {
-    const other = size === "high" ? "low" : "high";
-    add(`${prefix}/${size}.webp`);
-    add(`${prefix}/${other}.webp`);
-    add(`${prefix}/${size}.png`);
-    add(`${prefix}/${other}.png`);
-  }
-  if (parsed) {
-    for (const ioSet of pokemonTcgIoSets(parsed.set)) {
-      const built = tcgdexImagePrefix(ioSet, parsed.number);
-      if (built && built !== prefix) {
-        const other = size === "high" ? "low" : "high";
-        add(`${built}/${size}.webp`);
-        add(`${built}/${other}.webp`);
-        add(`${built}/${size}.png`);
-      }
     }
   }
 
