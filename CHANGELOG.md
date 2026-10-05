@@ -24,6 +24,7 @@ Not tagged. Use the build on `main` until the next beta.
 
 ### Fixed
 
+- **Public sign-up codes** — each game keeps its own code. Opening sign-up for a second game no longer reuses the first game’s link.
 - **TOM folder watch** — a reports folder that holds more than one event no longer imports every player saved in TOM. Auto uses the newest tournament. Pick another event in **Tournament in that folder**. Players who are not in that report are removed from the desk.
 - **PTCG signup search** — the deck builder searches the live card API first, with the downloaded catalog as fallback. A Catalog / API switch flips that order. A card’s own image is used instead of a guessed card back.
 - **Phone dropdowns** — choosing a native select or a catalog menu no longer jumps the page back to the top.

@@ -408,6 +408,7 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 - VGC formats drop Regulation I and Regulation H. Regulation M-C, Bo1 Swiss, and Pre-release stay.
 
 **Fixed**
+- Each game keeps its own public sign-up code.
 - TOM folder watch imports one event, not every player in the folder.
 - PTCG sign-up searches the live card API first and uses the card’s own image.
 - Phone dropdowns no longer jump the page to the top.

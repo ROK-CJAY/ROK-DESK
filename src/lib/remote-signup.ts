@@ -165,12 +165,15 @@ export async function openRemoteEvent(input: {
   const title = input.title.trim().slice(0, 80) || "ROK event";
   const formatName = input.formatName.trim().slice(0, 80) || "Swiss";
   await ensureTables();
+  const existing = await eventRow(code);
+  if (existing && existing.game_id !== gameId) {
+    return { error: "That code belongs to another game. Use a new code for this one." };
+  }
   const sql = await getSql();
   await sql`
     insert into remote_signup_events (code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open)
     values (${code}, ${gameId}, ${title}, ${formatName}, ${input.requireDecklist}, ${asBestOf(input.bestOf)}, ${asBracket(input.bracketType)}, ${true})
     on conflict (code) do update set
-      game_id = excluded.game_id,
       title = excluded.title,
       format_name = excluded.format_name,
       require_decklist = excluded.require_decklist,

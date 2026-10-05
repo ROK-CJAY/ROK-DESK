@@ -9,7 +9,26 @@ import type { Entrant } from "@/lib/tournament-types";
 
 const HOST_KEY = "rok.signup.host";
 const SECRET_KEY = "rok.signup.secret";
-const CODE_KEY = "rok.signup.code";
+const LEGACY_CODE_KEY = "rok.signup.code";
+
+function codeKey(gameId: GameId): string {
+  return `rok.signup.code.${gameId}`;
+}
+
+function codeForGame(gameId: GameId): string {
+  const own = localStorage.getItem(codeKey(gameId));
+  if (own) return normalizeSignupCode(own);
+  const legacy = localStorage.getItem(LEGACY_CODE_KEY);
+  if (legacy) {
+    const cleaned = normalizeSignupCode(legacy);
+    localStorage.setItem(codeKey(gameId), cleaned);
+    localStorage.removeItem(LEGACY_CODE_KEY);
+    return cleaned;
+  }
+  const fresh = makeSignupCode();
+  localStorage.setItem(codeKey(gameId), fresh);
+  return fresh;
+}
 
 export function RemoteSignupPanel({
   gameId,
@@ -38,8 +57,10 @@ export function RemoteSignupPanel({
   useEffect(() => {
     setHost(localStorage.getItem(HOST_KEY) || PUBLIC_SIGNUP_ORIGIN);
     setSecret(localStorage.getItem(SECRET_KEY) || "");
-    setCode(localStorage.getItem(CODE_KEY) || makeSignupCode());
-  }, []);
+    setCode(codeForGame(gameId));
+    setNote("");
+    setError("");
+  }, [gameId]);
 
   const link = code.trim().length >= 4 ? signupLink(host, code) : "";
 
@@ -55,7 +76,7 @@ export function RemoteSignupPanel({
     if (next.code !== undefined) {
       const cleaned = normalizeSignupCode(next.code);
       setCode(cleaned);
-      localStorage.setItem(CODE_KEY, cleaned);
+      localStorage.setItem(codeKey(gameId), cleaned);
     }
   };
 
@@ -183,7 +204,7 @@ export function RemoteSignupPanel({
     <div className="mt-3 grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
       <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Public sign-up</p>
       <p className="text-xs text-muted">
-        Opens a form on the public site for this title. Players never see the desk. Pull them in when you are at the lounge.
+        This link is only for {title}. Each game keeps its own code. Players never see the desk.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Input value={host} onChange={(e) => save({ host: e.target.value })} placeholder="https://rok-desk.vercel.app" />
