@@ -25,6 +25,7 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
   };
   indexMaps();
 
+  const keep = new Set<string>();
   const upsert = (row: TomPlayer): Entrant | null => {
     const name = cleanTomPlayerName(row.name);
     if (isJunkTomPlayerName(name || row.name, eventName) && !row.playerId) return null;
@@ -47,6 +48,7 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
         oppOppWin: row.oppOppWin ?? prevPlayer.oppOppWin,
       };
       entrants[existingIndex] = next;
+      keep.add(next.id);
       return next;
     }
     const created = blankEntrant({
@@ -64,16 +66,24 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
       oppOppWin: row.oppOppWin ?? 0,
     });
     entrants.push(created);
+    keep.add(created.id);
     indexMaps();
     return created;
   };
 
   for (const row of reports.players) upsert(row);
+  if (reports.pairings.length) {
+    for (const row of reports.pairings) {
+      upsert(row.p1);
+      if (row.p2) upsert(row.p2);
+    }
+  }
 
   const round = reports.currentRound || 1;
   const roundLabel = reports.roundLabel || `Round ${round}`;
   const cut = /quarter|semi|final|top\s*\d/i.test(roundLabel);
-  const liveIds = new Set(entrants.map((e) => e.id));
+  const roster = keep.size ? entrants.filter((e) => keep.has(e.id)) : entrants;
+  const liveIds = new Set(roster.map((e) => e.id));
   const remapSlot = (slot: { entrantId: string | null; score: number }) => ({
     ...slot,
     entrantId: slot.entrantId ? (idMap.get(slot.entrantId) ?? (liveIds.has(slot.entrantId) ? slot.entrantId : null)) : null,
@@ -115,7 +125,7 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
 
   const matchIds = new Set(matches.map((m) => m.id));
   const keepStream = (id: string | null) => (id && matchIds.has(id) ? id : null);
-  const size = clampBracketSize(Math.max(entrants.filter((e) => !e.dropped).length, reports.pairings.length * 2, 2));
+  const size = clampBracketSize(Math.max(roster.filter((e) => !e.dropped).length, reports.pairings.length * 2, 2));
 
   return {
     ...prev,
@@ -125,7 +135,7 @@ export function applyTomReports(prev: TournamentState, reports: TomReports): Tou
     phase: matches.length ? "running" : prev.phase,
     overlayView: cut ? prev.overlayView : "standings",
     swissRounds: reports.totalRounds || prev.swissRounds,
-    entrants,
+    entrants: roster,
     matches,
     streamMatchId: keepStream(prev.streamMatchId),
     streamMatchId2: keepStream(prev.streamMatchId2),

@@ -7,7 +7,7 @@ import { isVgcTitle, ptcgGameIdFor, vgcGameIdFor, type TomTitleId } from "@/lib/
 import { downloadTomTdf } from "@/lib/tom-tdf";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament, type TournamentState } from "@/lib/tournament-types";
-import { tomWatchSetTitle, type TomWatchSet } from "@/lib/tom-folder-watch";
+import { chooseTomReportSet, tomWatchSetTitle, type TomWatchSet } from "@/lib/tom-folder-watch";
 import { cn } from "@/lib/cn";
 
 export function TomReportsView({
@@ -225,11 +225,10 @@ export function TomReportsView({
                         else onWatchDir(v);
                       }}
                     >
-                      <option value="__auto__">Newest reports (auto)</option>
+                      <option value="__auto__">Newest tournament (auto)</option>
                       {watchSets.map((set) => (
-                        <option key={set.dir || "__root__"} value={set.dir === "" ? "__root__" : set.dir}>
+                        <option key={set.id || "__root__"} value={set.id === "" ? "__root__" : set.id}>
                           {tomWatchSetTitle(set)}
-                          {set.label && set.eventName ? `  ·  ${set.label}` : ""}
                         </option>
                       ))}
                     </NativeSelect>
@@ -240,16 +239,23 @@ export function TomReportsView({
                   )}
                 </Field>
               ) : null}
-              {watch === "on" && watchSets[0] ? (
+              {watch === "on" && watchSets.length ? (
                 <p className="text-xs text-fg">
-                  Pulling {tomWatchSetTitle(watchSets.find((s) => s.dir === (watchDir ?? s.dir)) ?? watchSets[0])}
+                  Pulling{" "}
+                  {tomWatchSetTitle(
+                    chooseTomReportSet(watchSets, {
+                      preferDir: watchDir,
+                      preferName: live.name,
+                      preferKind: vgc ? "vg" : "tcg",
+                    }) ?? watchSets[0]!,
+                  )}
                   {watchDir == null ? " (auto)" : ""}
                 </p>
               ) : null}
               <p className="text-[0.65rem] text-subtle">
                 {watch === "on"
                   ? watchSets.length
-                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. PTCG only pulls TOM events with Game Type Trading Card Game. VGC only pulls Video Game. Open that tournament in TOM, then File → Reports → Pairings / Standings. If this folder has more than one report set, pick it above.`
+                    ? `Watching ${folderName} for ${tomKindLabel(tomGame)}. Only the tournament picked above is imported — not every player saved in TOM. Auto uses the newest report set. PTCG only pulls Trading Card Game. VGC only pulls Video Game.`
                     : `Watching ${folderName} for ${tomKindLabel(tomGame)}. No pairings.html / standings.html / roster.html yet. Open the tournament in TOM and generate those reports.`
                   : `Pick a ${tomKindLabel(tomGame)} TOM_DATA or data/reports folder. PTCG matches TOM Game Type Trading Card Game; VGC matches Video Game. TOM writes reports for the event that is open.`}
               </p>

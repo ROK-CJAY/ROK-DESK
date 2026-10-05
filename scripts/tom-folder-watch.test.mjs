@@ -6,6 +6,7 @@ import {
   listTomReportSets,
   pickTomReportSet,
   tomDirectoryPickerId,
+  tomReportIdentity,
 } from "../src/lib/tom-folder-watch.ts";
 
 test("picks the newest reports folder that has pairings", () => {
@@ -48,6 +49,27 @@ test("preferName matches the TOM event title on a report set", () => {
   }));
   const chosen = chooseTomReportSet(sets, { preferName: "Worlds VG cup at ROK" });
   assert.equal(chosen?.dir, "old-event");
+});
+
+test("same reports folder keeps each tournament's files apart", () => {
+  assert.equal(tomReportIdentity("Worlds VG cup at ROKstandings.html").label, "Worlds VG cup at ROK");
+  assert.equal(tomReportIdentity("pairings.html").stem, "");
+  const files = [
+    { path: "data/reports/Worlds VG cup at ROKstandings.html", name: "Worlds VG cup at ROKstandings.html", lastModified: 100, size: 10 },
+    { path: "data/reports/Worlds VG cup at ROKpairings.html", name: "Worlds VG cup at ROKpairings.html", lastModified: 100, size: 10 },
+    { path: "data/reports/Worlds VG cup at ROKroster.html", name: "Worlds VG cup at ROKroster.html", lastModified: 100, size: 10 },
+    { path: "data/reports/Friday League Challengestandings.html", name: "Friday League Challengestandings.html", lastModified: 900, size: 10 },
+    { path: "data/reports/Friday League Challengepairings.html", name: "Friday League Challengepairings.html", lastModified: 900, size: 10 },
+  ];
+  const sets = listTomReportSets(files);
+  assert.equal(sets.length, 2);
+  const worlds = chooseTomReportSet(sets, { preferName: "Worlds VG cup at ROK" });
+  assert.deepEqual(
+    worlds?.files.map((f) => f.name).sort(),
+    ["Worlds VG cup at ROKpairings.html", "Worlds VG cup at ROKroster.html", "Worlds VG cup at ROKstandings.html"],
+  );
+  const newest = chooseTomReportSet(sets);
+  assert.equal(newest?.eventName, "Friday League Challenge");
 });
 
 test("fingerprint changes when TOM rewrites pairings", () => {

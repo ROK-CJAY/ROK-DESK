@@ -11,6 +11,7 @@ import {
   pickTomReportsDirectory,
   queryDirectoryRead,
   readTomReportSet,
+  filesForTomTournament,
   saveReportPick,
   sameTomDirectory,
   tomWatchIntervalMs,
@@ -170,8 +171,11 @@ export function TomReportsPanel() {
         setDetail(`${parsed.name} · ${applied.join(" · ")} from ${tdfs[0].name}`);
       }
       if (htmls.length) {
-        const rows = await Promise.all(htmls.map(async (file) => ({ name: file.name, html: await file.text() })));
-        ingest(rows);
+        const rows = await Promise.all(
+          htmls.map(async (file) => ({ name: file.name, html: await file.text(), lastModified: file.lastModified })),
+        );
+        const deskName = deskForGame(useTournamentStore.getState().tournament, tomGame).name;
+        ingest(filesForTomTournament(rows, deskName));
       }
     } catch (err) {
       setStatus("err");

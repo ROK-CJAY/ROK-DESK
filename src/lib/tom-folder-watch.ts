@@ -16,7 +16,11 @@ export type TomWatchFile = {
 export type TomWatchRead = TomWatchFile & { html: string };
 
 export type TomWatchSet = {
+  /** Folder path plus tournament stem. Saved as the watch pick. */
+  id: string;
   dir: string;
+  /** Lowercase event prefix from the report filename. Empty when the file is just pairings.html. */
+  stem: string;
   label: string;
   eventName: string;
   roundLabel: string;
@@ -58,26 +62,46 @@ export function reportDirOf(path: string): string {
   return slash === -1 ? "" : path.slice(0, slash);
 }
 
+/** `Worlds VG cup at ROKstandings.html` → event `Worlds VG cup at ROK`. Bare `pairings.html` has no stem. */
+export function tomReportIdentity(name: string): { stem: string; label: string } {
+  const base = name.replace(/\.[^.]+$/i, "");
+  const match = base.match(/^(.*?)[\s._-]*(?:roster|pairings?|standings?|player\s*list)$/i);
+  if (!match) return { stem: "", label: "" };
+  let label = (match[1] ?? "").replace(/[\s._-]+$/g, "").trim();
+  label = label.replace(/[\s._-]*round\s*\d+(?:\s*(?:of|\/)\s*\d+)?$/i, "").trim();
+  return { stem: label.toLowerCase(), label };
+}
+
+export function tomWatchSetId(dir: string, stem: string): string {
+  return stem ? `${dir}::${stem}` : dir;
+}
+
 export function listTomReportSets(files: TomWatchFile[]): TomWatchSet[] {
   const groups = new Map<string, TomWatchFile[]>();
   for (const file of files) {
     const dir = reportDirOf(file.path);
-    const list = groups.get(dir) ?? [];
+    const stem = tomReportIdentity(file.name).stem;
+    const key = tomWatchSetId(dir, stem);
+    const list = groups.get(key) ?? [];
     list.push(file);
-    groups.set(dir, list);
+    groups.set(key, list);
   }
   const sets: TomWatchSet[] = [];
-  for (const [dir, list] of groups) {
+  for (const [id, list] of groups) {
     const pairings = list.filter((f) => /pairing/i.test(f.name));
     const standings = list.filter((f) => /standing/i.test(f.name));
     const roster = list.filter((f) => /roster/i.test(f.name));
     const picked = [...pairings, ...standings, ...roster];
     const filesForSet = picked.length ? picked : list;
     if (!filesForSet.length) continue;
+    const dir = reportDirOf(filesForSet[0]!.path);
+    const named = filesForSet.map((f) => tomReportIdentity(f.name).label).find(Boolean) ?? "";
     sets.push({
+      id,
       dir,
-      label: dir || ".",
-      eventName: "",
+      stem: tomReportIdentity(filesForSet[0]!.name).stem,
+      label: named || dir || ".",
+      eventName: named,
       roundLabel: "",
       gameKind: "unknown",
       newest: Math.max(0, ...filesForSet.map((f) => f.lastModified)),
@@ -93,36 +117,66 @@ export function chooseTomReportSet(
 ): TomWatchSet | undefined {
   if (!sets.length) return undefined;
   const kind = opts?.preferKind;
+  let pool = sets;
   if (opts && "preferDir" in opts && opts.preferDir != null) {
-    const hit = sets.find((s) => s.dir === opts.preferDir);
-    if (hit) {
-      if (kind && hit.gameKind !== "unknown" && hit.gameKind !== kind) return undefined;
-      return hit;
+    const want = opts.preferDir;
+    const exact = sets.find((s) => s.id === want || (want === "" && s.id === ""));
+    if (exact) {
+      if (kind && exact.gameKind !== "unknown" && exact.gameKind !== kind) return undefined;
+      return exact;
     }
+    const inDir = sets.filter((s) => s.dir === want);
+    if (inDir.length === 1) {
+      const only = inDir[0]!;
+      if (kind && only.gameKind !== "unknown" && only.gameKind !== kind) return undefined;
+      return only;
+    }
+    if (inDir.length > 1) pool = inDir;
   }
-  const pool = kind
-    ? sets.filter((s) => s.gameKind === kind || s.gameKind === "unknown")
-    : sets;
   if (!pool.length) return undefined;
+  const narrowed = kind ? pool.filter((s) => s.gameKind === kind || s.gameKind === "unknown") : pool;
   const want = opts?.preferName?.trim().toLowerCase();
   if (want) {
-    const hit = pool.find((s) => s.eventName.trim().toLowerCase() === want);
+    const hit = narrowed.find(
+      (s) => s.eventName.trim().toLowerCase() === want || (s.stem && (want === s.stem || want.startsWith(s.stem) || s.stem.startsWith(want))),
+    );
     if (hit) return hit;
   }
   let best: TomWatchSet | undefined;
   let bestScore = -1;
-  for (const set of pool) {
+  for (const set of narrowed) {
     const pairings = set.files.some((f) => /pairing/i.test(f.name));
     const standings = set.files.some((f) => /standing/i.test(f.name));
     const roster = set.files.some((f) => /roster/i.test(f.name));
     const kindBoost = kind && set.gameKind === kind ? 16 : 0;
-    const score = kindBoost + (pairings ? 8 : 0) + (standings ? 4 : 0) + (roster ? 2 : 0) + set.newest / 1e13;
+    const completeness = kindBoost + (pairings ? 8 : 0) + (standings ? 4 : 0) + (roster ? 2 : 0);
+    const score = set.newest * 100 + completeness;
     if (score > bestScore) {
       bestScore = score;
       best = set;
     }
   }
   return best;
+}
+
+export function filesForTomTournament<T extends { name: string; lastModified?: number }>(
+  files: T[],
+  preferName?: string,
+): T[] {
+  if (files.length <= 1) return files;
+  const sets = listTomReportSets(
+    files.map((file) => ({
+      path: file.name,
+      name: file.name,
+      lastModified: file.lastModified ?? 0,
+      size: 0,
+    })),
+  );
+  const chosen = chooseTomReportSet(sets, { preferName });
+  if (!chosen) return files;
+  const names = new Set(chosen.files.map((file) => file.name));
+  const picked = files.filter((file) => names.has(file.name));
+  return picked.length ? picked : files;
 }
 
 export function pickTomReportSet(files: TomWatchFile[], preferDir?: string): TomWatchFile[] {
@@ -311,8 +365,8 @@ export async function readTomReportSet(
     try {
       const html = await (await row.handle.getFile()).text();
       const heads = tomHeadingsFromHtml(html);
-      set.eventName = heads.eventName;
-      set.roundLabel = heads.roundLabel;
+      if (heads.eventName) set.eventName = heads.eventName;
+      if (heads.roundLabel) set.roundLabel = heads.roundLabel;
       set.gameKind = detectTomGameKind(`${heads.eventName}\n${html}`);
     } catch {
       /* keep empty labels */
@@ -378,7 +432,8 @@ async function walk(
   for (const handle of entries) {
     if (handle.kind === "file") {
       const name = handle.name;
-      if (/\.tdf$/i.test(name)) {
+      if (/\.tdf$/i.test(name) || /^players\.xml$/i.test(name)) {
+        if (!/\.tdf$/i.test(name)) continue;
         const file = await (handle as FsFile).getFile();
         if (file.size <= MAX_BYTES) {
           tdfs.push({
@@ -392,7 +447,7 @@ async function walk(
         continue;
       }
       if (!/\.html?$/i.test(name)) continue;
-      if (!/roster|pairing|standing/i.test(name) && depth > 0) continue;
+      if (!/roster|pairing|standing/i.test(name)) continue;
       const file = await (handle as FsFile).getFile();
       if (file.size > MAX_BYTES) continue;
       out.push({

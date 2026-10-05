@@ -8,6 +8,10 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Fixed
+
+- **TOM folder watch** — a reports folder that holds more than one event no longer imports every player saved in TOM. Auto uses the newest tournament. Pick another event in **Tournament in that folder**. Players who are not in that report are removed from the desk.
+
 ## v1.4.2-beta — 2026-10-04
 
 ### Changed
