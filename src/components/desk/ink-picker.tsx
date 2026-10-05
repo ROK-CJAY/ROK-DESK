@@ -6,11 +6,13 @@ export function InkPicker({
   ink2,
   onChange,
   size = "md",
+  quiet = false,
 }: {
   ink1: string;
   ink2: string;
   onChange: (next: { ink1: string; ink2: string }) => void;
   size?: "sm" | "md";
+  quiet?: boolean;
 }) {
   const selected = [ink1, ink2].filter(isLorcanaInk);
   const toggle = (id: LorcanaInkId) => {
@@ -23,7 +25,7 @@ export function InkPicker({
 
   return (
     <div className="grid gap-1.5">
-      <div className="flex flex-wrap gap-1.5">
+      <div className={cn("flex gap-1", size === "sm" ? "flex-nowrap" : "flex-wrap gap-1.5")}>
         {LORCANA_INKS.map((ink) => {
           const on = selected.includes(ink.id);
           return (
@@ -42,9 +44,11 @@ export function InkPicker({
           );
         })}
       </div>
-      <p className="text-[0.7rem] text-muted">
-        {selected.map((id) => LORCANA_INKS.find((ink) => ink.id === id)?.label).join(" / ") || "Tap up to two inks"}
-      </p>
+      {quiet ? null : (
+        <p className="text-[0.7rem] text-muted">
+          {selected.map((id) => LORCANA_INKS.find((ink) => ink.id === id)?.label).join(" / ") || "Tap up to two inks"}
+        </p>
+      )}
     </div>
   );
 }

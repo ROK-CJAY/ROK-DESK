@@ -17,6 +17,7 @@ export type OverlaySourceId =
   | "floor-clock"
   | "stream-clock"
   | "roster"
+  | "top-decks"
   | "card"
   | "sponsors"
   | "event-logo";
@@ -134,6 +135,13 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     name: "VGC roster",
     size: "1920 × 1080",
     note: "Team preview. P1 sits on the right, P2 on the left. Punch P1 / P2 / Both from Show control.",
+  },
+  {
+    id: "top-decks",
+    path: "/overlay/top-decks",
+    name: "Top decks",
+    size: "1920 × 1080",
+    note: "Full-frame graphic for every title except VGC. Type how many decks, then the name, deck, and two cards. A blank name or deck uses the standings.",
   },
   {
     id: "card",

@@ -16,6 +16,7 @@ import {
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { PtcgBoardPanel } from "@/components/desk/ptcg-board-panel";
 import { TeamPanel } from "@/components/desk/team-panel";
+import { TopDecksPanel } from "@/components/tournament/top-deck-faces";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useDeskStore } from "@/lib/desk-store";
 import { catalogForGame } from "@/lib/card-lookup";
@@ -99,7 +100,9 @@ export function DeskApp() {
             <QueuePanel />
           </div>
 
-          <div className="order-4 lg:col-span-3">
+          <TopDecksPanel follow="desk" />
+
+          <div className="order-5 lg:col-span-3">
             <OverlayPreview />
           </div>
         </main>

@@ -54,6 +54,7 @@ import { Route as OverlaySlateRouteImport } from './routes/overlay/slate'
 import { Route as OverlaySponsorsRouteImport } from './routes/overlay/sponsors'
 import { Route as OverlayStreamClockRouteImport } from './routes/overlay/stream-clock'
 import { Route as OverlayTimerRouteImport } from './routes/overlay/timer'
+import { Route as OverlayTopDecksRouteImport } from './routes/overlay/top-decks'
 import { Route as OverlayUpcomingRouteImport } from './routes/overlay/upcoming'
 import { Route as OverlayVersusRouteImport } from './routes/overlay/versus'
 import { Route as OverlayWinnerRouteImport } from './routes/overlay/winner'
@@ -293,6 +294,11 @@ const OverlayTimerRoute = OverlayTimerRouteImport.update({
   path: '/timer',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const OverlayTopDecksRoute = OverlayTopDecksRouteImport.update({
+  id: '/top-decks',
+  path: '/top-decks',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
 const OverlayUpcomingRoute = OverlayUpcomingRouteImport.update({
   id: '/upcoming',
   path: '/upcoming',
@@ -404,6 +410,7 @@ export interface FileRoutesByFullPath {
   '/overlay/sponsors': typeof OverlaySponsorsRoute
   '/overlay/stream-clock': typeof OverlayStreamClockRoute
   '/overlay/timer': typeof OverlayTimerRoute
+  '/overlay/top-decks': typeof OverlayTopDecksRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
@@ -463,6 +470,7 @@ export interface FileRoutesByTo {
   '/overlay/sponsors': typeof OverlaySponsorsRoute
   '/overlay/stream-clock': typeof OverlayStreamClockRoute
   '/overlay/timer': typeof OverlayTimerRoute
+  '/overlay/top-decks': typeof OverlayTopDecksRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
@@ -524,6 +532,7 @@ export interface FileRoutesById {
   '/overlay/sponsors': typeof OverlaySponsorsRoute
   '/overlay/stream-clock': typeof OverlayStreamClockRoute
   '/overlay/timer': typeof OverlayTimerRoute
+  '/overlay/top-decks': typeof OverlayTopDecksRoute
   '/overlay/upcoming': typeof OverlayUpcomingRoute
   '/overlay/versus': typeof OverlayVersusRoute
   '/overlay/winner': typeof OverlayWinnerRoute
@@ -586,6 +595,7 @@ export interface FileRouteTypes {
     | '/overlay/sponsors'
     | '/overlay/stream-clock'
     | '/overlay/timer'
+    | '/overlay/top-decks'
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
@@ -645,6 +655,7 @@ export interface FileRouteTypes {
     | '/overlay/sponsors'
     | '/overlay/stream-clock'
     | '/overlay/timer'
+    | '/overlay/top-decks'
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/overlay/sponsors'
     | '/overlay/stream-clock'
     | '/overlay/timer'
+    | '/overlay/top-decks'
     | '/overlay/upcoming'
     | '/overlay/versus'
     | '/overlay/winner'
@@ -1077,6 +1089,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayTimerRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/overlay/top-decks': {
+      id: '/overlay/top-decks'
+      path: '/top-decks'
+      fullPath: '/overlay/top-decks'
+      preLoaderRoute: typeof OverlayTopDecksRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
     '/overlay/upcoming': {
       id: '/overlay/upcoming'
       path: '/upcoming'
@@ -1187,6 +1206,7 @@ interface OverlayRouteRouteChildren {
   OverlaySponsorsRoute: typeof OverlaySponsorsRoute
   OverlayStreamClockRoute: typeof OverlayStreamClockRoute
   OverlayTimerRoute: typeof OverlayTimerRoute
+  OverlayTopDecksRoute: typeof OverlayTopDecksRoute
   OverlayUpcomingRoute: typeof OverlayUpcomingRoute
   OverlayVersusRoute: typeof OverlayVersusRoute
   OverlayWinnerRoute: typeof OverlayWinnerRoute
@@ -1209,6 +1229,7 @@ const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlaySponsorsRoute: OverlaySponsorsRoute,
   OverlayStreamClockRoute: OverlayStreamClockRoute,
   OverlayTimerRoute: OverlayTimerRoute,
+  OverlayTopDecksRoute: OverlayTopDecksRoute,
   OverlayUpcomingRoute: OverlayUpcomingRoute,
   OverlayVersusRoute: OverlayVersusRoute,
   OverlayWinnerRoute: OverlayWinnerRoute,

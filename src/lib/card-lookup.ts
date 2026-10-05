@@ -634,6 +634,53 @@ export async function fetchCommanderColors(name: string): Promise<string[]> {
   return job;
 }
 
+const commanderArtCache = new Map<string, string>();
+const commanderArtInflight = new Map<string, Promise<string>>();
+
+export async function fetchCommanderArt(name: string): Promise<string> {
+  const raw = name.trim();
+  if (!raw) return "";
+  const key = colorCacheKey(raw);
+  const hit = commanderArtCache.get(key);
+  if (hit !== undefined) return hit;
+  const pending = commanderArtInflight.get(key);
+  if (pending) return pending;
+  const job = (async () => {
+    try {
+      const url = new URL(`${SCRYFALL_BASE}/cards/named`);
+      url.searchParams.set("fuzzy", raw);
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        commanderArtCache.set(key, "");
+        return "";
+      }
+      const data = (await res.json()) as unknown;
+      if (!isRecord(data)) {
+        commanderArtCache.set(key, "");
+        return "";
+      }
+      const faces = Array.isArray(data.card_faces) ? data.card_faces.filter(isRecord) : [];
+      const face = faces[0];
+      const images = isRecord(data.image_uris) ? data.image_uris : face && isRecord(face.image_uris) ? face.image_uris : null;
+      const art = images?.art_crop
+        ? String(images.art_crop)
+        : images?.normal
+          ? String(images.normal)
+          : images?.small
+            ? String(images.small)
+            : "";
+      commanderArtCache.set(key, art);
+      return art;
+    } catch {
+      return "";
+    } finally {
+      commanderArtInflight.delete(key);
+    }
+  })();
+  commanderArtInflight.set(key, job);
+  return job;
+}
+
 export async function fetchScryfallCard(id: string): Promise<LookupCard | null> {
   const saved = await savedCatalogCard("mtg", id);
   if (saved !== undefined) return saved;

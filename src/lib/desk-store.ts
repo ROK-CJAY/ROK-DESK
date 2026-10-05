@@ -22,6 +22,7 @@ import {
   blankPlayer,
   stripLane,
   laneKey,
+  deskLaneOf,
   parseMatchSlot,
   type DeskState,
   type MatchSlot,
@@ -54,6 +55,7 @@ type DeskStore = {
   hydrate: (gameId?: GameId | null, slot?: MatchSlot | null) => Promise<void>;
   setDesk: (desk: DeskState) => void;
   patch: (partial: Partial<DeskState>) => void;
+  patchGameLane: (gameId: GameId, partial: Partial<DeskState>) => void;
   setPlayer: (side: SideId, partial: Partial<PlayerSide>) => void;
   bumpScore: (side: SideId, delta: number) => void;
   bumpResource: (side: SideId, delta: number) => void;
@@ -297,6 +299,21 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     set({ desk });
   },
 
+  patchGameLane: (gameId, partial) => {
+    const prev = get().desk;
+    if (prev.gameId === gameId && (prev.matchSlot ?? 1) === 1) {
+      const desk = nextVersion(prev, partial);
+      persist(desk);
+      set({ desk });
+      return;
+    }
+    const lane = deskLaneOf(prev, gameId, 1);
+    const nextLane = stripLane({ ...lane, ...partial, gameId, matchSlot: 1, lanes: {} });
+    const desk = nextVersion(prev, { lanes: { ...prev.lanes, [laneKey(gameId, 1)]: nextLane } });
+    persist(desk);
+    set({ desk });
+  },
+
   setPlayer: (side, partial) => {
     const prev = get().desk;
     const current = prev[side];
@@ -440,6 +457,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       cardSpotlight: emptySpotlight(),
       cardStack: [],
       sideSpotlight: emptySideSpotlight(),
+      topDeckSlots: [],
       ...clearedOpOt(),
       gameClocks: {
         ...prev.gameClocks,

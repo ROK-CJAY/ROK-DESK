@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { type BestOf, type GameId, GAME_LIST, coerceDeskGameId, gameOf } from "@/lib/games";
 import { mergeTeam, teamHasMons, type TeamMon } from "@/lib/pokemon-vgc";
-import { mergeDecklist, type DeckCard } from "@/lib/decklist";
+import { facePair, mergeDecklist, type DeckCard } from "@/lib/decklist";
 
 export type BracketType = "single" | "double" | "swiss";
 export type BracketSize = number;
@@ -96,6 +96,7 @@ export type Entrant = {
   note: string;
   judgeNote: string;
   decklist: DeckCard[];
+  faces: [DeckCard | null, DeckCard | null];
   recordW: number;
   recordL: number;
   recordD: number;
@@ -270,6 +271,7 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
   note: z.string().optional().transform((v) => v ?? ""),
   judgeNote: z.string().optional().transform((v) => v ?? ""),
   decklist: z.unknown().optional().transform((rows) => mergeDecklist(rows)),
+  faces: z.unknown().optional().transform((rows) => facePair(rows)),
   recordW: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
   recordL: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
   recordD: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
@@ -397,6 +399,7 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     ...overrides,
     team: mergeTeam(overrides.team),
     decklist: mergeDecklist(overrides.decklist),
+    faces: facePair(overrides.faces),
     judgeNote: overrides.judgeNote ?? "",
     recordW: overrides.recordW ?? 0,
     recordL: overrides.recordL ?? 0,

@@ -398,14 +398,14 @@ const COPY: Record<
       },
       {
         title: "Same seats as the stream",
-        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream. Use Player tablet extended if the table is self-running names, inks, and cards.",
+        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream. Use Player tablet extended if the table is self-running names, inks, and the clock.",
       },
     ],
   },
   "lorcana-player-extended": {
     kicker: "Player tablet extended",
     title: "Run this Lorcana table on stream",
-    lead: "Use this pad when nobody is on Production. Names, inks, lore, games, the clock, and card art all hit the same overlays the desk uses.",
+    lead: "Use this pad when nobody is on Production. Names, inks, lore, games, and the clock hit the same overlays the desk uses.",
     steps: [
       {
         title: "Type names and tap inks",
@@ -416,12 +416,12 @@ const COPY: Record<
         body: "The big number is lore (0–20). Plus above, minus below, +8 / −8 on the edge. Diamonds are games in the match. Game awards a game and resets lore. Match reports the pairing if Tournament sent it.",
       },
       {
-        title: "Clock and cards",
-        body: "Start / pause the match clock at the top. Search a card at the bottom, then Show P1 or Show P2 in that player’s well. Clear takes the art off.",
+        title: "Clock",
+        body: "Start, pause, and add time on the match clock at the top. Reset game zeros lore. Reset match zeros lore and games.",
       },
       {
         title: "Reset and clear",
-        body: "Reset game zeros lore. Reset match zeros lore and games. Clear seat wipes that player. Clear table wipes both seats and anything on the card overlay.",
+        body: "Reset game zeros lore. Reset match zeros lore and games. Clear wipes that seat. Clear table wipes both seats.",
       },
     ],
   },

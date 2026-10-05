@@ -897,7 +897,7 @@ export function PodPanel() {
                     : rift
                       ? "Judge tablet — first-to-8 points, Duel / Match / Skirmish / War, clock, and Riftcodex card lookup."
                       : catalog === "lorcana"
-                        ? "Three tablets: player pad for lore and games, player tablet extended if the table is self-running names / inks / cards, judge tablet for Lorcast and match report."
+                        ? "Three tablets: player pad for lore and games, player tablet extended if the table is self-running names, inks, and the clock, judge tablet for Lorcast and match report."
                         : "Player tablet for the live table. Each game uses its own layout."}
       </p>
       {catalog ? (
@@ -925,7 +925,7 @@ export function PodPanel() {
         <p className="mt-2 text-xs text-ok">Tap points 1–8. Game and Match report to the desk and bracket. Search cards below on the pad.</p>
       ) : lorcana ? (
         <p className="mt-2 text-xs text-ok">
-          Player tablet: lore and games. Player tablet extended: names, inks, clock, Show P1 / P2, clear. Judge tablet still looks up cards and reports the match.
+          Player tablet: lore and games. Player tablet extended: names, inks, and the clock. Judge tablet still looks up cards and reports the match.
         </p>
       ) : !commander ? (
         <p className="mt-2 text-xs text-subtle">Open the tablet for the live table of this game.</p>

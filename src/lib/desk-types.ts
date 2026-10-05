@@ -9,7 +9,7 @@ import {
   type TeamMon,
 } from "@/lib/pokemon-vgc";
 import { emptyPtcgBoard, parsePtcgBoard, type PtcgBoard } from "@/lib/ptcg-board";
-import { emptyDecklist, mergeDecklist, type DeckCard } from "@/lib/decklist";
+import { emptyDecklist, facePair, mergeDecklist, type DeckCard } from "@/lib/decklist";
 
 export type GameClock = {
   remaining: number;
@@ -187,6 +187,8 @@ export type DeskState = {
   scorebugPosition: "top" | "bottom";
   tableSize: TableSize;
   rosterSide: RosterSide;
+  topDeckCount: number;
+  topDeckSlots: TopDeckSlot[];
   layout: LayoutMap;
   overlayLook: OverlayLookBook;
   cardSpotlight: SpotlightCard;
@@ -320,6 +322,8 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   scorebugPosition: z.enum(["top", "bottom"]),
   tableSize: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   rosterSide: z.enum(["hidden", "p1", "p2", "both"]),
+  topDeckCount: z.number(),
+  topDeckSlots: z.unknown().optional().transform((rows) => parseTopDeckSlots(rows)),
   lanes: z.record(z.string(), z.any()).optional().transform((v) => (v ?? {}) as DeskState["lanes"]),
   overlayLook: z.any().optional().transform((v) => mergeLookBook(v)),
   cardSpotlight: z
@@ -523,6 +527,8 @@ export function defaultDesk(): DeskState {
     scorebugPosition: "bottom",
     tableSize: 2,
     rosterSide: "hidden",
+    topDeckCount: 8,
+    topDeckSlots: [],
     layout: { ...DEFAULT_LAYOUT },
     overlayLook: { ...DEFAULT_LOOK_BOOK, sources: {} },
     cardSpotlight: emptySpotlight(),
@@ -533,6 +539,34 @@ export function defaultDesk(): DeskState {
     testMode: false,
     testSnapshot: null,
   };
+}
+
+export type TopDeckSlot = {
+  name: string;
+  deck: string;
+  faces: [DeckCard | null, DeckCard | null];
+};
+
+export function emptyTopDeckSlot(): TopDeckSlot {
+  return { name: "", deck: "", faces: [null, null] };
+}
+
+export function parseTopDeckSlots(raw: unknown): TopDeckSlot[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 16).map((item) => {
+    const row = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+    return {
+      name: String(row.name ?? "").slice(0, 80),
+      deck: String(row.deck ?? "").slice(0, 80),
+      faces: facePair(row.faces),
+    };
+  });
+}
+
+export function clampTopDeckCount(value: unknown): number {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return 8;
+  return Math.min(16, Math.max(1, Math.round(n)));
 }
 
 export function resourceLimit(desk: Pick<DeskState, "gameId" | "formatName" | "resourceCap">): number {
@@ -687,6 +721,8 @@ export function parseDesk(raw: unknown): DeskState | null {
       incoming.rosterSide === "hidden"
         ? incoming.rosterSide
         : base.rosterSide,
+    topDeckCount: clampTopDeckCount(incoming.topDeckCount),
+    topDeckSlots: parseTopDeckSlots(incoming.topDeckSlots),
   };
   const parsed = deskSchema.safeParse(merged);
   return parsed.success ? (parsed.data as DeskState) : null;

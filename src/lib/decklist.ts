@@ -114,6 +114,16 @@ export function clampQty(value: unknown): number {
   return Math.max(1, Math.min(99, n));
 }
 
+export function facePair(raw: unknown): [DeckCard | null, DeckCard | null] {
+  const list = Array.isArray(raw) ? raw : [];
+  const slot = (item: unknown): DeckCard | null => {
+    if (!item || typeof item !== "object") return null;
+    const card = mergeDecklist([item])[0];
+    return card?.name ? card : null;
+  };
+  return [slot(list[0]), slot(list[1])];
+}
+
 export function decklistCount(cards: DeckCard[] | undefined): number {
   return (cards ?? []).reduce((sum, card) => sum + card.qty, 0);
 }

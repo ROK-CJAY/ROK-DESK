@@ -8,6 +8,15 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
+### Added
+
+- **Top decks** — a full-frame graphic for every title except VGC. Type how many decks to show, then the name, deck, and two cards. A blank name or deck uses the standings. Each game keeps its own list.
+- **Commander plates** — the scorebug card uses that commander’s art as a dark background. A partner splits the art. Color identity sits under the life total, two icons high.
+
+### Changed
+
+- **Lorcana self-run tablet** — card lookup is off this pad. Names, inks, lore, games, and the clock fit a short tablet. Card search stays on the judge tablet.
+
 ### Later
 
 - **Venue keys** — if other stores share this public site, each venue gets its own key. A sign-up code belongs to the venue that opened it, and another venue cannot pull that list. Not needed while ROK is the only desk on this host.

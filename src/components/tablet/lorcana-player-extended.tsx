@@ -5,7 +5,6 @@ import { gameDiamonds } from "@/lib/lorcana";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { RoundClock } from "@/components/desk/round-clock";
-import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,35 +18,30 @@ export function LorcanaPlayerExtendedTablet() {
   const guide = useTabletGuide("lorcana-player-extended");
 
   const clearTable = () => {
-    if (!window.confirm("Clear both seats — names, inks, lore, games, and cards on stream?")) return;
+    if (!window.confirm("Clear both seats — names, inks, lore, and games?")) return;
     resetInfo();
   };
 
   return (
-    <div
-      className="grid h-dvh grid-rows-[auto_minmax(11rem,1fr)_minmax(8rem,28vh)] bg-bg text-fg"
-      data-game="lorcana"
-    >
-      <header className="min-h-0 shrink-0 border-b border-border px-2 py-1.5 sm:px-3">
-        <div className="flex flex-wrap items-center justify-between gap-1.5">
+    <div className="flex h-dvh flex-col bg-bg text-fg" data-game="lorcana">
+      <header className="shrink-0 border-b border-border px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2">
           <div className="min-w-0">
-            <p className="font-mono text-[0.58rem] tracking-[0.2em] text-muted uppercase">
-              ROK · Player tablet extended
-            </p>
-            <p className="truncate font-display text-base leading-tight font-semibold uppercase sm:text-lg">
+            <p className="font-mono text-[0.58rem] tracking-[0.2em] text-muted uppercase">ROK · Player tablet extended</p>
+            <p className="truncate font-display text-base leading-none font-semibold uppercase">
               {desk.eventName || "Self-run table"}
               {desk.roundName ? <span className="text-muted"> · {desk.roundName}</span> : null}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Button variant="outline" size="sm" onClick={resetGame}>
+          <div className="flex shrink-0 items-center gap-1">
+            <Button variant="outline" size="sm" className="h-8 px-2" onClick={resetGame}>
               <RotateCcw className="size-3.5" />
               Reset game
             </Button>
-            <Button variant="outline" size="sm" onClick={resetMatch}>
+            <Button variant="outline" size="sm" className="h-8 px-2" onClick={resetMatch}>
               Reset match
             </Button>
-            <Button variant="outline" size="sm" onClick={clearTable}>
+            <Button variant="outline" size="sm" className="h-8 px-2" onClick={clearTable}>
               <Trash2 className="size-3.5" />
               Clear table
             </Button>
@@ -59,13 +53,9 @@ export function LorcanaPlayerExtendedTablet() {
         </div>
       </header>
 
-      <div className="grid min-h-0 grid-cols-2 overflow-hidden">
+      <div className="grid min-h-0 flex-1 grid-cols-1 sm:grid-cols-2">
         <PlayerDesk side="p2" />
         <PlayerDesk side="p1" />
-      </div>
-
-      <div className="min-h-0 overflow-auto border-t border-border p-2 sm:p-3">
-        <CardLookup catalog="lorcana" formatName={desk.formatName} compact />
       </div>
       <TabletGuide kind="lorcana-player-extended" open={guide.open} onClose={guide.close} />
     </div>
@@ -103,129 +93,113 @@ function PlayerDesk({ side }: { side: SideId }) {
   };
 
   return (
-    <section className={cn("flex min-h-0 flex-col overflow-auto bg-surface p-2 sm:p-3", side === "p1" ? "border-l border-border" : "")}>
-      <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">{label}</p>
-      <Input
-        value={player.name}
-        onChange={(e) => setPlayer(side, { name: e.target.value })}
-        placeholder="Name on stream"
-        className="mt-1.5 h-9 font-display text-base font-semibold uppercase sm:h-11 sm:text-lg"
-        autoComplete="name"
-        aria-label={`${label} name`}
-      />
-      <Input
-        value={player.archetype}
-        onChange={(e) => setPlayer(side, { archetype: e.target.value })}
-        placeholder="Deck"
-        className="mt-1.5"
-        aria-label={`${label} deck`}
-      />
-
-      <div className="mt-3">
-        <p className="font-mono mb-1 text-[0.58rem] tracking-[0.16em] text-muted uppercase">Inks</p>
-        <InkPicker
-          ink1={player.ink1}
-          ink2={player.ink2}
-          onChange={(next) => setPlayer(side, next)}
-        />
-      </div>
-
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="font-mono text-[0.58rem] tracking-[0.16em] text-muted uppercase">Games</p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => bumpScore(side, -1)}
-            disabled={player.score <= 0}
-            aria-label={`${label} minus one game`}
-            className="grid size-11 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
-          >
-            −
-          </button>
-          <div className="flex min-w-10 flex-col items-center gap-1">
-            <span className="font-display text-lg leading-none font-semibold tabular-nums">{player.score}</span>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: needed }, (_, i) => (
-                <span
-                  key={i}
-                  className={cn(
-                    "size-2.5 rotate-45 border-2",
-                    i < player.score ? "border-accent bg-accent" : "border-muted bg-transparent",
-                  )}
-                />
-              ))}
+    <section className={cn("grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-surface", side === "p1" ? "border-t border-border sm:border-t-0 sm:border-l" : "")}>
+      <div className="px-3 pt-2">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">{label}</p>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => bumpScore(side, -1)}
+              disabled={player.score <= 0}
+              aria-label={`${label} minus one game`}
+              className="grid size-9 place-items-center rounded-md border border-border bg-surface-2 text-xl leading-none text-fg active:bg-surface disabled:opacity-30"
+            >
+              −
+            </button>
+            <div className="flex min-w-8 flex-col items-center gap-0.5">
+              <span className="font-display text-base leading-none font-semibold tabular-nums">{player.score}</span>
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: needed }, (_, i) => (
+                  <span
+                    key={i}
+                    className={cn(
+                      "size-2 rotate-45 border",
+                      i < player.score ? "border-accent bg-accent" : "border-muted bg-transparent",
+                    )}
+                  />
+                ))}
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => bumpScore(side, 1)}
+              disabled={player.score >= needed}
+              aria-label={`${label} plus one game`}
+              className="grid size-9 place-items-center rounded-md border border-border bg-surface-2 text-xl leading-none text-fg active:bg-surface disabled:opacity-30"
+            >
+              +
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => bumpScore(side, 1)}
-            disabled={player.score >= needed}
-            aria-label={`${label} plus one game`}
-            className="grid size-11 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
-          >
-            +
-          </button>
+        </div>
+        <Input
+          value={player.name}
+          onChange={(e) => setPlayer(side, { name: e.target.value })}
+          placeholder="Name on stream"
+          className="mt-1.5 h-9 font-display text-base font-semibold uppercase"
+          autoComplete="name"
+          aria-label={`${label} name`}
+        />
+        <Input
+          value={player.archetype}
+          onChange={(e) => setPlayer(side, { archetype: e.target.value })}
+          placeholder="Deck"
+          className="mt-1 h-8"
+          aria-label={`${label} deck`}
+        />
+        <div className="mt-1.5 pb-1">
+          <InkPicker ink1={player.ink1} ink2={player.ink2} size="sm" quiet onChange={(next) => setPlayer(side, next)} />
         </div>
       </div>
 
-      <div className="mt-2 flex min-h-0 flex-1 items-center justify-center gap-2 px-1">
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => bumpResource(side, -8)}
-            className="min-w-12 rounded-md border border-border bg-surface-2 px-2 py-1.5 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
-          >
-            −8
-          </button>
-          <button
-            type="button"
-            onClick={() => bumpResource(side, -1)}
-            className="grid size-14 place-items-center rounded-md border border-border bg-surface-2 text-3xl leading-none text-fg active:bg-surface"
-            aria-label={`${label} minus one lore`}
-          >
-            −
-          </button>
-        </div>
+      <div className="flex items-center justify-center gap-2 px-3">
+        <button
+          type="button"
+          onClick={() => bumpResource(side, -8)}
+          className="h-11 min-w-12 rounded-md border border-border bg-surface-2 px-2 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
+        >
+          −8
+        </button>
+        <button
+          type="button"
+          onClick={() => bumpResource(side, -1)}
+          className="grid size-12 place-items-center rounded-md border border-border bg-surface-2 text-3xl leading-none text-fg active:bg-surface"
+          aria-label={`${label} minus one lore`}
+        >
+          −
+        </button>
         <p
-          className="font-display min-w-0 flex-1 text-center leading-none font-semibold tabular-nums text-fg"
-          style={{ fontSize: "clamp(2.6rem, 9vw, 7rem)" }}
+          className="font-display w-[4.5ch] text-center leading-none font-semibold tabular-nums text-fg"
+          style={{ fontSize: "clamp(2.75rem, 6vw, 5.5rem)" }}
         >
           {lore}
         </p>
-        <div className="flex flex-col items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => bumpResource(side, 8)}
-            className="min-w-12 rounded-md border border-border bg-surface-2 px-2 py-1.5 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
-          >
-            +8
-          </button>
-          <button
-            type="button"
-            onClick={() => bumpResource(side, 1)}
-            className="grid size-14 place-items-center rounded-md border border-border bg-surface-2 text-3xl leading-none text-fg active:bg-surface"
-            aria-label={`${label} plus one lore`}
-          >
-            +
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => bumpResource(side, 1)}
+          className="grid size-12 place-items-center rounded-md border border-border bg-surface-2 text-3xl leading-none text-fg active:bg-surface"
+          aria-label={`${label} plus one lore`}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={() => bumpResource(side, 8)}
+          className="h-11 min-w-12 rounded-md border border-border bg-surface-2 px-2 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
+        >
+          +8
+        </button>
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        <Button
-          variant={gameLive ? "live" : "secondary"}
-          size="sm"
-          className="flex-1"
-          onClick={() => (gameLive ? clearWinners() : gameWin(side))}
-        >
+      <div className="grid grid-cols-3 gap-1.5 px-3 pt-1 pb-2">
+        <Button variant={gameLive ? "live" : "secondary"} size="sm" onClick={() => (gameLive ? clearWinners() : gameWin(side))}>
           Game
         </Button>
-        <Button variant={matchLive ? "live" : "secondary"} size="sm" className="flex-1" onClick={punchMatch}>
+        <Button variant={matchLive ? "live" : "secondary"} size="sm" onClick={punchMatch}>
           Match
         </Button>
         <Button variant="outline" size="sm" onClick={clearSeat}>
-          <Trash2 className="size-3.5" />
-          Clear seat
+          Clear
         </Button>
       </div>
     </section>

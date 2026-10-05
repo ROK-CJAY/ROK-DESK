@@ -4,14 +4,14 @@ import { CardStackArt } from "@/components/overlays/card";
 import { useCardImageSrc } from "@/components/ui/remote-art";
 import { formatClock, remainingSeconds, resourceLimit, visibleCardStack, RIFT_OT_LAST_TURN, type DeskState, type SideId } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
-import { isMtgTitle, isPtcgTitle } from "@/lib/games";
+import { isMtgTitle, isPtcgTitle, type GameId } from "@/lib/games";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { cn } from "@/lib/cn";
 import { WinStings } from "@/components/overlays/winner";
 
 const WELL = "20.5rem";
 
-export function rokCardBack(desk: DeskState): string {
+export function rokCardBack(desk: { gameId: GameId }): string {
   if (isMtgTitle(desk.gameId)) return "/mtg/card-back.png";
   if (desk.gameId === "yugioh") return "/ygo/card-back.png";
   if (isPtcgTitle(desk.gameId)) return "/ptcg/card-back-v2.png";

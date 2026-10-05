@@ -1,3 +1,4 @@
+import { facePair } from "@/lib/decklist";
 import { coerceDeskGameId } from "@/lib/games";
 import {
   DRAW_ID,
@@ -135,6 +136,7 @@ function playerFromExport(item: unknown, index: number): Entrant {
     judgeNote: text(p.judgeNote ?? p.judge_notes),
     team: Array.isArray(p.team) ? p.team : undefined,
     decklist: Array.isArray(p.decklist) ? p.decklist : undefined,
+    faces: facePair(p.faces),
   });
 }
 

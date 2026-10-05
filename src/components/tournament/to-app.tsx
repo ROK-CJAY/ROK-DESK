@@ -13,6 +13,7 @@ import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane,
 import { catalogForGame, hydrateDeckOnClient } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { RemoteSignupPanel } from "@/components/tournament/remote-signup-panel";
+import { TopDecksPanel } from "@/components/tournament/top-deck-faces";
 import { decklistCount } from "@/lib/decklist";
 import { tournamentLooksLikeTest } from "@/lib/test-fixtures";
 import { countFilledMons, emptyTeam, teamHasMons } from "@/lib/pokemon-vgc";
@@ -110,6 +111,7 @@ export function TournamentApp() {
           <TeamSheetPanel playerId={sheetPlayerId} onSelectPlayer={setSheetPlayerId} />
           <BracketBoard />
           <TomReportsPanel />
+          <TopDecksPanel />
           <TiebreakPanel t={t} standings={standings} />
         </div>
       </main>

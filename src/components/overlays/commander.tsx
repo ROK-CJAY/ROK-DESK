@@ -11,8 +11,8 @@ import {
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
 import { FadeValue } from "@/components/overlays/fade-value";
-import { fetchCommanderColors } from "@/lib/card-lookup";
-import { commanderPlateGradient, mergeColorIdentity } from "@/lib/commander-colors";
+import { fetchCommanderArt, fetchCommanderColors } from "@/lib/card-lookup";
+import { mergeColorIdentity, type ManaColor } from "@/lib/commander-colors";
 import { cn } from "@/lib/cn";
 
 const SEAT_WIDGET: Record<SeatId, "scorebugP1" | "scorebugP2" | "scorebugP3" | "scorebugP4"> = {
@@ -87,24 +87,74 @@ export function CommanderClock({ desk, now }: { desk: DeskState; now: number }) 
   );
 }
 
-function usePlateColors(commander: string, partner: string): string[] {
-  const [colors, setColors] = useState<string[]>([]);
+function useCommanderArt(name: string): string {
+  const [src, setSrc] = useState("");
   useEffect(() => {
-    let cancelled = false;
-    const names = [commander, partner].map((n) => n.trim()).filter(Boolean);
-    if (!names.length) {
-      setColors([]);
+    let cancel = false;
+    const query = name.trim();
+    if (!query) {
+      setSrc("");
       return;
     }
-    void Promise.all(names.map((n) => fetchCommanderColors(n))).then((rows) => {
-      if (cancelled) return;
-      setColors(mergeColorIdentity(...rows));
+    void fetchCommanderArt(query).then((url) => {
+      if (!cancel) setSrc(url);
     });
     return () => {
-      cancelled = true;
+      cancel = true;
+    };
+  }, [name]);
+  return src;
+}
+
+function useColorIdentity(commander: string, partner: string): Array<ManaColor | "C"> | null {
+  const [colors, setColors] = useState<Array<ManaColor | "C"> | null>(null);
+  useEffect(() => {
+    let cancel = false;
+    const names = [commander, partner].map((name) => name.trim()).filter(Boolean);
+    if (!names.length) {
+      setColors(null);
+      return;
+    }
+    void Promise.all(names.map((name) => fetchCommanderColors(name))).then((rows) => {
+      if (cancel) return;
+      const merged = mergeColorIdentity(...rows);
+      setColors(merged.length ? merged : ["C"]);
+    });
+    return () => {
+      cancel = true;
     };
   }, [commander, partner]);
   return colors;
+}
+
+function ManaPips({ colors }: { colors: Array<ManaColor | "C"> }) {
+  return (
+    <div className="grid grid-flow-col grid-rows-2 gap-0.5">
+      {colors.map((color) => (
+        <ManaPip key={color} color={color} />
+      ))}
+    </div>
+  );
+}
+
+function ManaPip({ color }: { color: ManaColor | "C" }) {
+  const fill = color === "W" ? "#f4edd4" : color === "U" ? "#0e68ab" : color === "B" ? "#16141c" : color === "R" ? "#d3202a" : color === "G" ? "#00733e" : "#9a9388";
+  const ink = color === "W" ? "#c4a24a" : color === "B" ? "#ddd8cf" : "#f7f4ee";
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden className="size-[1.125rem] shrink-0 drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.65)]">
+      <circle cx="8" cy="8" r="7.2" fill={fill} stroke={color === "W" ? "#c4a24a" : "rgb(255 255 255 / 0.35)"} strokeWidth="0.8" />
+      {color === "W" ? (
+        <path fill={ink} d="M8 2.2 9.1 6.2h4.1L10 8.6l1.1 4L8 10.2 4.9 12.6 6 8.6 2.8 6.2h4.1z" />
+      ) : null}
+      {color === "U" ? <path fill={ink} d="M8 2.4c2.2 2.6 3.3 4.4 3.3 6.1A3.3 3.3 0 0 1 8 11.8 3.3 3.3 0 0 1 4.7 8.5C4.7 6.8 5.8 5 8 2.4Z" /> : null}
+      {color === "B" ? (
+        <path fill={ink} d="M8 3.1a2.1 2.1 0 0 0-2.1 2.2c0 .8.4 1.3.4 1.8 0 .3-.3.5-.6.7-.7.4-1.2 1.1-1.2 2a2.4 2.4 0 0 0 2.5 2.4h2c1.4 0 2.5-1 2.5-2.4 0-.9-.5-1.6-1.2-2-.3-.2-.6-.4-.6-.7 0-.5.4-1 .4-1.8A2.1 2.1 0 0 0 8 3.1Zm-1.15 2.3a.55.55 0 1 1 0 1.1.55.55 0 0 1 0-1.1Zm2.3 0a.55.55 0 1 1 0 1.1.55.55 0 0 1 0-1.1ZM8 8.2c.7 0 1.15.45.7 1.15-.35.5-.7.55-.7.55s-.35-.05-.7-.55c-.45-.7 0-1.15.7-1.15Z" />
+      ) : null}
+      {color === "R" ? <path fill={ink} d="M8.2 2.2c.4 1.8-.2 2.7-.8 3.6-.5.7-.5 1.3-.1 1.9.5.8 1.6.7 2 .1.3 1.5-.2 2.6-1.3 3.5-1.7 1.3-4.2.4-4.4-1.7-.1-1.5.8-2.4 1.1-3.6.2-.8-.1-1.5-.6-2.3 1.2.2 2.1-.2 4.1-1.5Z" /> : null}
+      {color === "G" ? <path fill={ink} d="M8 2.3 11.4 8H9.3v1.2h1.4L8 13.2 5.3 9.2h1.4V8H4.6L8 2.3Z" /> : null}
+      {color === "C" ? <path fill={ink} d="M8 3.2 12.2 8 8 12.8 3.8 8 8 3.2Z" /> : null}
+    </svg>
+  );
 }
 
 function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
@@ -115,20 +165,42 @@ function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
   const commander = commanderFaceName(player.archetype);
   const partner = commanderFaceName(player.extra);
   const showPartner = Boolean(partner && partner.toLowerCase() !== commander.toLowerCase());
-  const colors = usePlateColors(commander, partner);
-  const tinted = colors.length > 0;
+  const art = useCommanderArt(commander);
+  const partnerArt = useCommanderArt(showPartner ? partner : "");
+  const colors = useColorIdentity(commander, showPartner ? partner : "");
+  const split = Boolean(art && partnerArt);
 
   return (
     <div
       className={cn(
-        "w-[380px] overflow-hidden rounded-md border px-3.5 py-2.5 shadow-[0_10px_28px_rgb(0_0_0_/_0.4)]",
-        tinted ? "border-ov-fg/20" : "border-ov-fg/10 bg-ov-bg/88",
+        "relative w-[380px] overflow-hidden rounded-md border border-ov-fg/10 bg-ov-bg/88 px-3.5 py-1.5 shadow-[0_10px_28px_rgb(0_0_0_/_0.4)]",
         right && "text-right",
         (out || lethal) && "opacity-70",
       )}
-      style={tinted ? { backgroundImage: commanderPlateGradient(colors, right) } : undefined}
     >
-      <div className={cn("flex items-start gap-3", right && "flex-row-reverse")}>
+      {art || partnerArt ? (
+        <>
+          <div className={cn("pointer-events-none absolute inset-0 flex", right && split && "flex-row-reverse")}>
+            {split ? (
+              <>
+                <img src={art} alt="" referrerPolicy="no-referrer" className="h-full w-1/2 object-cover" />
+                <img src={partnerArt} alt="" referrerPolicy="no-referrer" className="h-full w-1/2 object-cover" />
+              </>
+            ) : (
+              <img src={art || partnerArt} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+            )}
+          </div>
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0",
+              right
+                ? "bg-linear-to-l from-black/82 via-black/72 to-black/58"
+                : "bg-linear-to-r from-black/82 via-black/72 to-black/58",
+            )}
+          />
+        </>
+      ) : null}
+      <div className={cn("relative z-10 flex items-start gap-3", right && "flex-row-reverse")}>
         <div className="min-w-0 flex-1">
           <p className="font-display truncate text-2xl leading-none font-semibold tracking-tight text-ov-fg uppercase [text-shadow:0_1px_8px_rgb(0_0_0_/_0.65)]">
             {player.name || "TBD"}
@@ -143,13 +215,16 @@ function SeatPlate({ desk, seat }: { desk: DeskState; seat: SeatId }) {
             </p>
           ) : null}
         </div>
-        <p className="font-display text-4xl leading-none font-semibold tabular-nums text-ov-fg [text-shadow:0_1px_8px_rgb(0_0_0_/_0.65)]">
-          <FadeValue value={player.resource} />
-        </p>
+        <div className="flex shrink-0 flex-col items-center gap-0.5">
+          <p className="font-display text-4xl leading-none font-semibold tabular-nums text-ov-fg [text-shadow:0_1px_8px_rgb(0_0_0_/_0.65)]">
+            <FadeValue value={player.resource} />
+          </p>
+          {colors ? <ManaPips colors={colors} /> : null}
+        </div>
       </div>
       <p
         className={cn(
-          "mt-1.5 font-mono text-[0.68rem] tracking-[0.14em] text-ov-fg/80 uppercase [text-shadow:0_1px_6px_rgb(0_0_0_/_0.55)]",
+          "relative z-10 mt-1 font-mono text-[0.68rem] tracking-[0.14em] text-ov-fg/80 uppercase [text-shadow:0_1px_6px_rgb(0_0_0_/_0.55)]",
         )}
       >
         <span className={player.secondary > 0 ? "text-ov-fg" : ""}>

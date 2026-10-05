@@ -19,9 +19,12 @@ import type { OverlayEdit } from "@/components/overlays/placed";
 import { Button } from "@/components/ui/button";
 import { OVERLAY_SOURCES, overlayPath, overlayWindowName, type OverlaySourceId } from "@/components/desk/sources";
 import { useDeskStore } from "@/lib/desk-store";
+import { isVgcTitle } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament } from "@/lib/tournament-types";
+import { deskLaneOf } from "@/lib/desk-types";
 import { BracketOverlay } from "@/components/overlays/bracket";
+import { TopDecksOverlay } from "@/components/overlays/top-decks";
 import { FloorClockOverlay } from "@/components/overlays/floor-clock";
 import { OverlayLookRoot } from "@/components/overlays/overlay-look-root";
 import { CardSpotlightView } from "@/components/overlays/card";
@@ -298,7 +301,7 @@ export function OverlayPreview() {
 
       <div>
       <div className="mt-0 flex flex-wrap gap-1.5">
-        {OVERLAY_SOURCES.map((item) => (
+        {OVERLAY_SOURCES.filter((item) => item.id !== "top-decks" || !isVgcTitle(desk.gameId)).map((item) => (
           <button
             key={item.id}
             type="button"
@@ -363,7 +366,7 @@ export function OverlayPreview() {
       <details className="mt-3 rounded-lg bg-surface-2 px-3 py-2">
         <summary className="cursor-pointer text-sm text-fg">Browser sources</summary>
         <ul className="mt-2 space-y-1">
-          {OVERLAY_SOURCES.map((item) => (
+          {OVERLAY_SOURCES.filter((item) => item.id !== "top-decks" || !isVgcTitle(desk.gameId)).map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-2 text-xs">
               <span className="text-muted">
                 {item.name}
@@ -482,6 +485,10 @@ function SourceCanvas({
   if (source === "upcoming") return <UpcomingView desk={desk} edit={edit} />;
   if (source === "bracket" && tourneyReady) {
     return <BracketOverlay tournament={viewTournament(tournament, desk.gameId)} />;
+  }
+  if (source === "top-decks" && tourneyReady) {
+    const lane = deskLaneOf(desk, desk.gameId, 1);
+    return <TopDecksOverlay tournament={viewTournament(tournament, desk.gameId)} count={lane.topDeckCount} slots={lane.topDeckSlots} />;
   }
   if (source === "floor-clock" && tourneyReady) {
     return <FloorClockOverlay tournament={viewTournament(tournament, desk.gameId)} desk={desk} />;

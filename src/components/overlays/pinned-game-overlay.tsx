@@ -18,6 +18,7 @@ import { SponsorsView } from "@/components/overlays/sponsors";
 import { ScorebugView } from "@/components/overlays/scorebug";
 import { RosterView } from "@/components/overlays/roster";
 import { BracketOverlay } from "@/components/overlays/bracket";
+import { TopDecksOverlay } from "@/components/overlays/top-decks";
 import { FloorClockOverlay } from "@/components/overlays/floor-clock";
 import { OverlayLookRoot } from "@/components/overlays/overlay-look-root";
 import { useLiveDesk } from "@/components/overlays/use-live-desk";
@@ -44,6 +45,7 @@ const SOURCES = new Set<string>([
   "floor-clock",
   "stream-clock",
   "roster",
+  "top-decks",
   "card",
   "sponsors",
   "event-logo",
@@ -68,6 +70,9 @@ export function PinnedGameOverlay({
   }
   if (source === "bracket") {
     return <PinnedBracket gameId={gameId} />;
+  }
+  if (source === "top-decks") {
+    return <PinnedTopDecks gameId={gameId} slot={slot} />;
   }
 
   return (
@@ -146,6 +151,21 @@ function PinnedStreamClock({ gameId, slot = 1 }: { gameId: GameId; slot?: MatchS
           variant="stream"
         />
       </OverlayLookRoot>
+    </div>
+  );
+}
+
+function PinnedTopDecks({ gameId, slot = 1 }: { gameId: GameId; slot?: MatchSlot }) {
+  const tournament = useLiveTournament();
+  const desk = useLiveDesk(gameId, 400, slot);
+  if (!tournament || !desk) return null;
+  return (
+    <div className="h-screen w-screen bg-transparent">
+      <ScaleFrame>
+        <OverlayLookRoot book={desk.overlayLook} source="top-decks">
+          <TopDecksOverlay tournament={viewTournament(tournament, gameId)} count={desk.topDeckCount} slots={desk.topDeckSlots} />
+        </OverlayLookRoot>
+      </ScaleFrame>
     </div>
   );
 }
