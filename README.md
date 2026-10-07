@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.4.4-beta** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.4.5** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -329,7 +329,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.4.4-beta** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.4-beta) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.4-beta). The Android APK from v1.3.1-beta is unchanged.
+1. Download **v1.4.5** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.5) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.5). The Android APK from v1.3.1-beta is unchanged.
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -398,6 +398,13 @@ This copy also appears on Home and behind **License** in the desk header. It is 
 
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### v1.4.5 — 7 Oct 2026 · Player pads
+
+**Added**
+- Each store can create its own public sign-up key. A code belongs to that store.
+- Player pads other than Commander can sit side by side or stacked, and can flip Player 2 for head to head.
+- Commander player tablet seats use the commander’s art. Tap Cmd to track damage from each other player. That damage also lowers life.
 
 ### v1.4.4-beta — 7 Oct 2026 · Top decks
 
@@ -726,4 +733,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.4.4-beta**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.
+This build is **v1.4.5**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.

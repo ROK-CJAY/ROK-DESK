@@ -398,7 +398,7 @@ const COPY: Record<
       },
       {
         title: "Same seats as the stream",
-        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream. Use Player tablet extended if the table is self-running names, inks, and the clock.",
+        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream. Side by side or Stacked changes the layout. Head to head flips Player 2. Upright turns the flip off. Use Player tablet extended if the table is self-running names, inks, and the clock.",
       },
     ],
   },
@@ -421,7 +421,7 @@ const COPY: Record<
       },
       {
         title: "Reset and clear",
-        body: "Reset game zeros lore. Reset match zeros lore and games. Clear wipes that seat. Clear table wipes both seats.",
+        body: "Reset game zeros lore. Reset match zeros lore and games. Clear wipes that seat. Clear table wipes both seats. Side by side or Stacked changes the layout. Head to head flips Player 2.",
       },
     ],
   },
@@ -448,7 +448,7 @@ const COPY: Record<
       },
       {
         title: "Same seats as the stream",
-        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream.",
+        body: "Player 2 is on the left, Player 1 on the right — same as the scorebug. Names update when Production sends a match to stream. Side by side or Stacked changes the layout. Head to head flips Player 2. Upright turns the flip off.",
       },
     ],
   },
@@ -502,7 +502,7 @@ const COPY: Record<
       },
       {
         title: "Poison and commander",
-        body: "The chips under life track poison and commander damage. They go live on the Commander overlays.",
+        body: "The chips under life track poison and commander damage. Commander damage also takes that much life. Gaining life does not lower commander damage. Tap Cmd to track damage from each other player, and Total to go back to one number. They go live on the Commander overlays.",
       },
     ],
   },

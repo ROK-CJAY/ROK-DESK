@@ -2,6 +2,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { formatClock, remainingSeconds, type SideId } from "@/lib/desk-types";
 import { gameDiamonds } from "@/lib/lorcana";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { HeadToHeadButton, StackButton, useHeadToHead, useStackedSeats } from "@/components/tablet/head-to-head";
 import { cn } from "@/lib/cn";
 import { useClockNow } from "@/lib/use-clock-now";
 
@@ -10,6 +11,8 @@ const LORE_STEPS = [8, -8, 1, -1];
 export function LorcanaPlayerTablet() {
   const desk = useDeskStore((s) => s.desk);
   const guide = useTabletGuide("lorcana-player");
+  const face = useHeadToHead();
+  const stack = useStackedSeats();
   const now = useClockNow({ live: desk.timerRunning, pauseWhenHidden: true });
 
   const clock = formatClock(remainingSeconds(desk, now));
@@ -23,21 +26,23 @@ export function LorcanaPlayerTablet() {
             {clock}
           </p>
         </div>
-        <div className="absolute top-2 right-3">
+        <div className="absolute top-2 right-3 flex items-center gap-1.5">
+          <StackButton on={stack.on} onClick={stack.toggle} />
+          <HeadToHeadButton on={face.on} onClick={face.toggle} />
           <GuideButton onClick={guide.openGuide} />
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-2">
-        <PlayerHalf side="p2" />
-        <PlayerHalf side="p1" />
+      <div className={cn("grid min-h-0 flex-1", stack.on ? "grid-cols-1 grid-rows-2" : "grid-cols-2")}>
+        <PlayerHalf side="p2" flip={face.on} stacked={stack.on} />
+        <PlayerHalf side="p1" stacked={stack.on} />
       </div>
       <TabletGuide kind="lorcana-player" open={guide.open} onClose={guide.close} />
     </div>
   );
 }
 
-function PlayerHalf({ side }: { side: SideId }) {
+function PlayerHalf({ side, flip = false, stacked = false }: { side: SideId; flip?: boolean; stacked?: boolean }) {
   const player = useDeskStore((s) => s.desk[side]);
   const bestOf = useDeskStore((s) => s.desk.bestOf);
   const bumpResource = useDeskStore((s) => s.bumpResource);
@@ -47,7 +52,13 @@ function PlayerHalf({ side }: { side: SideId }) {
   const right = side === "p1";
 
   return (
-    <section className={cn("relative flex min-h-0 flex-col bg-surface", right ? "border-l border-border" : "")}>
+    <section
+      className={cn(
+        "relative flex min-h-0 flex-col bg-surface",
+        right && (stacked ? "border-t border-border" : "border-l border-border"),
+        flip && "rotate-180",
+      )}
+    >
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">

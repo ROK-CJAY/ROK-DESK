@@ -2,15 +2,19 @@
 
 All notable changes to **ROK Desk** are listed here.
 
-The project follows [Semantic Versioning](https://semver.org/) while in beta (`x.y.z-beta`). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
+The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
 ## Unreleased
 
-Not tagged. Use the build on `main` until the next beta.
+Not tagged. Use the build on `main` until the next release.
+
+## v1.4.5 — 2026-10-07
 
 ### Added
 
 - **Venue keys** — each store creates its own key on Tournament → Public sign-up. A code belongs to the key that opened it. Another store cannot pull or close that list. ROK’s existing pull secret still owns the codes it already opened.
+- **Head to head** — player pads other than Commander can flip Player 2, and can stack the two seats or keep them side by side. The two switches are separate. The choice is remembered on that tablet.
+- **Commander player tablet** — each seat uses that commander’s art as a dark background, the same wash as the overlay. A partner splits the art. Tap Cmd to track damage from each other player. Total is the most from any one of them. That damage also lowers life. Gaining life does not lower it.
 
 ## v1.4.4-beta — 2026-10-07
 

@@ -388,9 +388,13 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
 
   bumpCmdDamage: (side, delta) => {
     const prev = get().desk;
-    const cmdDamage = clamp(prev[side].cmdDamage + delta, 0, 21);
+    const before = prev[side].cmdDamage;
+    const cmdDamage = clamp(before + delta, 0, 21);
+    const applied = cmdDamage - before;
+    const game = gameOf(prev.gameId);
+    const resource = clamp(prev[side].resource - applied, game.resource.min, resourceLimit(prev));
     const desk = nextVersion(prev, {
-      [side]: { ...prev[side], cmdDamage },
+      [side]: { ...prev[side], cmdDamage, resource },
     });
     persist(desk);
     set({ desk });
@@ -400,13 +404,15 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     if (target === from) return;
     const prev = get().desk;
     const current = prev[target].cmdFrom ?? emptyCmdFrom();
-    const nextFrom = {
-      ...current,
-      [from]: clamp((current[from] ?? 0) + delta, 0, 21),
-    };
+    const before = current[from] ?? 0;
+    const nextValue = clamp(before + delta, 0, 21);
+    const applied = nextValue - before;
+    const nextFrom = { ...current, [from]: nextValue };
     const cmdDamage = incomingCmd({ ...prev[target], cmdFrom: nextFrom }, target);
+    const game = gameOf(prev.gameId);
+    const resource = clamp(prev[target].resource - applied, game.resource.min, resourceLimit(prev));
     const desk = nextVersion(prev, {
-      [target]: { ...prev[target], cmdFrom: nextFrom, cmdDamage },
+      [target]: { ...prev[target], cmdFrom: nextFrom, cmdDamage, resource },
     });
     persist(desk);
     set({ desk });

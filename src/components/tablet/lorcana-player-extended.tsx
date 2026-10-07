@@ -6,6 +6,7 @@ import { reportMatchToBracket } from "@/lib/report-stream";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { RoundClock } from "@/components/desk/round-clock";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { HeadToHeadButton, StackButton, useHeadToHead, useStackedSeats } from "@/components/tablet/head-to-head";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
@@ -16,6 +17,8 @@ export function LorcanaPlayerExtendedTablet() {
   const resetMatch = useDeskStore((s) => s.resetMatch);
   const resetInfo = useDeskStore((s) => s.resetInfo);
   const guide = useTabletGuide("lorcana-player-extended");
+  const face = useHeadToHead();
+  const stack = useStackedSeats();
 
   const clearTable = () => {
     if (!window.confirm("Clear both seats — names, inks, lore, and games?")) return;
@@ -45,6 +48,8 @@ export function LorcanaPlayerExtendedTablet() {
               <Trash2 className="size-3.5" />
               Clear table
             </Button>
+            <StackButton on={stack.on} onClick={stack.toggle} />
+            <HeadToHeadButton on={face.on} onClick={face.toggle} />
             <GuideButton onClick={guide.openGuide} />
           </div>
         </div>
@@ -53,16 +58,16 @@ export function LorcanaPlayerExtendedTablet() {
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 sm:grid-cols-2">
-        <PlayerDesk side="p2" />
-        <PlayerDesk side="p1" />
+      <div className={cn("grid min-h-0 flex-1", stack.on ? "grid-cols-1 grid-rows-2" : "grid-cols-2")}>
+        <PlayerDesk side="p2" flip={face.on} stacked={stack.on} />
+        <PlayerDesk side="p1" stacked={stack.on} />
       </div>
       <TabletGuide kind="lorcana-player-extended" open={guide.open} onClose={guide.close} />
     </div>
   );
 }
 
-function PlayerDesk({ side }: { side: SideId }) {
+function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; flip?: boolean; stacked?: boolean }) {
   const player = useDeskStore((s) => s.desk[side]);
   const desk = useDeskStore((s) => s.desk);
   const setPlayer = useDeskStore((s) => s.setPlayer);
@@ -93,7 +98,13 @@ function PlayerDesk({ side }: { side: SideId }) {
   };
 
   return (
-    <section className={cn("grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-surface", side === "p1" ? "border-t border-border sm:border-t-0 sm:border-l" : "")}>
+    <section
+      className={cn(
+        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-surface",
+        side === "p1" && (stacked ? "border-t border-border" : "border-l border-border"),
+        flip && "rotate-180",
+      )}
+    >
       <div className="px-3 pt-2">
         <div className="flex items-center justify-between gap-2">
           <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">{label}</p>

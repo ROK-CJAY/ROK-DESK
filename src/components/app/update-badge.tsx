@@ -11,7 +11,7 @@ import { APP_CHANNEL, APP_VERSION, APP_VERSION_LABEL } from "@/lib/version";
 import { rokDesktop } from "@/lib/rok-desktop";
 import { cn } from "@/lib/cn";
 
-const CURRENT = `${APP_VERSION}-${APP_CHANNEL}`;
+const CURRENT = APP_CHANNEL ? `${APP_VERSION}-${APP_CHANNEL}` : APP_VERSION;
 const IDLE: AppUpdateStatus = { status: "idle", current: CURRENT };
 
 export function UpdateBadge() {
