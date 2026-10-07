@@ -8,9 +8,9 @@ The project follows [Semantic Versioning](https://semver.org/) while in beta (`x
 
 Not tagged. Use the build on `main` until the next beta.
 
-### Later
+### Added
 
-- **Venue keys** — if other stores share this public site, each venue gets its own key. A sign-up code belongs to the venue that opened it, and another venue cannot pull that list. Not needed while ROK is the only desk on this host.
+- **Venue keys** — each store creates its own key on Tournament → Public sign-up. A code belongs to the key that opened it. Another store cannot pull or close that list. ROK’s existing pull secret still owns the codes it already opened.
 
 ## v1.4.4-beta — 2026-10-07
 

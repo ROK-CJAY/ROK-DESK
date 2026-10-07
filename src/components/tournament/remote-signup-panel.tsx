@@ -52,7 +52,7 @@ export function RemoteSignupPanel({
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
-  const [busy, setBusy] = useState<"open" | "pull" | "close" | null>(null);
+  const [busy, setBusy] = useState<"open" | "pull" | "close" | "mint" | null>(null);
 
   useEffect(() => {
     setHost(localStorage.getItem(HOST_KEY) || PUBLIC_SIGNUP_ORIGIN);
@@ -80,6 +80,33 @@ export function RemoteSignupPanel({
     }
   };
 
+  const mint = async () => {
+    if (
+      secret.trim() &&
+      !window.confirm("Replace the venue key on this desk? Codes opened with the old key stay locked to that key.")
+    ) {
+      return;
+    }
+    setBusy("mint");
+    setError("");
+    setNote("");
+    try {
+      const res = await fetch(`${host.trim().replace(/\/+$/, "")}/api/remote-signup`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "mint" }),
+      });
+      const data = (await res.json()) as { error?: string; key?: string };
+      if (!res.ok || !data.key) throw new Error(data.error || "Could not create a venue key.");
+      save({ secret: data.key });
+      setNote("Venue key saved on this desk. Copy it somewhere safe before you open sign-up.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not reach the public host.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const open = async () => {
     const cleaned = normalizeSignupCode(code);
     if (cleaned.length < 4) {
@@ -87,7 +114,7 @@ export function RemoteSignupPanel({
       return;
     }
     if (!secret.trim()) {
-      setError("Paste the same pull secret you set on Vercel.");
+      setError("Create a venue key, or paste the one this store already uses.");
       return;
     }
     setBusy("open");
@@ -204,14 +231,14 @@ export function RemoteSignupPanel({
     <div className="mt-3 grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
       <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Public sign-up</p>
       <p className="text-xs text-muted">
-        This link is only for {title}. Each game keeps its own code. Players never see the desk.
+        This link is only for {title}. Each game keeps its own code. Each store uses its own venue key, so another desk cannot pull this list.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Input value={host} onChange={(e) => save({ host: e.target.value })} placeholder="https://rok-desk.vercel.app" />
         <Input
           value={secret}
           onChange={(e) => save({ secret: e.target.value })}
-          placeholder="Pull secret"
+          placeholder="Venue key"
           type="password"
           autoComplete="off"
         />
@@ -222,6 +249,9 @@ export function RemoteSignupPanel({
       </div>
       {link ? <p className="truncate font-mono text-xs text-fg">{link}</p> : null}
       <div className="flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={() => void mint()} disabled={busy !== null}>
+          {busy === "mint" ? "Creating…" : secret.trim() ? "New venue key" : "Create venue key"}
+        </Button>
         <Button type="button" size="sm" onClick={() => void open()} disabled={busy !== null}>
           <Link2 className="size-3.5" />
           {busy === "open" ? "Opening…" : "Open sign-up"}

@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { dbSource, getSql } from "@/lib/db";
 import { gameIdFromSlug, isGameId, isVgcTitle, playAgeDivisionOf, slugOf, type GameId } from "@/lib/games";
@@ -17,14 +17,44 @@ function pullSecret(): string {
   return process.env.SIGNUP_PULL_SECRET?.trim() ?? "";
 }
 
-export function signupPullAuthorized(header: string | null): boolean {
-  const expected = pullSecret();
-  const got = header?.trim() ?? "";
-  if (!expected || !got) return false;
+/** Codes opened before venue keys, and any code the host secret still opens. */
+const HOST_VENUE = "host";
+
+function hashKey(key: string): string {
+  return createHash("sha256").update(key).digest("hex");
+}
+
+function sameSecret(expected: string, got: string): boolean {
   const a = Buffer.from(expected);
   const b = Buffer.from(got);
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
+}
+
+export type SignupVenue = { id: string };
+
+/** Host pull secret maps to the original venue. Any other value must be a minted venue key. */
+export async function venueFromSecret(header: string | null): Promise<SignupVenue | null> {
+  const got = header?.trim() ?? "";
+  if (!got) return null;
+  const expected = pullSecret();
+  if (expected && sameSecret(expected, got)) return { id: HOST_VENUE };
+  await ensureTables();
+  const sql = await getSql();
+  const rows = await sql<{ id: string }>`select id from remote_signup_venues where key_hash = ${hashKey(got)}`;
+  const id = rows[0]?.id;
+  return id ? { id } : null;
+}
+
+export async function mintVenueKey(): Promise<{ key: string } | { error: string }> {
+  const blocked = durableDb();
+  if (blocked) return { error: blocked };
+  await ensureTables();
+  const id = `v-${crypto.randomUUID()}`;
+  const key = `rk_${randomBytes(18).toString("base64url")}`;
+  const sql = await getSql();
+  await sql`insert into remote_signup_venues (id, key_hash) values (${id}, ${hashKey(key)})`;
+  return { key };
 }
 
 const bodySchema = z.object({
@@ -73,6 +103,7 @@ type EventRow = {
   best_of: number;
   bracket_type: string;
   is_open: boolean;
+  venue_id: string;
 };
 
 let tablesReady: Promise<void> | null = null;
@@ -93,11 +124,19 @@ function ensureTables(): Promise<void> {
         created_at timestamptz default current_timestamp not null
       )
     `);
+    await sql.query(`alter table remote_signup_events add column if not exists venue_id text not null default ''`);
     await sql.query(`
       create table if not exists remote_signups (
         id text primary key,
         code text not null,
         payload text not null,
+        created_at timestamptz default current_timestamp not null
+      )
+    `);
+    await sql.query(`
+      create table if not exists remote_signup_venues (
+        id text primary key,
+        key_hash text not null unique,
         created_at timestamptz default current_timestamp not null
       )
     `);
@@ -125,7 +164,7 @@ function asBracket(value: string): "single" | "double" | "swiss" {
 
 async function eventRow(code: string): Promise<EventRow | null> {
   const sql = await getSql();
-  const rows = await sql<EventRow>`select code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open from remote_signup_events where code = ${code}`;
+  const rows = await sql<EventRow>`select code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id from remote_signup_events where code = ${code}`;
   return rows[0] ?? null;
 }
 
@@ -146,6 +185,10 @@ async function toEvent(row: EventRow): Promise<RemoteEvent | null> {
   };
 }
 
+function ownerOf(row: EventRow): string {
+  return row.venue_id?.trim() || HOST_VENUE;
+}
+
 export async function openRemoteEvent(input: {
   code: string;
   gameId: string;
@@ -154,10 +197,11 @@ export async function openRemoteEvent(input: {
   requireDecklist: boolean;
   bestOf: number;
   bracketType: string;
+  venueId: string;
 }): Promise<RemoteEvent | { error: string }> {
   const blocked = durableDb();
   if (blocked) return { error: blocked };
-  if (!pullSecret()) return { error: "Set SIGNUP_PULL_SECRET on the public host." };
+  if (!input.venueId) return { error: "Create a venue key first." };
   const code = normalizeSignupCode(input.code);
   if (code.length < 4) return { error: "Code must be at least 4 characters." };
   const gameId = isGameId(input.gameId) ? input.gameId : gameIdFromSlug(input.gameId);
@@ -169,29 +213,39 @@ export async function openRemoteEvent(input: {
   if (existing && existing.game_id !== gameId) {
     return { error: "That code belongs to another game. Use a new code for this one." };
   }
+  if (existing && ownerOf(existing) !== input.venueId) {
+    return { error: "That code belongs to another venue. Use a new code." };
+  }
   const sql = await getSql();
   await sql`
-    insert into remote_signup_events (code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open)
-    values (${code}, ${gameId}, ${title}, ${formatName}, ${input.requireDecklist}, ${asBestOf(input.bestOf)}, ${asBracket(input.bracketType)}, ${true})
+    insert into remote_signup_events (code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id)
+    values (${code}, ${gameId}, ${title}, ${formatName}, ${input.requireDecklist}, ${asBestOf(input.bestOf)}, ${asBracket(input.bracketType)}, ${true}, ${input.venueId})
     on conflict (code) do update set
       title = excluded.title,
       format_name = excluded.format_name,
       require_decklist = excluded.require_decklist,
       best_of = excluded.best_of,
       bracket_type = excluded.bracket_type,
-      is_open = true
+      is_open = true,
+      venue_id = excluded.venue_id
+    where remote_signup_events.venue_id = excluded.venue_id
+      or (remote_signup_events.venue_id = '' and excluded.venue_id = ${HOST_VENUE})
   `;
   const row = await eventRow(code);
-  if (!row) return { error: "Could not open that code." };
+  if (!row || ownerOf(row) !== input.venueId) {
+    return { error: "That code belongs to another venue. Use a new code." };
+  }
   const event = await toEvent(row);
   return event ?? { error: "Could not open that code." };
 }
 
-export async function closeRemoteEvent(codeRaw: string): Promise<{ ok: true } | { error: string }> {
+export async function closeRemoteEvent(codeRaw: string, venueId: string): Promise<{ ok: true } | { error: string }> {
   const blocked = durableDb();
   if (blocked) return { error: blocked };
   const code = normalizeSignupCode(codeRaw);
   await ensureTables();
+  const row = await eventRow(code);
+  if (!row || ownerOf(row) !== venueId) return { error: "No sign-up with that code." };
   const sql = await getSql();
   await sql`update remote_signup_events set is_open = ${false} where code = ${code}`;
   return { ok: true };
@@ -252,13 +306,14 @@ export async function submitRemoteSignup(
 
 export async function listRemoteSignups(
   codeRaw: string,
+  venueId: string,
 ): Promise<{ event: RemoteEvent; entrants: Array<RemoteSignupBody & { id: string }> } | { error: string }> {
   const blocked = durableDb();
   if (blocked) return { error: blocked };
   const code = normalizeSignupCode(codeRaw);
   await ensureTables();
   const row = await eventRow(code);
-  if (!row) return { error: "No sign-up with that code." };
+  if (!row || ownerOf(row) !== venueId) return { error: "No sign-up with that code." };
   const event = await toEvent(row);
   if (!event) return { error: "No sign-up with that code." };
   const sql = await getSql();

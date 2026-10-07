@@ -2,10 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   closeRemoteEvent,
   listRemoteSignups,
+  mintVenueKey,
   openRemoteEvent,
   readRemoteEvent,
-  signupPullAuthorized,
   submitRemoteSignup,
+  venueFromSecret,
 } from "@/lib/remote-signup";
 
 const noStore = {
@@ -27,8 +28,9 @@ export const Route = createFileRoute("/api/remote-signup")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const code = url.searchParams.get("code") ?? "";
-        if (signupPullAuthorized(request.headers.get("x-rok-signup-secret"))) {
-          const listed = await listRemoteSignups(code);
+        const venue = await venueFromSecret(request.headers.get("x-rok-signup-secret"));
+        if (venue) {
+          const listed = await listRemoteSignups(code, venue.id);
           if ("error" in listed) return json({ error: listed.error }, 404);
           return json(listed);
         }
@@ -44,12 +46,17 @@ export const Route = createFileRoute("/api/remote-signup")({
           return json({ error: "Invalid JSON" }, 400);
         }
         const action = String(body.action ?? "submit");
-        const secretOk = signupPullAuthorized(request.headers.get("x-rok-signup-secret"));
+        if (action === "mint") {
+          const minted = await mintVenueKey();
+          if ("error" in minted) return json(minted, 503);
+          return json(minted);
+        }
+        const venue = await venueFromSecret(request.headers.get("x-rok-signup-secret"));
         if (action === "open" || action === "close") {
-          if (!secretOk) return json({ error: "Desk secret was rejected." }, 401);
+          if (!venue) return json({ error: "Venue key was rejected." }, 401);
           if (action === "close") {
-            const closed = await closeRemoteEvent(String(body.code ?? ""));
-            if ("error" in closed) return json(closed, 400);
+            const closed = await closeRemoteEvent(String(body.code ?? ""), venue.id);
+            if ("error" in closed) return json(closed, 404);
             return json(closed);
           }
           const opened = await openRemoteEvent({
@@ -60,6 +67,7 @@ export const Route = createFileRoute("/api/remote-signup")({
             requireDecklist: Boolean(body.requireDecklist),
             bestOf: Number(body.bestOf ?? 3),
             bracketType: String(body.bracketType ?? "swiss"),
+            venueId: venue.id,
           });
           if ("error" in opened) return json(opened, 400);
           return json({ event: opened });
