@@ -126,6 +126,7 @@ function CardSlot({ desk, side }: { desk: DeskState; side: "p1" | "p2" }) {
         src={cardSrc}
         alt=""
         decoding="async"
+        referrerPolicy="no-referrer"
         onError={(event) => {
           if (event.currentTarget.src.endsWith(fallback)) return;
           onError();

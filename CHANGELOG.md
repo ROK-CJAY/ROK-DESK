@@ -18,7 +18,7 @@ The project follows [Semantic Versioning](https://semver.org/). Desktop installe
 
 ### Fixed
 
-- **Browser** — leaving the browser for Home, Production, or Tournament no longer reloads the open tabs.
+- **One Piece** — Show P1 / Show P2 on the stream well uses the One Piece card. A saved catalog no longer falls through to a Pokémon card back.
 - **Desktop updates** — a packaged Windows installer, Mac disk image, or Linux AppImage checks GitHub on launch and every few hours, downloads the newer build in the background, and applies it on restart. Portable Windows builds still open the release page.
 
 ## v1.4.5 — 2026-10-07

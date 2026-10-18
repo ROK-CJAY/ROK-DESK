@@ -176,6 +176,7 @@ export function ptcgArtSources(
   };
 
   const prefix = (image ?? "").trim().replace(/\/+$/, "");
+  if (id && isOnePieceCard(prefix, id)) return [`/api/op-art?id=${encodeURIComponent(id)}`];
   if (prefix.startsWith("/api/op-art")) return [prefix];
   const isFile = Boolean(prefix) && /\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(prefix);
   const isTcgdex = /tcgdex\.net/i.test(prefix);
