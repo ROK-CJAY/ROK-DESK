@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, ClipboardList, Flag, GripVertical, Plus, Printer, Radio, RotateCcw, Shuffle, Trash2, Trophy } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
+import { TitleTabs } from "@/components/app/title-tabs";
 import { Field, NativeSelect } from "@/components/desk/field";
 import { CommanderSearchField } from "@/components/desk/commander-search";
 import { FloorClock } from "@/components/tournament/floor-clock";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { COUNTRIES } from "@/lib/countries";
-import { extraFieldFor, formatCommanderLine, GAME_LIST, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isPlayPokemonTitle, isVgcTitle, MTG_LANES, PTCG_DIVISIONS, playAgeDivisionOf, playDivisionsFor, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath, VGC_DIVISIONS } from "@/lib/games";
+import { extraFieldFor, formatCommanderLine, gameOf, isCommanderLane, isCommanderPodFormat, isMtgTitle, isPtcgTitle, isVgcTitle, playAgeDivisionOf, playerIdField, playerTabletExtendedPath, playerTabletPath, signupPath, tabletPath } from "@/lib/games";
 import { catalogForGame, hydrateDeckOnClient } from "@/lib/card-lookup";
 import { DecklistEditor } from "@/components/signup/decklist-editor";
 import { RemoteSignupPanel } from "@/components/tournament/remote-signup-panel";
@@ -42,7 +43,6 @@ import {
   isPresetSize,
   matchEntrantIds,
   matchSlots,
-  rosterCount,
   teamSheetLabel,
   viewsFor,
   type BracketSize,
@@ -58,6 +58,7 @@ export function TournamentApp() {
   const hydrate = useTournamentStore((s) => s.hydrate);
   const hydrateDesk = useDeskStore((s) => s.hydrate);
   const t = useTournamentStore((s) => s.tournament);
+  const setGame = useTournamentStore((s) => s.setGame);
   const [sheetPlayerId, setSheetPlayerId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,7 +93,9 @@ export function TournamentApp() {
             <ImportTournamentButton />
           </div>
         }
-      />
+      >
+        <TitleTabs gameId={t.gameId} onPick={setGame} />
+      </AppChrome>
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         <div className="flex flex-col gap-4">
           <SetupPanel />
@@ -193,7 +196,6 @@ function EventResultCard({
 function SetupPanel() {
   const t = useTournamentStore((s) => s.tournament);
   const patch = useTournamentStore((s) => s.patch);
-  const setGame = useTournamentStore((s) => s.setGame);
   const generate = useTournamentStore((s) => s.generate);
   const resetBracket = useTournamentStore((s) => s.resetBracket);
   const reopenTournament = useTournamentStore((s) => s.reopenTournament);
@@ -234,72 +236,6 @@ function SetupPanel() {
             placeholder="twitch.tv/rok or @rok"
           />
           <p className="mt-1 text-[0.65rem] text-subtle">Channel or handle. Shows on the Live badge and starting-soon slate.</p>
-        </Field>
-        <Field label="Game">
-          <NativeSelect
-            value={t.gameId}
-            onChange={(e) => setGame(e.target.value as typeof t.gameId)}
-          >
-            <optgroup label="Pokémon TCG">
-              {PTCG_DIVISIONS.map((d) => (
-                <option key={d.gameId} value={d.gameId}>
-                  {d.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Pokémon VGC">
-              {VGC_DIVISIONS.map((d) => (
-                <option key={d.gameId} value={d.gameId}>
-                  {d.label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label="Magic: The Gathering">
-              {MTG_LANES.map((d) => (
-                <option key={d.gameId} value={d.gameId}>
-                  {d.label}
-                </option>
-              ))}
-            </optgroup>
-            {GAME_LIST.filter((g) => !isPlayPokemonTitle(g.id) && !isMtgTitle(g.id)).map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.name}
-              </option>
-            ))}
-          </NativeSelect>
-          {playDivisionsFor(t.gameId).length ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {playDivisionsFor(t.gameId).map((d) => {
-                const active = t.gameId === d.gameId;
-                return (
-                  <button
-                    key={d.id}
-                    type="button"
-                    onClick={() => {
-                      if (!active) setGame(d.gameId);
-                    }}
-                    className={`rounded-md border px-2.5 py-1 text-xs font-medium tracking-wide ${
-                      active
-                        ? "border-accent bg-accent text-accent-fg"
-                        : "border-border bg-surface-2 text-muted hover:text-fg"
-                    }`}
-                  >
-                    {d.label}
-                    <span className="ml-1 font-mono text-[0.62rem] text-subtle">
-                      {rosterCount(t, d.gameId)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-          <p className="mt-1 text-[0.65rem] text-subtle">
-            {isPlayPokemonTitle(t.gameId)
-              ? "Masters, Seniors, and Juniors are three events on this host. Each has its own roster, pairings, kiosk, and overlays."
-              : isMtgTitle(t.gameId)
-                ? "Constructed and Commander are two events on this host. Each has its own roster, pairings, kiosk, and overlays."
-                : "This title only. Each game keeps its own name."}
-          </p>
         </Field>
         <Field label="Format">
           <NativeSelect

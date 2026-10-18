@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RotateCcw, RotateCw, Skull } from "lucide-react";
 import { useDeskStore } from "@/lib/desk-store";
 import { SEAT_LABELS, seatsFor, type SeatId } from "@/lib/desk-types";
@@ -14,7 +14,6 @@ import { LorcanaPlayerTablet } from "@/components/tablet/lorcana-player";
 import { LorcanaPlayerExtendedTablet } from "@/components/tablet/lorcana-player-extended";
 import { YgoPlayerTablet } from "@/components/tablet/ygo-player";
 import { CasterTablet } from "@/components/tablet/caster-tablet";
-import { DeltaPad } from "@/components/desk/delta-pad";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { formatCommanderLine, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle } from "@/lib/games";
 import { commanderFaceName } from "@/lib/commander-colors";
@@ -30,7 +29,6 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "extend
   const desk = useDeskStore((s) => s.desk);
   const bumpResource = useDeskStore((s) => s.bumpResource);
   const bumpSecondary = useDeskStore((s) => s.bumpSecondary);
-  const bumpCmdDamage = useDeskStore((s) => s.bumpCmdDamage);
   const bumpCmdFrom = useDeskStore((s) => s.bumpCmdFrom);
   const resetGame = useDeskStore((s) => s.resetGame);
   const [faceOut, setFaceOut] = useState(true);
@@ -177,7 +175,6 @@ export function PodPad({ role = "judge" }: { role?: "judge" | "player" | "extend
             }
             onLife={(d) => bumpResource(seat, d)}
             onPoison={(d) => bumpSecondary(seat, d)}
-            onCmd={(d) => bumpCmdDamage(seat, d)}
             onCmdFrom={(from, d) => bumpCmdFrom(seat, from, d)}
           />
         ))}
@@ -211,14 +208,12 @@ function SeatPad({
   rotate,
   onLife,
   onPoison,
-  onCmd,
   onCmdFrom,
 }: {
   seat: SeatId;
   rotate: boolean;
   onLife: (delta: number) => void;
   onPoison: (delta: number) => void;
-  onCmd: (delta: number) => void;
   onCmdFrom: (from: SeatId, delta: number) => void;
 }) {
   const player = useDeskStore((s) => s.desk[seat]);
@@ -235,8 +230,8 @@ function SeatPad({
   const partnerArt = useCommanderArt(showPartner ? partnerName : "");
   const artSplit = Boolean(art && partnerArt);
   const tableSize = useDeskStore((s) => s.desk.tableSize);
-  const others = seatsFor(tableSize).filter((id) => id !== seat);
-  const [cmdSplit, setCmdSplit] = useState(false);
+  const quad = tableSize >= 4 ? TABLE_ORDER : seatsFor(tableSize);
+  const [cmdEdit, setCmdEdit] = useState<SeatId | null>(null);
 
   return (
     <section
@@ -262,96 +257,128 @@ function SeatPad({
             <div className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/80 via-black/62 to-black/80" />
           </>
         ) : null}
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-1">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[clamp(0.2rem,1cqh,0.55rem)]">
           <div className="flex shrink-0 items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">
+              <p className={cn("font-mono tracking-[0.18em] uppercase [font-size:clamp(0.48rem,2.2cqw,0.75rem)]", art || partnerArt ? "text-white/75" : "text-muted")}>
                 {SEAT_LABELS[seat]}
                 {out ? " · Out" : lethal ? " · Lethal" : ""}
               </p>
-              <p className="font-display truncate text-base leading-tight font-semibold uppercase [text-shadow:0_1px_8px_rgb(0_0_0_/_0.7)] @[18rem]/seat:text-lg">
+              <p className={cn("font-display truncate leading-tight font-semibold uppercase [font-size:clamp(0.8rem,5cqw,1.7rem)] [text-shadow:0_1px_8px_rgb(0_0_0_/_0.7)]", (art || partnerArt) && "text-white")}>
                 {player.name || "Open"}
               </p>
-              <p className="truncate text-[0.7rem] leading-tight text-muted">
+              <p className={cn("truncate leading-tight [font-size:clamp(0.58rem,2.6cqw,0.95rem)]", art || partnerArt ? "text-white/75" : "text-muted")}>
                 {commander
                   ? formatCommanderLine(player.archetype, player.extra) || "Commander"
                   : player.archetype || "Open"}
               </p>
             </div>
-            {out || lethal ? <Skull className="size-4 shrink-0 text-live" /> : null}
+            {out || lethal ? <Skull className="size-[clamp(0.9rem,3cqw,1.35rem)] shrink-0 text-live" /> : null}
           </div>
 
-          <div className="relative min-h-0 flex-1 overflow-hidden">
-            <button
-              type="button"
-              onClick={() => onLife(-1)}
-              className="absolute top-1/2 left-1 z-10 grid size-14 -translate-y-1/2 place-items-center rounded-lg border border-white/25 bg-black/70 text-4xl leading-none text-white shadow-md active:bg-black/85"
-              aria-label={`${player.name || seat} minus one`}
-            >
-              −
-            </button>
-            <FitLife value={life} danger={life <= 0} />
-            <button
-              type="button"
-              onClick={() => onLife(1)}
-              className="absolute top-1/2 right-1 z-10 grid size-14 -translate-y-1/2 place-items-center rounded-lg border border-white/25 bg-black/70 text-4xl leading-none text-white shadow-md active:bg-black/85"
-              aria-label={`${player.name || seat} plus one`}
-            >
-              +
-            </button>
+          <div className="@container/life relative min-h-0 flex-1 overflow-hidden" style={{ containerType: "size" }}>
+            <LifeStepButton
+              sign={-1}
+              label={`${player.name || seat} minus life`}
+              onLife={onLife}
+              className="absolute top-1/2 left-1 z-10 grid size-[clamp(1.65rem,42cqh,4.5rem)] -translate-y-1/2 place-items-center rounded-lg border border-white/25 bg-black/70 text-[clamp(1.1rem,22cqh,2.6rem)] leading-none text-white shadow-md active:bg-black/85"
+            />
+            <FitLife value={life} danger={life <= 0} onArt={Boolean(art || partnerArt)} />
+            <LifeStepButton
+              sign={1}
+              label={`${player.name || seat} plus life`}
+              onLife={onLife}
+              className="absolute top-1/2 right-1 z-10 grid size-[clamp(1.65rem,42cqh,4.5rem)] -translate-y-1/2 place-items-center rounded-lg border border-white/25 bg-black/70 text-[clamp(1.1rem,22cqh,2.6rem)] leading-none text-white shadow-md active:bg-black/85"
+            />
           </div>
 
-          <div className="flex shrink-0 justify-center">
-            <DeltaPad onDelta={onLife} size="desk" />
-          </div>
-
-          <div className="grid shrink-0 gap-1.5">
-            <div className={cn("grid gap-1.5", commander ? "grid-cols-2" : "grid-cols-1")}>
-              <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} />
-              {commander && !cmdSplit ? (
-                <CounterChip
-                  label="Cmd"
-                  value={cmd}
-                  danger={cmd >= 21}
-                  onDelta={onCmd}
-                  onLabel={() => setCmdSplit(true)}
-                />
-              ) : null}
-              {commander && cmdSplit ? (
-                <button
-                  type="button"
-                  onClick={() => setCmdSplit(false)}
-                  className={cn(
-                    "flex min-w-0 flex-col items-center justify-center rounded-md border bg-surface/80 px-1 py-1",
-                    cmd >= 21 ? "border-live" : "border-border",
-                  )}
-                >
-                  <span className="font-mono text-[0.52rem] tracking-[0.14em] text-muted uppercase">Total</span>
-                  <span className="font-display text-xl leading-none font-semibold tabular-nums">{cmd}</span>
-                </button>
-              ) : null}
-            </div>
-            {commander && cmdSplit ? (
-              <div className={cn("grid gap-1", others.length > 1 ? "grid-cols-3" : "grid-cols-1")}>
-                {others.map((from) => (
-                  <CmdSource key={from} seat={seat} from={from} onDelta={(delta) => onCmdFrom(from, delta)} />
+          <div className={cn("grid shrink-0 gap-1.5", commander ? "grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" : "grid-cols-1")}>
+            <CounterChip label="Poi" value={poison} danger={poison >= 10} onDelta={onPoison} />
+            {commander ? (
+              <div className={cn("grid h-[clamp(3.1rem,22cqh,6.2rem)] min-h-0 gap-1", quad.length > 2 ? "grid-cols-2 grid-rows-2" : "grid-cols-2")}>
+                {quad.map((id) => (
+                  <CmdSeat
+                    key={id}
+                    owner={seat}
+                    from={id}
+                    onOpen={() => setCmdEdit(id)}
+                  />
                 ))}
               </div>
             ) : null}
           </div>
         </div>
+        {commander && cmdEdit && cmdEdit !== seat ? (
+          <CmdPopup
+            owner={seat}
+            from={cmdEdit}
+            onDelta={(delta) => onCmdFrom(cmdEdit, delta)}
+            onClose={() => setCmdEdit(null)}
+          />
+        ) : null}
       </div>
     </section>
   );
 }
 
-function FitLife({ value, danger }: { value: number; danger?: boolean }) {
+function LifeStepButton({
+  sign,
+  label,
+  className,
+  onLife,
+}: {
+  sign: 1 | -1;
+  label: string;
+  className: string;
+  onLife: (delta: number) => void;
+}) {
+  const held = useRef(false);
+  const delay = useRef<number | null>(null);
+  const repeat = useRef<number | null>(null);
+  const stop = () => {
+    if (delay.current != null) window.clearTimeout(delay.current);
+    if (repeat.current != null) window.clearInterval(repeat.current);
+    delay.current = null;
+    repeat.current = null;
+  };
   return (
-    <div className="grid h-full w-full place-items-center overflow-hidden px-14">
+    <button
+      type="button"
+      className={className}
+      aria-label={label}
+      onContextMenu={(event) => event.preventDefault()}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        held.current = false;
+        stop();
+        delay.current = window.setTimeout(() => {
+          held.current = true;
+          onLife(sign * 5);
+          repeat.current = window.setInterval(() => onLife(sign * 5), 500);
+        }, 500);
+      }}
+      onPointerUp={stop}
+      onPointerCancel={stop}
+      onClick={() => {
+        if (held.current) {
+          held.current = false;
+          return;
+        }
+        onLife(sign);
+      }}
+    >
+      {sign < 0 ? "−" : "+"}
+    </button>
+  );
+}
+
+function FitLife({ value, danger, onArt }: { value: number; danger?: boolean; onArt?: boolean }) {
+  return (
+    <div className="grid h-full w-full place-items-center overflow-hidden px-[clamp(1.6rem,18cqw,4.5rem)]">
       <p
         className={cn(
-          "pointer-events-none font-display leading-none font-semibold tabular-nums [font-size:clamp(2.5rem,min(28cqh,20cqw),9rem)] [text-shadow:0_1px_8px_rgb(0_0_0_/_0.7)]",
-          danger ? "text-live" : "text-fg",
+          "pointer-events-none font-display leading-none font-semibold tabular-nums [font-size:clamp(1.35rem,min(72cqh,42cqw),8rem)] [text-shadow:0_1px_8px_rgb(0_0_0_/_0.7)]",
+          danger ? "text-live" : onArt ? "text-white" : "text-fg",
         )}
       >
         {value}
@@ -366,12 +393,16 @@ function CounterChip({
   danger,
   onDelta,
   onLabel,
+  large,
+  hideLabel,
 }: {
   label: string;
   value: number;
   danger?: boolean;
   onDelta: (delta: number) => void;
   onLabel?: () => void;
+  large?: boolean;
+  hideLabel?: boolean;
 }) {
   return (
     <div
@@ -384,29 +415,38 @@ function CounterChip({
         type="button"
         onClick={() => onDelta(-1)}
         aria-label={`${label} minus one`}
-        className="grid size-9 shrink-0 place-items-center rounded-md text-xl leading-none text-fg active:bg-fg/10"
+        className={cn(
+          "grid shrink-0 place-items-center rounded-md leading-none text-fg active:bg-fg/10",
+          large ? "size-[clamp(2.1rem,9cqh,3.4rem)] text-[clamp(1.25rem,4.6cqh,2rem)]" : "size-[clamp(1.35rem,6cqh,2.4rem)] text-[clamp(0.85rem,3.2cqh,1.4rem)]",
+        )}
       >
         −
       </button>
       <div className="min-w-0 text-center">
-        {onLabel ? (
+        {hideLabel ? null : onLabel ? (
           <button
             type="button"
             onClick={onLabel}
-            className="font-mono text-[0.52rem] tracking-[0.16em] text-muted uppercase underline decoration-dotted underline-offset-2"
+            className={cn(
+              "font-mono tracking-[0.16em] text-muted uppercase underline decoration-dotted underline-offset-2",
+              large ? "text-[clamp(0.6rem,2.5cqw,0.8rem)]" : "text-[clamp(0.55rem,2.2cqw,0.72rem)]",
+            )}
           >
             {label}
           </button>
         ) : (
-          <p className="font-mono text-[0.52rem] tracking-[0.16em] text-muted uppercase">{label}</p>
+          <p className={cn("font-mono tracking-[0.16em] text-muted uppercase", large ? "text-[clamp(0.6rem,2.5cqw,0.8rem)]" : "text-[clamp(0.55rem,2.2cqw,0.72rem)]")}>{label}</p>
         )}
-        <p className="font-display text-xl leading-none font-semibold tabular-nums">{value}</p>
+        <p className={cn("font-display leading-none font-semibold tabular-nums", large ? "text-[clamp(1.7rem,7cqh,2.8rem)]" : "text-[clamp(0.9rem,4cqh,1.55rem)]")}>{value}</p>
       </div>
       <button
         type="button"
         onClick={() => onDelta(1)}
         aria-label={`${label} plus one`}
-        className="grid size-9 shrink-0 place-items-center rounded-md text-xl leading-none text-fg active:bg-fg/10"
+        className={cn(
+          "grid shrink-0 place-items-center rounded-md leading-none text-fg active:bg-fg/10",
+          large ? "size-[clamp(2.1rem,9cqh,3.4rem)] text-[clamp(1.25rem,4.6cqh,2rem)]" : "size-[clamp(1.35rem,6cqh,2.4rem)] text-[clamp(0.85rem,3.2cqh,1.4rem)]",
+        )}
       >
         +
       </button>
@@ -414,17 +454,74 @@ function CounterChip({
   );
 }
 
-function CmdSource({
-  seat,
+function CmdSeat({
+  owner,
   from,
-  onDelta,
+  onOpen,
 }: {
-  seat: SeatId;
+  owner: SeatId;
   from: SeatId;
-  onDelta: (delta: number) => void;
+  onOpen: () => void;
 }) {
   const name = useDeskStore((s) => s.desk[from].name);
-  const value = useDeskStore((s) => s.desk[seat].cmdFrom?.[from] ?? 0);
-  const label = name.trim().split(/\s+/)[0]?.slice(0, 8) || from.toUpperCase();
-  return <CounterChip label={label} value={value} danger={value >= 21} onDelta={onDelta} />;
+  const value = useDeskStore((s) => s.desk[owner].cmdFrom?.[from] ?? 0);
+  const mine = owner === from;
+  const label = name.trim().split(/\s+/)[0]?.slice(0, 8) || from.slice(1);
+  const lethal = !mine && value >= 21;
+  if (mine) {
+    return (
+      <div className="flex h-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border-2 border-accent bg-surface px-1 py-0.5">
+        <span className="font-mono tracking-[0.14em] text-muted uppercase [font-size:clamp(0.45rem,2cqw,0.68rem)]">{from.slice(1)}</span>
+        <span className="font-display leading-none font-semibold text-fg [font-size:clamp(0.75rem,3.6cqh,1.35rem)]">ME</span>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className={cn(
+        "flex h-full min-h-0 min-w-0 flex-col items-center justify-center overflow-hidden rounded-md border bg-surface/90 px-1 py-0.5",
+        lethal ? "border-live" : "border-border",
+      )}
+    >
+      <span className="max-w-full truncate font-mono tracking-[0.12em] text-muted uppercase [font-size:clamp(0.45rem,2cqw,0.68rem)]">{label}</span>
+      <span className={cn("font-display leading-none font-semibold tabular-nums [font-size:clamp(0.8rem,3.8cqh,1.45rem)]", lethal && "text-live")}>{value}</span>
+    </button>
+  );
+}
+
+function CmdPopup({
+  owner,
+  from,
+  onDelta,
+  onClose,
+}: {
+  owner: SeatId;
+  from: SeatId;
+  onDelta: (delta: number) => void;
+  onClose: () => void;
+}) {
+  const name = useDeskStore((s) => s.desk[from].name);
+  const value = useDeskStore((s) => s.desk[owner].cmdFrom?.[from] ?? 0);
+  const label = name.trim() || `Seat ${from.slice(1)}`;
+  return (
+    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/55 p-3" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-xl border border-border bg-surface p-4 shadow-panel"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-mono tracking-[0.16em] text-muted uppercase [font-size:clamp(0.55rem,2.2cqw,0.75rem)]">Commander damage</p>
+            <p className="truncate font-display leading-tight font-semibold uppercase [font-size:clamp(1.15rem,5.2cqw,1.9rem)]">{label}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-md px-2 py-1 text-xs text-muted">
+            Close
+          </button>
+        </div>
+        <CounterChip label="Cmd" value={value} danger={value >= 21} onDelta={onDelta} large hideLabel />
+      </div>
+    </div>
+  );
 }

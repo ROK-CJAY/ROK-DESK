@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.4.5** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.4.6** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -329,13 +329,13 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.4.5** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.5) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.5). The Android APK from v1.3.1-beta is unchanged.
+1. Download **v1.4.6** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.6) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.6). The Android APK from v1.3.1-beta is unchanged.
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
    - Linux: `.AppImage`
 3. Run **ROK Desk**. The desk window opens. Event data is saved on that PC under **ROK Desk** in AppData (not next to a portable exe). Uninstalling keeps players and tournament state. Click the version label to check for updates on [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases). Windows installer builds can apply the update in-app.
-4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi. Home also has a **Scan onto a tablet** QR: pick title, Stream / Floor 1 / Floor 2, and Judge / Player / Extended / Commentary / sign-up / clocks.
+4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi. Home also has a **Scan onto a tablet** QR: pick the title, then only the surfaces that title has.
 5. Windows Firewall: allow ROK Desk on **private** networks or tablets will not connect.
 
 **Android companion (sideload)** — download [ROK-Desk-Tablet-0.1.apk](https://github.com/ROK-CJAY/ROK-DESK/raw/main/android-tablet/ROK-Desk-Tablet-0.1.apk) and drop it in Discord. Pads scan the Home QR (or type LAN + port **8080**) and run fullscreen with no browser bar. Source and rebuild notes: [android-tablet/README.md](./android-tablet/README.md). Not on Play Store. Same lounge / personal-use license.
@@ -398,6 +398,20 @@ This copy also appears on Home and behind **License** in the desk header. It is 
 
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### v1.4.6 — 18 Oct 2026 · Surfaces and One Piece art
+
+**Added**
+- Home is shorter. The tablet list only shows surfaces that game has. Player Extended is Lorcana only.
+- Tournament uses the same game tabs as Production, including PTCG, VGC, and Magic sub-tabs.
+- Top decks can show a place. The show title is used. The corner mark reads ROK Gaming Lounge.
+- Lorcana tablets keep a match log of every lore change.
+- Tablets can switch Light or Dark. Commander damage is a four-seat map.
+
+**Fixed**
+- One Piece card lookup no longer shows a Pokémon card back.
+- Leaving the in-app browser no longer reloads its tabs.
+- Packaged desktop builds can download and apply a newer release on restart.
 
 ### v1.4.5 — 7 Oct 2026 · Player pads
 
@@ -733,4 +747,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.4.5**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.
+This build is **v1.4.6**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.

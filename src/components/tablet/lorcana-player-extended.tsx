@@ -7,6 +7,7 @@ import { InkPicker } from "@/components/desk/ink-picker";
 import { RoundClock } from "@/components/desk/round-clock";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { HeadToHeadButton, StackButton, useHeadToHead, useStackedSeats } from "@/components/tablet/head-to-head";
+import { LoreLogButton } from "@/components/tablet/lore-log";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/cn";
@@ -28,7 +29,7 @@ export function LorcanaPlayerExtendedTablet() {
   return (
     <div className="flex h-dvh flex-col bg-bg text-fg" data-game="lorcana">
       <header className="shrink-0 border-b border-border px-3 py-1.5">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5">
           <div className="min-w-0">
             <p className="font-mono text-[0.58rem] tracking-[0.2em] text-muted uppercase">ROK · Player tablet extended</p>
             <p className="truncate font-display text-base leading-none font-semibold uppercase">
@@ -36,7 +37,7 @@ export function LorcanaPlayerExtendedTablet() {
               {desk.roundName ? <span className="text-muted"> · {desk.roundName}</span> : null}
             </p>
           </div>
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
             <Button variant="outline" size="sm" className="h-8 px-2" onClick={resetGame}>
               <RotateCcw className="size-3.5" />
               Reset game
@@ -50,6 +51,7 @@ export function LorcanaPlayerExtendedTablet() {
             </Button>
             <StackButton on={stack.on} onClick={stack.toggle} />
             <HeadToHeadButton on={face.on} onClick={face.toggle} />
+            <LoreLogButton />
             <GuideButton onClick={guide.openGuide} />
           </div>
         </div>
@@ -100,32 +102,33 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
   return (
     <section
       className={cn(
-        "grid min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-surface",
+        "@container/desk grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden bg-surface",
         side === "p1" && (stacked ? "border-t border-border" : "border-l border-border"),
         flip && "rotate-180",
       )}
+      style={{ containerType: "inline-size" }}
     >
-      <div className="px-3 pt-2">
+      <div className="min-w-0 px-[clamp(0.4rem,2cqw,0.75rem)] pt-2">
         <div className="flex items-center justify-between gap-2">
           <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">{label}</p>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => bumpScore(side, -1)}
               disabled={player.score <= 0}
               aria-label={`${label} minus one game`}
-              className="grid size-9 place-items-center rounded-md border border-border bg-surface-2 text-xl leading-none text-fg active:bg-surface disabled:opacity-30"
+              className="grid size-[clamp(1.6rem,9cqw,2.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(0.95rem,4cqw,1.25rem)] leading-none text-fg active:bg-surface disabled:opacity-30"
             >
               −
             </button>
-            <div className="flex min-w-8 flex-col items-center gap-0.5">
-              <span className="font-display text-base leading-none font-semibold tabular-nums">{player.score}</span>
+            <div className="flex min-w-6 flex-col items-center gap-0.5">
+              <span className="font-display text-[clamp(0.85rem,4cqw,1rem)] leading-none font-semibold tabular-nums">{player.score}</span>
               <div className="flex items-center gap-0.5">
                 {Array.from({ length: needed }, (_, i) => (
                   <span
                     key={i}
                     className={cn(
-                      "size-2 rotate-45 border",
+                      "size-[clamp(0.35rem,1.6cqw,0.5rem)] rotate-45 border",
                       i < player.score ? "border-accent bg-accent" : "border-muted bg-transparent",
                     )}
                   />
@@ -137,7 +140,7 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
               onClick={() => bumpScore(side, 1)}
               disabled={player.score >= needed}
               aria-label={`${label} plus one game`}
-              className="grid size-9 place-items-center rounded-md border border-border bg-surface-2 text-xl leading-none text-fg active:bg-surface disabled:opacity-30"
+              className="grid size-[clamp(1.6rem,9cqw,2.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(0.95rem,4cqw,1.25rem)] leading-none text-fg active:bg-surface disabled:opacity-30"
             >
               +
             </button>
@@ -147,7 +150,7 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
           value={player.name}
           onChange={(e) => setPlayer(side, { name: e.target.value })}
           placeholder="Name on stream"
-          className="mt-1.5 h-9 font-display text-base font-semibold uppercase"
+          className="mt-1.5 h-[clamp(1.8rem,8cqw,2.25rem)] font-display text-[clamp(0.8rem,3.6cqw,1rem)] font-semibold uppercase"
           autoComplete="name"
           aria-label={`${label} name`}
         />
@@ -155,50 +158,36 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
           value={player.archetype}
           onChange={(e) => setPlayer(side, { archetype: e.target.value })}
           placeholder="Deck"
-          className="mt-1 h-8"
+          className="mt-1 h-[clamp(1.7rem,7cqw,2rem)] text-[clamp(0.75rem,3.2cqw,0.9rem)]"
           aria-label={`${label} deck`}
         />
-        <div className="mt-1.5 pb-1">
+        <div className="mt-1.5 min-w-0 overflow-hidden pb-1">
           <InkPicker ink1={player.ink1} ink2={player.ink2} size="sm" quiet onChange={(next) => setPlayer(side, next)} />
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-2 px-3">
-        <button
-          type="button"
-          onClick={() => bumpResource(side, -8)}
-          className="h-11 min-w-12 rounded-md border border-border bg-surface-2 px-2 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
-        >
-          −8
-        </button>
+      <div className="flex min-h-0 min-w-0 items-center justify-center gap-[clamp(0.25rem,2cqw,0.75rem)] px-2">
         <button
           type="button"
           onClick={() => bumpResource(side, -1)}
-          className="grid size-12 place-items-center rounded-md border border-border bg-surface-2 text-3xl leading-none text-fg active:bg-surface"
+          className="grid size-[clamp(2rem,13cqw,3.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(1.15rem,5cqw,1.85rem)] leading-none text-fg active:bg-surface"
           aria-label={`${label} minus one lore`}
         >
           −
         </button>
         <p
-          className="font-display w-[4.5ch] text-center leading-none font-semibold tabular-nums text-fg"
-          style={{ fontSize: "clamp(2.75rem, 6vw, 5.5rem)" }}
+          className="font-display w-[3.2ch] min-w-0 text-center leading-none font-semibold tabular-nums text-fg"
+          style={{ fontSize: "clamp(1.6rem, 16cqw, 5rem)" }}
         >
           {lore}
         </p>
         <button
           type="button"
           onClick={() => bumpResource(side, 1)}
-          className="grid size-12 place-items-center rounded-md border border-border bg-surface-2 text-3xl leading-none text-fg active:bg-surface"
+          className="grid size-[clamp(2rem,13cqw,3.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(1.15rem,5cqw,1.85rem)] leading-none text-fg active:bg-surface"
           aria-label={`${label} plus one lore`}
         >
           +
-        </button>
-        <button
-          type="button"
-          onClick={() => bumpResource(side, 8)}
-          className="h-11 min-w-12 rounded-md border border-border bg-surface-2 px-2 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
-        >
-          +8
         </button>
       </div>
 

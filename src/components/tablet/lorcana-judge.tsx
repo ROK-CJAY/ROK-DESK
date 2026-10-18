@@ -4,6 +4,7 @@ import { useDeskStore } from "@/lib/desk-store";
 import { reportMatchToBracket } from "@/lib/report-stream";
 import { CardLookup } from "@/components/tablet/card-lookup";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
+import { LoreLogButton } from "@/components/tablet/lore-log";
 import { JudgeNotes } from "@/components/tablet/judge-notes";
 import { RoundClock } from "@/components/desk/round-clock";
 import { Button } from "@/components/ui/button";
@@ -70,7 +71,10 @@ export function LorcanaJudgeTablet() {
               <span className="text-muted"> · {desk.roundName}</span>
             </p>
           </div>
-          <GuideButton onClick={guide.openGuide} />
+          <div className="flex items-center gap-1.5">
+            <LoreLogButton />
+            <GuideButton onClick={guide.openGuide} />
+          </div>
         </div>
 
         <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto_1fr]">

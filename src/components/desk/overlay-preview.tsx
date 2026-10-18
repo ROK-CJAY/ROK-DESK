@@ -488,7 +488,7 @@ function SourceCanvas({
   }
   if (source === "top-decks" && tourneyReady) {
     const lane = deskLaneOf(desk, desk.gameId, 1);
-    return <TopDecksOverlay tournament={viewTournament(tournament, desk.gameId)} count={lane.topDeckCount} slots={lane.topDeckSlots} />;
+    return <TopDecksOverlay tournament={viewTournament(tournament, desk.gameId)} count={lane.topDeckCount} slots={lane.topDeckSlots} showTitle={desk.eventName} />;
   }
   if (source === "floor-clock" && tourneyReady) {
     return <FloorClockOverlay tournament={viewTournament(tournament, desk.gameId)} desk={desk} />;

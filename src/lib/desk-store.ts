@@ -25,6 +25,7 @@ import {
   deskLaneOf,
   parseMatchSlot,
   type DeskState,
+  type LoreLogEntry,
   type MatchSlot,
   type PlayerSide,
   type SeatId,
@@ -206,6 +207,22 @@ function nextVersion(desk: DeskState, patch: Partial<DeskState>): DeskState {
   return { ...desk, ...patch, version: desk.version + 1 };
 }
 
+function loreId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function loreChange(prev: DeskState, side: SideId, before: number, total: number): Pick<DeskState, "loreLog"> | Record<string, never> {
+  if (prev.gameId !== "lorcana" || before === total) return {};
+  const entry: LoreLogEntry = { id: loreId(), at: Date.now(), kind: "lore", side, delta: total - before, total };
+  return { loreLog: [...(prev.loreLog ?? []), entry].slice(-400) };
+}
+
+function loreMark(prev: DeskState, text: string): Pick<DeskState, "loreLog"> | Record<string, never> {
+  if (prev.gameId !== "lorcana") return {};
+  const entry: LoreLogEntry = { id: loreId(), at: Date.now(), kind: "mark", text };
+  return { loreLog: [...(prev.loreLog ?? []), entry].slice(-400) };
+}
+
 function resetResources(desk: DeskState): Pick<PlayerSide, "resource" | "secondary" | "cmdDamage" | "cmdFrom" | "down"> {
   const game = gameOf(desk.gameId);
   const format = game.formats.find((f) => f.label === desk.formatName);
@@ -342,6 +359,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const prev = get().desk;
     const game = gameOf(prev.gameId);
     const max = resourceLimit(prev);
+    const before = prev[side].resource;
     const resource = clamp(prev[side].resource + delta, game.resource.min, max);
     const desk = nextVersion(prev, {
       [side]: {
@@ -349,6 +367,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         resource,
         down: game.resource.pipStyle === "team" ? downForRemaining(resource, max) : prev[side].down,
       },
+      ...loreChange(prev, side, before, resource),
     });
     persist(desk);
     set({ desk });
@@ -358,6 +377,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     const prev = get().desk;
     const game = gameOf(prev.gameId);
     const max = resourceLimit(prev);
+    const before = prev[side].resource;
     const resource = clamp(value, game.resource.min, max);
     const desk = nextVersion(prev, {
       [side]: {
@@ -365,6 +385,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         resource,
         down: game.resource.pipStyle === "team" ? downForRemaining(resource, max) : prev[side].down,
       },
+      ...loreChange(prev, side, before, resource),
     });
     persist(desk);
     set({ desk });
@@ -662,6 +683,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
         p2: { ...prev.ptcgBoard.p2, energy: true, supporter: true, retreat: true, spotlight: null },
       },
       sideSpotlight: emptySideSpotlight(),
+      ...loreMark(prev, "Lore reset"),
       ...clearedOpOt(),
     });
     persist(desk);
@@ -676,6 +698,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       winnerSide: null,
       gameWinnerSide: null,
       initiativeSide: null,
+      loreLog: [],
       ptcgBoard: emptyPtcgBoard(),
       sideSpotlight: emptySideSpotlight(),
       ...clearedOpOt(),
@@ -703,6 +726,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       ...clearedOpOt(),
       ptcgBoard: emptyPtcgBoard(),
       lowerThird: { ...prev.lowerThird, visible: false },
+      loreLog: [],
     });
     persist(desk);
     set({ desk });
@@ -750,6 +774,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       [side]: { ...prev[side], ...resources, score },
       gameWinnerSide: side,
       winnerSide: null,
+      ...loreMark(prev, `Game · ${prev[side].name.trim() || side.toUpperCase()}`),
       ...clearedOpOt(),
     });
     persist(desk);
@@ -766,6 +791,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
       [side]: { ...prev[side], ...resources, score },
       winnerSide: side,
       gameWinnerSide: null,
+      ...loreMark(prev, `Match · ${prev[side].name.trim() || side.toUpperCase()}`),
       ...clearedOpOt(),
     });
     persist(desk);

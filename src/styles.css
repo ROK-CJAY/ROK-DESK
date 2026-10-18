@@ -141,6 +141,20 @@
     -webkit-user-select: none;
     -webkit-overflow-scrolling: touch;
   }
+
+  html.pod-mode.light {
+    --color-bg: #f3f0e8;
+    --color-surface: #fffcf7;
+    --color-surface-2: #e7e2d8;
+    --color-fg: #1c1e22;
+    --color-muted: #5e646d;
+    --color-subtle: #6f757d;
+    --color-border: #d4cfc3;
+    --color-accent: #2c3138;
+    --color-accent-fg: #f7f4ee;
+    --color-ring: #2c3138;
+    color-scheme: light;
+  }
 }
 
 [data-game="pokemon-vgc"],

@@ -18,7 +18,7 @@ function TopDecksRoute() {
     <div className="h-screen w-screen bg-transparent">
       <ScaleFrame>
         <OverlayLookRoot book={desk.overlayLook} source="top-decks">
-          <TopDecksOverlay tournament={viewTournament(tournament, desk.gameId)} count={desk.topDeckCount} slots={desk.topDeckSlots} />
+          <TopDecksOverlay tournament={viewTournament(tournament, desk.gameId)} count={desk.topDeckCount} slots={desk.topDeckSlots} showTitle={desk.eventName} />
         </OverlayLookRoot>
       </ScaleFrame>
     </div>

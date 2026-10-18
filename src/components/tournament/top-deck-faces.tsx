@@ -120,6 +120,11 @@ export function TopDeckFaces({
     write(index, { ...current, faces });
   };
 
+  const setPlace = (index: number, place: boolean) => {
+    const current = deskLaneOf(useDeskStore.getState().desk, gameId, 1).topDeckSlots[index] ?? emptyTopDeckSlot();
+    write(index, { ...current, place });
+  };
+
   return (
     <div className={cn("grid gap-2", wide && "lg:grid-cols-2")}>
       <p className={cn("text-xs text-muted", wide && "lg:col-span-2")}>
@@ -132,12 +137,25 @@ export function TopDeckFaces({
         const deck = slot.deck || player?.deck || "";
         return (
           <div key={index} className="grid gap-1.5 rounded-lg bg-surface-2 p-2">
-            <Input
-              value={name}
-              placeholder={`Player ${index + 1}`}
-              onChange={(e) => setName(index, e.target.value)}
-              aria-label={`Player ${index + 1} name`}
-            />
+            <div className="flex items-center gap-1.5">
+              <Input
+                value={name}
+                placeholder={`Player ${index + 1}`}
+                onChange={(e) => setName(index, e.target.value)}
+                aria-label={`Player ${index + 1} name`}
+              />
+              <button
+                type="button"
+                onClick={() => setPlace(index, !slot.place)}
+                aria-pressed={slot.place}
+                className={cn(
+                  "h-10 shrink-0 rounded-md border px-2 font-mono text-[0.65rem] font-semibold tracking-[0.12em] uppercase",
+                  slot.place ? "border-accent bg-accent text-accent-fg" : "border-border bg-surface text-muted",
+                )}
+              >
+                {placeLabel(index + 1)}
+              </button>
+            </div>
             <Input
               value={deck}
               placeholder="Deck name"
@@ -153,6 +171,15 @@ export function TopDeckFaces({
       })}
     </div>
   );
+}
+
+function placeLabel(place: number): string {
+  const mod100 = place % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${place}th`;
+  if (place % 10 === 1) return `${place}st`;
+  if (place % 10 === 2) return `${place}nd`;
+  if (place % 10 === 3) return `${place}rd`;
+  return `${place}th`;
 }
 
 function FaceSlot({

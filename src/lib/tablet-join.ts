@@ -1,4 +1,4 @@
-import type { GameId } from "./games-core";
+import { isMtgTitle, type GameId } from "./games-core";
 import { GAME_LIST } from "./game-catalog";
 import {
   casterTabletPath,
@@ -34,6 +34,14 @@ export const TABLET_SURFACES: { id: TabletSurface; label: string; needsSlot: boo
   { id: "floor-clock", label: "Floor clock", needsSlot: false },
   { id: "stream-clock", label: "Stream clock", needsSlot: true },
 ];
+
+export function surfacesForGame(gameId: GameId) {
+  return TABLET_SURFACES.filter((surface) => {
+    if (surface.id === "extended") return gameId === "lorcana";
+    if (surface.id === "player") return isMtgTitle(gameId) || gameId === "yugioh" || gameId === "lorcana";
+    return true;
+  });
+}
 
 export const TABLET_TITLES = GAME_LIST.map((g) => ({ id: g.id, label: g.short, name: g.name }));
 

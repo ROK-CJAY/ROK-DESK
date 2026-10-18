@@ -18,7 +18,7 @@ publish:
   owner: ROK-CJAY
   repo: ROK-DESK
   vPrefixedTagName: true
-  releaseType: prerelease
+  releaseType: release
 win:
   target:
     - portable

@@ -257,11 +257,20 @@ function wireBrowserView(win) {
     if (!fromThisWindow(event)) return;
     detachGuest(win, view);
   };
-  const onLoad = (event, url) => {
+  const onLoad = (event, url, opts) => {
     if (!fromThisWindow(event)) return;
     if (!isHttpUrl(url)) return;
     const guest = ensureView();
     attachGuest(win, guest);
+    if (opts && opts.restore) {
+      let current = "";
+      try {
+        current = guest.webContents.getURL();
+      } catch {
+        /* not loaded yet */
+      }
+      if (current && current.replace(/\/$/, "") === String(url).replace(/\/$/, "")) return;
+    }
     void guest.webContents.loadURL(url);
   };
   const onBack = (event) => {

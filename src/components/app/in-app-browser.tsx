@@ -68,11 +68,22 @@ function hostLabel(url: string) {
   }
 }
 
+type KeptBrowser = {
+  tabs: BrowserTab[];
+  activeId: string;
+  url: string;
+  draft: string;
+  title: string;
+};
+
+/** Survives leaving /browser so Production and Tournament do not reload the tabs. */
+let keptBrowser: KeptBrowser | null = null;
+
 export function InAppBrowser() {
   const desktop = typeof window !== "undefined" ? rokDesktop() : null;
-  const [draft, setDraft] = useState("");
-  const [url, setUrl] = useState("");
-  const [title, setTitle] = useState("Browser");
+  const [draft, setDraft] = useState(() => keptBrowser?.draft ?? "");
+  const [url, setUrl] = useState(() => keptBrowser?.url ?? "");
+  const [title, setTitle] = useState(() => keptBrowser?.title ?? "Browser");
   const [bookmarks, setBookmarks] = useState<BrowserBookmark[]>([]);
   const [history, setHistory] = useState<BrowserHistoryRow[]>([]);
   const [settings, setSettings] = useState<BrowserSettings>(localSettings());
@@ -81,8 +92,8 @@ export function InAppBrowser() {
   const [rename, setRename] = useState<{ url: string; title: string } | null>(null);
   const [downloads, setDownloads] = useState("");
   const [dataPath, setDataPath] = useState("");
-  const [tabs, setTabs] = useState<BrowserTab[]>(() => [makeTab({ id: "tab-1" })]);
-  const [activeId, setActiveId] = useState("tab-1");
+  const [tabs, setTabs] = useState<BrowserTab[]>(() => keptBrowser?.tabs ?? [makeTab({ id: "tab-1" })]);
+  const [activeId, setActiveId] = useState(() => keptBrowser?.activeId ?? "tab-1");
   const [profiles, setProfiles] = useState<BrowserProfile[]>(() => localProfiles().profiles);
   const [profileId, setProfileId] = useState(() => localProfiles().activeId);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -195,13 +206,14 @@ export function InAppBrowser() {
         setDraft(current.url);
         setTitle(current.title || hostLabel(current.url));
         if (desktop) {
-          desktop.browserLoad(current.url);
+          desktop.browserLoad(current.url, { restore: true });
           requestAnimationFrame(syncBounds);
         }
       }
     };
 
     if (desktop) {
+      const returning = keptBrowser;
       void Promise.all([
         desktop.bookmarksList(),
         desktop.historyList(),
@@ -219,7 +231,11 @@ export function InAppBrowser() {
         setDataPath(stored);
         setProfiles(registry.profiles);
         setProfileId(registry.activeId);
-        openActive(tabStore, next.startup, next.homepage);
+        if (!returning) openActive(tabStore, next.startup, next.homepage);
+        else if (returning.url && desktop) {
+          desktop.browserLoad(returning.url, { restore: true });
+          requestAnimationFrame(syncBounds);
+        } else requestAnimationFrame(syncBounds);
         readyRef.current = true;
       });
       const offUrl = desktop.onBrowserUrl((next) => {
@@ -243,6 +259,7 @@ export function InAppBrowser() {
       };
     }
 
+    const returning = keptBrowser;
     const local = localSnapshot();
     const registry = localProfiles();
     setProfiles(registry.profiles);
@@ -250,7 +267,9 @@ export function InAppBrowser() {
     setBookmarks(local.bookmarks);
     setHistory(local.history);
     setSettings(local.settings);
-    openActive({ tabs: local.tabs, activeId: local.activeId }, local.settings.startup, local.settings.homepage);
+    if (!returning) {
+      openActive({ tabs: local.tabs, activeId: local.activeId }, local.settings.startup, local.settings.homepage);
+    }
     void pullRemoteBundle().then((remote) => {
       if (cancelled || !remote) {
         readyRef.current = true;
@@ -266,7 +285,9 @@ export function InAppBrowser() {
           setBookmarks(snap.bookmarks);
           setHistory(snap.history);
           setSettings(snap.settings);
-          openActive({ tabs: snap.tabs, activeId: snap.activeId }, snap.settings.startup, snap.settings.homepage);
+          if (!returning) {
+            openActive({ tabs: snap.tabs, activeId: snap.activeId }, snap.settings.startup, snap.settings.homepage);
+          }
         }
       }
       readyRef.current = true;
@@ -294,6 +315,13 @@ export function InAppBrowser() {
   useEffect(() => {
     return () => {
       const snap = sessionRef.current;
+      keptBrowser = {
+        tabs: snap.tabs,
+        activeId: snap.activeId,
+        url: snap.tabs.find((tab) => tab.id === snap.activeId)?.url ?? "",
+        draft: snap.tabs.find((tab) => tab.id === snap.activeId)?.url ?? "",
+        title: snap.tabs.find((tab) => tab.id === snap.activeId)?.title || "Browser",
+      };
       localSaveTabs(snap.tabs, snap.activeId);
       void pushRemoteBundle();
     };

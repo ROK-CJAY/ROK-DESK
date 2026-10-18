@@ -25,7 +25,7 @@ export function InkPicker({
 
   return (
     <div className="grid gap-1.5">
-      <div className={cn("flex gap-1", size === "sm" ? "flex-nowrap" : "flex-wrap gap-1.5")}>
+      <div className={cn("flex gap-1", size === "sm" ? "flex-wrap" : "flex-wrap gap-1.5")}>
         {LORCANA_INKS.map((ink) => {
           const on = selected.includes(ink.id);
           return (

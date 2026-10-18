@@ -123,7 +123,9 @@ export function UpdateBadge() {
           </Button>
         </div>
         {state.canInstall ? (
-          <p className="mt-2 text-[0.65rem] text-subtle">Windows installer can apply this in-app. Portable builds open the release page.</p>
+          <p className="mt-2 text-[0.65rem] text-subtle">
+            A newer build downloads on its own. Restart to apply it, or quit the desk and it installs then. A live show is not interrupted. Portable Windows builds open the release page instead.
+          </p>
         ) : (
           <p className="mt-2 text-[0.65rem] text-subtle">
             Releases: ROK-CJAY/ROK-DESK. Uninstall keeps event data in the ROK Desk AppData folder.

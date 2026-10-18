@@ -4,9 +4,22 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
-## Unreleased
+## v1.4.6 — 2026-10-18
 
-Not tagged. Use the build on `main` until the next release.
+### Added
+
+- **One Piece lookup** — card art no longer falls through to a Pokémon card back. Starter and set codes were being treated as Pokémon ids.
+- **Home** — shorter start page. The tablet list only shows surfaces that game actually has. Player Extended is Lorcana only.
+- **Tournament** — game tabs match Production. PTCG, VGC, and Magic keep their sub-tabs.
+- **Top decks** — each player can show a place. The show title is used, and the format is no longer printed on the left. The corner mark reads ROK Gaming Lounge.
+- **Lorcana** — player and judge tablets keep a match log. Every lore change is stored with the time and the new total until the match is reset.
+- **Tablets** — Light or Dark sits next to How to. The choice is remembered on that tablet. The desk and overlays stay dark.
+- **Commander player tablet** — commander damage is a four-seat map. Your seat says ME. The others show that player's damage. Tap a seat to change it.
+
+### Fixed
+
+- **Browser** — leaving the browser for Home, Production, or Tournament no longer reloads the open tabs.
+- **Desktop updates** — a packaged Windows installer, Mac disk image, or Linux AppImage checks GitHub on launch and every few hours, downloads the newer build in the background, and applies it on restart. Portable Windows builds still open the release page.
 
 ## v1.4.5 — 2026-10-07
 

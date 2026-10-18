@@ -83,13 +83,21 @@ export function MatchControl() {
 
       {commanderTable ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          {(desk.tableSize === 4 ? (["p1", "p2", "p4", "p3"] as SeatId[]) : seatsFor(desk.tableSize)).map(
+          {(desk.tableSize === 4 ? (["p3", "p4", "p2", "p1"] as SeatId[]) : seatsFor(desk.tableSize)).map(
             (seat) => (
               <SeatCard
                 key={seat}
                 seat={seat}
                 player={desk[seat]}
-                align={seat === "p2" || seat === "p3" ? "right" : "left"}
+                align={
+                  desk.tableSize === 4
+                    ? seat === "p4" || seat === "p1"
+                      ? "right"
+                      : "left"
+                    : seat === "p2" || seat === "p3"
+                      ? "right"
+                      : "left"
+                }
                 onChange={(partial) => setPlayer(seat, partial)}
                 onResource={(d) => bumpResource(seat, d)}
                 onSecondary={(d) => bumpSecondary(seat, d)}

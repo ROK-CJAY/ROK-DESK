@@ -37,8 +37,12 @@ function currentVersion() {
   return normalizeVersion(app.getVersion());
 }
 
-function isNsisWindows() {
-  return process.platform === "win32" && app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR;
+function updaterApplies() {
+  if (!app.isPackaged) return false;
+  if (process.platform === "win32") return !process.env.PORTABLE_EXECUTABLE_DIR;
+  if (process.platform === "darwin") return true;
+  if (process.platform === "linux") return Boolean(process.env.APPIMAGE);
+  return false;
 }
 
 function broadcast(payload) {
@@ -59,7 +63,7 @@ let autoUpdater = null;
 let downloaded = false;
 
 function loadAutoUpdater() {
-  if (!isNsisWindows()) return null;
+  if (!updaterApplies()) return null;
   try {
     const require = createRequire(import.meta.url);
     const mod = require("electron-updater");
@@ -182,9 +186,9 @@ export function initUpdater() {
   lastStatus = { status: "idle", current: currentVersion() };
   autoUpdater = loadAutoUpdater();
   if (autoUpdater) {
-    autoUpdater.autoDownload = false;
+    autoUpdater.autoDownload = true;
     autoUpdater.autoInstallOnAppQuit = true;
-    autoUpdater.allowPrerelease = true;
+    autoUpdater.allowPrerelease = false;
     autoUpdater.logger = null;
     autoUpdater.on("download-progress", (progress) => {
       const percent = Math.round(Number(progress?.percent) || 0);
@@ -223,8 +227,10 @@ export function initUpdater() {
   ipcMain.handle("rok:update-open", () => openReleasePage());
 
   if (app.isPackaged) {
-    setTimeout(() => {
+    const check = () => {
       void checkForUpdates();
-    }, 4000);
+    };
+    setTimeout(check, 8000);
+    setInterval(check, 4 * 60 * 60 * 1000);
   }
 }

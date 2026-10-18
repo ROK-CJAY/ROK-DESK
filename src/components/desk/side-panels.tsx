@@ -8,7 +8,8 @@ import { MtgOvertime } from "@/components/desk/mtg-overtime";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { gameOf, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle, playDivisionsFor, TITLE_STRIP, titleStripActive, titleStripTarget, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { TitleTabs } from "@/components/app/title-tabs";
+import { gameOf, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -692,52 +693,10 @@ export function GameStrip({ onPick }: { onPick: (id: GameId) => void }) {
   const desk = useDeskStore((s) => s.desk);
   const applyMatchSlot = useDeskStore((s) => s.applyMatchSlot);
   const slot = (desk.matchSlot ?? 1) as MatchSlot;
-  const divisions = playDivisionsFor(desk.gameId);
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-nowrap gap-1.5 overflow-x-auto pb-1">
-        {TITLE_STRIP.map((title) => {
-          const active = titleStripActive(title.id, desk.gameId);
-          return (
-            <button
-              key={title.id}
-              type="button"
-              data-game={title.id}
-              onClick={() => onPick(titleStripTarget(title.id, desk.gameId))}
-              className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium tracking-wide whitespace-nowrap transition-colors duration-150 ${
-                active
-                  ? "border-game bg-game/15 text-fg"
-                  : "border-border bg-surface text-muted hover:text-fg"
-              }`}
-            >
-              {title.label}
-            </button>
-          );
-        })}
-      </div>
-      {divisions.length ? (
-        <div className="flex flex-wrap gap-1.5">
-          {divisions.map((division) => {
-            const active = desk.gameId === division.gameId;
-            return (
-              <button
-                key={division.id}
-                type="button"
-                data-play-division={division.id}
-                onClick={() => onPick(division.gameId)}
-                className={`rounded-md border px-3 py-1 text-xs font-medium tracking-wide ${
-                  active
-                    ? "border-accent bg-accent text-accent-fg"
-                    : "border-border bg-surface-2 text-muted hover:text-fg"
-                }`}
-              >
-                {division.label}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      <TitleTabs gameId={desk.gameId} onPick={onPick} />
       <div className="flex flex-wrap gap-1.5">
           {MATCH_SLOTS.map((n) => (
             <button

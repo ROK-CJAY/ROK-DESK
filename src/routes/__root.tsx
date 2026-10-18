@@ -5,8 +5,10 @@ import {
   Scripts,
   useRouterState,
 } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { TABLET_THEME_KEY, TabletThemeContext } from "@/components/tablet/tablet-theme";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "ROK Desk";
@@ -61,17 +63,32 @@ function RootDocument() {
     pathname === "/pod" ||
     pathname === "/tablet" ||
     pathname.endsWith("/tablet");
+  const [light, setLight] = useState(false);
+
+  useEffect(() => {
+    setLight(localStorage.getItem(TABLET_THEME_KEY) === "light");
+  }, []);
+
+  const toggleTheme = () => {
+    setLight((value) => {
+      const next = !value;
+      localStorage.setItem(TABLET_THEME_KEY, next ? "light" : "dark");
+      return next;
+    });
+  };
 
   return (
-    <html lang="en" className={overlay || print ? "overlay-mode" : tablet ? "pod-mode dark" : "dark antialiased"} suppressHydrationWarning>
+    <html lang="en" className={overlay || print ? "overlay-mode" : tablet ? `pod-mode ${light ? "light" : "dark"}` : "dark antialiased"} suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className={overlay || print ? "overlay-body" : tablet ? "pod-body" : "min-h-dvh bg-bg text-fg antialiased"}>
         <PreviewHostBridge />
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
+        <TabletThemeContext.Provider value={{ light, toggle: toggleTheme }}>
+          <AuthProvider>
+            <Outlet />
+          </AuthProvider>
+        </TabletThemeContext.Provider>
         <Scripts />
       </body>
     </html>

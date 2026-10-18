@@ -1,7 +1,6 @@
 import { RemoteArt } from "@/components/ui/remote-art";
 import { rokCardBack } from "@/components/overlays/rok-layout";
 import { computeStandings } from "@/lib/tournament-bracket";
-import { gameOf } from "@/lib/games";
 import type { DeckCard } from "@/lib/decklist";
 import type { TopDeckSlot } from "@/lib/desk-types";
 import type { Entrant, TournamentState } from "@/lib/tournament-types";
@@ -10,10 +9,12 @@ export function TopDecksOverlay({
   tournament,
   count,
   slots = [],
+  showTitle = "",
 }: {
   tournament: TournamentState;
   count: number;
   slots?: TopDeckSlot[];
+  showTitle?: string;
 }) {
   const shown = Math.min(16, Math.max(1, Math.round(count) || 8));
   const rows = topDeckRows(tournament, slots, shown);
@@ -22,8 +23,7 @@ export function TopDecksOverlay({
   const cardH = rowCount >= 4 ? 108 : rowCount === 3 ? 146 : rowCount === 2 ? 248 : 280;
   const nameSize = rowCount >= 4 ? "1.05rem" : rowCount === 3 ? "1.2rem" : "1.45rem";
   const deckSize = rowCount >= 4 ? "0.72rem" : "0.95rem";
-  const title = tournament.name.trim() || "ROK Esports";
-  const mark = gameOf(tournament.gameId).short;
+  const title = showTitle.trim() || tournament.name.trim() || "ROK Esports";
   const back = rokCardBack(tournament);
 
   return (
@@ -42,9 +42,6 @@ export function TopDecksOverlay({
         <path d="M1868 70V1010" stroke="#d4534c" strokeOpacity="0.55" strokeWidth="3" />
         <path d="M1884 70V1010" stroke="#c5ccd6" strokeOpacity="0.35" strokeWidth="1" />
       </svg>
-      <p className="font-display pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 -rotate-90 text-[1.35rem] font-semibold tracking-[0.42em] text-[#d4534c] uppercase">
-        {mark}
-      </p>
 
       <div className="relative flex h-full flex-col px-16 pt-7 pb-6">
         <header className="flex items-center justify-between gap-6">
@@ -60,7 +57,7 @@ export function TopDecksOverlay({
               </h1>
             </div>
           </div>
-          <p className="font-display shrink-0 text-5xl font-semibold tracking-wide text-[#d4534c]">ROK</p>
+          <p className="font-display shrink-0 text-4xl font-semibold tracking-wide text-[#d4534c]">ROK Gaming Lounge</p>
         </header>
 
         {rows.length === 0 ? (
@@ -77,6 +74,11 @@ export function TopDecksOverlay({
           >
             {rows.map((row, index) => (
                 <article key={`${row.name}-${index}`} className="min-w-0">
+                  {row.place ? (
+                    <p className="mb-1 text-center font-display leading-none font-semibold tracking-[0.22em] text-[#d4534c] uppercase" style={{ fontSize: nameSize }}>
+                      {placeLabel(row.place)}
+                    </p>
+                  ) : null}
                   <div className="rounded-xl border border-white/15 bg-[#12151a]/95 p-2 shadow-[0_12px_28px_rgb(0_0_0/0.4)]">
                     <CardPair faces={row.faces} height={cardH} back={back} />
                     <div className="mt-2 rounded-md bg-[#d4534c] px-2 py-1.5 text-center">
@@ -97,6 +99,15 @@ export function TopDecksOverlay({
       </div>
     </div>
   );
+}
+
+function placeLabel(place: number): string {
+  const mod100 = place % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${place}th`;
+  if (place % 10 === 1) return `${place}st`;
+  if (place % 10 === 2) return `${place}nd`;
+  if (place % 10 === 3) return `${place}rd`;
+  return `${place}th`;
 }
 
 function columnsFor(count: number): number {
@@ -121,7 +132,7 @@ export function topDeckEntrants(tournament: TournamentState, count: number): Ent
 export function topDeckRows(tournament: TournamentState, slots: TopDeckSlot[], count: number) {
   const shown = Math.min(16, Math.max(1, Math.round(count) || 8));
   const players = topDeckEntrants(tournament, shown);
-  const rows: { name: string; deck: string; faces: [DeckCard | null, DeckCard | null] }[] = [];
+  const rows: { name: string; deck: string; place: number | null; faces: [DeckCard | null, DeckCard | null] }[] = [];
   for (let i = 0; i < shown; i += 1) {
     const slot = slots[i];
     const player = players[i];
@@ -130,7 +141,7 @@ export function topDeckRows(tournament: TournamentState, slots: TopDeckSlot[], c
     const fromCards = faces.flatMap((card) => (card?.name ? [card.name] : []));
     const deck = (slot?.deck || player?.deck || "").trim() || fromCards.join(" / ");
     if (!name && !deck && !faces[0] && !faces[1]) continue;
-    rows.push({ name: name || "Player", deck: deck || "Deck", faces });
+    rows.push({ name: name || "Player", deck: deck || "Deck", place: slot?.place ? i + 1 : null, faces });
   }
   return rows;
 }

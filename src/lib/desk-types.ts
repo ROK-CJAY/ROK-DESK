@@ -144,6 +144,10 @@ export type SpotlightCard = {
   type: string;
 };
 
+export type LoreLogEntry =
+  | { id: string; at: number; kind: "lore"; side: SeatId; delta: number; total: number }
+  | { id: string; at: number; kind: "mark"; text: string };
+
 export type DeskState = {
   version: number;
   gameId: GameId;
@@ -196,6 +200,7 @@ export type DeskState = {
   sideSpotlight: SideSpotlight;
   ptcgBoard: PtcgBoard;
   lanes: Record<string, Record<string, unknown>>;
+  loreLog: LoreLogEntry[];
   testMode: boolean;
   testSnapshot: Record<string, unknown> | null;
 };
@@ -325,6 +330,10 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   topDeckCount: z.number(),
   topDeckSlots: z.unknown().optional().transform((rows) => parseTopDeckSlots(rows)),
   lanes: z.record(z.string(), z.any()).optional().transform((v) => (v ?? {}) as DeskState["lanes"]),
+  loreLog: z
+    .array(z.unknown())
+    .optional()
+    .transform((rows) => parseLoreLog(rows)),
   overlayLook: z.any().optional().transform((v) => mergeLookBook(v)),
   cardSpotlight: z
     .object({
@@ -429,6 +438,31 @@ export function parseSideSpotlight(raw: unknown): SideSpotlight {
     p1: mergeSpotlight(row.p1),
     p2: mergeSpotlight(row.p2),
   };
+}
+
+function parseLoreLog(rows: unknown): LoreLogEntry[] {
+  if (!Array.isArray(rows)) return [];
+  const out: LoreLogEntry[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const item = row as Record<string, unknown>;
+    const id = typeof item.id === "string" ? item.id : "";
+    const at = typeof item.at === "number" ? item.at : 0;
+    if (!id) continue;
+    if (item.kind === "mark" && typeof item.text === "string") {
+      out.push({ id, at, kind: "mark", text: item.text });
+      continue;
+    }
+    if (
+      item.kind === "lore" &&
+      (item.side === "p1" || item.side === "p2" || item.side === "p3" || item.side === "p4") &&
+      typeof item.delta === "number" &&
+      typeof item.total === "number"
+    ) {
+      out.push({ id, at, kind: "lore", side: item.side, delta: item.delta, total: item.total });
+    }
+  }
+  return out.slice(-400);
 }
 
 function mergeSpotlight(raw: unknown): SpotlightCard {
@@ -536,6 +570,7 @@ export function defaultDesk(): DeskState {
     sideSpotlight: emptySideSpotlight(),
     ptcgBoard: emptyPtcgBoard(),
     lanes: {},
+    loreLog: [],
     testMode: false,
     testSnapshot: null,
   };
@@ -545,10 +580,11 @@ export type TopDeckSlot = {
   name: string;
   deck: string;
   faces: [DeckCard | null, DeckCard | null];
+  place: boolean;
 };
 
 export function emptyTopDeckSlot(): TopDeckSlot {
-  return { name: "", deck: "", faces: [null, null] };
+  return { name: "", deck: "", faces: [null, null], place: false };
 }
 
 export function parseTopDeckSlots(raw: unknown): TopDeckSlot[] {
@@ -559,6 +595,7 @@ export function parseTopDeckSlots(raw: unknown): TopDeckSlot[] {
       name: String(row.name ?? "").slice(0, 80),
       deck: String(row.deck ?? "").slice(0, 80),
       faces: facePair(row.faces),
+      place: row.place === true,
     };
   });
 }

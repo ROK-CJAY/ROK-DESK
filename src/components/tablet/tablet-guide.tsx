@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CircleHelp, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TabletThemeButton } from "@/components/tablet/tablet-theme";
 
 export type TabletGuideKind =
   | "vgc"
@@ -386,7 +387,7 @@ const COPY: Record<
     steps: [
       {
         title: "Tap + or − for lore",
-        body: "The big number is that player’s lore (0–20). The plus above and minus below change it by one. Use +8 / −8 for a big swing.",
+        body: "The big number is that player’s lore (0–20). The − and + beside it change lore by one. Log keeps every change, with the time and the new total, until the match is reset.",
       },
       {
         title: "Tap the diamonds for games",
@@ -413,7 +414,7 @@ const COPY: Record<
       },
       {
         title: "Tap lore and games",
-        body: "The big number is lore (0–20). Plus above, minus below, +8 / −8 on the edge. Diamonds are games in the match. Game awards a game and resets lore. Match reports the pairing if Tournament sent it.",
+        body: "The big number is lore (0–20). The − and + beside it change lore by one. Diamonds are games in the match. Game awards a game and resets lore. Match reports the pairing if Tournament sent it.",
       },
       {
         title: "Clock",
@@ -494,7 +495,7 @@ const COPY: Record<
     steps: [
       {
         title: "Tap the sides of a seat",
-        body: "Left is −1 life. Right is +1. The big number is what the overlay is showing.",
+        body: "Tap the big − or + for 1 life. Hold it and life keeps changing by 5 until you let go. The big number is what the overlay is showing.",
       },
       {
         title: "Facing out",
@@ -502,7 +503,7 @@ const COPY: Record<
       },
       {
         title: "Poison and commander",
-        body: "The chips under life track poison and commander damage. Commander damage also takes that much life. Gaining life does not lower commander damage. Tap Cmd to track damage from each other player, and Total to go back to one number. They go live on the Commander overlays.",
+        body: "Poison sits under life. Commander damage is the four seats. Yours says ME. The others show the damage from that player. Tap one to change it. That damage also lowers life. Gaining life does not lower commander damage. They go live on the Commander overlays.",
       },
     ],
   },
@@ -587,9 +588,12 @@ export function TabletGuide({
 
 export function GuideButton({ onClick }: { onClick: () => void }) {
   return (
-    <Button variant="ghost" size="sm" onClick={onClick} aria-label="How to use this tablet">
-      <CircleHelp className="size-3.5" />
-      How to
-    </Button>
+    <>
+      <TabletThemeButton />
+      <Button variant="ghost" size="sm" onClick={onClick} aria-label="How to use this tablet">
+        <CircleHelp className="size-3.5" />
+        How to
+      </Button>
+    </>
   );
 }

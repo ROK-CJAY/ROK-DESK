@@ -132,6 +132,7 @@ export function ptcgArtUrl(id?: string, image?: string, size: "low" | "high" = "
 }
 
 export function isPtcgArt(image?: string, id?: string): boolean {
+  if (isOnePieceCard(image, id)) return false;
   if (id && /^[a-z0-9.]+-\d+[a-z0-9]*$/i.test(id)) return true;
   return /tcgdex\.net|pokemontcg\.io|scrydex\.com|pokemon\.com\/static-assets|limitlesstcg/i.test(image ?? "");
 }
@@ -175,6 +176,7 @@ export function ptcgArtSources(
   };
 
   const prefix = (image ?? "").trim().replace(/\/+$/, "");
+  if (prefix.startsWith("/api/op-art")) return [prefix];
   const isFile = Boolean(prefix) && /\.(webp|png|jpe?g|avif|gif)(\?|#|$)/i.test(prefix);
   const isTcgdex = /tcgdex\.net/i.test(prefix);
   const isScrydex = /scrydex\.com\/pokemon\//i.test(prefix);
@@ -229,6 +231,11 @@ export function ptcgArtSources(
   }
 
   return out;
+}
+
+function isOnePieceCard(image?: string, id?: string): boolean {
+  if ((image ?? "").includes("/api/op-art")) return true;
+  return /^(?:OP|ST|EB|PRB)\d{2}-\d{3}(?:_[a-z0-9]+)?$/i.test(id ?? "");
 }
 
 function isLimitlessScan(url: string): boolean {

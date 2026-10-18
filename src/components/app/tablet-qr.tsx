@@ -4,10 +4,10 @@ import { cn } from "@/lib/cn";
 import type { GameId } from "@/lib/games";
 import {
   TABLET_SLOTS,
-  TABLET_SURFACES,
   TABLET_TITLES,
   type TabletSlot,
   type TabletSurface,
+  surfacesForGame,
   tabletJoinUrl,
 } from "@/lib/tablet-join";
 
@@ -41,7 +41,12 @@ export function TabletQr() {
     };
   }, []);
 
-  const surfaceMeta = TABLET_SURFACES.find((s) => s.id === surface)!;
+  const surfaces = useMemo(() => surfacesForGame(gameId), [gameId]);
+  const surfaceMeta = surfaces.find((s) => s.id === surface) ?? surfaces[0]!;
+
+  useEffect(() => {
+    if (!surfaces.some((row) => row.id === surface)) setSurface(surfaces[0]?.id ?? "judge");
+  }, [surfaces, surface]);
   const joinUrl = useMemo(
     () => (base ? tabletJoinUrl(base, gameId, slot, surface) : ""),
     [base, gameId, slot, surface],
@@ -121,7 +126,7 @@ export function TabletQr() {
 
       <p className="mt-4 font-mono text-[0.65rem] tracking-[0.16em] text-subtle uppercase">Surface</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {TABLET_SURFACES.map((row) => (
+        {surfaces.map((row) => (
           <Chip key={row.id} active={surface === row.id} onClick={() => setSurface(row.id)}>
             {row.label}
           </Chip>

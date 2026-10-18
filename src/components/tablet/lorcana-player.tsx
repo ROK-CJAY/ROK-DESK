@@ -3,10 +3,9 @@ import { formatClock, remainingSeconds, type SideId } from "@/lib/desk-types";
 import { gameDiamonds } from "@/lib/lorcana";
 import { GuideButton, TabletGuide, useTabletGuide } from "@/components/tablet/tablet-guide";
 import { HeadToHeadButton, StackButton, useHeadToHead, useStackedSeats } from "@/components/tablet/head-to-head";
+import { LoreLogButton } from "@/components/tablet/lore-log";
 import { cn } from "@/lib/cn";
 import { useClockNow } from "@/lib/use-clock-now";
-
-const LORE_STEPS = [8, -8, 1, -1];
 
 export function LorcanaPlayerTablet() {
   const desk = useDeskStore((s) => s.desk);
@@ -19,17 +18,18 @@ export function LorcanaPlayerTablet() {
 
   return (
     <div className="flex h-dvh flex-col bg-bg text-fg" data-game="lorcana">
-      <header className="relative flex shrink-0 items-center justify-center border-b border-border px-4 py-2.5">
-        <div className="text-center">
-          <p className="font-mono text-[0.58rem] tracking-[0.2em] text-muted uppercase">Match clock</p>
-          <p className="font-display text-[2.4rem] leading-none font-semibold tabular-nums tracking-tight">
-            {clock}
-          </p>
-        </div>
-        <div className="absolute top-2 right-3 flex items-center gap-1.5">
+      <header className="flex shrink-0 flex-col items-center gap-1 border-b border-border px-3 py-2">
+        <div className="flex w-full flex-wrap items-center justify-center gap-1.5">
           <StackButton on={stack.on} onClick={stack.toggle} />
           <HeadToHeadButton on={face.on} onClick={face.toggle} />
+          <LoreLogButton />
           <GuideButton onClick={guide.openGuide} />
+        </div>
+        <div className="text-center">
+          <p className="font-mono text-[0.58rem] tracking-[0.2em] text-muted uppercase">Match clock</p>
+          <p className="font-display text-[clamp(1.7rem,7vw,2.4rem)] leading-none font-semibold tabular-nums tracking-tight">
+            {clock}
+          </p>
         </div>
       </header>
 
@@ -54,10 +54,11 @@ function PlayerHalf({ side, flip = false, stacked = false }: { side: SideId; fli
   return (
     <section
       className={cn(
-        "relative flex min-h-0 flex-col bg-surface",
+        "@container/seat relative flex min-h-0 flex-col bg-surface",
         right && (stacked ? "border-t border-border" : "border-l border-border"),
         flip && "rotate-180",
       )}
+      style={{ containerType: "inline-size" }}
     >
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
@@ -74,18 +75,18 @@ function PlayerHalf({ side, flip = false, stacked = false }: { side: SideId; fli
             onClick={() => bumpScore(side, -1)}
             disabled={player.score <= 0}
             aria-label={`${player.name || side} minus one game`}
-            className="grid size-11 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
+            className="grid size-12 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
           >
             −
           </button>
-          <div className="flex min-w-10 flex-col items-center gap-1">
-            <span className="font-display text-lg leading-none font-semibold tabular-nums">{player.score}</span>
+          <div className="flex min-w-12 flex-col items-center gap-1.5">
+            <span className="font-display text-2xl leading-none font-semibold tabular-nums">{player.score}</span>
             <div className="flex items-center gap-1">
               {Array.from({ length: needed }, (_, i) => (
                 <span
                   key={i}
                   className={cn(
-                    "size-2.5 rotate-45 border-2",
+                    "size-3 rotate-45 border-2",
                     i < player.score ? "border-accent bg-accent" : "border-muted bg-transparent",
                   )}
                 />
@@ -97,49 +98,36 @@ function PlayerHalf({ side, flip = false, stacked = false }: { side: SideId; fli
             onClick={() => bumpScore(side, 1)}
             disabled={player.score >= needed}
             aria-label={`${player.name || side} plus one game`}
-            className="grid size-11 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
+            className="grid size-12 place-items-center rounded-md border border-border bg-surface-2 text-2xl leading-none text-fg active:bg-surface disabled:opacity-30"
           >
             +
           </button>
         </div>
       </div>
 
-      <div className="relative flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 items-center justify-between px-[clamp(0.5rem,2cqw,1rem)]">
         <button
           type="button"
-          onClick={() => bumpResource(side, 1)}
-          className="flex flex-1 items-end justify-center pb-2 text-4xl font-light text-subtle active:bg-fg/5"
-          aria-label={`${player.name || side} plus one lore`}
+          onClick={() => bumpResource(side, -1)}
+          className="grid size-[clamp(3rem,14cqw,4.5rem)] place-items-center rounded-lg border border-border bg-surface-2 text-[clamp(1.75rem,6cqw,2.5rem)] leading-none text-fg active:bg-surface"
+          aria-label={`${player.name || side} minus one lore`}
         >
-          +
+          −
         </button>
         <p
-          className="font-display pointer-events-none text-center leading-none font-semibold tabular-nums text-fg"
-          style={{ fontSize: "clamp(5.5rem, 18vw, 10rem)" }}
+          className="font-display pointer-events-none min-w-0 text-center leading-none font-semibold tabular-nums text-fg"
+          style={{ fontSize: "clamp(3.5rem, 16cqw, 8rem)" }}
         >
           {lore}
         </p>
         <button
           type="button"
-          onClick={() => bumpResource(side, -1)}
-          className="flex flex-1 items-start justify-center pt-2 text-4xl font-light text-subtle active:bg-fg/5"
-          aria-label={`${player.name || side} minus one lore`}
+          onClick={() => bumpResource(side, 1)}
+          className="grid size-[clamp(3rem,14cqw,4.5rem)] place-items-center rounded-lg border border-border bg-surface-2 text-[clamp(1.75rem,6cqw,2.5rem)] leading-none text-fg active:bg-surface"
+          aria-label={`${player.name || side} plus one lore`}
         >
-          −
+          +
         </button>
-      </div>
-
-      <div className={cn("absolute top-1/2 flex -translate-y-1/2 flex-col gap-2", right ? "right-2" : "left-2")}>
-        {LORE_STEPS.map((step) => (
-          <button
-            key={step}
-            type="button"
-            onClick={() => bumpResource(side, step)}
-            className="min-w-11 rounded-md border border-border bg-surface-2 px-2 py-1.5 font-mono text-sm font-semibold tabular-nums text-fg active:bg-surface"
-          >
-            {step > 0 ? `+${step}` : step}
-          </button>
-        ))}
       </div>
     </section>
   );

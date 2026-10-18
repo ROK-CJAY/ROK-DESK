@@ -4,7 +4,7 @@ contextBridge.exposeInMainWorld("rokDesk", {
   desktop: true,
   browserAttach: (bounds) => ipcRenderer.send("rok:browser-attach", bounds),
   browserDetach: () => ipcRenderer.send("rok:browser-detach"),
-  browserLoad: (url) => ipcRenderer.send("rok:browser-load", url),
+  browserLoad: (url, opts) => ipcRenderer.send("rok:browser-load", url, opts || {}),
   browserBack: () => ipcRenderer.send("rok:browser-back"),
   browserForward: () => ipcRenderer.send("rok:browser-forward"),
   browserReload: () => ipcRenderer.send("rok:browser-reload"),

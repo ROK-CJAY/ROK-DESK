@@ -56,7 +56,7 @@ export type RokDeskBridge = {
   desktop: true;
   browserAttach: (bounds: BrowserBounds) => void;
   browserDetach: () => void;
-  browserLoad: (url: string) => void;
+  browserLoad: (url: string, opts?: { restore?: boolean }) => void;
   browserBack: () => void;
   browserForward: () => void;
   browserReload: () => void;
