@@ -47,6 +47,8 @@ export function previewUrl(base: string, game: string, code: string, skin: numbe
   const host = root || TSH_SITE;
   return `${host}/games/${game}/website/${code}_${skin}.png`;
 }
+
+export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
   const root = base.trim().replace(/\/$/, "");
   const configUrl = root
     ? `${root}/games/${game.code}/library.json`
