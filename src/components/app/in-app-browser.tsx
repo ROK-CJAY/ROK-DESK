@@ -603,7 +603,7 @@ export function InAppBrowser() {
   const activeProfile = profiles.find((row) => row.id === profileId) ?? DESK_PROFILE;
 
   return (
-    <div className="flex min-h-dvh flex-col bg-bg text-fg">
+    <div className="flex min-h-dvh flex-col bg-bg text-fg" data-rev="r2">
       <AppChrome view="browser" eyebrow={panel === "settings" ? "Settings" : title === "Browser" || title === "New Tab" ? "Browser" : title} />
       <div className="flex items-end gap-1 overflow-x-auto bg-surface-2 px-2 pt-2">
         {tabs.map((tab) => (

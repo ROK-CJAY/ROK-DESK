@@ -283,6 +283,7 @@ export function OverlayPreview() {
             {supportsPlayLayout(desk) ? <option value="play">Play Layout</option> : null}
             {desk.gameId === "mtg" && !isCommanderTable(desk) ? <option value="ug">UG Layout</option> : null}
             {desk.gameId === "mtg" && !isCommanderTable(desk) ? <option value="stream">Stream Layout</option> : null}
+            {desk.gameId === "lorcana" || desk.gameId === "one-piece" ? <option value="neon">Play · Stream colors</option> : null}
           </NativeSelect>
           {desk.scorebugStyle === "bar" || desk.scorebugStyle === "split" ? (
             <NativeSelect
@@ -294,7 +295,7 @@ export function OverlayPreview() {
             </NativeSelect>
           ) : (
             <p className="self-center text-[0.7rem] text-muted">
-              {desk.scorebugStyle === "play" ? "Play Layout" : desk.scorebugStyle === "ug" ? "UG Layout" : desk.scorebugStyle === "stream" ? "Stream Layout" : "ROK Layout"}
+              {desk.scorebugStyle === "play" ? "Play Layout" : desk.scorebugStyle === "neon" ? "Play · Stream colors" : desk.scorebugStyle === "ug" ? "UG Layout" : desk.scorebugStyle === "stream" ? "Stream Layout" : "ROK Layout"}
             </p>
           )}
         </div>

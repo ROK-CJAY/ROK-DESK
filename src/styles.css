@@ -121,10 +121,21 @@
   html.overlay-mode,
   html.overlay-mode body,
   .overlay-body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    height: 100%;
     background: transparent !important;
     color: var(--color-ov-fg);
-    overflow: hidden;
-    min-height: 100%;
+    overflow: hidden !important;
+    scrollbar-width: none;
+  }
+
+  html.overlay-mode::-webkit-scrollbar,
+  html.overlay-mode body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 
   html.pod-mode,

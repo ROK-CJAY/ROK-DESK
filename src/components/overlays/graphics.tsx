@@ -19,6 +19,7 @@ import { CardSpotlightView } from "@/components/overlays/card";
 import { EventLogoMark, EventLogoView } from "@/components/overlays/event-logo";
 import { SponsorsView } from "@/components/overlays/sponsors";
 import { VgcVersusView } from "@/components/overlays/vgc-versus";
+import { LorcanaVersus, MtgVersus, OpVersus } from "@/components/overlays/lorcana-versus";
 import { GameWinView, WinnerView } from "@/components/overlays/winner";
 
 export { GameWinView, WinnerView } from "@/components/overlays/winner";
@@ -54,6 +55,15 @@ export function VersusView({ desk }: { desk: DeskState }) {
   }
   if (isVgcTitle(desk.gameId)) {
     return <VgcVersusView desk={desk} />;
+  }
+  if (desk.gameId === "lorcana") {
+    return <LorcanaVersus desk={desk} />;
+  }
+  if (desk.gameId === "mtg") {
+    return <MtgVersus desk={desk} />;
+  }
+  if (desk.gameId === "one-piece") {
+    return <OpVersus desk={desk} />;
   }
   const game = gameOf(desk.gameId);
   return (
@@ -410,20 +420,21 @@ export function HudView({
       desk.gameId === "mtg");
   const ug = desk.scorebugStyle === "ug" && desk.gameId === "mtg";
   const stream = desk.scorebugStyle === "stream" && desk.gameId === "mtg";
-  const frame = rok || play || ug || stream;
+  const neon = desk.scorebugStyle === "neon" && (desk.gameId === "lorcana" || desk.gameId === "one-piece");
+  const frame = rok || play || ug || stream || neon;
   return (
     <div className="pointer-events-none absolute inset-0">
       <ScorebugView desk={desk} now={now} edit={edit} />
       {frame || commander ? null : <TimerView desk={desk} now={now} edit={edit} />}
       {commander || frame ? null : <ResourceView desk={desk} edit={edit} />}
       {commander || frame ? null : <CastersView desk={desk} edit={edit} />}
-      {play || ug || stream ? null : <LowerThirdView desk={desk} edit={edit} />}
+      {play || ug || stream || neon ? null : <LowerThirdView desk={desk} edit={edit} />}
       {frame ? null : <WinnerView desk={desk} edit={edit} />}
       {frame ? null : <GameWinView desk={desk} edit={edit} />}
       {frame ? null : <RosterView desk={desk} edit={edit} />}
       {frame ? null : <CardSpotlightView desk={desk} edit={edit} />}
-      {play || ug || stream ? null : <SponsorsView desk={desk} now={now} edit={edit} compact />}
-      {play || ug || stream ? null : <EventLogoView desk={desk} edit={edit} />}
+      {play || ug || stream || neon ? null : <SponsorsView desk={desk} now={now} edit={edit} compact />}
+      {play || ug || stream || neon ? null : <EventLogoView desk={desk} edit={edit} />}
     </div>
   );
 }

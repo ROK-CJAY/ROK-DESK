@@ -116,7 +116,7 @@ export async function searchCatalogCards(
   if (catalog === "ygo") return searchYgoCards(query, liveOnly ? ygoFormatFor(formatName) : null);
   if (catalog === "op") return searchOpCards(query, liveOnly);
   if (catalog === "rift") return searchRiftCards(query);
-  if (catalog === "lorcana") return searchLorcanaCards(query);
+  if (catalog === "lorcana") return searchLorcanaCards(query, liveOnly);
   return searchLookupCards(query, liveOnly, opts.catalogFirst ?? false);
 }
 
@@ -843,22 +843,26 @@ export async function fetchRiftCard(id: string): Promise<LookupCard | null> {
   return normalizeRift(data);
 }
 
-export async function searchLorcanaCards(query: string): Promise<LookupCard[]> {
+export async function searchLorcanaCards(query: string, liveOnly = true): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
-  const local = await searchSavedCatalog("lorcana", q);
-  if (local) return local;
+  const local = await searchSavedCatalog("lorcana", q, liveOnly ? "core" : null);
+  if (local && !(liveOnly && local.length === 0)) return local;
   const url = new URL(LORCANA_PROXY, window.location.origin);
   url.searchParams.set("q", q);
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) throw new Error(`Lorcana lookup failed (${res.status})`);
   const data = (await res.json()) as unknown;
   const rows = isRecord(data) && Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
-  return rows.flatMap((row) => {
+  const parsed = rows.flatMap((row) => {
     if (!isRecord(row)) return [];
     const card = normalizeLorcana(row);
-    return card.name ? [card] : [];
+    if (!card.name) return [];
+    return [{ card, core: lorcanaCoreLegal(row) }];
   });
+  if (!liveOnly) return parsed.map((row) => row.card);
+  const legalNames = new Set(parsed.filter((row) => row.core).map((row) => row.card.name.toLowerCase()));
+  return parsed.flatMap((row) => (row.core || legalNames.has(row.card.name.toLowerCase()) ? [row.card] : []));
 }
 
 export async function fetchLorcanaCard(id: string): Promise<LookupCard | null> {
@@ -1134,6 +1138,11 @@ function normalizeRift(item: Record<string, unknown>): LookupCard {
     rarity: [classification.rarity, ...stats].filter(Boolean).map(String).join(" · ") || undefined,
     category: classification.type ? String(classification.type) : undefined,
   };
+}
+
+function lorcanaCoreLegal(item: Record<string, unknown>): boolean {
+  const legalities = isRecord(item.legalities) ? item.legalities : {};
+  return legalities.core === "legal";
 }
 
 function normalizeLorcana(item: Record<string, unknown>): LookupCard {

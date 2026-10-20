@@ -14,6 +14,12 @@ const ROK_BLACK = "#000000";
 const ROK_WHITE = "#ffffff";
 const ROK_GRAY = "#a3a3a3";
 const ROK_GRAY_DEEP = "#242424";
+const CYAN = "#00eeff";
+const PINK = "#ff4791";
+const CYAN_FILL = "linear-gradient(180deg, #5af0ff 0%, #0090a8 100%)";
+const PINK_FILL = "linear-gradient(180deg, #ff5aa0 0%, #c2185b 100%)";
+
+type PlayTone = "rok" | "stream";
 
 function recordLine(player: PlayerSide) {
   const w = Math.max(0, player.recordW || 0);
@@ -36,7 +42,7 @@ function GamePips({ won, needed }: { won: number; needed: number }) {
   );
 }
 
-function LifeBadge({ value, edge }: { value: number; edge: "top" | "bottom" }) {
+function LifeBadge({ value, edge, fill }: { value: number; edge: "top" | "bottom"; fill: string }) {
   const down = edge === "top";
   return (
     <div
@@ -46,7 +52,7 @@ function LifeBadge({ value, edge }: { value: number; edge: "top" | "bottom" }) {
         height: "5.15rem",
         top: down ? 0 : "auto",
         bottom: down ? "auto" : 0,
-        background: ROK_RED,
+        background: fill,
         clipPath: down ? "polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%)" : "polygon(50% 0, 100% 30%, 100% 100%, 0 100%, 0 30%)",
         filter: "drop-shadow(0 8px 14px rgb(0 0 0 / 0.45))",
       }}
@@ -74,11 +80,13 @@ function ScoreBar({
   side,
   edge,
   now,
+  tone,
 }: {
   desk: DeskState;
   side: SideId;
   edge: "top" | "bottom";
   now: number;
+  tone: PlayTone;
 }) {
   const player = desk[side];
   const needed = Math.max(1, Math.ceil(desk.bestOf / 2));
@@ -125,7 +133,7 @@ function ScoreBar({
           </p>
         </div>
       </div>
-      <LifeBadge value={player.resource} edge={edge} />
+      <LifeBadge value={player.resource} edge={edge} fill={tone === "stream" ? (edge === "top" ? CYAN_FILL : PINK_FILL) : ROK_RED} />
       {colors.length ? (
         <div className="absolute inset-y-0 z-10 flex items-center gap-1" style={{ right: `calc(${EDGE} + 0.4rem)` }}>
           {colors.map((color) => (
@@ -160,11 +168,11 @@ function ScoreBar({
   );
 }
 
-function CameraWell({ photo }: { photo: string }) {
+function CameraWell({ photo, color }: { photo: string; color: string }) {
   return (
     <div className="relative h-full min-h-0 w-full bg-transparent">
       {photo ? <img src={photo} alt="" className="absolute inset-0 size-full object-cover" /> : null}
-      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `inset 0 0 0 3px ${ROK_RED}` }} />
+      <div className="pointer-events-none absolute inset-0" style={{ boxShadow: `inset 0 0 0 3px ${color}` }} />
     </div>
   );
 }
@@ -206,31 +214,35 @@ function EventLockup({ desk }: { desk: DeskState }) {
   );
 }
 
-export function MtgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
+export function MtgPlayLayout({ desk, now = Date.now(), tone = "rok" }: { desk: DeskState; now?: number; tone?: PlayTone }) {
   const clock = formatClock(remainingSeconds(desk, now, desk.gameId));
+  const p1 = tone === "stream" ? CYAN : ROK_RED;
+  const p2 = tone === "stream" ? PINK : ROK_RED;
+  const roundFill = tone === "stream" ? CYAN_FILL : ROK_RED;
+  const clockFill = tone === "stream" ? PINK_FILL : ROK_GRAY_DEEP;
   return (
     <div data-game="mtg" className="pointer-events-none absolute inset-0">
-      <ScoreBar desk={desk} side="p1" edge="top" now={now} />
-      <ScoreBar desk={desk} side="p2" edge="bottom" now={now} />
+      <ScoreBar desk={desk} side="p1" edge="top" now={now} tone={tone} />
+      <ScoreBar desk={desk} side="p2" edge="bottom" now={now} tone={tone} />
       <div className="absolute z-10 flex flex-col" style={{ top: BAR, bottom: BAR, left: 0, width: COL }}>
         <div className="min-h-0 flex-1">
-          <CameraWell photo={desk.p1.photoUrl.trim()} />
+          <CameraWell photo={desk.p1.photoUrl.trim()} color={p1} />
         </div>
         <div className="flex min-h-0 flex-1 items-center justify-center px-3 py-2" style={{ background: "#111111" }}>
           <FeatureCard desk={desk} />
         </div>
         <div className="relative z-10 grid h-[3.25rem] shrink-0 grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-          <div className="flex min-w-0 items-center px-4" style={{ background: ROK_RED }}>
+          <div className="flex min-w-0 items-center px-4" style={{ background: roundFill }}>
             <p className="font-display truncate text-[1.85rem] leading-none font-semibold tracking-[0.08em] text-white uppercase">
               {roundLabel(desk.roundName)}
             </p>
           </div>
-          <div className="flex items-center justify-end px-4" style={{ background: ROK_GRAY_DEEP }}>
+          <div className="flex items-center justify-end px-4" style={{ background: clockFill }}>
             <p className="font-display text-[1.85rem] leading-none font-semibold text-white tabular-nums">{clock}</p>
           </div>
         </div>
         <div className="min-h-0 flex-1">
-          <CameraWell photo={desk.p2.photoUrl.trim()} />
+          <CameraWell photo={desk.p2.photoUrl.trim()} color={p2} />
         </div>
       </div>
       <WinStings desk={desk} />

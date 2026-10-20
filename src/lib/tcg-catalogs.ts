@@ -569,7 +569,8 @@ async function downloadLorcana(setPhase: (phase: string, progress: number | null
       if (card) cards.push(card);
     }
   }
-  return cards;
+  const legalNames = new Set(cards.filter((card) => card.legal === "core").map((card) => card.name.toLowerCase()));
+  return cards.map((card) => (legalNames.has(card.name.toLowerCase()) ? { ...card, legal: "core" } : card));
 }
 
 function slimLorcana(item: Record<string, unknown>): StoredCard | null {
@@ -581,6 +582,7 @@ function slimLorcana(item: Record<string, unknown>): StoredCard | null {
   const version = item.version ? String(item.version) : "";
   const name = String(item.name ?? "").trim();
   if (!name) return null;
+  const legalities = isRecord(item.legalities) ? item.legalities : {};
   return {
     id: String(item.id ?? name),
     name: version ? `${name} — ${version}` : name,
@@ -593,6 +595,7 @@ function slimLorcana(item: Record<string, unknown>): StoredCard | null {
     hp: item.willpower != null ? String(item.willpower) : undefined,
     rarity: item.rarity ? String(item.rarity) : undefined,
     category: types || undefined,
+    legal: legalities.core === "legal" ? "core" : undefined,
   };
 }
 

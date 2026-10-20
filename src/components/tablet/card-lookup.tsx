@@ -179,7 +179,7 @@ export function CardLookup({
               : rift
                 ? searchRiftCards(q)
                 : lorcana
-                  ? searchLorcanaCards(q)
+                  ? searchLorcanaCards(q, liveOnly)
                   : searchLookupCards(q, liveOnly, catalogFirst);
       void run
         .then((rows) => {
@@ -468,7 +468,7 @@ export function CardLookup({
                     : rift
                       ? "Riftcodex search. Read the printed text, then Show on stream if you want the art on air."
                       : lorcana
-                        ? "Lorcast search. Read the printed text, then Show P1 or Show P2 in that player’s well."
+                        ? "Lorcast search. Live is Core Constructed. All printings includes rotated cards."
                         : "Search a card to read it. Show on stream when you want the art on air."}
           </p>
         </div>
@@ -495,7 +495,7 @@ export function CardLookup({
               </FilterChip>
             </div>
           ) : null}
-          {matchScope || swu || rift || lorcana ? null : (
+          {matchScope || swu || rift ? null : (
           <div className="flex rounded-md bg-surface-2 p-0.5">
             <FilterChip active={liveOnly} onClick={() => setLiveOnly(true)}>
               {mtg && legal ? formatName : ygo && ygoFormat ? formatName : "Live"}
@@ -653,6 +653,8 @@ export function CardLookup({
               ? `No ${formatName} card for that name. Banned cards are hidden. All printings shows them.`
               : op && liveOnly
               ? "No live Standard card for that name. Switch to Full catalog for rotated or banned cards."
+              : lorcana && liveOnly
+              ? "No Core Constructed card for that name. Switch to All printings for rotated cards."
               : "No cards matched."}
         </p>
       ) : matchScope ? null : (
@@ -670,7 +672,9 @@ export function CardLookup({
                   : rift
                     ? "Type at least two letters. Search hits Riftcodex."
                     : lorcana
-                      ? "Type at least two letters. Search hits Lorcast."
+                      ? liveOnly
+                        ? "Type at least two letters. Live is Core Constructed, including older printings of a card reprinted into a legal set."
+                        : "Type at least two letters. All printings is every Lorcana card, including rotated ones."
                       : "Type at least two letters. Live is current Standard (regulation H+). All printings is every set."}
         </p>
       )}

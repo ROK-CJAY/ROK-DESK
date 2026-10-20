@@ -273,7 +273,7 @@ export const useDeskStore = create<DeskStore>((set, get) => ({
     let next = defaultDesk();
     let stripped = false;
     try {
-      const res = await fetch(deskApiUrl(), { cache: "no-store" });
+      const res = await fetch(deskApiUrl(), { cache: "no-store", headers: { "x-rok-rev": "r2" } });
       if (res.ok) {
         const parsed = parseDesk(await res.json());
         if (parsed) {

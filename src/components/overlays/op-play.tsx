@@ -20,20 +20,36 @@ const SILVER = OV_CHROME;
 const GOLD = OV_GOLD;
 const PLATE = OV_DEEP;
 const COL_W = "24rem";
+const CYAN = "#00eeff";
+const PINK = "#ff4791";
+
+type PlayTone = "rok" | "stream";
+
+function roundLabel(raw: string): string {
+  const text = raw.trim();
+  if (!text) return "Match";
+  if (/^round\b/i.test(text)) return text;
+  if (/^\d+$/.test(text)) return `Round ${text}`;
+  return text;
+}
 
 function Chip({
   children,
   align,
+  accent,
 }: {
   children: ReactNode;
   align: "left" | "right";
+  accent?: string;
 }) {
   return (
     <div
       className={cn("absolute top-4 rounded-lg px-6 py-2.5", align === "left" ? "left-4" : "right-4")}
       style={{
         background: PLATE,
-        boxShadow: "inset 0 0 0 1px rgb(197 204 214 / 0.2), 0 10px 24px rgb(0 0 0 / 0.4)",
+        boxShadow: accent
+          ? `inset 0 0 0 2px ${accent}, 0 10px 24px rgb(0 0 0 / 0.4)`
+          : "inset 0 0 0 1px rgb(197 204 214 / 0.2), 0 10px 24px rgb(0 0 0 / 0.4)",
       }}
     >
       {children}
@@ -45,10 +61,12 @@ function CameraWell({
   player,
   align,
   turn,
+  accent,
 }: {
   player: PlayerSide;
   align: "left" | "right";
   turn: number | null;
+  accent?: string;
 }) {
   const photo = player.photoUrl.trim();
   return (
@@ -65,7 +83,7 @@ function CameraWell({
         className="pointer-events-none absolute inset-0 bg-transparent"
         style={{
           borderRadius: "1rem",
-          border: `3.5px solid ${SILVER}`,
+          border: `3.5px solid ${accent ?? SILVER}`,
           background: "none",
         }}
       />
@@ -96,7 +114,7 @@ function CameraWell({
   );
 }
 
-function LifePips({ remaining, max }: { remaining: number; max: number }) {
+function LifePips({ remaining, max, accent }: { remaining: number; max: number; accent?: string }) {
   const count = Math.max(1, max);
   return (
     <div className="flex items-center justify-center gap-2.5">
@@ -105,8 +123,13 @@ function LifePips({ remaining, max }: { remaining: number; max: number }) {
           key={i}
           className={cn(
             "size-5 rounded-full border-[2.5px] transition-[background-color,border-color] duration-300",
-            i < remaining ? "border-[color:var(--color-game)] bg-[color:var(--color-game)]" : "border-[color:var(--color-game)]/50 bg-transparent",
+            !accent && (i < remaining ? "border-[color:var(--color-game)] bg-[color:var(--color-game)]" : "border-[color:var(--color-game)]/50 bg-transparent"),
           )}
+          style={
+            accent
+              ? { borderColor: accent, background: i < remaining ? accent : "transparent" }
+              : undefined
+          }
         />
       ))}
     </div>
@@ -138,36 +161,70 @@ function CardSlot({ desk, side }: { desk: DeskState; side: "p1" | "p2" }) {
   );
 }
 
-function InfoWell({ desk, player, side }: { desk: DeskState; player: PlayerSide; side: "p1" | "p2" }) {
+function InfoWell({
+  desk,
+  player,
+  side,
+  accent,
+  city,
+}: {
+  desk: DeskState;
+  player: PlayerSide;
+  side: "p1" | "p2";
+  accent?: string;
+  city?: boolean;
+}) {
   const max = resourceLimit(desk);
   const life = Math.max(0, Math.min(max, player.resource));
+  const right = side === "p2";
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl px-4 pt-4 pb-3"
-      style={{
-        background: OV_RAIL,
-        boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 16%, transparent)",
-      }}
-    >
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl px-4 pt-4 pb-3">
+      {city ? (
+        <>
+          <img
+            src="/overlays/stream-city-full.png"
+            alt=""
+            className="pointer-events-none absolute max-w-none object-cover object-center"
+            style={{
+              width: 1920,
+              height: 1080,
+              top: "-26.85rem",
+              left: right ? undefined : "-1rem",
+              right: right ? "-1rem" : undefined,
+            }}
+          />
+          <div className="absolute inset-0 bg-black/45" />
+        </>
+      ) : (
+        <div
+          className="absolute inset-0"
+          style={{
+            background: OV_RAIL,
+            boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 16%, transparent)",
+          }}
+        />
+      )}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col">
       <div className="shrink-0">
-        <p className="font-mono mb-2 text-center text-[0.72rem] tracking-[0.22em] text-ov-fg/50 uppercase">Life</p>
-        <LifePips remaining={life} max={max} />
+        <p className={cn("font-mono mb-2 text-center text-[0.72rem] tracking-[0.22em] uppercase", city ? "text-white/70" : "text-ov-fg/50")}>Life</p>
+        <LifePips remaining={life} max={max} accent={accent} />
       </div>
       <div className="mt-4 flex shrink-0 items-end justify-between gap-3">
         <div>
-          <p className="font-mono text-[0.72rem] tracking-[0.2em] text-ov-fg/50 uppercase">DON!!</p>
-          <p className="font-display text-[3.1rem] leading-none font-semibold tabular-nums" style={{ color: GOLD }}>
+          <p className={cn("font-mono text-[0.72rem] tracking-[0.2em] uppercase", city ? "text-white/70" : "text-ov-fg/50")}>DON!!</p>
+          <p className="font-display text-[3.1rem] leading-none font-semibold tabular-nums" style={{ color: accent ?? GOLD }}>
             <FadeValue value={player.secondary} />
           </p>
         </div>
         <div className="text-right">
-          <p className="font-mono text-[0.72rem] tracking-[0.2em] text-ov-fg/50 uppercase">Games</p>
-          <p className="font-display text-[3.1rem] leading-none font-semibold tabular-nums text-ov-fg">
+          <p className={cn("font-mono text-[0.72rem] tracking-[0.2em] uppercase", city ? "text-white/70" : "text-ov-fg/50")}>Games</p>
+          <p className={cn("font-display text-[3.1rem] leading-none font-semibold tabular-nums", city ? "text-white" : "text-ov-fg")}>
             <FadeValue value={player.score} />
           </p>
         </div>
       </div>
       <CardSlot desk={desk} side={side} />
+      </div>
     </div>
   );
 }
@@ -177,19 +234,23 @@ function SideColumn({
   player,
   align,
   turn,
+  accent,
+  city,
 }: {
   desk: DeskState;
   player: PlayerSide;
   align: "left" | "right";
   turn: number | null;
+  accent?: string;
+  city?: boolean;
 }) {
   return (
     <aside
       className={cn("absolute top-[5.6rem] flex flex-col gap-3", align === "left" ? "left-4" : "right-4")}
       style={{ width: COL_W, bottom: "6.75rem" }}
     >
-      <CameraWell player={player} align={align} turn={turn} />
-      <InfoWell desk={desk} player={player} side={align === "left" ? "p1" : "p2"} />
+      <CameraWell player={player} align={align} turn={turn} accent={accent} />
+      <InfoWell desk={desk} player={player} side={align === "left" ? "p1" : "p2"} accent={accent} city={city} />
     </aside>
   );
 }
@@ -220,8 +281,8 @@ function SponsorRow({ desk }: { desk: DeskState }) {
   );
 }
 
-function EventMark({ desk }: { desk: DeskState }) {
-  const src = desk.eventLogo.trim() || "/brand/rok-mark.png";
+function EventMark({ desk, tone }: { desk: DeskState; tone: PlayTone }) {
+  const src = desk.eventLogo.trim() || (tone === "stream" ? "/overlays/rok-wordmark.png" : "/brand/rok-mark.png");
   return (
     <div className="absolute right-4 bottom-4">
       <img
@@ -233,7 +294,7 @@ function EventMark({ desk }: { desk: DeskState }) {
   );
 }
 
-export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
+export function OpPlayLayout({ desk, now = Date.now(), tone = "rok" }: { desk: DeskState; now?: number; tone?: PlayTone }) {
   const clock = formatClock(remainingSeconds(desk, now));
   const otOn = desk.otTurn != null;
   const otLeft = opOtRemaining(desk, now);
@@ -246,14 +307,15 @@ export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?
         : `Turn ${desk.otTurn}`;
   const activeTurn = (side: "p1" | "p2") =>
     otOn && otDone == null && desk.otSide === side && desk.otTurn != null && desk.otTurn <= 3 ? desk.otTurn : null;
+  const stream = tone === "stream";
   return (
     <div data-game="one-piece" className="pointer-events-none absolute inset-0">
-      <Chip align="left">
+      <Chip align="left" accent={stream ? CYAN : undefined}>
         <p className="font-display text-[2.7rem] leading-none font-semibold tracking-[0.14em] text-ov-fg uppercase">
-          {desk.roundName || "Match"}
+          {roundLabel(desk.roundName)}
         </p>
       </Chip>
-      <Chip align="right">
+      <Chip align="right" accent={stream ? PINK : undefined}>
         {otOn ? (
           <div className="text-right">
             <p className="font-mono text-[0.72rem] tracking-[0.2em] text-ov-fg/55 uppercase">
@@ -277,10 +339,10 @@ export function OpPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?
           </p>
         )}
       </Chip>
-      <SideColumn desk={desk} player={desk.p1} align="left" turn={activeTurn("p1")} />
-      <SideColumn desk={desk} player={desk.p2} align="right" turn={activeTurn("p2")} />
+      <SideColumn desk={desk} player={desk.p1} align="left" turn={activeTurn("p1")} accent={stream ? CYAN : undefined} city={stream} />
+      <SideColumn desk={desk} player={desk.p2} align="right" turn={activeTurn("p2")} accent={stream ? PINK : undefined} city={stream} />
       <SponsorRow desk={desk} />
-      <EventMark desk={desk} />
+      <EventMark desk={desk} tone={tone} />
       <WinStings desk={desk} />
     </div>
   );

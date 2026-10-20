@@ -195,6 +195,20 @@ export function ScorebugView({
       </OverlayEditProvider>
     );
   }
+  if (desk.scorebugStyle === "neon" && desk.gameId === "lorcana") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <LorcanaPlayLayout desk={desk} now={now} tone="stream" />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "neon" && desk.gameId === "one-piece") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <OpPlayLayout desk={desk} now={now} tone="stream" />
+      </OverlayEditProvider>
+    );
+  }
   if (desk.scorebugStyle === "ug" && desk.gameId === "mtg") {
     return (
       <OverlayEditProvider desk={desk} edit={edit}>

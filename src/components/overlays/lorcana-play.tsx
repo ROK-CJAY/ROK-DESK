@@ -9,6 +9,7 @@ import {
   type PlayerSide,
 } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk } from "@/lib/lorcana";
+import { currentSponsor } from "@/lib/sponsors";
 import { OV_CHROME, OV_DEEP, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
 import { WinStings } from "@/components/overlays/winner";
@@ -18,8 +19,12 @@ const RAIL_BG = OV_RAIL;
 const INFO_W = "20.75rem";
 const LORE_W = "3.15rem";
 const BACK = "/lorcana/card-back.png";
+const CYAN = "#00eeff";
+const PINK = "#ff4791";
 
-function CameraWell({ player, seat }: { player: PlayerSide; seat: "P1" | "P2" }) {
+type PlayTone = "rok" | "stream";
+
+function CameraWell({ player, seat, accent }: { player: PlayerSide; seat: "P1" | "P2"; accent: string }) {
   const photo = player.photoUrl.trim();
   return (
     <div className="relative h-[30.5rem] w-full shrink-0 bg-transparent">
@@ -28,7 +33,7 @@ function CameraWell({ player, seat }: { player: PlayerSide; seat: "P1" | "P2" })
       ) : null}
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ border: `3px solid ${SILVER}`, background: "transparent" }}
+        style={{ border: `3px solid ${accent}`, background: "transparent" }}
       />
       <span
         className="absolute right-2 bottom-2 font-mono text-[0.72rem] tracking-[0.18em] text-ov-fg uppercase"
@@ -72,20 +77,32 @@ function InkRow({ player }: { player: PlayerSide }) {
   );
 }
 
-function Diamonds({ won, needed }: { won: number; needed: number }) {
+function Diamonds({ won, needed, accent }: { won: number; needed: number; accent?: string }) {
   return (
     <div className="flex justify-center gap-2.5">
-      {Array.from({ length: needed }, (_, i) => (
-        <span
-          key={i}
-          className={cn(
-            "inline-block size-[1.15rem] rotate-45 border-2 transition-[background-color,border-color,box-shadow] duration-300",
-            i < won
-              ? "border-[color:var(--color-game)] bg-[color:var(--color-game)] shadow-[0_0_10px_var(--color-game)]"
-              : "border-[color:var(--color-game)]/75 bg-transparent",
-          )}
-        />
-      ))}
+      {Array.from({ length: needed }, (_, i) =>
+        accent ? (
+          <span
+            key={i}
+            className="inline-block size-[1.15rem] rotate-45 border-2 transition-[background-color,border-color,box-shadow] duration-300"
+            style={{
+              borderColor: accent,
+              background: i < won ? accent : "transparent",
+              boxShadow: i < won ? `0 0 10px ${accent}` : undefined,
+            }}
+          />
+        ) : (
+          <span
+            key={i}
+            className={cn(
+              "inline-block size-[1.15rem] rotate-45 border-2 transition-[background-color,border-color,box-shadow] duration-300",
+              i < won
+                ? "border-[color:var(--color-game)] bg-[color:var(--color-game)] shadow-[0_0_10px_var(--color-game)]"
+                : "border-[color:var(--color-game)]/75 bg-transparent",
+            )}
+          />
+        ),
+      )}
     </div>
   );
 }
@@ -113,7 +130,7 @@ function CardSlot({ desk, side }: { desk: DeskState; side: "p1" | "p2" }) {
   );
 }
 
-function LoreTrack({ value, max }: { value: number; max: number }) {
+function LoreTrack({ value, max, accent }: { value: number; max: number; accent?: string }) {
   const top = Math.max(1, max);
   const lore = Math.max(0, Math.min(top, value));
   const steps = Array.from({ length: top }, (_, i) => top - i);
@@ -129,8 +146,9 @@ function LoreTrack({ value, max }: { value: number; max: number }) {
       <p
         className={cn(
           "font-mono shrink-0 py-1.5 text-center text-[0.68rem] tracking-[0.16em] uppercase",
-          lore >= top ? "text-game" : "text-ov-muted",
+          lore >= top ? (accent ? "" : "text-game") : "text-ov-muted",
         )}
+        style={accent && lore >= top ? { color: accent } : undefined}
       >
         Win
       </p>
@@ -143,12 +161,21 @@ function LoreTrack({ value, max }: { value: number; max: number }) {
               key={n}
               className={cn(
                 "flex min-h-0 flex-1 items-center justify-center text-[1.2rem] font-bold tabular-nums transition-[background-color,color] duration-300",
-                current
+                !accent && current
                   ? "bg-game text-[color:var(--color-ov-panel-deep)]"
-                  : reached
+                  : !accent && reached
                     ? "text-game"
-                    : "text-ov-muted/70",
+                    : !current && !reached
+                      ? "text-ov-muted/70"
+                      : "",
               )}
+              style={
+                accent && current
+                  ? { background: accent, color: "#111111" }
+                  : accent && reached
+                    ? { color: accent }
+                    : undefined
+              }
             >
               {n}
             </li>
@@ -158,8 +185,9 @@ function LoreTrack({ value, max }: { value: number; max: number }) {
       <p
         className={cn(
           "font-mono shrink-0 py-1.5 text-center text-[0.62rem] tracking-[0.12em] uppercase",
-          lore === 0 ? "text-game" : "text-ov-muted",
+          lore === 0 ? (accent ? "" : "text-game") : "text-ov-muted",
         )}
+        style={accent && lore === 0 ? { color: accent } : undefined}
       >
         Start
       </p>
@@ -171,10 +199,14 @@ function Rail({
   desk,
   player,
   side,
+  accent,
+  city,
 }: {
   desk: DeskState;
   player: PlayerSide;
   side: "p1" | "p2";
+  accent?: string;
+  city?: boolean;
 }) {
   const right = side === "p2";
   const max = resourceLimit(desk);
@@ -183,32 +215,59 @@ function Rail({
   return (
     <div className={cn("absolute inset-y-0 flex", right ? "right-0 flex-row-reverse" : "left-0")}>
       <div className="flex h-full flex-col overflow-hidden bg-transparent" style={{ width: INFO_W }}>
-        <CameraWell player={player} seat={right ? "P2" : "P1"} />
-        <div className="flex min-h-0 flex-1 flex-col" style={{ background: RAIL_BG }}>
+        <CameraWell player={player} seat={right ? "P2" : "P1"} accent={accent ?? SILVER} />
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={city ? undefined : { background: RAIL_BG }}>
+          {city ? (
+            <>
+              <img
+                src="/overlays/stream-city-full.png"
+                alt=""
+                className="pointer-events-none absolute max-w-none object-cover object-center"
+                style={{
+                  width: 1920,
+                  height: 1080,
+                  top: "-30.5rem",
+                  left: right ? undefined : 0,
+                  right: right ? 0 : undefined,
+                }}
+              />
+              <div className="absolute inset-0 bg-black/40" />
+            </>
+          ) : null}
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col">
           <div className="flex shrink-0 flex-col items-center gap-1.5 px-3 pt-2 pb-1">
-            <p className="font-display w-full truncate text-center text-[2.05rem] leading-[1.05] font-semibold tracking-wide text-ov-fg uppercase">
+            <p
+              className={cn(
+                "font-display w-full truncate text-center text-[2.05rem] leading-[1.05] font-semibold tracking-wide uppercase",
+                city ? "-mx-3 bg-black px-3 py-1.5 text-white" : "text-ov-fg",
+              )}
+            >
               {player.name || (right ? "Player 2" : "Player 1")}
             </p>
             <InkRow player={player} />
-            <Diamonds won={player.score} needed={needed} />
-            <p className="font-mono text-[0.95rem] tracking-[0.14em] text-ov-muted uppercase">
+            <Diamonds won={player.score} needed={needed} accent={accent} />
+            <p className={cn("font-mono text-[0.95rem] tracking-[0.14em] uppercase", city ? "text-white/80" : "text-ov-muted")}>
               <FadeValue value={record} />
             </p>
           </div>
           <CardSlot desk={desk} side={side} />
+          </div>
         </div>
       </div>
-      <LoreTrack value={player.resource} max={max} />
+      <LoreTrack value={player.resource} max={max} accent={accent} />
     </div>
   );
 }
 
-function TopCenter({ desk, clock }: { desk: DeskState; clock: string }) {
-  const logo = desk.eventLogo.trim() || "/brand/rok-mark.png";
-  const headline =
-    [desk.eventPhase.trim(), desk.roundName.trim()].filter(Boolean).join(" · ") || "Match";
+function TopCenter({ desk, clock, tone }: { desk: DeskState; clock: string; tone: PlayTone }) {
+  const logo =
+    desk.eventLogo.trim() || (tone === "stream" ? "/overlays/rok-wordmark.png" : "/brand/rok-mark.png");
+  const roundRaw = desk.roundName.trim();
+  const round = !roundRaw ? "" : /^round\b/i.test(roundRaw) ? roundRaw : /^\d+$/.test(roundRaw) ? `Round ${roundRaw}` : roundRaw;
+  const headline = [desk.eventPhase.trim(), round].filter(Boolean).join(" · ") || "Match";
   return (
-    <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center">
+    <div className="absolute top-3 right-0 left-0 z-10 flex justify-center">
+      <div className="flex flex-col items-center">
       <img
         src={logo}
         alt=""
@@ -218,7 +277,12 @@ function TopCenter({ desk, clock }: { desk: DeskState; clock: string }) {
         className="mt-1.5 flex items-center gap-3 rounded-md px-3.5 py-1"
         style={{
           background: OV_DEEP,
-          boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 18%, transparent)",
+          boxShadow:
+            tone === "stream"
+              ? "inset 0 0 0 1px transparent"
+              : "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 18%, transparent)",
+          border: tone === "stream" ? "1px solid transparent" : undefined,
+          borderImage: tone === "stream" ? `linear-gradient(90deg, ${CYAN}, ${PINK}) 1` : undefined,
         }}
       >
         <p className="font-display max-w-[28rem] truncate text-[1.35rem] leading-none font-semibold tracking-[0.14em] text-ov-fg uppercase">
@@ -229,17 +293,41 @@ function TopCenter({ desk, clock }: { desk: DeskState; clock: string }) {
           {clock}
         </p>
       </div>
+      </div>
     </div>
   );
 }
 
-export function LorcanaPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
+function PresentedBy({ desk, now }: { desk: DeskState; now: number }) {
+  const sponsor = currentSponsor(desk.sponsors, now, desk.sponsorSeconds);
+  if (!sponsor) return null;
+  return (
+    <div className="absolute right-0 bottom-4 left-0 z-10 flex justify-center">
+      <div className="flex items-center gap-4 bg-black px-5 py-2">
+        <p className="font-display shrink-0 text-[1.55rem] leading-none font-semibold tracking-[0.06em] text-white uppercase">
+          Presented by:
+        </p>
+        <div className="flex h-14 w-56 items-center justify-center">
+          {sponsor.logo ? (
+            <img src={sponsor.logo} alt="" className="max-h-full max-w-full object-contain" />
+          ) : (
+            <p className="truncate font-display text-[1.55rem] leading-none font-semibold text-white uppercase">{sponsor.name}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+export function LorcanaPlayLayout({ desk, now = Date.now(), tone = "rok" }: { desk: DeskState; now?: number; tone?: PlayTone }) {
   const clock = formatClock(remainingSeconds(desk, now));
+  const p1 = tone === "stream" ? CYAN : undefined;
+  const p2 = tone === "stream" ? PINK : undefined;
   return (
     <div data-game="lorcana" className="pointer-events-none absolute inset-0">
-      <Rail desk={desk} player={desk.p1} side="p1" />
-      <Rail desk={desk} player={desk.p2} side="p2" />
-      <TopCenter desk={desk} clock={clock} />
+      <Rail desk={desk} player={desk.p1} side="p1" accent={p1} city={tone === "stream"} />
+      <Rail desk={desk} player={desk.p2} side="p2" accent={p2} city={tone === "stream"} />
+      <TopCenter desk={desk} clock={clock} tone={tone} />
+      {tone === "stream" ? <PresentedBy desk={desk} now={now} /> : null}
       <WinStings desk={desk} />
     </div>
   );

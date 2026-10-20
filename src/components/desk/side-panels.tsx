@@ -622,6 +622,9 @@ export function ShowPanel() {
             {desk.gameId === "mtg" && !isCommanderLane(desk) ? (
               <option value="stream">Stream Layout</option>
             ) : null}
+            {desk.gameId === "lorcana" || desk.gameId === "one-piece" ? (
+              <option value="neon">Play · Stream colors</option>
+            ) : null}
           </NativeSelect>
           {desk.scorebugStyle === "rok" ? (
             <p className="self-center text-[0.7rem] text-muted">
@@ -660,6 +663,10 @@ export function ShowPanel() {
           ) : desk.scorebugStyle === "stream" ? (
             <p className="self-center text-[0.7rem] text-muted">
               Full stream frame. City art, table window, side cameras and cards, sponsors, ROK mark.
+            </p>
+          ) : desk.scorebugStyle === "neon" ? (
+            <p className="self-center text-[0.7rem] text-muted">
+              Same as Play Layout. Player 1 is cyan and player 2 is pink.
             </p>
           ) : (
             <NativeSelect

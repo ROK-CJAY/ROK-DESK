@@ -24,7 +24,7 @@ export function OverlayPage({
   if (!desk) return null;
 
   return (
-    <div className="relative h-screen w-screen bg-transparent">
+    <div className="fixed inset-0 overflow-hidden bg-transparent">
       <ScaleFrame>
         <OverlayLookRoot book={desk.overlayLook} source={source}>
           {render(desk, now)}

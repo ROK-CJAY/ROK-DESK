@@ -26,10 +26,13 @@ export function ScaleFrame({
     let frame = 0;
     const update = () => {
       const rect = el.getBoundingClientRect();
-      if (rect.width < 2 || rect.height < 2) return;
-      const next = Math.round(Math.min(rect.width / width, rect.height / height) * 1000) / 1000;
-      const x = Math.round((rect.width - width * next) / 2);
-      const y = Math.round((rect.height - height * next) / 2);
+      const boxW = el.clientWidth || rect.width;
+      const boxH = el.clientHeight || rect.height;
+      if (boxW < 2 || boxH < 2) return;
+      const nearNative = Math.abs(boxW - width) <= 16 && Math.abs(boxH - height) <= 16;
+      const next = nearNative ? 1 : Math.round(Math.min(boxW / width, boxH / height) * 1000) / 1000;
+      const x = nearNative ? 0 : Math.round((boxW - width * next) / 2);
+      const y = nearNative ? 0 : Math.round((boxH - height * next) / 2);
       if (
         Math.abs(last.current.scale - next) < 0.001 &&
         Math.abs(last.current.x - x) < 1 &&

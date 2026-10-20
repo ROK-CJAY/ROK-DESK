@@ -129,6 +129,17 @@ function authPopupPlugin(): Plugin {
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
 export default defineConfig(({ command }) => ({
+  experimental:
+    command === "build"
+      ? {
+          renderBuiltUrl(filename) {
+            const bare = filename.replace(/^\.\//, "");
+            if (!/\.js($|\?)/.test(bare)) return undefined;
+            const path = bare.startsWith("/") ? bare : `/${bare}`;
+            return `${path.split("?")[0]}?v=4`;
+          },
+        }
+      : undefined,
   server: {
     host: "0.0.0.0",
     port: 8080,

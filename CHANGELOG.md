@@ -6,6 +6,10 @@ The project follows [Semantic Versioning](https://semver.org/). Desktop installe
 
 ## Unreleased
 
+- **Versus** — Lorcana and Magic constructed share the city frame. Cyan and pink cameras, deck name under the player, inks or mana, and the record on a black bar.
+- **Lorcana versus** — Two camera frames, names, inks, and a center VS. Player 1 is cyan, player 2 is pink, on the stream city art.
+- **Lorcana play, stream colors** — Same Play Layout. Player 1 is cyan and player 2 is pink.
+- **Lorcana lookup** — Live is Core Constructed. A card reprinted into a legal set stays live, including the older printing. All printings is every card, including rotated ones.
 - **One Piece lookup** — Live / Full catalog. Live is current Standard (blocks 2–5, official exceptions, no banned cards). Full catalog is every English card.
 - **Magic constructed** — Vintage is a format. Each format uses its own banlist. Restricted cards stay in the list and are marked.
 - **Magic play layout** — Constructed feature frame. Life bars top and bottom, cameras and a featured card on the left, table clear in the middle.
