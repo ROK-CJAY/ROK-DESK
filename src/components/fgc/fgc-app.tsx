@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, ListFilter, Radio, RefreshCw, Search, X } from "lucide-react";
+import { ExternalLink, ListFilter, Radio, RefreshCw, X } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { FgcScoreboard } from "@/components/fgc/fgc-scoreboard";
@@ -18,31 +18,30 @@ function stateLabel(state: FgcSet["state"]) {
 function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
   const fgc = useFgcStore((s) => s.fgc);
   const selectSet = useFgcStore((s) => s.selectSet);
-  const [query, setQuery] = useState("");
-  const [phase, setPhase] = useState("all");
+  const [players, setPlayers] = useState("");
+  const [phase, setPhase] = useState("");
+  const [pool, setPool] = useState("");
+  const [round, setRound] = useState("");
+  const [status, setStatus] = useState("all");
 
-  const phases = useMemo(
-    () => ["all", ...Array.from(new Set(fgc.sets.map((set) => set.phase).filter(Boolean)))],
-    [fgc.sets],
-  );
   const sets = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const has = (value: string, needle: string) => value.toLowerCase().includes(needle.trim().toLowerCase());
     return fgc.sets.filter((set) => {
-      if (phase !== "all" && set.phase !== phase) return false;
-      if (!needle) return true;
-      return [set.round, set.phase, set.group, set.identifier, playerLabel(set.p1), playerLabel(set.p2), set.p1?.realName, set.p2?.realName]
-        .join(" ")
-        .toLowerCase()
-        .includes(needle);
+      if (players && !has(`${playerLabel(set.p1)} ${playerLabel(set.p2)} ${set.p1?.realName ?? ""} ${set.p2?.realName ?? ""}`, players)) return false;
+      if (phase && !has(set.phase, phase)) return false;
+      if (pool && !has(`${set.group} ${set.identifier}`, pool)) return false;
+      if (round && !has(set.round, round)) return false;
+      if (status !== "all" && set.state !== status) return false;
+      return true;
     });
-  }, [fgc.sets, phase, query]);
+  }, [fgc.sets, phase, players, pool, round, status]);
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={onClose}>
       <div
-        className="flex max-h-[85dvh] w-full max-w-3xl flex-col rounded-xl border border-border bg-surface shadow-xl"
+        className="flex max-h-[88dvh] w-full max-w-6xl flex-col rounded-xl border border-border bg-surface shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -54,65 +53,85 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
             <X className="size-4" />
           </Button>
         </div>
-        <div className="grid gap-2 border-b border-border px-4 py-3 sm:grid-cols-[1fr_12rem]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-2.5 left-3 size-4 text-muted" />
-            <Input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search player, phase, round"
-              className="pl-9"
-              autoFocus
-            />
-          </div>
-          <select
-            value={phase}
-            onChange={(e) => setPhase(e.target.value)}
-            className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm"
-          >
-            {phases.map((item) => (
-              <option key={item} value={item}>
-                {item === "all" ? "All phases" : item}
-              </option>
-            ))}
-          </select>
-        </div>
-        <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto">
-          {sets.length === 0 ? (
-            <li className="px-4 py-10 text-center text-sm text-muted">No sets match that search.</li>
-          ) : (
-            sets.map((set) => {
-              const on = set.id === fgc.streamSetId;
-              return (
-                <li key={set.id}>
-                  <button
-                    type="button"
-                    className={cn("flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-2", on && "bg-surface-2")}
-                    onClick={() => {
-                      selectSet(set.id);
-                      onClose();
-                    }}
+        <div className="min-h-0 flex-1 overflow-auto">
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+            <thead className="sticky top-0 z-10 bg-surface">
+              <tr className="border-b border-border text-[0.65rem] tracking-[0.16em] text-muted uppercase">
+                <th className="px-3 py-2 font-medium">Players</th>
+                <th className="px-3 py-2 font-medium">Phase</th>
+                <th className="px-3 py-2 font-medium">Pool</th>
+                <th className="px-3 py-2 font-medium">Round</th>
+                <th className="px-3 py-2 font-medium">Score</th>
+                <th className="px-3 py-2 font-medium">Status</th>
+              </tr>
+              <tr className="border-b border-border">
+                <th className="px-3 py-2">
+                  <Input value={players} onChange={(e) => setPlayers(e.target.value)} placeholder="Name or tag" autoFocus />
+                </th>
+                <th className="px-3 py-2">
+                  <Input value={phase} onChange={(e) => setPhase(e.target.value)} placeholder="Bracket" />
+                </th>
+                <th className="px-3 py-2">
+                  <Input value={pool} onChange={(e) => setPool(e.target.value)} placeholder="Pool / set" />
+                </th>
+                <th className="px-3 py-2">
+                  <Input value={round} onChange={(e) => setRound(e.target.value)} placeholder="Round 1" />
+                </th>
+                <th className="px-3 py-2" />
+                <th className="px-3 py-2">
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="h-10 w-full rounded-md border border-border bg-surface-2 px-2 text-sm text-fg"
                   >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-display text-lg font-semibold uppercase">
+                    <option value="all">All</option>
+                    <option value="live">Live</option>
+                    <option value="pending">Queued</option>
+                    <option value="done">Done</option>
+                  </select>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sets.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-3 py-10 text-center text-muted">
+                    No sets match those filters.
+                  </td>
+                </tr>
+              ) : (
+                sets.map((set) => {
+                  const on = set.id === fgc.streamSetId;
+                  return (
+                    <tr
+                      key={set.id}
+                      className={cn("cursor-pointer border-b border-border hover:bg-surface-2", on && "bg-surface-2")}
+                      onClick={() => {
+                        selectSet(set.id);
+                        onClose();
+                      }}
+                    >
+                      <td className="px-3 py-3 font-display font-semibold uppercase">
                         {playerLabel(set.p1)} <span className="text-muted">vs</span> {playerLabel(set.p2)}
-                      </span>
-                      <span className="block truncate text-xs text-muted">
-                        {[set.phase, set.round, set.identifier].filter(Boolean).join(" · ") || "Manual set"}
-                      </span>
-                    </span>
-                    <span className="font-mono text-sm tabular-nums">
-                      {set.score1}–{set.score2}
-                    </span>
-                    <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] tracking-wide uppercase", set.state === "live" ? "bg-live/15 text-live" : "bg-bg text-muted")}>
-                      {on ? "On stream" : stateLabel(set.state)}
-                    </span>
-                  </button>
-                </li>
-              );
-            })
-          )}
-        </ul>
+                      </td>
+                      <td className="px-3 py-3 text-muted">{set.phase || "—"}</td>
+                      <td className="px-3 py-3 text-muted">{set.group || set.identifier || "—"}</td>
+                      <td className="px-3 py-3 text-muted">{set.round || "—"}</td>
+                      <td className="px-3 py-3 font-mono tabular-nums">
+                        {set.score1}–{set.score2}
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className={cn("rounded-full px-2 py-0.5 text-[0.65rem] tracking-wide uppercase", set.state === "live" ? "bg-live/15 text-live" : "bg-bg text-muted")}>
+                          {on ? "On stream" : stateLabel(set.state)}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
