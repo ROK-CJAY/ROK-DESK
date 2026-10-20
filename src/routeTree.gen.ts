@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as BrowserRouteImport } from './routes/browser'
+import { Route as FgcRouteImport } from './routes/fgc'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as OverlayRouteRouteImport } from './routes/overlay/route'
 import { Route as PodRouteImport } from './routes/pod'
@@ -32,6 +33,7 @@ import { Route as ApiPtcgCatalogRouteImport } from './routes/api/ptcg-catalog'
 import { Route as ApiPtcgDeckImportRouteImport } from './routes/api/ptcg-deck-import'
 import { Route as ApiRemoteSignupRouteImport } from './routes/api/remote-signup'
 import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
+import { Route as ApiStartggRouteImport } from './routes/api/startgg'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTcgCatalogRouteImport } from './routes/api/tcg-catalog'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
@@ -67,6 +69,7 @@ import { Route as ApiTournamentExportRouteImport } from './routes/api/tournament
 import { Route as ApiTournamentOfficialPdfRouteImport } from './routes/api/tournament/official-pdf'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
 import { Route as ApiTournamentTdfRouteImport } from './routes/api/tournament/tdf'
+import { Route as FgcOverlayHudRouteImport } from './routes/fgc/overlay/hud'
 import { Route as GameSlotOverlaySourceRouteImport } from './routes/$game/$slot/overlay/$source'
 
 const IndexRoute = IndexRouteImport.update({
@@ -77,6 +80,11 @@ const IndexRoute = IndexRouteImport.update({
 const BrowserRoute = BrowserRouteImport.update({
   id: '/browser',
   path: '/browser',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FgcRoute = FgcRouteImport.update({
+  id: '/fgc',
+  path: '/fgc',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -182,6 +190,11 @@ const ApiRemoteSignupRoute = ApiRemoteSignupRouteImport.update({
 const ApiRiftCardsRoute = ApiRiftCardsRouteImport.update({
   id: '/api/rift-cards',
   path: '/api/rift-cards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiStartggRoute = ApiStartggRouteImport.update({
+  id: '/api/startgg',
+  path: '/api/startgg',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSwuCardsRoute = ApiSwuCardsRouteImport.update({
@@ -360,6 +373,11 @@ const ApiTournamentTdfRoute = ApiTournamentTdfRouteImport.update({
   path: '/tdf',
   getParentRoute: () => ApiTournamentRoute,
 } as any)
+const FgcOverlayHudRoute = FgcOverlayHudRouteImport.update({
+  id: '/overlay/hud',
+  path: '/overlay/hud',
+  getParentRoute: () => FgcRoute,
+} as any)
 const GameSlotOverlaySourceRoute = GameSlotOverlaySourceRouteImport.update({
   id: '/$game/$slot/overlay/$source',
   path: '/$game/$slot/overlay/$source',
@@ -370,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/overlay': typeof OverlayRouteRouteWithChildren
   '/browser': typeof BrowserRoute
+  '/fgc': typeof FgcRouteWithChildren
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -390,6 +409,7 @@ export interface FileRoutesByFullPath {
   '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/remote-signup': typeof ApiRemoteSignupRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
+  '/api/startgg': typeof ApiStartggRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -425,11 +445,13 @@ export interface FileRoutesByFullPath {
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
   '/api/tournament/tdf': typeof ApiTournamentTdfRoute
+  '/fgc/overlay/hud': typeof FgcOverlayHudRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/browser': typeof BrowserRoute
+  '/fgc': typeof FgcRouteWithChildren
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -450,6 +472,7 @@ export interface FileRoutesByTo {
   '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/remote-signup': typeof ApiRemoteSignupRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
+  '/api/startgg': typeof ApiStartggRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -485,6 +508,7 @@ export interface FileRoutesByTo {
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
   '/api/tournament/tdf': typeof ApiTournamentTdfRoute
+  '/fgc/overlay/hud': typeof FgcOverlayHudRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
 }
 export interface FileRoutesById {
@@ -492,6 +516,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/overlay': typeof OverlayRouteRouteWithChildren
   '/browser': typeof BrowserRoute
+  '/fgc': typeof FgcRouteWithChildren
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -512,6 +537,7 @@ export interface FileRoutesById {
   '/api/ptcg-deck-import': typeof ApiPtcgDeckImportRoute
   '/api/remote-signup': typeof ApiRemoteSignupRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
+  '/api/startgg': typeof ApiStartggRoute
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
@@ -547,6 +573,7 @@ export interface FileRoutesById {
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
   '/api/tournament/tdf': typeof ApiTournamentTdfRoute
+  '/fgc/overlay/hud': typeof FgcOverlayHudRoute
   '/$game/$slot/overlay/$source': typeof GameSlotOverlaySourceRoute
 }
 export interface FileRouteTypes {
@@ -555,6 +582,7 @@ export interface FileRouteTypes {
     | '/'
     | '/overlay'
     | '/browser'
+    | '/fgc'
     | '/login'
     | '/pod'
     | '/production'
@@ -575,6 +603,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-deck-import'
     | '/api/remote-signup'
     | '/api/rift-cards'
+    | '/api/startgg'
     | '/api/swu-cards'
     | '/api/tcg-catalog'
     | '/api/tournament'
@@ -610,11 +639,13 @@ export interface FileRouteTypes {
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
     | '/api/tournament/tdf'
+    | '/fgc/overlay/hud'
     | '/$game/$slot/overlay/$source'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/browser'
+    | '/fgc'
     | '/login'
     | '/pod'
     | '/production'
@@ -635,6 +666,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-deck-import'
     | '/api/remote-signup'
     | '/api/rift-cards'
+    | '/api/startgg'
     | '/api/swu-cards'
     | '/api/tcg-catalog'
     | '/api/tournament'
@@ -670,12 +702,14 @@ export interface FileRouteTypes {
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
     | '/api/tournament/tdf'
+    | '/fgc/overlay/hud'
     | '/$game/$slot/overlay/$source'
   id:
     | '__root__'
     | '/'
     | '/overlay'
     | '/browser'
+    | '/fgc'
     | '/login'
     | '/pod'
     | '/production'
@@ -696,6 +730,7 @@ export interface FileRouteTypes {
     | '/api/ptcg-deck-import'
     | '/api/remote-signup'
     | '/api/rift-cards'
+    | '/api/startgg'
     | '/api/swu-cards'
     | '/api/tcg-catalog'
     | '/api/tournament'
@@ -731,6 +766,7 @@ export interface FileRouteTypes {
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
     | '/api/tournament/tdf'
+    | '/fgc/overlay/hud'
     | '/$game/$slot/overlay/$source'
   fileRoutesById: FileRoutesById
 }
@@ -738,6 +774,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OverlayRouteRoute: typeof OverlayRouteRouteWithChildren
   BrowserRoute: typeof BrowserRoute
+  FgcRoute: typeof FgcRouteWithChildren
   LoginRoute: typeof LoginRoute
   PodRoute: typeof PodRoute
   ProductionRoute: typeof ProductionRoute
@@ -758,6 +795,7 @@ export interface RootRouteChildren {
   ApiPtcgDeckImportRoute: typeof ApiPtcgDeckImportRoute
   ApiRemoteSignupRoute: typeof ApiRemoteSignupRoute
   ApiRiftCardsRoute: typeof ApiRiftCardsRoute
+  ApiStartggRoute: typeof ApiStartggRoute
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTcgCatalogRoute: typeof ApiTcgCatalogRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
@@ -786,6 +824,13 @@ declare module '@tanstack/react-router' {
       path: '/browser'
       fullPath: '/browser'
       preLoaderRoute: typeof BrowserRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/fgc': {
+      id: '/fgc'
+      path: '/fgc'
+      fullPath: '/fgc'
+      preLoaderRoute: typeof FgcRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -933,6 +978,13 @@ declare module '@tanstack/react-router' {
       path: '/api/rift-cards'
       fullPath: '/api/rift-cards'
       preLoaderRoute: typeof ApiRiftCardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/startgg': {
+      id: '/api/startgg'
+      path: '/api/startgg'
+      fullPath: '/api/startgg'
+      preLoaderRoute: typeof ApiStartggRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/swu-cards': {
@@ -1180,6 +1232,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTournamentTdfRouteImport
       parentRoute: typeof ApiTournamentRoute
     }
+    '/fgc/overlay/hud': {
+      id: '/fgc/overlay/hud'
+      path: '/overlay/hud'
+      fullPath: '/fgc/overlay/hud'
+      preLoaderRoute: typeof FgcOverlayHudRouteImport
+      parentRoute: typeof FgcRoute
+    }
     '/$game/$slot/overlay/$source': {
       id: '/$game/$slot/overlay/$source'
       path: '/$game/$slot/overlay/$source'
@@ -1240,6 +1299,16 @@ const OverlayRouteRouteWithChildren = OverlayRouteRoute._addFileChildren(
   OverlayRouteRouteChildren,
 )
 
+interface FgcRouteChildren {
+  FgcOverlayHudRoute: typeof FgcOverlayHudRoute
+}
+
+const FgcRouteChildren: FgcRouteChildren = {
+  FgcOverlayHudRoute: FgcOverlayHudRoute,
+}
+
+const FgcRouteWithChildren = FgcRoute._addFileChildren(FgcRouteChildren)
+
 interface ApiTournamentRouteChildren {
   ApiTournamentExportRoute: typeof ApiTournamentExportRoute
   ApiTournamentOfficialPdfRoute: typeof ApiTournamentOfficialPdfRoute
@@ -1262,6 +1331,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OverlayRouteRoute: OverlayRouteRouteWithChildren,
   BrowserRoute: BrowserRoute,
+  FgcRoute: FgcRouteWithChildren,
   LoginRoute: LoginRoute,
   PodRoute: PodRoute,
   ProductionRoute: ProductionRoute,
@@ -1282,6 +1352,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPtcgDeckImportRoute: ApiPtcgDeckImportRoute,
   ApiRemoteSignupRoute: ApiRemoteSignupRoute,
   ApiRiftCardsRoute: ApiRiftCardsRoute,
+  ApiStartggRoute: ApiStartggRoute,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTcgCatalogRoute: ApiTcgCatalogRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clapperboard, House, Trophy } from "lucide-react";
+import { Clapperboard, Gamepad2, House, Trophy } from "lucide-react";
 import { SupportButtons } from "@/components/app/support-links";
 import { UpdateBadge } from "@/components/app/update-badge";
 import { cn } from "@/lib/cn";
@@ -12,7 +12,7 @@ export function AppChrome({
   children,
   trailing,
 }: {
-  view: "production" | "tournament" | "home" | "browser";
+  view: "production" | "tournament" | "home" | "browser" | "fgc";
   eyebrow?: string;
   children?: React.ReactNode;
   trailing?: React.ReactNode;
@@ -37,6 +37,8 @@ export function AppChrome({
                       ? "Production control"
                       : view === "tournament"
                         ? "Tournament organizer"
+                        : view === "fgc"
+                          ? "FGC control"
                         : view === "browser"
                           ? "Browser"
                           : "Home")}
@@ -73,6 +75,16 @@ export function AppChrome({
               >
                 <Trophy className="size-3.5" />
                 Tournament
+              </Link>
+              <Link
+                to="/fgc"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium tracking-wide",
+                  view === "fgc" ? "bg-surface text-fg" : "text-muted hover:text-fg",
+                )}
+              >
+                <Gamepad2 className="size-3.5" />
+                FGC
               </Link>
             </nav>
             {view === "production" ? <LiveBadge /> : null}

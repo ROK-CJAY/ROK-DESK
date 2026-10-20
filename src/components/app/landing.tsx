@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Clapperboard, FolderOpen, Trophy } from "lucide-react";
+import { Clapperboard, FolderOpen, Gamepad2, Trophy } from "lucide-react";
 import { FloorLinks } from "@/components/app/floor-links";
 import { TabletQr } from "@/components/app/tablet-qr";
 import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
@@ -42,7 +42,7 @@ export function Landing() {
           Run the event in Tournament. Run the broadcast in Production. Tablets and overlays follow the game you pick.
         </p>
 
-        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        <div className="mt-8 grid gap-3 sm:grid-cols-3">
           <Link
             to="/tournament"
             className="group rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40"
@@ -60,6 +60,15 @@ export function Landing() {
             <p className="font-display mt-4 text-2xl font-semibold uppercase">Production Control</p>
             <p className="mt-2 text-sm text-muted">Scorebug, overlays, and the tablets for the live table.</p>
             <p className="mt-4 text-sm font-medium">Open production →</p>
+          </Link>
+          <Link
+            to="/fgc"
+            className="group rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40"
+          >
+            <Gamepad2 className="size-5 text-muted group-hover:text-fg" />
+            <p className="font-display mt-4 text-2xl font-semibold uppercase">FGC Control</p>
+            <p className="mt-2 text-sm text-muted">Import a start.gg event, pick the set on stream, and drive the FGC overlay.</p>
+            <p className="mt-4 text-sm font-medium">Open FGC →</p>
           </Link>
         </div>
 
