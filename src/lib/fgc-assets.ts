@@ -40,7 +40,13 @@ export async function loadCatalog(base: string): Promise<CatalogGame[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
+const TSH_SITE = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main";
+
+export function previewUrl(base: string, game: string, code: string, skin: number): string {
+  const root = base.trim().replace(/\/$/, "");
+  const host = root || TSH_SITE;
+  return `${host}/games/${game}/website/${code}_${skin}.png`;
+}
   const root = base.trim().replace(/\/$/, "");
   const configUrl = root
     ? `${root}/games/${game.code}/library.json`

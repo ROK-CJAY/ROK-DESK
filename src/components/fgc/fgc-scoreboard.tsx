@@ -3,6 +3,7 @@ import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blankPlayer, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
+import { previewUrl } from "@/lib/fgc-assets";
 import { useFgcStore } from "@/lib/fgc-store";
 
 function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
@@ -47,7 +48,11 @@ function PlayerCard({
 }) {
   const patchPlayer = useFgcStore((s) => s.patchPlayer);
   const patchSet = useFgcStore((s) => s.patchSet);
+  const library = useFgcStore((s) => libraryFor(s.fgc));
+  const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const set = (partial: Partial<FgcPlayer>) => patchPlayer(setId, side, partial);
+  const character = library?.characters.find((item) => item.name === player.character);
+  const skins = character?.skins ?? 0;
 
   return (
     <div className="rounded-lg border border-border bg-surface-2 p-3">
@@ -101,6 +106,34 @@ function PlayerCard({
             onChange={(e) => set({ skin2: Number(e.target.value) || 0 })}
           />
         </Field>
+        {character && skins ? (
+          <div className="sm:col-span-2">
+            <div className="flex items-end gap-3">
+              <img
+                src={previewUrl(assetBase, library?.code ?? "", character.code, player.skin)}
+                alt={`${character.name} skin ${player.skin}`}
+                className="h-28 w-28 rounded-md border border-border bg-black object-contain"
+              />
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: skins }, (_, skin) => (
+                  <button
+                    key={skin}
+                    type="button"
+                    onClick={() => set({ skin })}
+                    className={skin === player.skin ? "rounded-md ring-2 ring-accent" : "rounded-md"}
+                    aria-label={`Skin ${skin}`}
+                  >
+                    <img
+                      src={previewUrl(assetBase, library?.code ?? "", character.code, skin)}
+                      alt=""
+                      className="h-12 w-12 rounded-md border border-border bg-black object-contain"
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
       <Button className="mt-3" size="sm" variant="outline" onClick={() => patchSet(setId, { [side]: blankPlayer() })}>
         Clear player
