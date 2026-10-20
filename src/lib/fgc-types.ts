@@ -49,6 +49,7 @@ export type FgcEvent = {
   game: string;
   url: string;
   venue: string;
+  ruleset: string;
   entrants: number;
   startAt: string;
   endAt: string;
@@ -113,6 +114,13 @@ export function blankSet(): FgcSet {
     score2: 0,
   };
 }
+export function assetUrl(base: string, kind: "characters" | "stages", name: string): string {
+  const root = base.trim().replace(/\/$/, "");
+  const file = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  if (!root || !file) return "";
+  return `${root}/${kind}/${file}.png`;
+}
+
 export function playerLabel(player: FgcPlayer | null): string {
   if (!player) return "TBD";
   const tag = player.tag.trim();

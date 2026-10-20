@@ -45,7 +45,7 @@ function read(): FgcState {
     if (!raw) return EMPTY_FGC;
     const parsed = JSON.parse(raw) as Partial<FgcState>;
     const event = parsed.event
-      ? Object.assign({ venue: "", entrants: 0, startAt: "", endAt: "" }, parsed.event)
+      ? Object.assign({ venue: "", ruleset: "", entrants: 0, startAt: "", endAt: "" }, parsed.event)
       : null;
     return {
       ...EMPTY_FGC,
