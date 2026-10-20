@@ -1,6 +1,6 @@
 import type { FgcEvent, FgcPlayer, FgcSet, FgcSetState } from "@/lib/fgc-types";
 
-const ENDPOINT = "https://api.start.gg/gql/alpha";
+const ENDPOINT = "https://www.start.gg/api/-/gql";
 
 export function startggSlug(input: string): string | null {
   const raw = input.trim();
@@ -22,14 +22,15 @@ export function startggSlug(input: string): string | null {
 
 type GqlResponse<T> = { data?: T; errors?: { message: string }[] };
 
-export async function startggQuery<T>(token: string, query: string, variables: Record<string, unknown>): Promise<T> {
+export async function startggQuery<T>(query: string, variables: Record<string, unknown>, operationName: string): Promise<T> {
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${token.trim()}`,
+      "client-version": "20",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
     },
-    body: JSON.stringify({ query, variables }),
+    body: JSON.stringify({ operationName, query, variables }),
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -188,10 +189,10 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
   };
 }
 
-export async function importStartggEvent(token: string, url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
+export async function importStartggEvent(url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Paste a start.gg event link, like start.gg/tournament/name/event/singles");
-  const eventData = await startggQuery<RawEvent>(token, EVENT_QUERY, { slug });
+  const eventData = await startggQuery<RawEvent>(EVENT_QUERY, { slug }, "FgcEvent");
   const event = eventData.event;
   if (!event) throw new Error("No event found at that link");
 
@@ -207,7 +208,7 @@ export async function importStartggEvent(token: string, url: string): Promise<{ 
     let page = 1;
     let pages = 1;
     while (page <= pages && page <= 5) {
-      const data = await startggQuery<RawSets>(token, SETS_QUERY, { id: group.id, page });
+      const data = await startggQuery<RawSets>(SETS_QUERY, { id: group.id, page }, "FgcSets");
       const block = data.phaseGroup?.sets;
       pages = block?.pageInfo?.totalPages ?? 1;
       for (const node of block?.nodes ?? []) sets.push(normalizeSet(node, group.phase, group.group));

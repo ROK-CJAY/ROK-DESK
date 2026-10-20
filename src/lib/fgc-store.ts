@@ -50,13 +50,13 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     set({ fgc });
   },
   importEvent: async () => {
-    const { token, url } = get().fgc;
+    const { url } = get().fgc;
     set({ importing: true, error: "" });
     try {
       const res = await fetch("/api/startgg", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token, url }),
+        body: JSON.stringify({ url }),
       });
       const body = (await res.json()) as { event?: FgcState["event"]; sets?: FgcState["sets"]; error?: string };
       if (!res.ok || !body.event || !body.sets) throw new Error(body.error || "Import failed");
@@ -88,7 +88,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     set({ fgc });
   },
   clear: () => {
-    const fgc = { ...EMPTY_FGC, token: get().fgc.token };
+    const fgc = EMPTY_FGC;
     write(fgc);
     set({ fgc, error: "" });
   },

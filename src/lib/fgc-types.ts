@@ -34,7 +34,6 @@ export type FgcEvent = {
 };
 
 export type FgcState = {
-  token: string;
   url: string;
   event: FgcEvent | null;
   sets: FgcSet[];
@@ -43,7 +42,6 @@ export type FgcState = {
 };
 
 export const EMPTY_FGC: FgcState = {
-  token: "",
   url: "",
   event: null,
   sets: [],

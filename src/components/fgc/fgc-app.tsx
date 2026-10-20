@@ -48,15 +48,6 @@ export function FgcApp() {
         <section className="rounded-xl border border-border bg-surface p-4">
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">start.gg</p>
           <div className="mt-3 grid gap-3">
-            <Field label="API token">
-              <Input
-                type="password"
-                value={fgc.token}
-                onChange={(e) => patch({ token: e.target.value })}
-                placeholder="Personal access token"
-                autoComplete="off"
-              />
-            </Field>
             <Field label="Event link">
               <Input
                 value={fgc.url}
@@ -65,7 +56,7 @@ export function FgcApp() {
               />
             </Field>
             <div className="flex gap-2">
-              <Button onClick={() => void importEvent()} disabled={importing || !fgc.token || !fgc.url}>
+              <Button onClick={() => void importEvent()} disabled={importing || !fgc.url}>
                 <RefreshCw className={cn("size-4", importing && "animate-spin")} />
                 {importing ? "Importing" : "Import event"}
               </Button>
@@ -76,7 +67,7 @@ export function FgcApp() {
             </div>
             {error ? <p className="text-sm text-live">{error}</p> : null}
             <p className="text-xs text-muted">
-              Token stays on this computer. Create one at start.gg → Developer settings. Import pulls phases, sets, tags, seeds, country, and Twitter.
+              Paste the event link. No token. Import pulls phases, sets, tags, seeds, country, and Twitter, the same way Tournament Stream Helper does.
             </p>
           </div>
 
