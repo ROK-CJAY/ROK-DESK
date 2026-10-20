@@ -26,18 +26,28 @@ export async function startggQuery<T>(query: string, variables: Record<string, u
   const res = await fetch(ENDPOINT, {
     method: "POST",
     headers: {
+      accept: "application/json",
       "content-type": "application/json",
       "client-version": "20",
+      origin: "https://www.start.gg",
+      referer: "https://www.start.gg/",
       "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
     },
     body: JSON.stringify({ operationName, query, variables }),
   });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `start.gg returned ${res.status}`);
+  const text = await res.text();
+  if (!text.trim().startsWith("{") && !text.trim().startsWith("[")) {
+    throw new Error("start.gg blocked the import. Try the event link again in a moment.");
   }
-  const body = (await res.json()) as GqlResponse<T>;
-  if (body.errors?.length) throw new Error(body.errors.map((err) => err.message).join("; "));
+  let body: GqlResponse<T>;
+  try {
+    body = JSON.parse(text) as GqlResponse<T>;
+  } catch {
+    throw new Error("start.gg blocked the import. Try the event link again in a moment.");
+  }
+  if (!res.ok || body.errors?.length) {
+    throw new Error(body.errors?.map((err) => err.message).join("; ") || `start.gg returned ${res.status}`);
+  }
   if (!body.data) throw new Error("start.gg returned no data");
   return body.data;
 }
@@ -66,7 +76,7 @@ const SETS_QUERY = `
     phaseGroup(id: $id) {
       id
       displayIdentifier
-      sets(page: $page, perPage: 40, sortType: ROUND) {
+      sets(page: $page, perPage: 16, sortType: ROUND) {
         pageInfo { totalPages }
         nodes {
           id
@@ -207,7 +217,7 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
   for (const group of groups) {
     let page = 1;
     let pages = 1;
-    while (page <= pages && page <= 5) {
+    while (page <= pages && page <= 12) {
       const data = await startggQuery<RawSets>(SETS_QUERY, { id: group.id, page }, "FgcSets");
       const block = data.phaseGroup?.sets;
       pages = block?.pageInfo?.totalPages ?? 1;

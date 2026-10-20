@@ -58,7 +58,13 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ url }),
       });
-      const body = (await res.json()) as { event?: FgcState["event"]; sets?: FgcState["sets"]; error?: string };
+      const text = await res.text();
+      let body: { event?: FgcState["event"]; sets?: FgcState["sets"]; error?: string };
+      try {
+        body = JSON.parse(text) as typeof body;
+      } catch {
+        throw new Error("Import failed before start.gg answered. Refresh and try the event link again.");
+      }
       if (!res.ok || !body.event || !body.sets) throw new Error(body.error || "Import failed");
       const live = body.sets.find((set) => set.state === "live");
       const fgc: FgcState = {
