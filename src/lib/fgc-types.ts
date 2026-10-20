@@ -61,6 +61,7 @@ export type FgcState = {
   sets: FgcSet[];
   streamSetId: string | null;
   casters: FgcCaster[];
+  assetBase: string;
   importedAt: string | null;
 };
 
@@ -73,6 +74,7 @@ export const EMPTY_FGC: FgcState = {
     { id: "c1", name: "", twitter: "", pronouns: "" },
     { id: "c2", name: "", twitter: "", pronouns: "" },
   ],
+  assetBase: "",
   importedAt: null,
 };
 
