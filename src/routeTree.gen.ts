@@ -38,6 +38,7 @@ import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTcgCatalogRouteImport } from './routes/api/tcg-catalog'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
 import { Route as ApiYgoCardsRouteImport } from './routes/api/ygo-cards'
+import { Route as FgcStrikeRouteImport } from './routes/fgc/strike'
 import { Route as JoinIndexRouteImport } from './routes/join/index'
 import { Route as JoinCodeRouteImport } from './routes/join/$code'
 import { Route as OverlayIndexRouteImport } from './routes/overlay/index'
@@ -216,6 +217,11 @@ const ApiYgoCardsRoute = ApiYgoCardsRouteImport.update({
   id: '/api/ygo-cards',
   path: '/api/ygo-cards',
   getParentRoute: () => rootRouteImport,
+} as any)
+const FgcStrikeRoute = FgcStrikeRouteImport.update({
+  id: '/strike',
+  path: '/strike',
+  getParentRoute: () => FgcRoute,
 } as any)
 const JoinIndexRoute = JoinIndexRouteImport.update({
   id: '/join/',
@@ -414,6 +420,7 @@ export interface FileRoutesByFullPath {
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
+  '/fgc/strike': typeof FgcStrikeRoute
   '/join/$code': typeof JoinCodeRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
@@ -477,6 +484,7 @@ export interface FileRoutesByTo {
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
+  '/fgc/strike': typeof FgcStrikeRoute
   '/join/$code': typeof JoinCodeRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
@@ -542,6 +550,7 @@ export interface FileRoutesById {
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
+  '/fgc/strike': typeof FgcStrikeRoute
   '/join/$code': typeof JoinCodeRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
@@ -608,6 +617,7 @@ export interface FileRouteTypes {
     | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
+    | '/fgc/strike'
     | '/join/$code'
     | '/overlay/bracket'
     | '/overlay/card'
@@ -671,6 +681,7 @@ export interface FileRouteTypes {
     | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
+    | '/fgc/strike'
     | '/join/$code'
     | '/overlay/bracket'
     | '/overlay/card'
@@ -735,6 +746,7 @@ export interface FileRouteTypes {
     | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
+    | '/fgc/strike'
     | '/join/$code'
     | '/overlay/bracket'
     | '/overlay/card'
@@ -1014,6 +1026,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/ygo-cards'
       preLoaderRoute: typeof ApiYgoCardsRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/fgc/strike': {
+      id: '/fgc/strike'
+      path: '/strike'
+      fullPath: '/fgc/strike'
+      preLoaderRoute: typeof FgcStrikeRouteImport
+      parentRoute: typeof FgcRoute
     }
     '/join/': {
       id: '/join/'
@@ -1300,10 +1319,12 @@ const OverlayRouteRouteWithChildren = OverlayRouteRoute._addFileChildren(
 )
 
 interface FgcRouteChildren {
+  FgcStrikeRoute: typeof FgcStrikeRoute
   FgcOverlayHudRoute: typeof FgcOverlayHudRoute
 }
 
 const FgcRouteChildren: FgcRouteChildren = {
+  FgcStrikeRoute: FgcStrikeRoute,
   FgcOverlayHudRoute: FgcOverlayHudRoute,
 }
 

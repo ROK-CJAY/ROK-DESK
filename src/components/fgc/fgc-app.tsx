@@ -4,6 +4,7 @@ import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { FgcScoreboard } from "@/components/fgc/fgc-scoreboard";
 import { FgcCommentary, FgcTournamentInfo, FgcBracket } from "@/components/fgc/fgc-panels";
+import { FgcRulesetEditor } from "@/components/fgc/fgc-ruleset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blankSet, playerLabel, streamSetOf, type FgcSet } from "@/lib/fgc-types";
@@ -147,7 +148,7 @@ export function FgcApp() {
   const importEvent = useFgcStore((s) => s.importEvent);
   const loadStreamSet = useFgcStore((s) => s.loadStreamSet);
   const [picker, setPicker] = useState(false);
-  const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket">("scoreboard");
+  const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset">("scoreboard");
 
   useEffect(() => {
     hydrate();
@@ -202,6 +203,7 @@ export function FgcApp() {
               ["commentary", "Commentary"],
               ["info", "Tournament info"],
               ["bracket", "Bracket"],
+              ["ruleset", "Ruleset"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -219,6 +221,7 @@ export function FgcApp() {
         {tab === "commentary" ? <FgcCommentary /> : null}
         {tab === "info" ? <FgcTournamentInfo /> : null}
         {tab === "bracket" ? <FgcBracket /> : null}
+        {tab === "ruleset" ? <FgcRulesetEditor /> : null}
       </main>
       <SetPicker open={picker} onClose={() => setPicker(false)} />
     </div>

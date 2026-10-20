@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { blankPlayer, blankSet, EMPTY_FGC, type FgcCaster, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type FgcPlayer, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
 
 const KEY = "rok-fgc";
 
@@ -18,6 +18,9 @@ type FgcStore = {
   newSet: () => void;
   loadStreamSet: () => Promise<void>;
   patchCaster: (id: string, partial: Partial<FgcCaster>) => void;
+  saveRuleset: (ruleset: FgcRuleset) => void;
+  deleteRuleset: (id: string) => void;
+  selectRuleset: (id: string | null) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
@@ -53,6 +56,7 @@ function read(): FgcState {
       event,
       sets: (parsed.sets ?? []).map(setOf),
       casters: parsed.casters?.length ? parsed.casters : EMPTY_FGC.casters,
+      rulesets: parsed.rulesets ?? [],
     };
   } catch {
     return EMPTY_FGC;
@@ -178,6 +182,29 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       ...get().fgc,
       casters: get().fgc.casters.map((caster) => (caster.id === id ? { ...caster, ...partial } : caster)),
     };
+    write(fgc);
+    set({ fgc });
+  },
+  saveRuleset: (ruleset) => {
+    const existing = get().fgc.rulesets.some((item) => item.id === ruleset.id);
+    const rulesets = existing
+      ? get().fgc.rulesets.map((item) => (item.id === ruleset.id ? ruleset : item))
+      : [...get().fgc.rulesets, ruleset];
+    const fgc = { ...get().fgc, rulesets, activeRulesetId: ruleset.id };
+    write(fgc);
+    set({ fgc });
+  },
+  deleteRuleset: (id) => {
+    const fgc = {
+      ...get().fgc,
+      rulesets: get().fgc.rulesets.filter((item) => item.id !== id),
+      activeRulesetId: get().fgc.activeRulesetId === id ? null : get().fgc.activeRulesetId,
+    };
+    write(fgc);
+    set({ fgc });
+  },
+  selectRuleset: (id) => {
+    const fgc = { ...get().fgc, activeRulesetId: id };
     write(fgc);
     set({ fgc });
   },

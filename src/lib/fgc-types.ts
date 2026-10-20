@@ -62,6 +62,8 @@ export type FgcState = {
   streamSetId: string | null;
   casters: FgcCaster[];
   assetBase: string;
+  rulesets: FgcRuleset[];
+  activeRulesetId: string | null;
   importedAt: string | null;
 };
 
@@ -75,6 +77,8 @@ export const EMPTY_FGC: FgcState = {
     { id: "c2", name: "", twitter: "", pronouns: "" },
   ],
   assetBase: "",
+  rulesets: [],
+  activeRulesetId: null,
   importedAt: null,
 };
 
@@ -114,6 +118,29 @@ export function blankSet(): FgcSet {
     p2: blankPlayer(),
     score1: 0,
     score2: 0,
+  };
+}
+export type FgcRuleset = {
+  id: string;
+  name: string;
+  game: string;
+  neutralStages: string[];
+  counterpickStages: string[];
+  strikeOrder: number[];
+  banCount: number;
+  dsr: "none" | "dsr" | "mdsr";
+};
+
+export function blankRuleset(): FgcRuleset {
+  return {
+    id: `ruleset-${Date.now()}`,
+    name: "New ruleset",
+    game: "",
+    neutralStages: [],
+    counterpickStages: [],
+    strikeOrder: [1, 2, 1],
+    banCount: 1,
+    dsr: "none",
   };
 }
 export function assetUrl(base: string, kind: "characters" | "stages", name: string): string {

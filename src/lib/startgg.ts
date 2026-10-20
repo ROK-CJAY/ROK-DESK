@@ -257,7 +257,7 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
       game: event.videogame?.name?.trim() || "Fighting game",
       url: `https://www.start.gg/${slug}`,
       venue: event.tournament?.venueAddress?.trim() || "",
-      ruleset: event.tournament?.rules?.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 400) || "",
+      ruleset: "",
       entrants: event.numEntrants ?? event.tournament?.numAttendees ?? 0,
       startAt: when(event.startAt ?? event.tournament?.startAt),
       endAt: when(event.endAt ?? event.tournament?.endAt),
