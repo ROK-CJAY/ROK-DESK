@@ -8,9 +8,19 @@ export type FgcPlayer = {
   country: string;
   region: string;
   twitter: string;
+  pronouns: string;
   character: string;
   skin: number;
+  character2: string;
+  skin2: number;
   seed: number | null;
+};
+
+export type FgcCaster = {
+  id: string;
+  name: string;
+  twitter: string;
+  pronouns: string;
 };
 
 export type FgcSet = {
@@ -20,6 +30,7 @@ export type FgcSet = {
   round: string;
   identifier: string;
   bestOf: number;
+  stage: string;
   losers1: boolean;
   losers2: boolean;
   state: FgcSetState;
@@ -37,6 +48,10 @@ export type FgcEvent = {
   tournamentName: string;
   game: string;
   url: string;
+  venue: string;
+  entrants: number;
+  startAt: string;
+  endAt: string;
 };
 
 export type FgcState = {
@@ -44,6 +59,7 @@ export type FgcState = {
   event: FgcEvent | null;
   sets: FgcSet[];
   streamSetId: string | null;
+  casters: FgcCaster[];
   importedAt: string | null;
 };
 
@@ -52,6 +68,10 @@ export const EMPTY_FGC: FgcState = {
   event: null,
   sets: [],
   streamSetId: null,
+  casters: [
+    { id: "c1", name: "", twitter: "", pronouns: "" },
+    { id: "c2", name: "", twitter: "", pronouns: "" },
+  ],
   importedAt: null,
 };
 
@@ -64,8 +84,11 @@ export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
     country: "",
     region: "",
     twitter: "",
+    pronouns: "",
     character: "",
     skin: 0,
+    character2: "",
+    skin2: 0,
     seed: null,
     ...partial,
   };
@@ -79,6 +102,7 @@ export function blankSet(): FgcSet {
     round: "",
     identifier: "",
     bestOf: 3,
+    stage: "",
     losers1: false,
     losers2: false,
     state: "live",

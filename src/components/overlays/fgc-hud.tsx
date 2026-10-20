@@ -35,7 +35,7 @@ export function FgcHud() {
   const p1 = set?.p1 ?? null;
   const p2 = set?.p2 ?? null;
   const meta = (player: typeof p1) =>
-    [player?.character, player?.country, player?.region, player?.twitter ? `@${player.twitter}` : ""]
+    [player?.character, player?.character2, player?.country, player?.region, player?.twitter ? `@${player.twitter}` : "", player?.pronouns]
       .filter(Boolean)
       .join(" · ");
 
@@ -45,7 +45,7 @@ export function FgcHud() {
         <Side name={playerLabel(p1)} meta={meta(p1)} align="left" />
         <div className="mb-1 shrink-0 text-center">
           <p className="font-mono text-xs tracking-[0.28em] text-white/70 uppercase">
-            {[event?.game, set?.phase, set?.round, set?.bestOf ? `Bo${set.bestOf}` : ""].filter(Boolean).join(" · ") || "No set"}
+            {[event?.game, set?.phase, set?.round, set?.stage, set?.bestOf ? `Bo${set.bestOf}` : ""].filter(Boolean).join(" · ") || "No set"}
           </p>
           <p className="font-display mt-1 text-5xl leading-none font-semibold tabular-nums">
             {set ? `${set.score1} – ${set.score2}` : "VS"}

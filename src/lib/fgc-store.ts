@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { blankPlayer, blankSet, EMPTY_FGC, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { blankPlayer, blankSet, EMPTY_FGC, type FgcCaster, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
 
 const KEY = "rok-fgc";
 
@@ -16,6 +16,8 @@ type FgcStore = {
   patchSet: (id: string, partial: Partial<FgcSet>) => void;
   patchPlayer: (setId: string, side: "p1" | "p2", partial: Partial<FgcPlayer>) => void;
   newSet: () => void;
+  loadStreamSet: () => Promise<void>;
+  patchCaster: (id: string, partial: Partial<FgcCaster>) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
@@ -42,7 +44,16 @@ function read(): FgcState {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return EMPTY_FGC;
     const parsed = JSON.parse(raw) as Partial<FgcState>;
-    return { ...EMPTY_FGC, ...parsed, sets: (parsed.sets ?? []).map(setOf) };
+    const event = parsed.event
+      ? Object.assign({ venue: "", entrants: 0, startAt: "", endAt: "" }, parsed.event)
+      : null;
+    return {
+      ...EMPTY_FGC,
+      ...parsed,
+      event,
+      sets: (parsed.sets ?? []).map(setOf),
+      casters: parsed.casters?.length ? parsed.casters : EMPTY_FGC.casters,
+    };
   } catch {
     return EMPTY_FGC;
   }
@@ -138,6 +149,35 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   newSet: () => {
     const created = blankSet();
     const fgc = { ...get().fgc, sets: [created, ...get().fgc.sets], streamSetId: created.id };
+    write(fgc);
+    set({ fgc });
+  },
+  loadStreamSet: async () => {
+    const { url, sets } = get().fgc;
+    set({ error: "" });
+    try {
+      const res = await fetch("/api/startgg", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ url, action: "stream" }),
+      });
+      const body = (await res.json()) as { setId?: string | null; error?: string };
+      if (!res.ok) throw new Error(body.error || "Could not read the stream set");
+      if (!body.setId) throw new Error("No set is marked on stream");
+      const match = sets.find((set) => set.id === body.setId);
+      if (!match) throw new Error("Stream set is not in the imported list. Import again.");
+      const fgc = { ...get().fgc, streamSetId: match.id };
+      write(fgc);
+      set({ fgc });
+    } catch (err) {
+      set({ error: err instanceof Error ? err.message : "Could not load the stream set" });
+    }
+  },
+  patchCaster: (id, partial) => {
+    const fgc = {
+      ...get().fgc,
+      casters: get().fgc.casters.map((caster) => (caster.id === id ? { ...caster, ...partial } : caster)),
+    };
     write(fgc);
     set({ fgc });
   },

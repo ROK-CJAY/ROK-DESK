@@ -48,6 +48,9 @@ function PlayerCard({
         <Field label="Twitter">
           <Input value={player.twitter} onChange={(e) => set({ twitter: e.target.value.replace(/^@/, "") })} />
         </Field>
+        <Field label="Pronouns">
+          <Input value={player.pronouns} onChange={(e) => set({ pronouns: e.target.value })} />
+        </Field>
         <Field label="Country">
           <Input value={player.country} onChange={(e) => set({ country: e.target.value })} />
         </Field>
@@ -57,12 +60,15 @@ function PlayerCard({
         <Field label="Character">
           <Input value={player.character} onChange={(e) => set({ character: e.target.value })} />
         </Field>
-        <Field label="Skin">
+        <Field label="Character 2">
+          <Input value={player.character2} onChange={(e) => set({ character2: e.target.value })} />
+        </Field>
+        <Field label="Skin 2">
           <Input
             type="number"
             min={0}
-            value={player.skin}
-            onChange={(e) => set({ skin: Number(e.target.value) || 0 })}
+            value={player.skin2}
+            onChange={(e) => set({ skin2: Number(e.target.value) || 0 })}
           />
         </Field>
       </div>
@@ -115,6 +121,9 @@ export function FgcScoreboard({ set }: { set: FgcSet }) {
               value={set.bestOf}
               onChange={(e) => patchSet(set.id, { bestOf: Number(e.target.value) || 1 })}
             />
+          </Field>
+          <Field label="Stage">
+            <Input value={set.stage} onChange={(e) => patchSet(set.id, { stage: e.target.value })} />
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Score 1">

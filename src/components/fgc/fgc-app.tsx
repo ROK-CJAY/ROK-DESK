@@ -3,6 +3,7 @@ import { ExternalLink, ListFilter, Radio, RefreshCw, X } from "lucide-react";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { FgcScoreboard } from "@/components/fgc/fgc-scoreboard";
+import { FgcCommentary, FgcTournamentInfo } from "@/components/fgc/fgc-panels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blankSet, playerLabel, streamSetOf, type FgcSet } from "@/lib/fgc-types";
@@ -144,7 +145,9 @@ export function FgcApp() {
   const error = useFgcStore((s) => s.error);
   const patch = useFgcStore((s) => s.patch);
   const importEvent = useFgcStore((s) => s.importEvent);
+  const loadStreamSet = useFgcStore((s) => s.loadStreamSet);
   const [picker, setPicker] = useState(false);
+  const [tab, setTab] = useState<"scoreboard" | "commentary" | "info">("scoreboard");
 
   useEffect(() => {
     hydrate();
@@ -172,6 +175,9 @@ export function FgcApp() {
             <ListFilter className="size-4" />
             Select set
           </Button>
+          <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
+            Stream set
+          </Button>
           <a
             href="/fgc/overlay/hud"
             target="_blank"
@@ -189,7 +195,28 @@ export function FgcApp() {
           {error ? <p className="w-full text-sm text-live">{error}</p> : null}
         </section>
 
-        <FgcScoreboard set={live} />
+        <nav className="flex w-fit rounded-lg border border-border bg-surface p-0.5">
+          {(
+            [
+              ["scoreboard", "Scoreboard"],
+              ["commentary", "Commentary"],
+              ["info", "Tournament info"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={cn("rounded-md px-3 py-1.5 text-xs font-medium", tab === id ? "bg-surface-2 text-fg" : "text-muted")}
+              onClick={() => setTab(id)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {tab === "scoreboard" ? <FgcScoreboard set={live} /> : null}
+        {tab === "commentary" ? <FgcCommentary /> : null}
+        {tab === "info" ? <FgcTournamentInfo /> : null}
       </main>
       <SetPicker open={picker} onClose={() => setPicker(false)} />
     </div>

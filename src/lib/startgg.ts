@@ -58,7 +58,10 @@ const EVENT_QUERY = `
       id
       name
       slug
-      tournament { name slug }
+      tournament { name slug venueAddress startAt endAt numAttendees }
+      numEntrants
+      startAt
+      endAt
       videogame { name }
       phases {
         id
@@ -113,7 +116,10 @@ type RawEvent = {
     id: string;
     name: string;
     slug: string;
-    tournament?: { name?: string; slug?: string } | null;
+    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null } | null;
+    numEntrants?: number | null;
+    startAt?: number | null;
+    endAt?: number | null;
     videogame?: { name?: string } | null;
     phases?: {
       id: string;
@@ -179,8 +185,11 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
     country: person?.user?.location?.country?.trim() || "",
     region: "",
     twitter: twitter.replace(/^@/, ""),
+    pronouns: "",
     character: "",
     skin: 0,
+    character2: "",
+    skin2: 0,
     seed: entrant.seeds?.[0]?.seedNum ?? null,
   };
 }
@@ -194,6 +203,7 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     round: raw.fullRoundText?.trim() || "Set",
     identifier: raw.identifier?.trim() || "",
     bestOf: 3,
+    stage: "",
     losers1: false,
     losers2: false,
     state: setState(raw.state),
@@ -203,6 +213,12 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     score1: slots[0]?.standing?.stats?.score?.value ?? 0,
     score2: slots[1]?.standing?.stats?.score?.value ?? 0,
   };
+}
+
+function when(value: number | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value < 10_000_000_000 ? value * 1000 : value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
 }
 
 export async function importStartggEvent(url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
@@ -240,7 +256,36 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
       tournamentName: event.tournament?.name?.trim() || event.name,
       game: event.videogame?.name?.trim() || "Fighting game",
       url: `https://www.start.gg/${slug}`,
+      venue: event.tournament?.venueAddress?.trim() || "",
+      entrants: event.numEntrants ?? event.tournament?.numAttendees ?? 0,
+      startAt: when(event.startAt ?? event.tournament?.startAt),
+      endAt: when(event.endAt ?? event.tournament?.endAt),
     },
     sets,
   };
+}
+
+const STREAM_QUERY = `
+  query FgcStream($slug: String!) {
+    event(slug: $slug) {
+      tournament {
+        streamQueue { sets { id } }
+      }
+      sets(page: 1, perPage: 8, filters: { state: 2 }) {
+        nodes { id }
+      }
+    }
+  }
+`;
+
+export async function currentStreamSetId(url: string): Promise<string | null> {
+  const slug = startggSlug(url);
+  if (!slug) throw new Error("Import the event first");
+  const data = await startggQuery<{
+    event?: {
+      tournament?: { streamQueue?: { sets?: { id: string }[] | null } | null } | null;
+      sets?: { nodes?: { id: string }[] | null } | null;
+    } | null;
+  }>(STREAM_QUERY, { slug }, "FgcStream");
+  return data.event?.tournament?.streamQueue?.sets?.[0]?.id ?? data.event?.sets?.nodes?.[0]?.id ?? null;
 }
