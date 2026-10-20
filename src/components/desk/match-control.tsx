@@ -25,6 +25,7 @@ import { reportMatchToBracket } from "@/lib/report-stream";
 import { PokeballIcon, TeamPips } from "@/components/overlays/pips";
 import { InitiativeToggle } from "@/components/desk/initiative";
 import { InkPicker } from "@/components/desk/ink-picker";
+import { ManaColorPicker } from "@/components/desk/mana-picker";
 
 const LIFE_STEPS = [-1000, -100, -10, 10, 100, 1000];
 const MTG_STEPS = [-10, -5, -1, 1, 5, 10];
@@ -410,6 +411,37 @@ function PlayerColumn({
             </Field>
           </div>
         )}
+        {desk.gameId === "mtg" && !commander ? (
+          <div className="grid gap-2">
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="Wins">
+                <Input
+                  inputMode="numeric"
+                  value={String(player.recordW)}
+                  onChange={(e) => onChange({ recordW: Math.max(0, Number(e.target.value) || 0) })}
+                />
+              </Field>
+              <Field label="Losses">
+                <Input
+                  inputMode="numeric"
+                  value={String(player.recordL)}
+                  onChange={(e) => onChange({ recordL: Math.max(0, Number(e.target.value) || 0) })}
+                />
+              </Field>
+              <Field label="Draws">
+                <Input
+                  inputMode="numeric"
+                  value={String(player.recordD)}
+                  onChange={(e) => onChange({ recordD: Math.max(0, Number(e.target.value) || 0) })}
+                />
+              </Field>
+            </div>
+            <div className="grid gap-1.5">
+              <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Colors</p>
+              <ManaColorPicker value={player.ink1} onChange={(ink1) => onChange({ ink1 })} />
+            </div>
+          </div>
+        ) : null}
         <Field label="Photo URL">
           <Input
             value={player.photoUrl}

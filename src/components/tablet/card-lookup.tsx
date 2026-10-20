@@ -64,6 +64,7 @@ export function CardLookup({
   const p4 = useDeskStore((s) => s.desk.p4);
   const tableSize = useDeskStore((s) => s.desk.tableSize);
   const matchSlot = useDeskStore((s) => s.desk.matchSlot);
+  const scorebugStyle = useDeskStore((s) => s.desk.scorebugStyle);
   const gameId = useDeskStore((s) => s.desk.gameId);
   const tournament = useTournamentStore((s) => s.tournament);
   const hydrateTournament = useTournamentStore((s) => s.hydrate);
@@ -174,7 +175,7 @@ export function CardLookup({
           : ygo
             ? searchYgoCards(q, liveOnly ? ygoFormat : null)
             : op
-              ? searchOpCards(q)
+              ? searchOpCards(q, liveOnly)
               : rift
                 ? searchRiftCards(q)
                 : lorcana
@@ -288,8 +289,13 @@ export function CardLookup({
       type: card.type ?? "",
     };
     if (catalog === "mtg") {
-      const live = useDeskStore.getState().desk;
-      patch(layerSpotlight(live, spotlightCard));
+      if (side) {
+        const wells = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
+        patch({ sideSpotlight: { ...wells, [side]: spotlightCard } });
+      } else {
+        const live = useDeskStore.getState().desk;
+        patch(layerSpotlight(live, spotlightCard));
+      }
     } else {
       patch({ cardSpotlight: spotlightCard, cardStack: [spotlightCard] });
     }
@@ -334,6 +340,11 @@ export function CardLookup({
           p2: { ...live.p2, spotlight: null },
         },
       });
+      return;
+    }
+    if (catalog === "mtg" && side) {
+      const wells = useDeskStore.getState().desk.sideSpotlight ?? emptySideSpotlight();
+      patch({ sideSpotlight: { ...wells, [side]: emptySpotlight() } });
       return;
     }
     if (catalog === "ygo" || catalog === "op" || catalog === "lorcana") {
@@ -453,7 +464,7 @@ export function CardLookup({
                 : ygo
                   ? "YGOPRODeck search. Read the card text, then Show P1 or Show P2 in that player’s well."
                   : op
-                    ? "Official OP card data. Read the text, then Show P1 or Show P2 in that player’s well."
+                    ? "Official OP card data. Live is Standard. Full catalog includes rotated and banned cards."
                     : rift
                       ? "Riftcodex search. Read the printed text, then Show on stream if you want the art on air."
                       : lorcana
@@ -484,13 +495,13 @@ export function CardLookup({
               </FilterChip>
             </div>
           ) : null}
-          {matchScope || swu || op || rift || lorcana ? null : (
+          {matchScope || swu || rift || lorcana ? null : (
           <div className="flex rounded-md bg-surface-2 p-0.5">
             <FilterChip active={liveOnly} onClick={() => setLiveOnly(true)}>
               {mtg && legal ? formatName : ygo && ygoFormat ? formatName : "Live"}
             </FilterChip>
             <FilterChip active={!liveOnly} onClick={() => setLiveOnly(false)}>
-              All printings
+              {op ? "Full catalog" : "All printings"}
             </FilterChip>
           </div>
           )}
@@ -555,9 +566,9 @@ export function CardLookup({
         <CardDetail
           card={selected}
           ptcg={catalog === "ptcg"}
-          splitWells={catalog === "ptcg" || catalog === "ygo" || catalog === "op" || catalog === "lorcana"}
+          splitWells={catalog === "ptcg" || catalog === "ygo" || catalog === "op" || catalog === "lorcana" || (mtg && (scorebugStyle === "ug" || scorebugStyle === "stream"))}
           combo={
-            mtg
+            mtg && scorebugStyle !== "ug" && scorebugStyle !== "stream"
               ? {
                   count: stack.length,
                   full: stack.length >= CARD_STACK_MAX,
@@ -568,12 +579,12 @@ export function CardLookup({
           }
           onAir={Boolean(spotlight?.visible && spotlight.id === selected.id)}
           onAirP1={
-            ygo || op || lorcana
+            ygo || op || lorcana || (mtg && (scorebugStyle === "ug" || scorebugStyle === "stream"))
               ? Boolean(sideSpotlight?.p1.visible && sideSpotlight.p1.id === selected.id)
               : Boolean(ptcgBoard.p1.spotlight && ptcgBoard.p1.spotlight.id === selected.id)
           }
           onAirP2={
-            ygo || op || lorcana
+            ygo || op || lorcana || (mtg && (scorebugStyle === "ug" || scorebugStyle === "stream"))
               ? Boolean(sideSpotlight?.p2.visible && sideSpotlight.p2.id === selected.id)
               : Boolean(ptcgBoard.p2.spotlight && ptcgBoard.p2.spotlight.id === selected.id)
           }
@@ -615,7 +626,7 @@ export function CardLookup({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium">{card.name}</span>
                   <span className="block truncate text-xs text-muted">
-                    {[card.type, card.hp ? `${card.hp} HP` : "", card.number].filter(Boolean).join(" · ")}
+                    {[card.type, card.status, card.hp ? `${card.hp} HP` : "", card.number].filter(Boolean).join(" · ")}
                   </span>
                 </span>
               </button>
@@ -638,18 +649,24 @@ export function CardLookup({
         <p className="mt-4 text-sm text-muted">
           {catalog === "ptcg" && liveOnly
             ? "No Standard (H+) print for that name. Switch to All printings for older cards."
-            : "No cards matched."}
+            : mtg && liveOnly && legal
+              ? `No ${formatName} card for that name. Banned cards are hidden. All printings shows them.`
+              : op && liveOnly
+              ? "No live Standard card for that name. Switch to Full catalog for rotated or banned cards."
+              : "No cards matched."}
         </p>
       ) : matchScope ? null : (
         <p className="mt-4 text-sm text-muted">
           {mtg
-            ? `Type at least two letters. ${legal ? `${formatName} filters to cards legal in this event.` : "All printings searches the full Scryfall catalog."}`
+            ? `Type at least two letters. ${legal ? `${formatName} uses that format’s banlist. Restricted cards stay in and are marked.` : "All printings searches the full Scryfall catalog."}`
             : swu
               ? "Type at least two letters. Search hits SWU-DB for Premier printings."
               : ygo
                 ? `Type at least two letters. ${ygoFormat ? `${formatName} filters to that banlist when available.` : "All printings searches the full YGOPRODeck catalog."}`
                 : op
-                  ? "Type at least two letters. Search uses official English OP card data."
+                  ? liveOnly
+                    ? "Type at least two letters. Live is Standard: blocks 2–5, official exceptions, no banned cards."
+                    : "Type at least two letters. Full catalog is every English card, including rotated and banned."
                   : rift
                     ? "Type at least two letters. Search hits Riftcodex."
                     : lorcana
@@ -1056,7 +1073,7 @@ function CardDetail({
           <div>
             <h3 className="font-display text-xl font-semibold uppercase">{shown.name}</h3>
             <p className="text-xs text-muted">
-              {[shown.mana, shown.set, shown.number, shown.rarity, shown.stage || shown.trainerType || shown.category, shown.type, shown.regulation ? `Reg ${shown.regulation}` : "", shown.hp ? `${shown.hp} HP` : ""]
+              {[shown.mana, shown.set, shown.number, shown.rarity, shown.status, shown.stage || shown.trainerType || shown.category, shown.type, shown.regulation ? `Reg ${shown.regulation}` : "", shown.hp ? `${shown.hp} HP` : ""]
                 .filter(Boolean)
                 .join(" · ")}
             </p>

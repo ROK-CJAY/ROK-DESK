@@ -406,20 +406,24 @@ export function HudView({
       desk.gameId === "yugioh" ||
       isVgcTitle(desk.gameId) ||
       desk.gameId === "one-piece" ||
-      desk.gameId === "lorcana");
+      desk.gameId === "lorcana" ||
+      desk.gameId === "mtg");
+  const ug = desk.scorebugStyle === "ug" && desk.gameId === "mtg";
+  const stream = desk.scorebugStyle === "stream" && desk.gameId === "mtg";
+  const frame = rok || play || ug || stream;
   return (
     <div className="pointer-events-none absolute inset-0">
       <ScorebugView desk={desk} now={now} edit={edit} />
-      {rok || play || commander ? null : <TimerView desk={desk} now={now} edit={edit} />}
-      {commander || rok || play ? null : <ResourceView desk={desk} edit={edit} />}
-      {commander || rok || play ? null : <CastersView desk={desk} edit={edit} />}
-      {play ? null : <LowerThirdView desk={desk} edit={edit} />}
-      {rok || play ? null : <WinnerView desk={desk} edit={edit} />}
-      {rok || play ? null : <GameWinView desk={desk} edit={edit} />}
-      {rok || play ? null : <RosterView desk={desk} edit={edit} />}
-      {rok || play ? null : <CardSpotlightView desk={desk} edit={edit} />}
-      {play ? null : <SponsorsView desk={desk} now={now} edit={edit} compact />}
-      {play ? null : <EventLogoView desk={desk} edit={edit} />}
+      {frame || commander ? null : <TimerView desk={desk} now={now} edit={edit} />}
+      {commander || frame ? null : <ResourceView desk={desk} edit={edit} />}
+      {commander || frame ? null : <CastersView desk={desk} edit={edit} />}
+      {play || ug || stream ? null : <LowerThirdView desk={desk} edit={edit} />}
+      {frame ? null : <WinnerView desk={desk} edit={edit} />}
+      {frame ? null : <GameWinView desk={desk} edit={edit} />}
+      {frame ? null : <RosterView desk={desk} edit={edit} />}
+      {frame ? null : <CardSpotlightView desk={desk} edit={edit} />}
+      {play || ug || stream ? null : <SponsorsView desk={desk} now={now} edit={edit} compact />}
+      {play || ug || stream ? null : <EventLogoView desk={desk} edit={edit} />}
     </div>
   );
 }

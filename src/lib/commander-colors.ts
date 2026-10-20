@@ -38,6 +38,47 @@ export function commanderFaceName(name: string): string {
   return trimmed.split(/\s*\/\/\s*/)[0]?.trim() || trimmed;
 }
 
+const NAMED_COLORS: Array<[RegExp, string]> = [
+  [/\b(5c|five[- ]color|wubrg|domain)\b/i, "WUBRG"],
+  [/\bsultai\b/i, "UBG"],
+  [/\bizzet\b/i, "UR"],
+  [/\bazorius\b/i, "WU"],
+  [/\bdimir\b/i, "UB"],
+  [/\brakdos\b/i, "BR"],
+  [/\bgruul\b/i, "RG"],
+  [/\bgolgari\b/i, "BG"],
+  [/\bselesnya\b/i, "WG"],
+  [/\borzhov\b/i, "WB"],
+  [/\bboros\b/i, "RW"],
+  [/\bsimic\b/i, "GU"],
+  [/\bbant\b/i, "GWU"],
+  [/\besper\b/i, "WUB"],
+  [/\bgrixis\b/i, "UBR"],
+  [/\bjund\b/i, "BRG"],
+  [/\bnaya\b/i, "RGW"],
+  [/\babzan\b/i, "WBG"],
+  [/\bjeskai\b/i, "URW"],
+  [/\bmardu\b/i, "RWB"],
+  [/\btemur\b/i, "GUR"],
+  [/\bmono[- ]?white\b|\bmonowhite\b/i, "W"],
+  [/\bmono[- ]?blue\b|\bmonoblue\b/i, "U"],
+  [/\bmono[- ]?black\b|\bmonoblack\b/i, "B"],
+  [/\bmono[- ]?red\b|\bmonored\b/i, "R"],
+  [/\bmono[- ]?green\b|\bmonogreen\b/i, "G"],
+];
+
+/** Explicit WUBRG letters win. Otherwise guess from a deck name like "Izzet Lessons". */
+export function deckColorIdentity(explicit: string, deckName = ""): ManaColor[] {
+  const picked = normalizeColorIdentity(explicit);
+  if (picked.length) return picked;
+  const name = deckName.trim();
+  if (!name) return [];
+  for (const [pattern, letters] of NAMED_COLORS) {
+    if (pattern.test(name)) return normalizeColorIdentity(letters);
+  }
+  return [];
+}
+
 export function commanderPlateGradient(colors: readonly string[], right = false): string {
   const fills = (colors.length ? colors : ["C"]).map((c) => MANA_FILL[c as ManaColor] ?? MANA_FILL.C);
   const angle = right ? "270deg" : "90deg";

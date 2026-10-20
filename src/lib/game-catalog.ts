@@ -172,6 +172,7 @@ export const GAME_LIST: GameDef[] = [
       { id: "modern", label: "Modern", family: "constructed" },
       { id: "pioneer", label: "Pioneer", family: "constructed" },
       { id: "legacy", label: "Legacy", family: "constructed" },
+      { id: "vintage", label: "Vintage", family: "constructed" },
       { id: "pauper", label: "Pauper", family: "constructed" },
       { id: "prerelease", label: "Pre-release (Sealed)", family: "constructed", bestOf: 1 },
     ],

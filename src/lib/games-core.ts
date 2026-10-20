@@ -138,7 +138,7 @@ export function tomTitleOf(gameId: GameId): TomTitleId {
 }
 
 export type ResourceKind = "pips" | "life" | "points";
-export type ScorebugStyle = "bar" | "split" | "rok" | "play";
+export type ScorebugStyle = "bar" | "split" | "rok" | "play" | "ug" | "stream";
 export type BestOf = 1 | 3 | 5 | 7;
 
 export type FormatFamily = "constructed" | "commander";

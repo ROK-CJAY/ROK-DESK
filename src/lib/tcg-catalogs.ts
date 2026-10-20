@@ -6,6 +6,7 @@ import path from "node:path";
 import readline from "node:readline";
 import { createGunzip } from "node:zlib";
 import type { LookupCard } from "@/lib/card-lookup";
+import { opIsStandard } from "@/lib/op-legal";
 
 export const TCG_CATALOG_GAMES = ["mtg", "swu", "ygo", "op", "rift", "lorcana"] as const;
 export type TcgCatalogGame = (typeof TCG_CATALOG_GAMES)[number];
@@ -20,7 +21,7 @@ export type TcgCatalogStatus = {
   error?: string;
 };
 
-type StoredCard = LookupCard & { legal?: string; printed?: boolean };
+type StoredCard = LookupCard & { legal?: string; printed?: boolean; block?: number; restricted?: string };
 
 type CatalogFile = {
   updatedAt: number;
@@ -187,7 +188,7 @@ export async function searchLocalCatalog(
     else if (name.startsWith(needle)) starts.push(card);
     else rest.push(card);
   }
-  return [...exact, ...starts, ...rest].slice(0, 40).map(publicCard);
+  return [...exact, ...starts, ...rest].slice(0, 40).map((card) => publicCard(card, legal));
 }
 
 export async function localCatalogCard(game: TcgCatalogGame, id: string): Promise<LookupCard | null | undefined> {
@@ -198,12 +199,14 @@ export async function localCatalogCard(game: TcgCatalogGame, id: string): Promis
   return hit ? publicCard(hit) : null;
 }
 
-function publicCard(card: StoredCard): LookupCard {
-  const { legal: _legal, printed: _printed, ...rest } = card;
-  return rest;
+function publicCard(card: StoredCard, legal?: string | null): LookupCard {
+  const { legal: _legal, printed: _printed, block: _block, restricted, ...rest } = card;
+  const status = legal && (restricted ?? "").split(" ").includes(legal) ? "Restricted" : undefined;
+  return status ? { ...rest, status } : rest;
 }
 
 function cardMatchesLegal(card: StoredCard, game: TcgCatalogGame, legal: string): boolean {
+  if (game === "op") return legal !== "standard" || opIsStandard(card.id, card.block);
   if (game === "ygo") {
     if (legal === "tcg") return card.printed !== false;
     return true;
@@ -325,6 +328,10 @@ function slimMtg(row: Record<string, unknown>): StoredCard | null {
     .filter(([, value]) => value === "legal" || value === "restricted")
     .map(([key]) => key)
     .join(" ");
+  const restricted = Object.entries(legalities)
+    .filter(([, value]) => value === "restricted")
+    .map(([key]) => key)
+    .join(" ");
   const text = faces.length
     ? faces.map((f) => [f.name, f.oracle_text].filter(Boolean).join(" — ")).join("\n\n")
     : row.oracle_text
@@ -344,6 +351,7 @@ function slimMtg(row: Record<string, unknown>): StoredCard | null {
       ? row.color_identity.map(String).filter((c) => /^[WUBRG]$/i.test(c)).map((c) => c.toUpperCase())
       : undefined,
     legal,
+    restricted: restricted || undefined,
   };
 }
 
@@ -473,6 +481,7 @@ function slimOp(item: Record<string, unknown>): StoredCard | null {
   const text = [item.effect ? String(item.effect) : "", item.trigger ? `Trigger: ${item.trigger}` : ""].filter(Boolean).join("\n\n") || undefined;
   const power = item.power != null ? String(item.power) : "";
   const counter = item.counter != null ? String(item.counter) : "";
+  const block = typeof item.block_number === "number" ? item.block_number : undefined;
   return {
     id,
     name,
@@ -485,6 +494,8 @@ function slimOp(item: Record<string, unknown>): StoredCard | null {
     hp: power || undefined,
     rarity: [item.rarity, power ? `${power} power` : "", counter ? `${counter} counter` : ""].filter(Boolean).map(String).join(" · ") || undefined,
     category: item.category ? String(item.category) : undefined,
+    block,
+    legal: opIsStandard(id, block) ? "standard" : undefined,
   };
 }
 

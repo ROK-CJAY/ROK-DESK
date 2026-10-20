@@ -323,7 +323,7 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   eventLogo: z.string().optional().transform((v) => v ?? ""),
   showResources: z.boolean(),
   resourceCap: z.number().nullable().optional().transform((v) => (typeof v === "number" && v > 0 ? v : null)),
-  scorebugStyle: z.enum(["bar", "split", "rok", "play"]),
+  scorebugStyle: z.enum(["bar", "split", "rok", "play", "ug", "stream"]),
   scorebugPosition: z.enum(["top", "bottom"]),
   tableSize: z.union([z.literal(2), z.literal(3), z.literal(4)]),
   rosterSide: z.enum(["hidden", "p1", "p2", "both"]),

@@ -1,6 +1,7 @@
 import type { GameId } from "@/lib/games";
 import { isLimitlessArtCode, limitlessPrintedCodes, PRINTED_SETS } from "@/lib/ptcg-deck-match";
 import { applyHydratedList, printedNamesMatch, type DeckCard } from "@/lib/decklist";
+import { opIsStandard } from "@/lib/op-legal";
 
 export type LookupAttack = {
   name: string;
@@ -33,6 +34,8 @@ export type LookupCard = {
   attacks?: LookupAttack[];
   abilities?: LookupAbility[];
   colors?: string[];
+  /** Format status for the search that returned this card, such as Restricted. */
+  status?: string;
 };
 
 export const PTCG_PROXY = "/api/ptcg-cards";
@@ -111,7 +114,7 @@ export async function searchCatalogCards(
   if (catalog === "mtg") return searchScryfallCards(query, scryfallLegalFor(formatName), !liveOnly);
   if (catalog === "swu") return searchSwuCards(query);
   if (catalog === "ygo") return searchYgoCards(query, liveOnly ? ygoFormatFor(formatName) : null);
-  if (catalog === "op") return searchOpCards(query);
+  if (catalog === "op") return searchOpCards(query, liveOnly);
   if (catalog === "rift") return searchRiftCards(query);
   if (catalog === "lorcana") return searchLorcanaCards(query);
   return searchLookupCards(query, liveOnly, opts.catalogFirst ?? false);
@@ -564,6 +567,7 @@ export async function searchScryfallCards(query: string, legal: string | null = 
   return data.data.flatMap((row) => {
     if (!isRecord(row)) return [];
     const card = normalizeScryfall(row);
+    if (legal && isRecord(row.legalities) && row.legalities[legal] === "restricted") card.status = "Restricted";
     return card.name ? [card] : [];
   });
 }
@@ -776,10 +780,10 @@ export async function fetchYgoCard(id: string): Promise<LookupCard | null> {
   return normalizeYgo(row);
 }
 
-export async function searchOpCards(query: string): Promise<LookupCard[]> {
+export async function searchOpCards(query: string, liveOnly = true): Promise<LookupCard[]> {
   const q = query.trim();
   if (!q) return [];
-  const local = await searchSavedCatalog("op", q);
+  const local = await searchSavedCatalog("op", q, liveOnly ? "standard" : null);
   if (local) return local;
   const url = new URL(OP_PROXY, window.location.origin);
   url.searchParams.set("q", q);
@@ -789,6 +793,7 @@ export async function searchOpCards(query: string): Promise<LookupCard[]> {
   const rows = isRecord(data) && Array.isArray(data.data) ? data.data : [];
   return rows.flatMap((row) => {
     if (!isRecord(row)) return [];
+    if (liveOnly && !opIsStandard(String(row.id ?? row.card_id ?? ""), Number(row.block_number) || null)) return [];
     const card = normalizeOp(row);
     return card.name ? [card] : [];
   });

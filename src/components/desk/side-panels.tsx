@@ -616,6 +616,12 @@ export function ShowPanel() {
             {supportsPlayLayout(desk) ? (
               <option value="play">Play Layout</option>
             ) : null}
+            {desk.gameId === "mtg" && !isCommanderLane(desk) ? (
+              <option value="ug">UG Layout</option>
+            ) : null}
+            {desk.gameId === "mtg" && !isCommanderLane(desk) ? (
+              <option value="stream">Stream Layout</option>
+            ) : null}
           </NativeSelect>
           {desk.scorebugStyle === "rok" ? (
             <p className="self-center text-[0.7rem] text-muted">
@@ -637,6 +643,8 @@ export function ShowPanel() {
             <p className="self-center text-[0.7rem] text-muted">
               {desk.gameId === "yugioh"
                 ? "Table cam in the middle. Rails: player cam, deck, card well. Show P1 / P2 in each well."
+                : desk.gameId === "mtg"
+                  ? "Table cam in the middle. Top and bottom life bars, left cameras, featured card, round clock."
                 : isVgcTitle(desk.gameId)
                   ? "Top bar: names, games, and W/L/D on top, both teams underneath. Side cams. Event logo in the spine."
                   : desk.gameId === "one-piece"
@@ -644,6 +652,14 @@ export function ShowPanel() {
                     : desk.gameId === "lorcana"
                       ? "Table cam in the middle. Square rails: player cam, inks, diamonds, W/L/D, lore track 20–1, card well. Phase next to round. Show P1 / P2."
                       : "Side rails: prizes, active, bench. Energy / Supporter / Retreat. Show P1 / P2 over the bench."}
+            </p>
+          ) : desk.scorebugStyle === "ug" ? (
+            <p className="self-center text-[0.7rem] text-muted">
+              Side rails: camera, life, card. Names across the top. Round clock over the table. ROK mark in the center.
+            </p>
+          ) : desk.scorebugStyle === "stream" ? (
+            <p className="self-center text-[0.7rem] text-muted">
+              Full stream frame. City art, table window, side cameras and cards, sponsors, ROK mark.
             </p>
           ) : (
             <NativeSelect

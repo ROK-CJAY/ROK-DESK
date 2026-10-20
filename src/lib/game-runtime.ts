@@ -213,13 +213,15 @@ const ROK_LAYOUT_GAMES: GameId[] = [
   "one-piece",
 ];
 
-export function supportsPlayLayout(desk: { gameId: GameId }): boolean {
+export function supportsPlayLayout(desk: { gameId: GameId; formatName?: string }): boolean {
+  if (desk.formatName && isCommanderLane({ gameId: desk.gameId, formatName: desk.formatName })) return false;
   return (
     isPtcgTitle(desk.gameId) ||
     isVgcTitle(desk.gameId) ||
     desk.gameId === "yugioh" ||
     desk.gameId === "one-piece" ||
-    desk.gameId === "lorcana"
+    desk.gameId === "lorcana" ||
+    desk.gameId === "mtg"
   );
 }
 

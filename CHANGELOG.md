@@ -4,6 +4,14 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## Unreleased
+
+- **One Piece lookup** — Live / Full catalog. Live is current Standard (blocks 2–5, official exceptions, no banned cards). Full catalog is every English card.
+- **Magic constructed** — Vintage is a format. Each format uses its own banlist. Restricted cards stay in the list and are marked.
+- **Magic play layout** — Constructed feature frame. Life bars top and bottom, cameras and a featured card on the left, table clear in the middle.
+- **Magic stream layout** — Full-frame stream graphic from the ROK setup. City art, table window, side cameras and cards, sponsors, and the ROK mark.
+- **Magic UG layout** — Side rails with a camera, life, and a card each. Names across the top. Round clock over the table. Center mark is the ROK logo and ROK Gaming Lounge.
+
 ## v1.4.6 — 2026-10-18
 
 ### Added

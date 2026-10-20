@@ -13,6 +13,9 @@ import { YgoPlayLayout } from "@/components/overlays/ygo-play";
 import { VgcPlayLayout } from "@/components/overlays/vgc-play";
 import { OpPlayLayout } from "@/components/overlays/op-play";
 import { LorcanaPlayLayout } from "@/components/overlays/lorcana-play";
+import { MtgPlayLayout } from "@/components/overlays/mtg-play";
+import { MtgUgLayout } from "@/components/overlays/mtg-ug";
+import { MtgStreamLayout } from "@/components/overlays/mtg-stream";
 
 function Flag({ code }: { code: string }) {
   if (!code) return null;
@@ -182,6 +185,27 @@ export function ScorebugView({
     return (
       <OverlayEditProvider desk={desk} edit={edit}>
         <LorcanaPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "play" && desk.gameId === "mtg") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <MtgPlayLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "ug" && desk.gameId === "mtg") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <MtgUgLayout desk={desk} now={now} />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "stream" && desk.gameId === "mtg") {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <MtgStreamLayout desk={desk} now={now} />
       </OverlayEditProvider>
     );
   }
