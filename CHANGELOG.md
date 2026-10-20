@@ -19,6 +19,10 @@ The project follows [Semantic Versioning](https://semver.org/). Desktop installe
 - **Magic stream layout** — Full-frame stream graphic from the ROK setup. City art, table window, side cameras and cards, sponsors, and the ROK mark.
 - **Magic UG layout** — Side rails with a camera, life, and a card each. Names across the top. Round clock over the table. Center mark is the ROK logo and ROK Gaming Lounge.
 
+### Fixed
+
+- **PTCG play layout** — a long player name uses the full rail. Prize icons sit with the record and the game count.
+
 ## v1.4.6 — 2026-10-18
 
 ### Added

@@ -227,6 +227,9 @@ function Rail({
   const board = desk.ptcgBoard?.[side] ?? emptyPtcgSide();
   const max = resourceLimit(desk);
   const prizes = Math.max(0, Math.min(max, player.resource));
+  const name = player.name || (align === "left" ? "Player 1" : "Player 2");
+  const nameSize = name.length <= 12 ? "2rem" : name.length <= 16 ? "1.5rem" : name.length <= 22 ? "1.15rem" : "0.95rem";
+  const right = align === "right";
 
   return (
     <aside
@@ -254,29 +257,28 @@ function Rail({
           <div className="absolute inset-0 bg-black/55" />
         </>
       ) : null}
-      <header className="relative z-10 mb-2 flex shrink-0 items-start justify-between gap-2">
-        <div className={cn("min-w-0 flex-1", align === "right" && "order-2 text-right")}>
-          <div className={cn("flex items-center gap-2", align === "right" && "justify-end")}>
-            <span className="rounded-sm bg-ov-fg/12 px-1.5 py-0.5 font-mono text-[0.95rem] leading-none tracking-wider text-ov-fg/90">
-              {player.country || "—"}
-            </span>
-            <span className="font-mono text-[1.05rem] leading-none tabular-nums text-ov-fg/80">
-              <FadeValue value={`${player.recordW}/${player.recordL}/${player.recordD}`} />
-            </span>
+      <header className="relative z-10 mb-2 shrink-0">
+        <div className={cn("flex items-center gap-1.5", right && "flex-row-reverse")}>
+          <span className="rounded-sm bg-ov-fg/12 px-1.5 py-0.5 font-mono text-[0.85rem] leading-none tracking-wider text-ov-fg/90">
+            {player.country || "—"}
+          </span>
+          <span className="font-mono text-[0.95rem] leading-none tabular-nums text-ov-fg/80">
+            <FadeValue value={`${player.recordW}/${player.recordL}/${player.recordD}`} />
+          </span>
+          <div className={cn("flex shrink-0 gap-0.5", right && "flex-row-reverse")}>
+            {Array.from({ length: max }, (_, i) => (
+              <PokeballIcon key={i} filled={i < prizes} className="size-4" />
+            ))}
           </div>
-          <div className={cn("mt-0.5 flex items-center gap-2", align === "right" && "flex-row-reverse")}>
-            <p className="font-display min-w-0 flex-1 truncate text-[2rem] leading-tight font-semibold tracking-wide uppercase" style={{ color: accent ?? "var(--color-ov-fg)" }}>
-              {player.name || (align === "left" ? "Player 1" : "Player 2")}
-            </p>
-            <div className="flex shrink-0 gap-0.5">
-              {Array.from({ length: max }, (_, i) => (
-                <PokeballIcon key={i} filled={i < prizes} className="size-5" />
-              ))}
-            </div>
-          </div>
+          <p className={cn("font-display text-[2.05rem] leading-none font-semibold", right ? "mr-auto" : "ml-auto")} style={{ color: accent ?? "var(--color-ov-fg)" }}>
+            <FadeValue value={player.score} />
+          </p>
         </div>
-        <p className={cn("relative z-10 font-display text-[2.35rem] leading-none font-semibold", align === "right" && "order-1")} style={{ color: accent ?? "var(--color-ov-fg)" }}>
-          <FadeValue value={player.score} />
+        <p
+          className={cn("mt-1 w-full font-display leading-none font-semibold tracking-wide uppercase", right && "text-right")}
+          style={{ color: accent ?? "var(--color-ov-fg)", fontSize: nameSize }}
+        >
+          {name}
         </p>
       </header>
       {board.active ? (

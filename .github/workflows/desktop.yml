@@ -45,6 +45,7 @@ jobs:
             release/*.yml
             release/*.blockmap
           fail_on_unmatched_files: false
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Manual runs only: a few installer files, 1-day retention. Never upload unpacked Electron trees.
