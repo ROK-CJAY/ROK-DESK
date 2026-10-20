@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ExternalLink, ListFilter, Radio, RefreshCw, X } from "lucide-react";
+import { FgcAssetsDialog } from "@/components/fgc/fgc-assets";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { FgcScoreboard } from "@/components/fgc/fgc-scoreboard";
@@ -148,6 +149,7 @@ export function FgcApp() {
   const importEvent = useFgcStore((s) => s.importEvent);
   const loadStreamSet = useFgcStore((s) => s.loadStreamSet);
   const [picker, setPicker] = useState(false);
+  const [assets, setAssets] = useState(false);
   const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset">("scoreboard");
 
   useEffect(() => {
@@ -176,6 +178,7 @@ export function FgcApp() {
             <ListFilter className="size-4" />
             Select set
           </Button>
+          <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
           <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
             Stream set
           </Button>
@@ -224,6 +227,7 @@ export function FgcApp() {
         {tab === "ruleset" ? <FgcRulesetEditor /> : null}
       </main>
       <SetPicker open={picker} onClose={() => setPicker(false)} />
+      <FgcAssetsDialog open={assets} onClose={() => setAssets(false)} />
     </div>
   );
 }

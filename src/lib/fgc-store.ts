@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type FgcPlayer, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
 
 const KEY = "rok-fgc";
 
@@ -21,6 +21,7 @@ type FgcStore = {
   saveRuleset: (ruleset: FgcRuleset) => void;
   deleteRuleset: (id: string) => void;
   selectRuleset: (id: string | null) => void;
+  setLibrary: (library: FgcLibrary | null) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
@@ -205,6 +206,11 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   },
   selectRuleset: (id) => {
     const fgc = { ...get().fgc, activeRulesetId: id };
+    write(fgc);
+    set({ fgc });
+  },
+  setLibrary: (library) => {
+    const fgc = { ...get().fgc, library };
     write(fgc);
     set({ fgc });
   },

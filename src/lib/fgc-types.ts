@@ -64,6 +64,7 @@ export type FgcState = {
   assetBase: string;
   rulesets: FgcRuleset[];
   activeRulesetId: string | null;
+  library: FgcLibrary | null;
   importedAt: string | null;
 };
 
@@ -79,6 +80,7 @@ export const EMPTY_FGC: FgcState = {
   assetBase: "",
   rulesets: [],
   activeRulesetId: null,
+  library: null,
   importedAt: null,
 };
 
@@ -120,6 +122,21 @@ export function blankSet(): FgcSet {
     score2: 0,
   };
 }
+export type FgcCharacter = {
+  name: string;
+  code: string;
+  skins: number;
+};
+
+export type FgcLibrary = {
+  game: string;
+  code: string;
+  pack: string;
+  version: string;
+  characters: FgcCharacter[];
+  stages: string[];
+};
+
 export type FgcRuleset = {
   id: string;
   name: string;

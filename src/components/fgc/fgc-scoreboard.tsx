@@ -5,6 +5,31 @@ import { Input } from "@/components/ui/input";
 import { blankPlayer, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
+function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
+  const characters = useFgcStore((s) => s.fgc.library?.characters ?? []);
+  if (!characters.length) return <Input value={value} onChange={(e) => onChange(e.target.value)} />;
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm">
+      <option value="">Character</option>
+      {characters.map((character) => (
+        <option key={character.code} value={character.name}>{character.name}</option>
+      ))}
+    </select>
+  );
+}
+
+function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
+  const skins = useFgcStore((s) => s.fgc.library?.characters.find((item: { name: string }) => item.name === character)?.skins ?? 0);
+  if (!skins) return <Input type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
+  return (
+    <select value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm">
+      {Array.from({ length: skins }, (_, index) => (
+        <option key={index} value={index}>{index}</option>
+      ))}
+    </select>
+  );
+}
+
 function PlayerCard({
   setId,
   side,
@@ -58,7 +83,10 @@ function PlayerCard({
           <Input value={player.region} onChange={(e) => set({ region: e.target.value })} />
         </Field>
         <Field label="Character">
-          <Input value={player.character} onChange={(e) => set({ character: e.target.value })} />
+          <CharacterField value={player.character} onChange={(character) => set({ character })} />
+        </Field>
+        <Field label="Skin">
+          <SkinField character={player.character} value={player.skin} onChange={(skin) => set({ skin })} />
         </Field>
         <Field label="Character 2">
           <Input value={player.character2} onChange={(e) => set({ character2: e.target.value })} />
