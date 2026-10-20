@@ -60,7 +60,18 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   error: "",
   hydrate: () => {
     if (get().ready) return;
-    set({ fgc: read(), ready: true });
+    const loaded = read();
+    if (loaded.sets.length === 0) {
+      const created = blankSet();
+      const fgc = { ...loaded, sets: [created], streamSetId: created.id };
+      write(fgc);
+      set({ fgc, ready: true });
+      return;
+    }
+    const streamSetId = loaded.sets.some((set) => set.id === loaded.streamSetId) ? loaded.streamSetId : loaded.sets[0]?.id ?? null;
+    const fgc = { ...loaded, streamSetId };
+    write(fgc);
+    set({ fgc, ready: true });
   },
   reload: () => set({ fgc: read(), ready: true }),
   patch: (partial) => {
