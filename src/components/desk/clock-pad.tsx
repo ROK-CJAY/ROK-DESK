@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatClock, parseClockInput } from "@/lib/desk-types";
+import { cn } from "@/lib/cn";
 
 export function ClockPad({
   label,
@@ -10,6 +11,7 @@ export function ClockPad({
   preset,
   running,
   compact = false,
+  roomy = false,
   onSet,
   onToggle,
   onAdd,
@@ -21,6 +23,7 @@ export function ClockPad({
   preset: number;
   running: boolean;
   compact?: boolean;
+  roomy?: boolean;
   onSet: (seconds: number) => void;
   onToggle: () => void;
   onAdd: (delta: number) => void;
@@ -43,10 +46,12 @@ export function ClockPad({
   };
 
   return (
-    <div className={compact ? "flex flex-wrap items-center gap-1.5" : "grid gap-2 rounded-lg bg-surface-2 px-3 py-2"}>
+    <div className={compact ? "flex flex-wrap items-center gap-2" : "grid gap-2 rounded-lg bg-surface-2 px-3 py-2"}>
       {compact ? (
         <>
-          <p className="font-display text-xl leading-none font-semibold tabular-nums">{formatClock(remaining)}</p>
+          <p className={cn("font-display leading-none font-semibold tabular-nums", roomy ? "text-3xl" : "text-xl")}>
+            {formatClock(remaining)}
+          </p>
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -60,24 +65,24 @@ export function ClockPad({
             inputMode="numeric"
             placeholder="0:00"
             aria-label={`Set ${label}`}
-            className="h-8 w-16 font-mono text-sm tabular-nums"
+            className={roomy ? "h-11 w-20 font-mono text-base tabular-nums" : "h-8 w-16 font-mono text-sm tabular-nums"}
           />
-          <Button variant="outline" size="sm" onClick={applyDraft}>
+          <Button variant="outline" size={roomy ? "default" : "sm"} onClick={applyDraft}>
             Set
           </Button>
-          <Button variant={running ? "live" : "secondary"} size="sm" onClick={onToggle}>
+          <Button variant={running ? "live" : "secondary"} size={roomy ? "default" : "sm"} onClick={onToggle}>
             {running ? "Pause" : "Start"}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onAdd(60)}>
+          <Button variant="outline" size={roomy ? "default" : "sm"} onClick={() => onAdd(60)}>
             +1m
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onAdd(180)}>
+          <Button variant="outline" size={roomy ? "default" : "sm"} onClick={() => onAdd(180)}>
             +3m
           </Button>
-          <Button variant="outline" size="sm" onClick={() => onAdd(-60)}>
+          <Button variant="outline" size={roomy ? "default" : "sm"} onClick={() => onAdd(-60)}>
             −1m
           </Button>
-          <Button variant="outline" size="sm" onClick={onReset}>
+          <Button variant="outline" size={roomy ? "default" : "sm"} onClick={onReset}>
             Reset
           </Button>
           <p className="text-[0.65rem] text-subtle">

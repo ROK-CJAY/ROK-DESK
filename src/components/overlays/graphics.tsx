@@ -1,5 +1,5 @@
-import { gameOf, isPtcgTitle, isVgcTitle } from "@/lib/games";
-import { streamChannelLabel } from "@/lib/stream-channel";
+import { gameOf, isPtcgTitle, isVgcTitle, supportsStreamColors } from "@/lib/games";
+import { streamChannelsOf, streamLiveOn } from "@/lib/stream-channel";
 import {
   formatClock,
   remainingSeconds,
@@ -19,7 +19,8 @@ import { CardSpotlightView } from "@/components/overlays/card";
 import { EventLogoMark, EventLogoView } from "@/components/overlays/event-logo";
 import { SponsorsView } from "@/components/overlays/sponsors";
 import { VgcVersusView } from "@/components/overlays/vgc-versus";
-import { LorcanaVersus, MtgVersus, OpVersus } from "@/components/overlays/lorcana-versus";
+import { LorcanaVersus, MtgVersus, OpVersus, PokemonVersus } from "@/components/overlays/lorcana-versus";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { GameWinView, WinnerView } from "@/components/overlays/winner";
 
 export { GameWinView, WinnerView } from "@/components/overlays/winner";
@@ -52,6 +53,12 @@ function Shell({
 export function VersusView({ desk }: { desk: DeskState }) {
   if (useCommanderOverlay(desk)) {
     return <CommanderVersus desk={desk} />;
+  }
+  if (isVgcTitle(desk.gameId) && desk.versusLook === "stream") {
+    return <VgcVersusView desk={desk} tone="stream" />;
+  }
+  if (isPtcgTitle(desk.gameId) && desk.versusLook === "stream") {
+    return <PokemonVersus desk={desk} />;
   }
   if (isVgcTitle(desk.gameId)) {
     return <VgcVersusView desk={desk} />;
@@ -112,6 +119,7 @@ export function VersusView({ desk }: { desk: DeskState }) {
           <p className="font-mono text-ov-kicker tracking-[0.2em] uppercase">
             {desk.eventPhase}
           </p>
+          <PresentedByBar desk={desk} />
           <p className="font-mono text-ov-kicker tracking-[0.2em] uppercase">
             {desk.casters[0].name} · {desk.casters[1].name}
           </p>
@@ -160,15 +168,14 @@ function VersusPlayer({
 export function SlateView({ desk }: { desk: DeskState }) {
   if (desk.slate === "hidden") return null;
   const copy = SLATE_COPY[desk.slate];
+  if (desk.slateLook === "stream") return <StreamSlate desk={desk} copy={copy} />;
   const game = gameOf(desk.gameId);
   return (
     <div data-game={desk.gameId} className="relative h-full w-full overflow-hidden bg-ov-bg">
       <img src={copy.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0 bg-ov-bg/55" />
       <div className="relative flex h-full flex-col justify-between px-16 py-14">
-        <p className="font-mono text-ov-kicker tracking-[0.3em] text-ov-fg/80 uppercase">
-          {desk.sponsorLine}
-        </p>
+        <div />
         <div>
           <EventLogoMark desk={desk} size="lg" className="mb-5" />
           <p className="font-mono text-sm tracking-[0.32em] text-game uppercase">{copy.kicker}</p>
@@ -177,28 +184,133 @@ export function SlateView({ desk }: { desk: DeskState }) {
           </h1>
           <p className="mt-4 text-2xl text-ov-fg/80">{desk.eventName}</p>
           <p className="mt-1 text-lg text-ov-muted">
-            {game.name} · {desk.formatName} · {desk.eventPhase}
+            {desk.slate === "starting"
+              ? [game.name, desk.formatName, desk.eventPhase].filter(Boolean).join(" · ")
+              : game.name}
           </p>
-          {desk.streamChannel.trim() ? (
+          {streamChannelsOf(desk)
+            .filter((row) => row.handle.trim())
+            .map((row, index) => (
+              <p key={index} className="font-mono mt-3 text-sm tracking-[0.18em] text-ov-fg/70 uppercase">
+                {streamLiveOn(row)}
+              </p>
+            ))}
+          {desk.sponsorLine.trim() ? (
             <p className="font-mono mt-3 text-sm tracking-[0.18em] text-ov-fg/70 uppercase">
-              Live · {streamChannelLabel(desk.streamChannel)}
+              {desk.sponsorLine.trim()}
             </p>
           ) : null}
         </div>
         <div className="flex items-end justify-between">
-          <div>
-            <p className="font-mono text-ov-kicker tracking-[0.22em] text-ov-muted uppercase">On the desk</p>
-            <p className="font-display text-2xl font-semibold text-ov-fg uppercase">
-              {desk.casters[0].name}
-              <span className="text-ov-muted"> · </span>
-              {desk.casters[1].name}
+          {desk.slate === "starting" && !desk.casters.some((caster) => caster.name.trim()) ? <div /> : (
+            <div>
+              <p className="font-mono text-ov-kicker tracking-[0.22em] text-ov-muted uppercase">On the desk</p>
+              <p className="font-display text-2xl font-semibold text-ov-fg uppercase">
+                {desk.slate === "starting"
+                  ? desk.casters.map((caster) => caster.name.trim()).filter(Boolean).join(" · ")
+                  : (
+                    <>
+                      {desk.casters[0].name}
+                      <span className="text-ov-muted"> · </span>
+                      {desk.casters[1].name}
+                    </>
+                  )}
+              </p>
+            </div>
+          )}
+          {desk.slate === "tech" || desk.slate === "thanks" || (desk.slate === "starting" && !desk.p1.name.trim() && !desk.p2.name.trim()) ? null : (
+            <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">
+              {desk.slate === "starting"
+                ? ["Next", desk.roundName.trim(), [desk.p1.name.trim(), desk.p2.name.trim()].filter(Boolean).join(" vs ")].filter(Boolean).join(" · ")
+                : `Next · ${desk.roundName} · ${desk.p1.name} vs ${desk.p2.name}`}
             </p>
-          </div>
-          <p className="font-mono text-ov-kicker tracking-[0.2em] text-ov-muted uppercase">
-            Next · {desk.roundName} · {desk.p1.name} vs {desk.p2.name}
-          </p>
+          )}
         </div>
       </div>
+      <div className="absolute right-0 bottom-8 left-0 z-10 flex justify-center">
+        <PresentedByBar desk={desk} sponsors />
+      </div>
+    </div>
+  );
+}
+
+function StreamSlate({
+  desk,
+  copy,
+}: {
+  desk: DeskState;
+  copy: { kicker: string; title: string };
+}) {
+  const game = gameOf(desk.gameId);
+  const logo = desk.eventLogo.trim() || "/overlays/rok-wordmark.png";
+  const channels = streamChannelsOf(desk).filter((row) => row.handle.trim());
+  return (
+    <div data-game={desk.gameId} className="relative h-full w-full overflow-hidden bg-black">
+      <img src="/overlays/stream-city-full.png" alt="" className="absolute inset-0 size-full object-cover object-center" />
+      <div
+        className="absolute inset-0"
+        style={{ background: "linear-gradient(180deg, rgb(0 0 0 / 0.28), rgb(0 0 0 / 0.62))" }}
+      />
+      <div
+        className="absolute top-0 bottom-16 flex w-[920px] flex-col items-center justify-center px-8 text-center"
+        style={{ left: "calc(50% - 460px)" }}
+      >
+        <img src={logo} alt="" className="max-h-36 max-w-[18rem] object-contain drop-shadow-[0_10px_18px_rgb(0_0_0_/_0.55)]" />
+        <p className="mt-6 font-mono text-sm tracking-[0.32em] uppercase" style={{ color: "#00eeff" }}>
+          {copy.kicker}
+        </p>
+        <h1 className="font-display mt-3 text-7xl leading-none font-semibold tracking-tight text-white uppercase">
+          {copy.title}
+        </h1>
+        <div className="mt-5 h-px w-44" style={{ background: "linear-gradient(90deg, #00eeff, #ff4791)" }} />
+        <p className="mt-5 max-w-full truncate font-display text-[1.7rem] leading-none font-semibold tracking-[0.14em] text-white uppercase">
+          {desk.eventName.trim() || "Tournament"}
+        </p>
+        <p className="mt-3 font-mono text-[1rem] tracking-[0.16em] text-white/75 uppercase">
+          {desk.slate === "starting"
+            ? [game.name, desk.formatName, desk.eventPhase].filter(Boolean).join(" · ")
+            : game.name}
+        </p>
+        {channels.map((row, index) => (
+          <p key={index} className="font-mono mt-3 text-sm tracking-[0.18em] text-white/70 uppercase">
+            {streamLiveOn(row)}
+          </p>
+        ))}
+        {desk.sponsorLine.trim() ? (
+          <p className="font-mono mt-3 text-sm tracking-[0.18em] text-white/70 uppercase">
+            {desk.sponsorLine.trim()}
+          </p>
+        ) : null}
+      </div>
+      {desk.slate === "starting" && !desk.casters.some((caster) => caster.name.trim()) ? null : (
+        <div className="absolute bottom-6 left-8 z-10 bg-black px-4 py-3">
+          <p className="font-mono text-[0.7rem] tracking-[0.2em] text-white/60 uppercase">On the desk</p>
+          <p className="font-display mt-1 text-2xl font-semibold text-white uppercase">
+            {desk.slate === "starting"
+              ? desk.casters.map((caster) => caster.name.trim()).filter(Boolean).join(" · ")
+              : (
+                <>
+                  {desk.casters[0].name || "Caster"}
+                  <span className="text-white/45"> · </span>
+                  {desk.casters[1].name || "Caster"}
+                </>
+              )}
+          </p>
+        </div>
+      )}
+      <div className="absolute right-0 bottom-6 left-0 z-10 flex justify-center">
+        <PresentedByBar desk={desk} sponsors />
+      </div>
+      {desk.slate === "tech" || desk.slate === "thanks" || (desk.slate === "starting" && !desk.p1.name.trim() && !desk.p2.name.trim()) ? null : (
+        <div className="absolute right-8 bottom-6 z-10 bg-black px-4 py-3 text-right">
+          <p className="font-mono text-[0.7rem] tracking-[0.2em] text-white/60 uppercase">Next</p>
+          <p className="font-display mt-1 text-2xl font-semibold text-white uppercase">
+            {desk.slate === "starting"
+              ? [desk.roundName.trim(), [desk.p1.name.trim(), desk.p2.name.trim()].filter(Boolean).join(" vs ")].filter(Boolean).join(" · ")
+              : ([desk.roundName, desk.p1.name, desk.p2.name].filter(Boolean).join(" · ") || "Match")}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -420,7 +532,7 @@ export function HudView({
       desk.gameId === "mtg");
   const ug = desk.scorebugStyle === "ug" && desk.gameId === "mtg";
   const stream = desk.scorebugStyle === "stream" && desk.gameId === "mtg";
-  const neon = desk.scorebugStyle === "neon" && (desk.gameId === "lorcana" || desk.gameId === "one-piece");
+  const neon = desk.scorebugStyle === "neon" && supportsStreamColors(desk.gameId);
   const frame = rok || play || ug || stream || neon;
   return (
     <div className="pointer-events-none absolute inset-0">

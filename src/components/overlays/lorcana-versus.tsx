@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { ManaPip } from "@/components/overlays/mana-pip";
 import { deckColorIdentity } from "@/lib/commander-colors";
 import type { DeskState, PlayerSide, SideId } from "@/lib/desk-types";
@@ -152,6 +153,9 @@ function CityVersus({ desk, game, marks }: { desk: DeskState; game: string; mark
           {[round, desk.bestOf > 1 ? `Best of ${desk.bestOf}` : ""].filter(Boolean).join(" · ") || "Match"}
         </p>
       </div>
+      <div className="absolute right-0 bottom-6 left-0 z-20 flex justify-center">
+        <PresentedByBar desk={desk} />
+      </div>
     </div>
   );
 }
@@ -166,4 +170,8 @@ export function MtgVersus({ desk }: { desk: DeskState }) {
 
 export function OpVersus({ desk }: { desk: DeskState }) {
   return <CityVersus desk={desk} game="one-piece" marks={() => null} />;
+}
+
+export function PokemonVersus({ desk }: { desk: DeskState }) {
+  return <CityVersus desk={desk} game={desk.gameId} marks={() => null} />;
 }

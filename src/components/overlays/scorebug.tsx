@@ -209,6 +209,20 @@ export function ScorebugView({
       </OverlayEditProvider>
     );
   }
+  if (desk.scorebugStyle === "neon" && isPtcgTitle(desk.gameId)) {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <PtcgPlayLayout desk={desk} now={now} tone="stream" />
+      </OverlayEditProvider>
+    );
+  }
+  if (desk.scorebugStyle === "neon" && isVgcTitle(desk.gameId)) {
+    return (
+      <OverlayEditProvider desk={desk} edit={edit}>
+        <VgcPlayLayout desk={desk} now={now} tone="stream" />
+      </OverlayEditProvider>
+    );
+  }
   if (desk.scorebugStyle === "ug" && desk.gameId === "mtg") {
     return (
       <OverlayEditProvider desk={desk} edit={edit}>

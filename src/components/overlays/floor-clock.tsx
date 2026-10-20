@@ -1,7 +1,7 @@
 import { MATCH_SLOT_CLOCK, formatClock, remainingSeconds, type DeskState, type MatchSlot } from "@/lib/desk-types";
 import { gameOf } from "@/lib/games";
-import { streamChannelLabel } from "@/lib/stream-channel";
-import { currentSponsor, liveSponsors } from "@/lib/sponsors";
+import { streamChannelLine, streamChannelsOf } from "@/lib/stream-channel";
+import { currentPresentedSponsor, presentedSponsors } from "@/lib/sponsors";
 import type { TournamentState } from "@/lib/tournament-types";
 import { useClockNow } from "@/lib/use-clock-now";
 
@@ -29,8 +29,8 @@ export function FloorClockOverlay({
   const preset = variant === "stream" ? (desk?.timerPresetSeconds ?? 0) : tournament.timerPresetSeconds;
   const game = gameOf(tournament.gameId);
   const status = left < 0 ? "Overtime" : left === 0 ? "Time" : running ? "Running" : "Paused";
-  const sponsor = desk ? currentSponsor(desk.sponsors, now, desk.sponsorSeconds) : null;
-  const sponsorCount = desk ? liveSponsors(desk.sponsors).length : 0;
+  const sponsor = desk ? currentPresentedSponsor(desk.sponsors, desk.eventLogo, now, desk.sponsorSeconds) : null;
+  const sponsorCount = desk ? presentedSponsors(desk.sponsors, desk.eventLogo).length : 0;
 
   return (
     <div data-game={tournament.gameId} className="relative h-full w-full overflow-hidden bg-ov-bg">
@@ -52,11 +52,20 @@ export function FloorClockOverlay({
               <h1 className="font-display text-[clamp(2rem,5vw,4.5rem)] font-semibold tracking-tight text-ov-fg uppercase">
                 {desk?.eventName.trim() || tournament.name.trim() || game.name}
               </h1>
-              {(desk?.streamChannel || tournament.streamChannel)?.trim() ? (
-                <p className="font-mono mt-1 text-[clamp(0.7rem,1.1vw,0.95rem)] tracking-[0.18em] text-ov-muted uppercase">
-                  Live · {streamChannelLabel(desk?.streamChannel || tournament.streamChannel)}
-                </p>
-              ) : null}
+              {(desk ? streamChannelsOf(desk) : [])
+                .filter((row) => row.handle.trim())
+                .concat(
+                  desk && streamChannelsOf(desk).some((row) => row.handle.trim())
+                    ? []
+                    : tournament.streamChannel.trim()
+                      ? [{ platform: "twitch" as const, handle: tournament.streamChannel, note: "" }]
+                      : [],
+                )
+                .map((row, index) => (
+                  <p key={index} className="font-mono mt-1 text-[clamp(0.7rem,1.1vw,0.95rem)] tracking-[0.18em] text-ov-muted uppercase">
+                    Live · {streamChannelLine(row)}
+                  </p>
+                ))}
             </div>
           </div>
           <div className="text-right">
@@ -117,7 +126,7 @@ export function FloorClockOverlay({
               </div>
               {sponsorCount > 1 ? (
                 <div className="mt-1.5 flex gap-1.5">
-                  {liveSponsors(desk?.sponsors).map((row) => (
+                  {presentedSponsors(desk?.sponsors, desk?.eventLogo).map((row) => (
                     <span
                       key={row.id}
                       className={`size-1.5 rounded-full ${row.id === sponsor.id ? "bg-game" : "bg-ov-fg/25"}`}

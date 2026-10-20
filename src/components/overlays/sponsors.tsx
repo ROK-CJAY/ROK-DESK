@@ -1,6 +1,6 @@
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
-import { currentSponsor, liveSponsors } from "@/lib/sponsors";
+import { currentPresentedSponsor, presentedSponsors } from "@/lib/sponsors";
 import type { DeskState } from "@/lib/desk-types";
 import { cn } from "@/lib/cn";
 
@@ -15,8 +15,8 @@ export function SponsorsView({
   edit?: OverlayEdit | null;
   compact?: boolean;
 }) {
-  const live = liveSponsors(desk.sponsors);
-  const current = currentSponsor(desk.sponsors, now, desk.sponsorSeconds);
+  const live = presentedSponsors(desk.sponsors, desk.eventLogo);
+  const current = currentPresentedSponsor(desk.sponsors, desk.eventLogo, now, desk.sponsorSeconds);
   if (!current && !edit) return null;
 
   return (

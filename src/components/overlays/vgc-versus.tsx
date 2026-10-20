@@ -2,6 +2,7 @@ import { useId, type CSSProperties } from "react";
 import { emptyTeam, spriteFallbackUrl, spriteUrl, type TeamMon } from "@/lib/pokemon-vgc";
 import type { DeskState, PlayerSide } from "@/lib/desk-types";
 import { OV_CHROME, OV_DEEP, OV_PANEL, OV_RAIL } from "@/lib/overlay-look";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { cn } from "@/lib/cn";
 
 const W = 1920;
@@ -22,6 +23,8 @@ const CHROME_2 = OV_PANEL;
 const SILVER = OV_CHROME;
 const PLATE = "var(--color-ov-fg)";
 const INK = OV_DEEP;
+const CYAN = "#00eeff";
+const PINK = "#ff4791";
 
 function box(r: { x: number; y: number; w: number; h: number }): CSSProperties {
   return { left: r.x, top: r.y, width: r.w, height: r.h };
@@ -63,11 +66,13 @@ function NamePlate({
   x,
   y,
   w,
+  accent,
 }: {
   player: PlayerSide;
   x: number;
   y: number;
   w: number;
+  accent?: string;
 }) {
   return (
     <div
@@ -77,11 +82,11 @@ function NamePlate({
         top: y,
         width: w,
         height: NAME_H,
-        background: PLATE,
+        background: accent ?? PLATE,
         boxShadow: "0 10px 28px rgb(0 0 0 / 0.4)",
       }}
     >
-      <p className="font-display min-w-0 truncate text-center text-[2.55rem] leading-none font-semibold tracking-[0.04em] uppercase" style={{ color: INK }}>
+      <p className="font-display min-w-0 truncate text-center text-[2.55rem] leading-none font-semibold tracking-[0.04em] uppercase" style={{ color: accent ? "#111" : INK }}>
         {player.name || "TBD"}
       </p>
     </div>
@@ -91,9 +96,11 @@ function NamePlate({
 function CameraWell({
   player,
   rect,
+  accent = SILVER,
 }: {
   player: PlayerSide;
   rect: { x: number; y: number; w: number; h: number };
+  accent?: string;
 }) {
   const photo = player.photoUrl.trim();
   return (
@@ -111,7 +118,7 @@ function CameraWell({
         style={{
           ...box(rect),
           borderRadius: RADIUS,
-          border: `3.5px solid ${SILVER}`,
+          border: `3.5px solid ${accent}`,
           boxShadow: "inset 0 0 0 1px rgb(11 12 14 / 0.35)",
         }}
       />
@@ -119,14 +126,16 @@ function CameraWell({
   );
 }
 
-export function VgcVersusView({ desk }: { desk: DeskState }) {
+export function VgcVersusView({ desk, tone = "rok" }: { desk: DeskState; tone?: "rok" | "stream" }) {
   const uid = useId().replace(/:/g, "");
   const maskId = `vgc-vs-${uid}`;
   const fillId = `vgc-vs-fill-${uid}`;
+  const stream = tone === "stream";
   const p1Team = emptyTeam().map((slot, i) => desk.p1.team?.[i] ?? slot);
   const p2Team = emptyTeam().map((slot, i) => desk.p2.team?.[i] ?? slot);
   const nameY = PAD + CAM_H - NAME_INSET - NAME_H;
   const nameW = CAM_W - NAME_INSET * 2;
+  const logo = desk.eventLogo.trim() || (stream ? "/overlays/rok-wordmark.png" : "/brand/rok-mark.png");
 
   return (
     <div data-game={desk.gameId} className="pointer-events-none relative h-full w-full overflow-hidden">
@@ -142,21 +151,25 @@ export function VgcVersusView({ desk }: { desk: DeskState }) {
             <rect x={P2.x} y={P2.y} width={P2.w} height={P2.h} rx={RADIUS} fill="black" />
           </mask>
         </defs>
-        <rect width={W} height={H} fill={`url(#${fillId})`} mask={`url(#${maskId})`} />
+        {stream ? (
+          <image href="/overlays/stream-city-full.png" width={W} height={H} preserveAspectRatio="xMidYMid slice" mask={`url(#${maskId})`} />
+        ) : (
+          <rect width={W} height={H} fill={`url(#${fillId})`} mask={`url(#${maskId})`} />
+        )}
       </svg>
 
-      <CameraWell player={desk.p1} rect={P1} />
-      <CameraWell player={desk.p2} rect={P2} />
+      <CameraWell player={desk.p1} rect={P1} accent={stream ? CYAN : SILVER} />
+      <CameraWell player={desk.p2} rect={P2} accent={stream ? PINK : SILVER} />
 
       <div
         className="absolute flex flex-col items-center"
         style={{ left: SPINE_X, top: PAD, width: SPINE, height: CAM_H }}
       >
         <div className="flex h-[8.5rem] w-full shrink-0 items-center justify-center px-3 pt-2">
-          {desk.eventLogo ? (
-            <img src={desk.eventLogo} alt="" className="max-h-[7.6rem] max-w-full object-contain" />
+          {desk.eventLogo.trim() ? (
+            <img src={logo} alt="" className="max-h-[7.6rem] max-w-full object-contain" />
           ) : (
-            <img src="/brand/rok-mark.png" alt="" className="h-16 w-16 object-contain opacity-90" />
+            <img src={logo} alt="" className={stream ? "h-14 max-w-[14rem] object-contain" : "h-16 w-16 object-contain opacity-90"} />
           )}
         </div>
 
@@ -189,8 +202,8 @@ export function VgcVersusView({ desk }: { desk: DeskState }) {
         <div className="h-[calc(78px+22px)] w-full shrink-0" />
       </div>
 
-      <NamePlate player={desk.p1} x={P1.x + NAME_INSET} y={nameY} w={nameW} />
-      <NamePlate player={desk.p2} x={P2.x + NAME_INSET} y={nameY} w={nameW} />
+      <NamePlate player={desk.p1} x={P1.x + NAME_INSET} y={nameY} w={nameW} accent={stream ? CYAN : undefined} />
+      <NamePlate player={desk.p2} x={P2.x + NAME_INSET} y={nameY} w={nameW} accent={stream ? PINK : undefined} />
       <div
         className="absolute flex items-center justify-center rounded-lg px-3"
         style={{
@@ -205,6 +218,9 @@ export function VgcVersusView({ desk }: { desk: DeskState }) {
         <p className="font-display min-w-0 truncate text-center text-[1.55rem] leading-none font-semibold tracking-[0.12em] uppercase" style={{ color: INK }}>
           {desk.roundName || "Match"}
         </p>
+      </div>
+      <div className="absolute right-0 bottom-4 left-0 z-20 flex justify-center">
+        <PresentedByBar desk={desk} />
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { WinStings } from "@/components/overlays/winner";
 import { useCardImageSrc } from "@/components/ui/remote-art";
 import { deckColorIdentity } from "@/lib/commander-colors";
 import { formatClock, remainingSeconds, visibleCardStack, type DeskState, type PlayerSide, type SideId } from "@/lib/desk-types";
-import { currentSponsor } from "@/lib/sponsors";
+import { currentPresentedSponsor } from "@/lib/sponsors";
 
 const BAR = "4.15rem";
 const COL = "24.5rem";
@@ -91,7 +91,7 @@ function ScoreBar({
   const player = desk[side];
   const needed = Math.max(1, Math.ceil(desk.bestOf / 2));
   const colors = deckColorIdentity(player.ink1, player.archetype);
-  const sponsor = edge === "bottom" ? currentSponsor(desk.sponsors, now, desk.sponsorSeconds) : null;
+  const sponsor = edge === "bottom" ? currentPresentedSponsor(desk.sponsors, desk.eventLogo, now, desk.sponsorSeconds) : null;
   const manaReserve = colors.length ? 0.85 + colors.length * 1.7 : 0;
   return (
     <div

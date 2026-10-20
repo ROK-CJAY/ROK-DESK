@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { type BestOf, type GameId, type ScorebugStyle, coerceDeskGameId, gameOf, isPtcgTitle } from "@/lib/games";
+import { coerceStreamPlatform, type StreamChannelRow, type StreamPlatform } from "@/lib/stream-channel";
 import { DEFAULT_LAYOUT, mergeCommanderLayout, mergeLayout, type LayoutMap } from "@/lib/layout";
 import { DEFAULT_LOOK_BOOK, mergeLookBook, type OverlayLookBook } from "@/lib/overlay-look";
 import { type Sponsor } from "@/lib/sponsors";
@@ -124,6 +125,8 @@ export type QueueMatch = {
 };
 
 export type SlateKind = "hidden" | "starting" | "brb" | "thanks" | "tech";
+export type SlateLook = "default" | "stream";
+export type VersusLook = SlateLook;
 export type LowerThirdMode = "player" | "caster" | "custom";
 
 export type LowerThirdState = {
@@ -154,6 +157,8 @@ export type DeskState = {
   matchSlot: MatchSlot;
   eventName: string;
   streamChannel: string;
+  streamPlatform: StreamPlatform;
+  streamChannels: StreamChannelRow[];
   eventPhase: string;
   roundName: string;
   bestOf: BestOf;
@@ -169,6 +174,8 @@ export type DeskState = {
   timerEndsAt: number | null;
   gameClocks: Partial<Record<GameId, GameClock>>;
   slate: SlateKind;
+  slateLook: SlateLook;
+  versusLook: VersusLook;
   lowerThird: LowerThirdState;
   winnerSide: SeatId | null;
   gameWinnerSide: SeatId | null;
@@ -264,6 +271,17 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
   matchSlot: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional().transform((v) => (v === 2 || v === 3 ? v : 1)),
   eventName: z.string(),
   streamChannel: z.string().optional().transform((v) => v ?? ""),
+  streamPlatform: z.string().optional().transform((v) => coerceStreamPlatform(v)),
+  streamChannels: z
+    .array(
+      z.object({
+        platform: z.string().optional().transform((v) => coerceStreamPlatform(v)),
+        handle: z.string().optional().transform((v) => v ?? ""),
+        note: z.string().optional().transform((v) => v ?? ""),
+      }),
+    )
+    .optional()
+    .transform((rows) => rows ?? []),
   eventPhase: z.string(),
   roundName: z.string(),
   bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
@@ -282,6 +300,8 @@ export const deskSchema: z.ZodType<DeskState> = z.object({
     .optional()
     .transform((v) => (v ?? {}) as Partial<Record<GameId, GameClock>>),
   slate: z.enum(["hidden", "starting", "brb", "thanks", "tech"]),
+  slateLook: z.enum(["default", "stream"]).optional().transform((v) => (v === "stream" ? "stream" : "default")),
+  versusLook: z.enum(["default", "stream"]).optional().transform((v) => (v === "stream" ? "stream" : "default")),
   lowerThird: z.object({
     visible: z.boolean(),
     mode: z.enum(["player", "caster", "custom"]),
@@ -515,6 +535,8 @@ export function defaultDesk(): DeskState {
     matchSlot: 1,
     eventName: "",
     streamChannel: "",
+    streamPlatform: "twitch",
+    streamChannels: [],
     eventPhase: "",
     roundName: "",
     bestOf: 3,
@@ -533,6 +555,8 @@ export function defaultDesk(): DeskState {
     timerEndsAt: null,
     gameClocks: {},
     slate: "hidden",
+    slateLook: "default",
+    versusLook: "default",
     lowerThird: {
       visible: false,
       mode: "player",
@@ -807,6 +831,8 @@ export function deskLaneOf(live: DeskState, gameId: GameId, slot: MatchSlot = 1)
     matchSlot: wanted,
     eventName: live.eventName,
     streamChannel: live.streamChannel,
+    streamPlatform: live.streamPlatform,
+    streamChannels: live.streamChannels,
     eventLogo: live.eventLogo,
     sponsors: live.sponsors,
     sponsorSeconds: live.sponsorSeconds,

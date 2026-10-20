@@ -11,7 +11,7 @@ export function InkPicker({
   ink1: string;
   ink2: string;
   onChange: (next: { ink1: string; ink2: string }) => void;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   quiet?: boolean;
 }) {
   const selected = [ink1, ink2].filter(isLorcanaInk);
@@ -25,7 +25,7 @@ export function InkPicker({
 
   return (
     <div className="grid gap-1.5">
-      <div className={cn("flex gap-1", size === "sm" ? "flex-wrap" : "flex-wrap gap-1.5")}>
+      <div className={cn("flex flex-wrap", size === "lg" ? "gap-2" : size === "sm" ? "gap-1" : "gap-1.5")}>
         {LORCANA_INKS.map((ink) => {
           const on = selected.includes(ink.id);
           return (
@@ -35,11 +35,16 @@ export function InkPicker({
               title={ink.label}
               onClick={() => toggle(ink.id)}
               className={cn(
-                "rounded-md border p-0.5 transition-colors",
+                "rounded-md border transition-colors",
+                size === "lg" ? "p-1" : "p-0.5",
                 on ? "border-accent bg-surface" : "border-transparent opacity-45 hover:opacity-80",
               )}
             >
-              <img src={inkSrc(ink.id)} alt={ink.label} className={size === "sm" ? "size-7" : "size-9"} />
+              <img
+                src={inkSrc(ink.id)}
+                alt={ink.label}
+                className={size === "lg" ? "size-12" : size === "sm" ? "size-7" : "size-9"}
+              />
             </button>
           );
         })}

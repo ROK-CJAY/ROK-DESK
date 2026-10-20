@@ -4,11 +4,14 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
-## Unreleased
+## v1.4.7 — 2026-10-20
 
-- **Versus** — Lorcana and Magic constructed share the city frame. Cyan and pink cameras, deck name under the player, inks or mana, and the record on a black bar.
-- **Lorcana versus** — Two camera frames, names, inks, and a center VS. Player 1 is cyan, player 2 is pink, on the stream city art.
-- **Lorcana play, stream colors** — Same Play Layout. Player 1 is cyan and player 2 is pink.
+### Added
+
+- **Miami Vice** — the cyan and pink stream-color layouts. Lorcana, One Piece, PTCG, and VGC can use it on the play layout. Hold slates can use it too. The name replaces Play · Stream colors.
+- **PTCG and VGC versus** — the existing versus screen stays the default. Versus theme can switch that screen to Miami Vice without changing the play layout. The VGC Miami Vice versus keeps the VGC frame: cameras, teams, and name plates, on the city art.
+- **Lorcana player tablet** — side by side or stacked, with a head-to-head seat. The shared bar can sit on the side, or on the top and bottom. Lore is one 1–20–1 track. Your seat counts left to right. The other seat counts right to left. Player 1 is red and Player 2 is blue.
+- **Versus** — Lorcana, Magic constructed, and One Piece share the city frame. Cyan and pink cameras, deck name under the player, inks or mana, and the record on a black bar.
 - **Lorcana lookup** — Live is Core Constructed. A card reprinted into a legal set stays live, including the older printing. All printings is every card, including rotated ones.
 - **One Piece lookup** — Live / Full catalog. Live is current Standard (blocks 2–5, official exceptions, no banned cards). Full catalog is every English card.
 - **Magic constructed** — Vintage is a format. Each format uses its own banlist. Restricted cards stay in the list and are marked.

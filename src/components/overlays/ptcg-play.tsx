@@ -6,6 +6,10 @@ import { PokeballIcon } from "@/components/overlays/pips";
 import { OV_DEEP, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
 import { WinStings } from "@/components/overlays/winner";
+import { PresentedByBar } from "@/components/overlays/presented-by";
+
+const CYAN = "#00eeff";
+const PINK = "#ff4791";
 
 const RAIL_W = "21.25rem";
 const SLOT =
@@ -210,10 +214,14 @@ function Rail({
   desk,
   side,
   align,
+  accent,
+  city = false,
 }: {
   desk: DeskState;
   side: "p1" | "p2";
   align: "left" | "right";
+  accent?: string;
+  city?: boolean;
 }) {
   const player = desk[side];
   const board = desk.ptcgBoard?.[side] ?? emptyPtcgSide();
@@ -223,16 +231,30 @@ function Rail({
   return (
     <aside
       className={cn(
-        "absolute inset-y-0 flex flex-col px-2.5 pt-2.5 pb-3",
+        "absolute inset-y-0 flex flex-col overflow-hidden px-2.5 pt-2.5 pb-3",
         align === "left" ? "left-0" : "right-0",
       )}
       style={{
-        background: OV_RAIL,
-        boxShadow: align === "right" ? "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 53%, transparent), 0 0 18px color-mix(in srgb, var(--color-live) 20%, transparent)" : "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 22%, transparent)",
+        background: city ? "#0b0c0e" : OV_RAIL,
+        boxShadow: accent
+          ? `inset ${align === "right" ? -4 : 4}px 0 0 ${accent}`
+          : align === "right"
+            ? "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 53%, transparent), 0 0 18px color-mix(in srgb, var(--color-live) 20%, transparent)"
+            : "inset 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 22%, transparent)",
         width: RAIL_W,
       }}
     >
-      <header className="mb-2 flex shrink-0 items-start justify-between gap-2">
+      {city ? (
+        <>
+          <img
+            src="/overlays/stream-city-full.png"
+            alt=""
+            className="pointer-events-none absolute inset-0 size-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/55" />
+        </>
+      ) : null}
+      <header className="relative z-10 mb-2 flex shrink-0 items-start justify-between gap-2">
         <div className={cn("min-w-0 flex-1", align === "right" && "order-2 text-right")}>
           <div className={cn("flex items-center gap-2", align === "right" && "justify-end")}>
             <span className="rounded-sm bg-ov-fg/12 px-1.5 py-0.5 font-mono text-[0.95rem] leading-none tracking-wider text-ov-fg/90">
@@ -243,7 +265,7 @@ function Rail({
             </span>
           </div>
           <div className={cn("mt-0.5 flex items-center gap-2", align === "right" && "flex-row-reverse")}>
-            <p className="font-display min-w-0 flex-1 truncate text-[2rem] leading-tight font-semibold tracking-wide text-ov-fg uppercase">
+            <p className="font-display min-w-0 flex-1 truncate text-[2rem] leading-tight font-semibold tracking-wide uppercase" style={{ color: accent ?? "var(--color-ov-fg)" }}>
               {player.name || (align === "left" ? "Player 1" : "Player 2")}
             </p>
             <div className="flex shrink-0 gap-0.5">
@@ -253,45 +275,52 @@ function Rail({
             </div>
           </div>
         </div>
-        <p className={cn("font-display text-[2.35rem] leading-none font-semibold text-ov-fg", align === "right" && "order-1")}>
+        <p className={cn("relative z-10 font-display text-[2.35rem] leading-none font-semibold", align === "right" && "order-1")} style={{ color: accent ?? "var(--color-ov-fg)" }}>
           <FadeValue value={player.score} />
         </p>
       </header>
       {board.active ? (
-        <ActiveCard mon={board.active} />
+        <div className="relative z-10">
+          <ActiveCard mon={board.active} />
+        </div>
       ) : (
-        <div className={cn("grid aspect-[5/3] shrink-0 place-items-center", SLOT, "bg-ov-panel/90")}>
+        <div className={cn("relative z-10 grid aspect-[5/3] shrink-0 place-items-center", SLOT, "bg-ov-panel/90")}>
           <span className="text-[0.8rem] font-semibold tracking-[0.28em] text-ov-fg/35 uppercase">Active</span>
         </div>
       )}
-      <div className="mt-2 flex min-h-0 flex-1 flex-col gap-1.5">
+      <div className="relative z-10 mt-2 flex min-h-0 flex-1 flex-col gap-1.5">
         {board.spotlight ? (
           <SpotlightOverBench mon={board.spotlight} />
         ) : (
           (board.bench ?? []).map((mon, i) => <BenchRow key={i} mon={mon} />)
         )}
       </div>
-      <TurnChips board={board} />
+      <div className="relative z-10">
+        <TurnChips board={board} />
+      </div>
     </aside>
   );
 }
 
-export function PtcgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
+export function PtcgPlayLayout({ desk, now = Date.now(), tone = "rok" }: { desk: DeskState; now?: number; tone?: "rok" | "stream" }) {
   const clock = formatClock(remainingSeconds(desk, now, desk.gameId));
   const title = [desk.eventName, desk.eventPhase, desk.roundName].filter(Boolean).join(" · ") || "Round";
+  const stream = tone === "stream";
   return (
     <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
-      <Rail desk={desk} side="p1" align="left" />
-      <Rail desk={desk} side="p2" align="right" />
+      <Rail desk={desk} side="p1" align="left" accent={stream ? CYAN : undefined} city={stream} />
+      <Rail desk={desk} side="p2" align="right" accent={stream ? PINK : undefined} city={stream} />
       <div
         className="absolute bottom-0 z-10 flex justify-center"
         style={{ left: RAIL_W, right: RAIL_W }}
       >
         <div
-          className="rounded-t-md border border-white/25 px-6 py-1.5"
+          className="rounded-t-md px-6 py-1.5"
           style={{
             background: OV_DEEP,
-            boxShadow: "0 0 18px var(--color-ov-panel-deep), 0 0 0 1px color-mix(in srgb, var(--color-ov-muted) 28%, transparent)",
+            boxShadow: "0 0 18px var(--color-ov-panel-deep)",
+            border: stream ? "1px solid transparent" : "1px solid rgb(255 255 255 / 0.25)",
+            borderImage: stream ? `linear-gradient(90deg, ${CYAN}, ${PINK}) 1` : undefined,
           }}
         >
           <p className="font-display text-center text-[1.1rem] tracking-[0.08em] text-ov-fg uppercase">
@@ -301,6 +330,11 @@ export function PtcgPlayLayout({ desk, now = Date.now() }: { desk: DeskState; no
           </p>
         </div>
       </div>
+      {stream ? (
+        <div className="absolute right-0 bottom-14 left-0 z-20 flex justify-center">
+          <PresentedByBar desk={desk} />
+        </div>
+      ) : null}
       <WinStings desk={desk} />
     </div>
   );

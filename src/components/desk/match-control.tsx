@@ -5,7 +5,7 @@ import { CommanderSearchField } from "@/components/desk/commander-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { COUNTRIES } from "@/lib/countries";
-import { gameOf, isCommanderLane } from "@/lib/games";
+import { gameOf, isCommanderLane, isPtcgTitle, isVgcTitle } from "@/lib/games";
 import { useDeskStore } from "@/lib/desk-store";
 import {
   SEAT_LABELS,
@@ -278,6 +278,40 @@ function SeatCard({
   );
 }
 
+function RecordFields({
+  player,
+  onChange,
+}: {
+  player: PlayerSide;
+  onChange: (partial: Partial<PlayerSide>) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      <Field label="Wins">
+        <Input
+          inputMode="numeric"
+          value={String(player.recordW)}
+          onChange={(e) => onChange({ recordW: Math.max(0, Number(e.target.value) || 0) })}
+        />
+      </Field>
+      <Field label="Losses">
+        <Input
+          inputMode="numeric"
+          value={String(player.recordL)}
+          onChange={(e) => onChange({ recordL: Math.max(0, Number(e.target.value) || 0) })}
+        />
+      </Field>
+      <Field label="Draws">
+        <Input
+          inputMode="numeric"
+          value={String(player.recordD)}
+          onChange={(e) => onChange({ recordD: Math.max(0, Number(e.target.value) || 0) })}
+        />
+      </Field>
+    </div>
+  );
+}
+
 function PlayerColumn({
   side,
   player,
@@ -413,29 +447,7 @@ function PlayerColumn({
         )}
         {desk.gameId === "mtg" && !commander ? (
           <div className="grid gap-2">
-            <div className="grid grid-cols-3 gap-2">
-              <Field label="Wins">
-                <Input
-                  inputMode="numeric"
-                  value={String(player.recordW)}
-                  onChange={(e) => onChange({ recordW: Math.max(0, Number(e.target.value) || 0) })}
-                />
-              </Field>
-              <Field label="Losses">
-                <Input
-                  inputMode="numeric"
-                  value={String(player.recordL)}
-                  onChange={(e) => onChange({ recordL: Math.max(0, Number(e.target.value) || 0) })}
-                />
-              </Field>
-              <Field label="Draws">
-                <Input
-                  inputMode="numeric"
-                  value={String(player.recordD)}
-                  onChange={(e) => onChange({ recordD: Math.max(0, Number(e.target.value) || 0) })}
-                />
-              </Field>
-            </div>
+            <RecordFields player={player} onChange={onChange} />
             <div className="grid gap-1.5">
               <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Colors</p>
               <ManaColorPicker value={player.ink1} onChange={(ink1) => onChange({ ink1 })} />
@@ -465,29 +477,7 @@ function PlayerColumn({
         </Field>
         {desk.gameId === "lorcana" ? (
           <>
-            <div className="grid grid-cols-3 gap-2">
-              <Field label="Wins">
-                <Input
-                  inputMode="numeric"
-                  value={String(player.recordW)}
-                  onChange={(e) => onChange({ recordW: Math.max(0, Number(e.target.value) || 0) })}
-                />
-              </Field>
-              <Field label="Losses">
-                <Input
-                  inputMode="numeric"
-                  value={String(player.recordL)}
-                  onChange={(e) => onChange({ recordL: Math.max(0, Number(e.target.value) || 0) })}
-                />
-              </Field>
-              <Field label="Draws">
-                <Input
-                  inputMode="numeric"
-                  value={String(player.recordD)}
-                  onChange={(e) => onChange({ recordD: Math.max(0, Number(e.target.value) || 0) })}
-                />
-              </Field>
-            </div>
+            <RecordFields player={player} onChange={onChange} />
             <div className="grid gap-2">
               <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Inks</p>
               <InkPicker
@@ -497,6 +487,9 @@ function PlayerColumn({
               />
             </div>
           </>
+        ) : null}
+        {isPtcgTitle(desk.gameId) || isVgcTitle(desk.gameId) ? (
+          <RecordFields player={player} onChange={onChange} />
         ) : null}
       </div>
 

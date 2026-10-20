@@ -4,7 +4,7 @@ import { SupportButtons } from "@/components/app/support-links";
 import { UpdateBadge } from "@/components/app/update-badge";
 import { cn } from "@/lib/cn";
 import { useDeskStore } from "@/lib/desk-store";
-import { streamChannelLabel, streamChannelUrl } from "@/lib/stream-channel";
+import { streamChannelLine, streamChannelUrl, streamChannelsOf } from "@/lib/stream-channel";
 
 export function AppChrome({
   view,
@@ -90,8 +90,11 @@ export function AppChrome({
 
 function LiveBadge() {
   const channel = useDeskStore((s) => s.desk.streamChannel);
-  const label = streamChannelLabel(channel);
-  const href = streamChannelUrl(channel);
+  const platform = useDeskStore((s) => s.desk.streamPlatform);
+  const channels = useDeskStore((s) => s.desk.streamChannels);
+  const rows = streamChannelsOf({ streamChannel: channel, streamPlatform: platform, streamChannels: channels }).filter((row) => row.handle.trim());
+  const label = rows.map(streamChannelLine).join("  ·  ");
+  const href = rows[0] ? streamChannelUrl(rows[0].handle, rows[0].platform) : null;
   const inner = (
     <>
       <span className="live-dot size-1.5 rounded-full bg-live" />

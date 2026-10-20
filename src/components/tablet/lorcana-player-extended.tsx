@@ -56,7 +56,7 @@ export function LorcanaPlayerExtendedTablet() {
           </div>
         </div>
         <div className="mt-1.5">
-          <RoundClock compact />
+          <RoundClock compact roomy />
         </div>
       </header>
 
@@ -106,9 +106,9 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
         side === "p1" && (stacked ? "border-t border-border" : "border-l border-border"),
         flip && "rotate-180",
       )}
-      style={{ containerType: "inline-size" }}
+      style={{ containerType: "size" }}
     >
-      <div className="min-w-0 px-[clamp(0.4rem,2cqw,0.75rem)] pt-2">
+      <div className="min-h-0 min-w-0 overflow-hidden px-[clamp(0.4rem,2cqw,0.75rem)] pt-[clamp(0.25rem,2cqh,0.5rem)]">
         <div className="flex items-center justify-between gap-2">
           <p className="font-mono text-[0.58rem] tracking-[0.18em] text-muted uppercase">{label}</p>
           <div className="flex items-center gap-1">
@@ -117,20 +117,22 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
               onClick={() => bumpScore(side, -1)}
               disabled={player.score <= 0}
               aria-label={`${label} minus one game`}
-              className="grid size-[clamp(1.6rem,9cqw,2.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(0.95rem,4cqw,1.25rem)] leading-none text-fg active:bg-surface disabled:opacity-30"
+              className="grid place-items-center rounded-md border border-border bg-surface-2 leading-none text-fg active:bg-surface disabled:opacity-30"
+              style={{ width: "clamp(1.75rem, min(14cqw, 18cqh), 3.25rem)", height: "clamp(1.75rem, min(14cqw, 18cqh), 3.25rem)", fontSize: "clamp(1rem, min(5cqw, 7cqh), 1.7rem)" }}
             >
               −
             </button>
             <div className="flex min-w-6 flex-col items-center gap-0.5">
-              <span className="font-display text-[clamp(0.85rem,4cqw,1rem)] leading-none font-semibold tabular-nums">{player.score}</span>
-              <div className="flex items-center gap-0.5">
+              <span className="font-display leading-none font-semibold tabular-nums" style={{ fontSize: "clamp(0.9rem, min(6cqw, 7cqh), 1.7rem)" }}>{player.score}</span>
+              <div className="flex items-center gap-1">
                 {Array.from({ length: needed }, (_, i) => (
                   <span
                     key={i}
                     className={cn(
-                      "size-[clamp(0.35rem,1.6cqw,0.5rem)] rotate-45 border",
+                      "rotate-45 border",
                       i < player.score ? "border-accent bg-accent" : "border-muted bg-transparent",
                     )}
+                    style={{ width: "clamp(0.35rem, min(2.2cqw, 2.4cqh), 0.7rem)", height: "clamp(0.35rem, min(2.2cqw, 2.4cqh), 0.7rem)" }}
                   />
                 ))}
               </div>
@@ -140,7 +142,8 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
               onClick={() => bumpScore(side, 1)}
               disabled={player.score >= needed}
               aria-label={`${label} plus one game`}
-              className="grid size-[clamp(1.6rem,9cqw,2.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(0.95rem,4cqw,1.25rem)] leading-none text-fg active:bg-surface disabled:opacity-30"
+              className="grid place-items-center rounded-md border border-border bg-surface-2 leading-none text-fg active:bg-surface disabled:opacity-30"
+              style={{ width: "clamp(1.75rem, min(14cqw, 18cqh), 3.25rem)", height: "clamp(1.75rem, min(14cqw, 18cqh), 3.25rem)", fontSize: "clamp(1rem, min(5cqw, 7cqh), 1.7rem)" }}
             >
               +
             </button>
@@ -150,7 +153,8 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
           value={player.name}
           onChange={(e) => setPlayer(side, { name: e.target.value })}
           placeholder="Name on stream"
-          className="mt-1.5 h-[clamp(1.8rem,8cqw,2.25rem)] font-display text-[clamp(0.8rem,3.6cqw,1rem)] font-semibold uppercase"
+          className="mt-1 font-display font-semibold uppercase"
+          style={{ height: "clamp(1.6rem, min(8cqw, 9cqh), 2.25rem)", fontSize: "clamp(0.75rem, min(3.6cqw, 4cqh), 1rem)" }}
           autoComplete="name"
           aria-label={`${label} name`}
         />
@@ -158,33 +162,39 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
           value={player.archetype}
           onChange={(e) => setPlayer(side, { archetype: e.target.value })}
           placeholder="Deck"
-          className="mt-1 h-[clamp(1.7rem,7cqw,2rem)] text-[clamp(0.75rem,3.2cqw,0.9rem)]"
+          className="mt-1"
+          style={{ height: "clamp(1.5rem, min(7cqw, 8cqh), 2rem)", fontSize: "clamp(0.7rem, min(3.2cqw, 3.6cqh), 0.9rem)" }}
           aria-label={`${label} deck`}
         />
-        <div className="mt-1.5 min-w-0 overflow-hidden pb-1">
-          <InkPicker ink1={player.ink1} ink2={player.ink2} size="sm" quiet onChange={(next) => setPlayer(side, next)} />
+        <div
+          className="mt-1 min-w-0 overflow-hidden pb-0.5 [&_button]:p-0.5 [&_img]:h-(--ink) [&_img]:w-(--ink)"
+          style={{ ["--ink" as string]: "clamp(1.35rem, min(11cqw, 14cqh), 3rem)" }}
+        >
+          <InkPicker ink1={player.ink1} ink2={player.ink2} size="lg" quiet onChange={(next) => setPlayer(side, next)} />
         </div>
       </div>
 
-      <div className="flex min-h-0 min-w-0 items-center justify-center gap-[clamp(0.25rem,2cqw,0.75rem)] px-2">
+      <div className="flex min-h-0 min-w-0 items-center justify-center gap-[clamp(0.25rem,2cqw,0.75rem)] overflow-hidden px-2">
         <button
           type="button"
           onClick={() => bumpResource(side, -1)}
-          className="grid size-[clamp(2rem,13cqw,3.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(1.15rem,5cqw,1.85rem)] leading-none text-fg active:bg-surface"
+          className="grid shrink-0 place-items-center rounded-md border border-border bg-surface-2 leading-none text-fg active:bg-surface"
+          style={{ width: "clamp(1.75rem, min(13cqw, 28cqh), 3.25rem)", height: "clamp(1.75rem, min(13cqw, 28cqh), 3.25rem)", fontSize: "clamp(1rem, min(5cqw, 10cqh), 1.85rem)" }}
           aria-label={`${label} minus one lore`}
         >
           −
         </button>
         <p
           className="font-display w-[3.2ch] min-w-0 text-center leading-none font-semibold tabular-nums text-fg"
-          style={{ fontSize: "clamp(1.6rem, 16cqw, 5rem)" }}
+          style={{ fontSize: "clamp(1.4rem, min(16cqw, 36cqh), 5rem)" }}
         >
           {lore}
         </p>
         <button
           type="button"
           onClick={() => bumpResource(side, 1)}
-          className="grid size-[clamp(2rem,13cqw,3.25rem)] place-items-center rounded-md border border-border bg-surface-2 text-[clamp(1.15rem,5cqw,1.85rem)] leading-none text-fg active:bg-surface"
+          className="grid shrink-0 place-items-center rounded-md border border-border bg-surface-2 leading-none text-fg active:bg-surface"
+          style={{ width: "clamp(1.75rem, min(13cqw, 28cqh), 3.25rem)", height: "clamp(1.75rem, min(13cqw, 28cqh), 3.25rem)", fontSize: "clamp(1rem, min(5cqw, 10cqh), 1.85rem)" }}
           aria-label={`${label} plus one lore`}
         >
           +

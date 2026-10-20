@@ -22,6 +22,7 @@ export {
   coerceDeskGameId,
   isCommanderLane,
   supportsPlayLayout,
+  supportsStreamColors,
   supportsRokLayout,
   isCommanderPodFormat,
 } from "./game-runtime";

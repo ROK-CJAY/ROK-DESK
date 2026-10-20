@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { TitleTabs } from "@/components/app/title-tabs";
-import { gameOf, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, tabletPath, type GameId } from "@/lib/games";
+import { gameOf, isCommanderLane, isMtgTitle, isPtcgTitle, isVgcTitle, casterTabletPath, playerTabletExtendedPath, playerTabletPath, signupPath, supportsPlayLayout, supportsRokLayout, supportsStreamColors, tabletPath, type GameId } from "@/lib/games";
 import { deskLooksLikeTest } from "@/lib/test-fixtures";
 import { blankSponsor, readOverlayImage, readSponsorLogo } from "@/lib/sponsors";
 import { useDeskStore } from "@/lib/desk-store";
@@ -31,6 +31,7 @@ import {
 } from "@/lib/desk-types";
 import { PtcgCatalogButton } from "@/components/desk/ptcg-catalog-button";
 import { catalogForGame } from "@/lib/card-lookup";
+import { STREAM_PLATFORMS, blankStreamChannel, streamChannelsOf, syncPrimaryChannel, type StreamPlatform } from "@/lib/stream-channel";
 import { useEffect, useState } from "react";
 
 export function EventPanel() {
@@ -57,13 +58,72 @@ export function EventPanel() {
             onChange={(e) => patch({ eventName: e.target.value })}
           />
         </Field>
-        <Field label="Stream">
-          <Input
-            value={desk.streamChannel}
-            onChange={(e) => patch({ streamChannel: e.target.value })}
-            placeholder="twitch.tv/rok or @rok"
-          />
-        </Field>
+        <div className="grid gap-2">
+          <p className="text-[0.7rem] text-muted">{MATCH_SLOT_SHORT[(desk.matchSlot ?? 1) as MatchSlot]} channels</p>
+          {(streamChannelsOf(desk).length ? streamChannelsOf(desk) : [blankStreamChannel()]).map((row, index, list) => (
+            <div key={index} className="grid gap-2 rounded-lg border border-border bg-surface-2 p-2">
+              <div className="flex items-center gap-2">
+                <NativeSelect
+                  value={row.platform}
+                  onChange={(e) => {
+                    const next = list.map((item) => ({ ...item }));
+                    next[index] = { ...next[index]!, platform: e.target.value as StreamPlatform };
+                    patch(syncPrimaryChannel(next));
+                  }}
+                  aria-label={`Channel ${index + 1} platform`}
+                >
+                  {STREAM_PLATFORMS.map((platform) => (
+                    <option key={platform.id} value={platform.id}>
+                      {platform.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-10 shrink-0"
+                  disabled={list.length === 1 && !row.handle.trim() && !row.note.trim()}
+                  onClick={() => {
+                    const next = list.filter((_, i) => i !== index);
+                    patch(syncPrimaryChannel(next.length ? next : [blankStreamChannel()]));
+                  }}
+                  aria-label={`Remove channel ${index + 1}`}
+                >
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </div>
+              <Input
+                value={row.handle}
+                onChange={(e) => {
+                  const next = list.map((item) => ({ ...item }));
+                  next[index] = { ...next[index]!, handle: e.target.value };
+                  patch(syncPrimaryChannel(next));
+                }}
+                placeholder="@channel"
+                aria-label={`Channel ${index + 1}`}
+              />
+              <Input
+                value={row.note}
+                onChange={(e) => {
+                  const next = list.map((item) => ({ ...item }));
+                  next[index] = { ...next[index]!, note: e.target.value };
+                  patch(syncPrimaryChannel(next));
+                }}
+                placeholder="Main stream, second stream…"
+                aria-label={`Channel ${index + 1} note`}
+              />
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => patch(syncPrimaryChannel([...streamChannelsOf(desk).length ? streamChannelsOf(desk) : [blankStreamChannel()], blankStreamChannel()]))}
+          >
+            <Plus className="size-3.5" />
+            Add channel
+          </Button>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Phase">
             <Input
@@ -493,6 +553,28 @@ export function ShowPanel() {
             <option value="tech">Technical pause</option>
           </NativeSelect>
         </Field>
+        {desk.slate !== "hidden" ? (
+          <Field label="Hold layout">
+            <NativeSelect
+              value={desk.slateLook ?? "default"}
+              onChange={(e) => patch({ slateLook: e.target.value === "stream" ? "stream" : "default" })}
+            >
+              <option value="default">Default</option>
+              <option value="stream">Miami Vice</option>
+            </NativeSelect>
+          </Field>
+        ) : null}
+        {isPtcgTitle(desk.gameId) || isVgcTitle(desk.gameId) ? (
+          <Field label="Versus theme">
+            <NativeSelect
+              value={desk.versusLook ?? "default"}
+              onChange={(e) => patch({ versusLook: e.target.value === "stream" ? "stream" : "default" })}
+            >
+              <option value="default">Default</option>
+              <option value="stream">Miami Vice</option>
+            </NativeSelect>
+          </Field>
+        ) : null}
         <div className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2">
           <div>
             <p className="text-sm">Lower third</p>
@@ -622,8 +704,8 @@ export function ShowPanel() {
             {desk.gameId === "mtg" && !isCommanderLane(desk) ? (
               <option value="stream">Stream Layout</option>
             ) : null}
-            {desk.gameId === "lorcana" || desk.gameId === "one-piece" ? (
-              <option value="neon">Play · Stream colors</option>
+            {supportsStreamColors(desk.gameId) ? (
+              <option value="neon">Miami Vice</option>
             ) : null}
           </NativeSelect>
           {desk.scorebugStyle === "rok" ? (
@@ -666,7 +748,7 @@ export function ShowPanel() {
             </p>
           ) : desk.scorebugStyle === "neon" ? (
             <p className="self-center text-[0.7rem] text-muted">
-              Same as Play Layout. Player 1 is cyan and player 2 is pink.
+              Miami Vice. Same as Play Layout. Player 1 is cyan and player 2 is pink.
             </p>
           ) : (
             <NativeSelect

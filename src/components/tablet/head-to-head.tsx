@@ -3,6 +3,8 @@ import { cn } from "@/lib/cn";
 
 const FACE_KEY = "rok.tablet.headToHead";
 const STACK_KEY = "rok.tablet.stacked";
+const SEAT_KEY = "rok.tablet.p1First";
+const RAIL_KEY = "rok.tablet.railRight";
 
 function useStoredFlag(key: string) {
   const [on, setOn] = useState(false);
@@ -27,6 +29,26 @@ export function useHeadToHead() {
 /** One above the other. Default is side by side. Independent of the flip. */
 export function useStackedSeats() {
   return useStoredFlag(STACK_KEY);
+}
+
+/** Side column on the right. Default is the left. */
+export function useRailRight() {
+  return useStoredFlag(RAIL_KEY);
+}
+export function useP1First() {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    const stored = localStorage.getItem(SEAT_KEY);
+    if (stored === "0" || stored === "1") setOn(stored === "1");
+  }, []);
+  const toggle = () => {
+    setOn((value) => {
+      const next = !value;
+      localStorage.setItem(SEAT_KEY, next ? "1" : "0");
+      return next;
+    });
+  };
+  return { on, toggle };
 }
 
 function LayoutButton({
@@ -67,6 +89,22 @@ export function StackButton({ on, onClick }: { on: boolean; onClick: () => void 
   return (
     <LayoutButton on={on} onClick={onClick} title={on ? "Switch to side by side" : "Stack one above the other"}>
       {on ? "Stacked" : "Side by side"}
+    </LayoutButton>
+  );
+}
+
+export function RailSideButton({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <LayoutButton on={on} onClick={onClick} title="Move the side column to the other edge">
+      {on ? "Column right" : "Column left"}
+    </LayoutButton>
+  );
+}
+
+export function SeatFlipButton({ on, onClick, stacked }: { on: boolean; onClick: () => void; stacked: boolean }) {
+  return (
+    <LayoutButton on={on} onClick={onClick} title="Flip which player sits on which side">
+      {on ? (stacked ? "P1 top" : "P1 left") : stacked ? "P2 top" : "P2 left"}
     </LayoutButton>
   );
 }

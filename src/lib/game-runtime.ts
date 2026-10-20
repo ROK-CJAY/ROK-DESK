@@ -213,6 +213,10 @@ const ROK_LAYOUT_GAMES: GameId[] = [
   "one-piece",
 ];
 
+export function supportsStreamColors(gameId: GameId): boolean {
+  return gameId === "lorcana" || gameId === "one-piece" || isPtcgTitle(gameId) || isVgcTitle(gameId);
+}
+
 export function supportsPlayLayout(desk: { gameId: GameId; formatName?: string }): boolean {
   if (desk.formatName && isCommanderLane({ gameId: desk.gameId, formatName: desk.formatName })) return false;
   return (

@@ -10,6 +10,7 @@ import {
 } from "@/lib/desk-types";
 import { OverlayEditProvider, Placed } from "@/components/overlays/placed";
 import type { OverlayEdit } from "@/components/overlays/placed";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { FadeValue } from "@/components/overlays/fade-value";
 import { fetchCommanderArt, fetchCommanderColors } from "@/lib/card-lookup";
 import { mergeColorIdentity, type ManaColor } from "@/lib/commander-colors";
@@ -299,6 +300,7 @@ export function CommanderVersus({ desk }: { desk: DeskState }) {
 
         <footer className="flex items-center justify-between text-ov-muted">
           <p className="font-mono text-ov-kicker tracking-[0.2em] uppercase">{desk.roundName}</p>
+          <PresentedByBar desk={desk} />
           <p className="font-mono text-ov-kicker tracking-[0.2em] uppercase">
             Starting life {desk.p1.resource || 40}
           </p>

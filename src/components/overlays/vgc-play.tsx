@@ -3,9 +3,12 @@ import { emptyTeam, spriteFallbackUrl, spriteUrl, type TeamMon } from "@/lib/pok
 import type { DeskState, PlayerSide } from "@/lib/desk-types";
 import { OV_CHROME, OV_LIVE, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { WinStings } from "@/components/overlays/winner";
 
 const RED = OV_LIVE;
+const CYAN = "#00eeff";
+const PINK = "#ff4791";
 const SILVER = OV_CHROME;
 const PLATE = OV_RAIL;
 
@@ -44,11 +47,11 @@ function MonTile({ mon, down }: { mon: TeamMon; down: boolean }) {
   );
 }
 
-function ScorePip({ value }: { value: number }) {
+function ScorePip({ value, color = RED }: { value: number; color?: string }) {
   return (
     <span
-      className="grid size-[3.15rem] shrink-0 place-items-center rounded-full font-display text-[1.85rem] leading-none font-semibold text-ov-fg"
-      style={{ background: RED, boxShadow: "0 0 0 2px rgb(244 244 241 / 0.16), 0 6px 14px rgb(212 83 76 / 0.35)" }}
+      className="grid size-[3.15rem] shrink-0 place-items-center rounded-full font-display text-[1.85rem] leading-none font-semibold text-[#111]"
+      style={{ background: color, boxShadow: `0 0 0 2px rgb(244 244 241 / 0.16), 0 6px 14px ${color}88` }}
     >
       <FadeValue value={value} />
     </span>
@@ -58,9 +61,11 @@ function ScorePip({ value }: { value: number }) {
 function SideCard({
   player,
   align,
+  accent,
 }: {
   player: PlayerSide;
   align: "left" | "right";
+  accent?: string;
 }) {
   const team = emptyTeam().map((slot, i) => player.team?.[i] ?? slot);
   const right = align === "right";
@@ -69,7 +74,9 @@ function SideCard({
       className="flex min-w-0 flex-col overflow-hidden rounded-lg"
       style={{
         background: PLATE,
-        boxShadow: "inset 0 0 0 1px rgb(197 204 214 / 0.22), 0 14px 36px rgb(0 0 0 / 0.45)",
+        boxShadow: accent
+          ? `inset 0 0 0 2px ${accent}, 0 14px 36px rgb(0 0 0 / 0.45)`
+          : "inset 0 0 0 1px rgb(197 204 214 / 0.22), 0 14px 36px rgb(0 0 0 / 0.45)",
       }}
     >
       <div
@@ -80,13 +87,14 @@ function SideCard({
       >
         <p
           className={cn(
-            "font-display min-w-0 flex-1 truncate text-[2.15rem] leading-none font-semibold tracking-wide text-ov-fg uppercase",
+            "font-display min-w-0 flex-1 truncate text-[2.15rem] leading-none font-semibold tracking-wide uppercase",
             right && "text-right",
           )}
+          style={{ color: accent ?? "var(--color-ov-fg)" }}
         >
           {player.name || (right ? "Player 2" : "Player 1")}
         </p>
-        <ScorePip value={player.score} />
+        <ScorePip value={player.score} color={accent} />
         <span className="font-mono shrink-0 text-[1.35rem] leading-none tabular-nums tracking-wide text-ov-fg/88">
           <FadeValue value={recordOf(player)} />
         </span>
@@ -100,7 +108,7 @@ function SideCard({
   );
 }
 
-function CameraWell({ player }: { player: PlayerSide }) {
+function CameraWell({ player, accent = SILVER }: { player: PlayerSide; accent?: string }) {
   const photo = player.photoUrl.trim();
   return (
     <div className="relative h-full min-h-0 bg-transparent">
@@ -116,7 +124,7 @@ function CameraWell({ player }: { player: PlayerSide }) {
         className="pointer-events-none absolute inset-0 bg-transparent"
         style={{
           borderRadius: "1rem",
-          border: `3px solid ${SILVER}`,
+          border: `3px solid ${accent}`,
           background: "none",
           boxShadow: "none",
         }}
@@ -125,7 +133,10 @@ function CameraWell({ player }: { player: PlayerSide }) {
   );
 }
 
-export function VgcPlayLayout({ desk }: { desk: DeskState; now?: number }) {
+export function VgcPlayLayout({ desk, tone = "rok" }: { desk: DeskState; now?: number; tone?: "rok" | "stream" }) {
+  const stream = tone === "stream";
+  const p1 = stream ? CYAN : undefined;
+  const p2 = stream ? PINK : undefined;
   return (
     <div data-game={desk.gameId} className="pointer-events-none absolute inset-0">
       <div
@@ -136,20 +147,23 @@ export function VgcPlayLayout({ desk }: { desk: DeskState; now?: number }) {
           gridTemplateColumns: "16.75rem minmax(0,1fr) 11.25rem minmax(0,1fr) 16.75rem",
         }}
       >
-        <CameraWell player={desk.p1} />
-        <SideCard player={desk.p1} align="left" />
+        <CameraWell player={desk.p1} accent={p1} />
+        <SideCard player={desk.p1} align="left" accent={p1} />
         <div className="flex min-h-0 flex-col items-center justify-center px-1">
           {desk.eventLogo ? (
             <img src={desk.eventLogo} alt="" className="max-h-[7.4rem] max-w-full object-contain drop-shadow-[0_8px_18px_rgb(0_0_0_/_0.45)]" />
           ) : (
-            <img src="/brand/rok-mark.png" alt="" className="h-16 w-16 object-contain opacity-90" />
+            <img src={stream ? "/overlays/rok-wordmark.png" : "/brand/rok-mark.png"} alt="" className={stream ? "h-14 max-w-full object-contain" : "h-16 w-16 object-contain opacity-90"} />
           )}
           <p className="font-display mt-1.5 max-w-full truncate text-center text-[1.15rem] leading-none font-semibold tracking-[0.16em] text-ov-fg uppercase">
             {desk.roundName || "Match"}
           </p>
         </div>
-        <SideCard player={desk.p2} align="right" />
-        <CameraWell player={desk.p2} />
+        <SideCard player={desk.p2} align="right" accent={p2} />
+        <CameraWell player={desk.p2} accent={p2} />
+      </div>
+      <div className="absolute right-0 bottom-5 left-0 z-20 flex justify-center">
+        <PresentedByBar desk={desk} />
       </div>
       <WinStings desk={desk} />
     </div>

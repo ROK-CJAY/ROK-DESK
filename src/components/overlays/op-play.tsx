@@ -11,6 +11,7 @@ import {
   type PlayerSide,
 } from "@/lib/desk-types";
 import { liveSponsors } from "@/lib/sponsors";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { OV_CHROME, OV_DEEP, OV_GOLD, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
 import { WinStings } from "@/components/overlays/winner";
@@ -342,6 +343,9 @@ export function OpPlayLayout({ desk, now = Date.now(), tone = "rok" }: { desk: D
       <SideColumn desk={desk} player={desk.p1} align="left" turn={activeTurn("p1")} accent={stream ? CYAN : undefined} city={stream} />
       <SideColumn desk={desk} player={desk.p2} align="right" turn={activeTurn("p2")} accent={stream ? PINK : undefined} city={stream} />
       <SponsorRow desk={desk} />
+      <div className="absolute right-0 bottom-4 left-0 z-20 flex justify-center">
+        <PresentedByBar desk={desk} />
+      </div>
       <EventMark desk={desk} tone={tone} />
       <WinStings desk={desk} />
     </div>

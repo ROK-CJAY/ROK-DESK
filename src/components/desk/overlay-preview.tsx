@@ -19,7 +19,7 @@ import type { OverlayEdit } from "@/components/overlays/placed";
 import { Button } from "@/components/ui/button";
 import { OVERLAY_SOURCES, overlayPath, overlayWindowName, type OverlaySourceId } from "@/components/desk/sources";
 import { useDeskStore } from "@/lib/desk-store";
-import { isVgcTitle } from "@/lib/games";
+import { isPtcgTitle, isVgcTitle, supportsStreamColors } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament } from "@/lib/tournament-types";
 import { deskLaneOf } from "@/lib/desk-types";
@@ -283,7 +283,7 @@ export function OverlayPreview() {
             {supportsPlayLayout(desk) ? <option value="play">Play Layout</option> : null}
             {desk.gameId === "mtg" && !isCommanderTable(desk) ? <option value="ug">UG Layout</option> : null}
             {desk.gameId === "mtg" && !isCommanderTable(desk) ? <option value="stream">Stream Layout</option> : null}
-            {desk.gameId === "lorcana" || desk.gameId === "one-piece" ? <option value="neon">Play · Stream colors</option> : null}
+            {supportsStreamColors(desk.gameId) ? <option value="neon">Miami Vice</option> : null}
           </NativeSelect>
           {desk.scorebugStyle === "bar" || desk.scorebugStyle === "split" ? (
             <NativeSelect
@@ -295,9 +295,20 @@ export function OverlayPreview() {
             </NativeSelect>
           ) : (
             <p className="self-center text-[0.7rem] text-muted">
-              {desk.scorebugStyle === "play" ? "Play Layout" : desk.scorebugStyle === "neon" ? "Play · Stream colors" : desk.scorebugStyle === "ug" ? "UG Layout" : desk.scorebugStyle === "stream" ? "Stream Layout" : "ROK Layout"}
+              {desk.scorebugStyle === "play" ? "Play Layout" : desk.scorebugStyle === "neon" ? "Miami Vice" : desk.scorebugStyle === "ug" ? "UG Layout" : desk.scorebugStyle === "stream" ? "Stream Layout" : "ROK Layout"}
             </p>
           )}
+        </div>
+      ) : null}
+      {source === "versus" && (isPtcgTitle(desk.gameId) || isVgcTitle(desk.gameId)) ? (
+        <div className="mt-2">
+          <NativeSelect
+            value={desk.versusLook ?? "default"}
+            onChange={(e) => patch({ versusLook: e.target.value === "stream" ? "stream" : "default" })}
+          >
+            <option value="default">Versus · default</option>
+            <option value="stream">Versus · Miami Vice</option>
+          </NativeSelect>
         </div>
       ) : null}
       </div>

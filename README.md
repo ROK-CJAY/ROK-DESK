@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.4.6** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.4.7** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -329,7 +329,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.4.6** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.6) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.6). The Android APK from v1.3.1-beta is unchanged.
+1. Download **v1.4.7** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.7) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). The same tag is on [ROK-Desk-Updated](https://github.com/ROK-CJAY/ROK-Desk-Updated/releases/tag/v1.4.7). The Android APK from v1.3.1-beta is unchanged.
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -398,6 +398,14 @@ This copy also appears on Home and behind **License** in the desk header. It is 
 
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### v1.4.7 — 20 Oct 2026 · Miami Vice
+
+**Added**
+- Miami Vice is the cyan and pink layout. Lorcana, One Piece, PTCG, and VGC can use it on the play layout and on hold slates.
+- PTCG and VGC versus screens keep the default look. Versus theme can switch that screen to Miami Vice. The VGC version keeps the VGC frame.
+- Lorcana player tablets can sit side by side or stacked, head to head. Lore is one 1–20–1 bar. Player 1 is red and Player 2 is blue.
+- Magic has Play, UG, and stream layouts. Lorcana, Magic, and One Piece share the city versus screen.
 
 ### v1.4.6 — 18 Oct 2026 · Surfaces and One Piece art
 
@@ -747,4 +755,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.4.6**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.
+This build is **v1.4.7**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.

@@ -9,7 +9,7 @@ import {
   type PlayerSide,
 } from "@/lib/desk-types";
 import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk } from "@/lib/lorcana";
-import { currentSponsor } from "@/lib/sponsors";
+import { currentPresentedSponsor } from "@/lib/sponsors";
 import { OV_CHROME, OV_DEEP, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
 import { WinStings } from "@/components/overlays/winner";
@@ -24,7 +24,7 @@ const PINK = "#ff4791";
 
 type PlayTone = "rok" | "stream";
 
-function CameraWell({ player, seat, accent }: { player: PlayerSide; seat: "P1" | "P2"; accent: string }) {
+function CameraWell({ player, accent }: { player: PlayerSide; accent: string }) {
   const photo = player.photoUrl.trim();
   return (
     <div className="relative h-[30.5rem] w-full shrink-0 bg-transparent">
@@ -35,12 +35,6 @@ function CameraWell({ player, seat, accent }: { player: PlayerSide; seat: "P1" |
         className="pointer-events-none absolute inset-0"
         style={{ border: `3px solid ${accent}`, background: "transparent" }}
       />
-      <span
-        className="absolute right-2 bottom-2 font-mono text-[0.72rem] tracking-[0.18em] text-ov-fg uppercase"
-        style={{ textShadow: "0 1px 6px rgb(0 0 0 / 0.85)" }}
-      >
-        {seat}
-      </span>
     </div>
   );
 }
@@ -215,7 +209,7 @@ function Rail({
   return (
     <div className={cn("absolute inset-y-0 flex", right ? "right-0 flex-row-reverse" : "left-0")}>
       <div className="flex h-full flex-col overflow-hidden bg-transparent" style={{ width: INFO_W }}>
-        <CameraWell player={player} seat={right ? "P2" : "P1"} accent={accent ?? SILVER} />
+        <CameraWell player={player} accent={accent ?? SILVER} />
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden" style={city ? undefined : { background: RAIL_BG }}>
           {city ? (
             <>
@@ -299,7 +293,7 @@ function TopCenter({ desk, clock, tone }: { desk: DeskState; clock: string; tone
 }
 
 function PresentedBy({ desk, now }: { desk: DeskState; now: number }) {
-  const sponsor = currentSponsor(desk.sponsors, now, desk.sponsorSeconds);
+  const sponsor = currentPresentedSponsor(desk.sponsors, desk.eventLogo, now, desk.sponsorSeconds);
   if (!sponsor) return null;
   return (
     <div className="absolute right-0 bottom-4 left-0 z-10 flex justify-center">
@@ -327,7 +321,7 @@ export function LorcanaPlayLayout({ desk, now = Date.now(), tone = "rok" }: { de
       <Rail desk={desk} player={desk.p1} side="p1" accent={p1} city={tone === "stream"} />
       <Rail desk={desk} player={desk.p2} side="p2" accent={p2} city={tone === "stream"} />
       <TopCenter desk={desk} clock={clock} tone={tone} />
-      {tone === "stream" ? <PresentedBy desk={desk} now={now} /> : null}
+      {tone === "stream" || desk.eventLogo.trim() ? <PresentedBy desk={desk} now={now} /> : null}
       <WinStings desk={desk} />
     </div>
   );

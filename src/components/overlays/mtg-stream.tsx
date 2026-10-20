@@ -4,7 +4,7 @@ import { WinStings } from "@/components/overlays/winner";
 import { useCardImageSrc } from "@/components/ui/remote-art";
 import { deckColorIdentity } from "@/lib/commander-colors";
 import { formatClock, remainingSeconds, type DeskState, type PlayerSide, type SideId, type SpotlightCard } from "@/lib/desk-types";
-import { currentSponsor, type Sponsor } from "@/lib/sponsors";
+import { currentPresentedSponsor, type Sponsor } from "@/lib/sponsors";
 
 const CYAN = "#00eeff";
 const PINK = "#ff4791";
@@ -129,7 +129,7 @@ function SponsorSlot({ sponsor }: { sponsor: Sponsor | null }) {
 export function MtgStreamLayout({ desk, now = Date.now() }: { desk: DeskState; now?: number }) {
   const clock = formatClock(remainingSeconds(desk, now, desk.gameId));
   const needed = Math.max(1, Math.ceil(desk.bestOf / 2));
-  const sponsor = currentSponsor(desk.sponsors, now, desk.sponsorSeconds);
+  const sponsor = currentPresentedSponsor(desk.sponsors, desk.eventLogo, now, desk.sponsorSeconds);
   const round = roundLabel(desk.roundName);
   const played = desk.p1.score + desk.p2.score;
   const decided = desk.p1.score >= needed || desk.p2.score >= needed;

@@ -2,6 +2,7 @@ import { useCardImageSrc } from "@/components/ui/remote-art";
 import { FadeValue } from "@/components/overlays/fade-value";
 import { formatClock, remainingSeconds, emptySpotlight, type DeskState, type SideId } from "@/lib/desk-types";
 import { cn } from "@/lib/cn";
+import { PresentedByBar } from "@/components/overlays/presented-by";
 import { WinStings } from "@/components/overlays/winner";
 import { OV_CHROME, OV_DEEP, OV_GOLD, OV_LIVE, OV_RAIL } from "@/lib/overlay-look";
 
@@ -277,6 +278,9 @@ export function YgoPlayLayout({ desk, now = Date.now() }: { desk: DeskState; now
       <Rail desk={desk} side="p2" align="right" />
       <TopBar desk={desk} clock={clock} />
       <Ticker desk={desk} />
+      <div className="absolute right-0 left-0 z-20 flex justify-center" style={{ bottom: "4.1rem" }}>
+        <PresentedByBar desk={desk} />
+      </div>
       <WinStings desk={desk} />
     </div>
   );
