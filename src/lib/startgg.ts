@@ -180,7 +180,7 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
     region: "",
     twitter: twitter.replace(/^@/, ""),
     character: "",
-    stocks: 0,
+    skin: 0,
     seed: entrant.seeds?.[0]?.seedNum ?? null,
   };
 }

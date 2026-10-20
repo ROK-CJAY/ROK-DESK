@@ -57,12 +57,12 @@ function PlayerCard({
         <Field label="Character">
           <Input value={player.character} onChange={(e) => set({ character: e.target.value })} />
         </Field>
-        <Field label="Stocks">
+        <Field label="Skin">
           <Input
             type="number"
             min={0}
-            value={player.stocks}
-            onChange={(e) => set({ stocks: Number(e.target.value) || 0 })}
+            value={player.skin}
+            onChange={(e) => set({ skin: Number(e.target.value) || 0 })}
           />
         </Field>
       </div>

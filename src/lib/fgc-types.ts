@@ -9,7 +9,7 @@ export type FgcPlayer = {
   region: string;
   twitter: string;
   character: string;
-  stocks: number;
+  skin: number;
   seed: number | null;
 };
 
@@ -65,7 +65,7 @@ export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
     region: "",
     twitter: "",
     character: "",
-    stocks: 0,
+    skin: 0,
     seed: null,
     ...partial,
   };

@@ -21,9 +21,9 @@ type FgcStore = {
   clear: () => void;
 };
 
-function playerOf(raw: Partial<FgcPlayer> | null | undefined): FgcPlayer | null {
+function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
   if (!raw) return null;
-  return { ...blankPlayer(), ...raw, id: raw.id || blankPlayer().id };
+  return { ...blankPlayer(), ...raw, id: raw.id || blankPlayer().id, skin: raw.skin ?? raw.stocks ?? 0 };
 }
 
 function setOf(raw: Partial<FgcSet>): FgcSet {
