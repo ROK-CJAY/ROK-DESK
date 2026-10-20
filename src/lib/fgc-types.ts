@@ -64,7 +64,7 @@ export type FgcState = {
   assetBase: string;
   rulesets: FgcRuleset[];
   activeRulesetId: string | null;
-  library: FgcLibrary | null;
+  libraries: FgcLibrary[];
   importedAt: string | null;
 };
 
@@ -80,7 +80,7 @@ export const EMPTY_FGC: FgcState = {
   assetBase: "",
   rulesets: [],
   activeRulesetId: null,
-  library: null,
+  libraries: [],
   importedAt: null,
 };
 
@@ -173,6 +173,16 @@ export function playerLabel(player: FgcPlayer | null): string {
   const prefix = player.prefix.trim();
   if (prefix && tag) return `${prefix} | ${tag}`;
   return tag || player.realName || "TBD";
+}
+
+export function libraryFor(state: FgcState): FgcLibrary | null {
+  const game = state.event?.game.trim().toLowerCase() ?? "";
+  if (!game) return null;
+  return (
+    state.libraries.find((item) => item.game.trim().toLowerCase() === game) ??
+    state.libraries.find((item) => game.includes(item.game.trim().toLowerCase()) || item.game.trim().toLowerCase().includes(game)) ??
+    null
+  );
 }
 
 export function streamSetOf(state: FgcState): FgcSet | null {

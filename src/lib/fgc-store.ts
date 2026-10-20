@@ -2,6 +2,22 @@ import { create } from "zustand";
 import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
 
 const KEY = "rok-fgc";
+const LIBRARIES_KEY = "rok-fgc-libraries";
+
+function readLibraries(): FgcLibrary[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(LIBRARIES_KEY);
+    return raw ? (JSON.parse(raw) as FgcLibrary[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLibraries(libraries: FgcLibrary[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(LIBRARIES_KEY, JSON.stringify(libraries));
+}
 
 type FgcStore = {
   fgc: FgcState;
@@ -21,7 +37,7 @@ type FgcStore = {
   saveRuleset: (ruleset: FgcRuleset) => void;
   deleteRuleset: (id: string) => void;
   selectRuleset: (id: string | null) => void;
-  setLibrary: (library: FgcLibrary | null) => void;
+  setLibrary: (library: FgcLibrary) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
@@ -58,6 +74,7 @@ function read(): FgcState {
       sets: (parsed.sets ?? []).map(setOf),
       casters: parsed.casters?.length ? parsed.casters : EMPTY_FGC.casters,
       rulesets: parsed.rulesets ?? [],
+      libraries: readLibraries().length ? readLibraries() : parsed.libraries ?? [],
     };
   } catch {
     return EMPTY_FGC;
@@ -67,6 +84,7 @@ function read(): FgcState {
 function write(fgc: FgcState) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(fgc));
+  writeLibraries(fgc.libraries);
 }
 
 export const useFgcStore = create<FgcStore>((set, get) => ({
@@ -210,7 +228,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     set({ fgc });
   },
   setLibrary: (library) => {
-    const fgc = { ...get().fgc, library };
+    const libraries = [library, ...get().fgc.libraries.filter((item) => item.code !== library.code)];
+    const fgc = { ...get().fgc, libraries };
     write(fgc);
     set({ fgc });
   },

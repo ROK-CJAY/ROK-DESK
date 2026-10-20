@@ -7,7 +7,7 @@ import { useFgcStore } from "@/lib/fgc-store";
 
 export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
-  const library = useFgcStore((s) => s.fgc.library);
+  const libraries = useFgcStore((s) => s.fgc.libraries);
   const setLibrary = useFgcStore((s) => s.setLibrary);
   const [games, setGames] = useState<CatalogGame[]>([]);
   const [query, setQuery] = useState("");
@@ -52,7 +52,11 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {error ? <p className="text-sm text-live">{error}</p> : null}
-          {library ? <p className="mb-3 text-xs text-muted">Installed: {library.game} · {library.pack} · {library.characters.length} characters</p> : null}
+          {libraries.length ? (
+            <p className="mb-3 text-xs text-muted">
+              Saved on this desk: {libraries.map((item) => item.game).join(", ")}
+            </p>
+          ) : null}
           {selected ? (
             <ul className="divide-y divide-border">
               {selected.packs.map((pack) => (
@@ -63,7 +67,7 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                   </div>
                   <Button
                     size="sm"
-                    disabled={busy === pack.name}
+                    disabled={busy === pack.name || libraries.some((item) => item.code === selected.code && item.pack === pack.name)}
                     onClick={() => {
                       setBusy(pack.name);
                       void installLibrary(assetBase, selected, pack)
@@ -78,7 +82,11 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                     }}
                   >
                     <Download className="size-4" />
-                    {busy === pack.name ? "Loading" : "Download"}
+                    {libraries.some((item) => item.code === selected.code && item.pack === pack.name)
+                      ? "Saved"
+                      : busy === pack.name
+                        ? "Loading"
+                        : "Download"}
                   </Button>
                 </li>
               ))}

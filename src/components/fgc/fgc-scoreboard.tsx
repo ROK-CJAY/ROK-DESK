@@ -2,11 +2,11 @@ import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { blankPlayer, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
+import { blankPlayer, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
 function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
-  const characters = useFgcStore((s) => s.fgc.library?.characters ?? []);
+  const characters = useFgcStore((s) => libraryFor(s.fgc)?.characters ?? []);
   if (!characters.length) return <Input value={value} onChange={(e) => onChange(e.target.value)} />;
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm">
@@ -19,7 +19,7 @@ function CharacterField({ value, onChange }: { value: string; onChange: (charact
 }
 
 function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
-  const skins = useFgcStore((s) => s.fgc.library?.characters.find((item: { name: string }) => item.name === character)?.skins ?? 0);
+  const skins = useFgcStore((s) => libraryFor(s.fgc)?.characters.find((item) => item.name === character)?.skins ?? 0);
   if (!skins) return <Input type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
   return (
     <select value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm">
