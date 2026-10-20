@@ -4,6 +4,7 @@ import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FgcScoreboard, NewSetButton } from "@/components/fgc/fgc-scoreboard";
 import { playerLabel, streamSetOf, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { cn } from "@/lib/cn";
@@ -88,6 +89,11 @@ export function FgcApp() {
           ) : null}
 
           <div className="mt-5 border-t border-border pt-4">
+            <NewSetButton />
+            <p className="mt-2 text-xs text-muted">Or skip start.gg and type the set by hand.</p>
+          </div>
+
+          <div className="mt-5 border-t border-border pt-4">
             <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Overlay</p>
             <a
               href="/fgc/overlay/hud"
@@ -102,7 +108,9 @@ export function FgcApp() {
           </div>
         </section>
 
-        <section className="min-w-0 rounded-xl border border-border bg-surface p-4">
+        <div className="grid min-w-0 gap-4">
+          {live ? <FgcScoreboard set={live} /> : null}
+          <section className="min-w-0 rounded-xl border border-border bg-surface p-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Sets</p>
@@ -121,7 +129,7 @@ export function FgcApp() {
           {sets.length === 0 ? (
             <div className="mt-8 grid place-items-center rounded-lg border border-dashed border-border px-6 py-16 text-center text-muted">
               <Gamepad2 className="mb-3 size-6" />
-              <p>Import a start.gg event to load sets.</p>
+              <p>Import a start.gg event, or make a manual set.</p>
             </div>
           ) : (
             <ul className="mt-4 divide-y divide-border">
@@ -163,7 +171,8 @@ export function FgcApp() {
               })}
             </ul>
           )}
-        </section>
+          </section>
+        </div>
       </main>
     </div>
   );

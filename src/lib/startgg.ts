@@ -177,7 +177,10 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
     prefix: person?.prefix?.trim() || "",
     realName: person?.user?.name?.trim() || "",
     country: person?.user?.location?.country?.trim() || "",
+    region: "",
     twitter: twitter.replace(/^@/, ""),
+    character: "",
+    stocks: 0,
     seed: entrant.seeds?.[0]?.seedNum ?? null,
   };
 }
@@ -190,6 +193,9 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     group,
     round: raw.fullRoundText?.trim() || "Set",
     identifier: raw.identifier?.trim() || "",
+    bestOf: 3,
+    losers1: false,
+    losers2: false,
     state: setState(raw.state),
     winnerId: raw.winnerId == null ? null : String(raw.winnerId),
     p1: playerOf(slots[0]),

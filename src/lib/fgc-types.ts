@@ -6,7 +6,10 @@ export type FgcPlayer = {
   prefix: string;
   realName: string;
   country: string;
+  region: string;
   twitter: string;
+  character: string;
+  stocks: number;
   seed: number | null;
 };
 
@@ -16,6 +19,9 @@ export type FgcSet = {
   group: string;
   round: string;
   identifier: string;
+  bestOf: number;
+  losers1: boolean;
+  losers2: boolean;
   state: FgcSetState;
   winnerId: string | null;
   p1: FgcPlayer | null;
@@ -49,6 +55,40 @@ export const EMPTY_FGC: FgcState = {
   importedAt: null,
 };
 
+export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
+  return {
+    id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    tag: "",
+    prefix: "",
+    realName: "",
+    country: "",
+    region: "",
+    twitter: "",
+    character: "",
+    stocks: 0,
+    seed: null,
+    ...partial,
+  };
+}
+
+export function blankSet(): FgcSet {
+  return {
+    id: `manual-set-${Date.now()}`,
+    phase: "",
+    group: "",
+    round: "",
+    identifier: "",
+    bestOf: 3,
+    losers1: false,
+    losers2: false,
+    state: "live",
+    winnerId: null,
+    p1: blankPlayer(),
+    p2: blankPlayer(),
+    score1: 0,
+    score2: 0,
+  };
+}
 export function playerLabel(player: FgcPlayer | null): string {
   if (!player) return "TBD";
   const tag = player.tag.trim();
