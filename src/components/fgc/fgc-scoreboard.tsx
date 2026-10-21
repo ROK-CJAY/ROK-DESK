@@ -40,6 +40,14 @@ function Picker({
 }) {
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   return (
     <div className="relative min-w-0 flex-1">
       <button
