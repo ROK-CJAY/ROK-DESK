@@ -147,6 +147,7 @@ LoadEverything().then(() => {
       if (window.LOSERS_ONLY) containerSize = $(".losers_container").height();
 
       while (
+        size > 8 &&
         biggestRound * (2 * parseInt($(":root").css("--player-height")) + 4) >
         containerSize - 20
       ) {

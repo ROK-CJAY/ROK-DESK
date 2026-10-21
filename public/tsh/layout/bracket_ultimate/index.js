@@ -140,6 +140,7 @@ LoadEverything().then(() => {
       $(":root").css("--player-height", size);
 
       while (
+        size > 8 &&
         biggestRound * (2 * parseInt($(":root").css("--player-height")) + 2) >
         $(".winners_container").height() - 92
       ) {

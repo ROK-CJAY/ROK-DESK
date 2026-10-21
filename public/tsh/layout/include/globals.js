@@ -192,7 +192,10 @@ async function LoadEverything() {
     "socket.io.min.js",
   ];
 
-  let urlParams = new URLSearchParams(window.location.search);
+  if (tshPreviewMode()) {
+    scripts = scripts.filter((name) => !/kuroshiro|socket\.io/.test(name));
+  }
+  const urlParams = new URLSearchParams(window.location.search);
   window.scoreboardNumber = 1;
 
   /*
@@ -323,7 +326,13 @@ function RegisterFit(element) {
   }
 }
 
-var tshFitting = false;
+function tshPreviewMode() {
+  try {
+    return new URLSearchParams(window.location.search).has("preview");
+  } catch (e) {
+    return false;
+  }
+}
 
 // Scale content to fit div
 function FitText(target) {
@@ -342,7 +351,7 @@ function FitText(target) {
       textElement.html("");
     }
 
-    if (textElement[0].scrollWidth <= targetWidth + 1 && (textElement[0].style.fontSize || textElement[0].style.transform)) return;
+    if (target.data("tshFitWidth") === targetWidth && textElement.data("tshFit")) return;
 
     tshFitting = true;
     textElement.css("transform", "");
@@ -354,12 +363,15 @@ function FitText(target) {
       );
 
       let fontSize = originalFontSize;
+      let steps = 0;
 
       while (
         textElement[0].scrollWidth > targetWidth &&
-        fontSize > 1
+        fontSize > 1 &&
+        steps < 40
       ) {
-        fontSize -= 0.1;
+        fontSize -= 1;
+        steps += 1;
         textElement.css("font-size", fontSize + "px");
       }
     } else {
@@ -370,12 +382,18 @@ function FitText(target) {
         textElement.css("transform", "scaleX(" + scaleX + ")");
       }
     }
+    target.data("tshFitWidth", targetWidth);
+    textElement.data("tshFit", 1);
     requestAnimationFrame(() => { tshFitting = false; });
   });
 }
 
 // Load Kuroshiro, the Japanese transcription library
 async function LoadKuroshiro() {
+  if (tshPreviewMode() || !window.Kuroshiro || !window.KuromojiAnalyzer) return;
+  const probe = await fetch("../include/kuromoji/cc.dat.gz");
+  const type = (probe.headers.get("content-type") || "").toLowerCase();
+  if (!probe.ok || type.includes("text/html")) return;
   window.kuroshiro = new Kuroshiro.default();
   await window.kuroshiro.init(
     new KuromojiAnalyzer({
