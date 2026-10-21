@@ -109,11 +109,17 @@ export function FgcApp() {
   const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
+  const [tshLayouts, setTshLayouts] = useState<{ path: string; name: string; group: string }[]>([]);
   const savedTitle = fgc.titles.find((item) => item.id === fgc.activeTitleId) ?? null;
   const overlay = FGC_OVERLAYS.find((item) => item.id === fgc.overlay) ?? FGC_OVERLAYS[0];
-  const shown = fgc.overlay === "custom" && savedTitle ? { ...overlay, name: savedTitle.name, note: `Saved in ${savedTitle.group || "Custom"}.` } : overlay;
-  const href = overlayHref(fgc.overlay, fgc.overlay === "custom" ? fgc.activeTitleId : null);
-  const overlayValue = fgc.overlay === "custom" && savedTitle ? `title:${savedTitle.id}` : fgc.overlay;
+  const tsh = tshLayouts.find((item) => item.path === fgc.tshLayout) ?? null;
+  const shown = fgc.tshLayout
+    ? { name: tsh?.name || "TSH layout", note: "Official Tournament Stream Helper layout. It follows the live set." }
+    : fgc.overlay === "custom" && savedTitle
+      ? { ...overlay, name: savedTitle.name, note: `Saved in ${savedTitle.group || "Custom"}.` }
+      : overlay;
+  const href = fgc.tshLayout ? `/tsh/layout/${fgc.tshLayout}` : overlayHref(fgc.overlay, fgc.overlay === "custom" ? fgc.activeTitleId : null);
+  const overlayValue = fgc.tshLayout ? `tsh:${fgc.tshLayout}` : fgc.overlay === "custom" && savedTitle ? `title:${savedTitle.id}` : fgc.overlay;
   const pageUrl = `${origin}${href}`;
   const copyLink = (path: string) => {
     void navigator.clipboard.writeText(`${window.location.origin}${path}`);
@@ -123,11 +129,15 @@ export function FgcApp() {
   const browserSources = [
     ...FGC_OVERLAYS.map((item) => ({ key: item.id, name: item.name, group: item.group, path: overlayHref(item.id) })),
     ...fgc.titles.filter((item) => item.group).map((item) => ({ key: item.id, name: item.name, group: item.group, path: overlayHref("custom", item.id) })),
+    ...tshLayouts.map((item) => ({ key: item.path, name: item.name, group: item.group, path: `/tsh/layout/${item.path}` })),
   ];
 
   useEffect(() => {
     hydrate();
     setOrigin(window.location.origin);
+    void fetch("/tsh/manifest.json").then((res) => res.json()).then((rows) => {
+      if (Array.isArray(rows)) setTshLayouts(rows);
+    }).catch(() => undefined);
   }, [hydrate]);
 
   const live = streamSetOf(fgc) ?? fgc.sets[0] ?? blankSet();
@@ -162,8 +172,9 @@ export function FgcApp() {
               value={overlayValue}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value.startsWith("title:")) patch({ overlay: "custom", activeTitleId: value.slice(6) });
-                else patch({ overlay: value as typeof overlay.id });
+                if (value.startsWith("tsh:")) patch({ tshLayout: value.slice(4) });
+                else if (value.startsWith("title:")) patch({ tshLayout: null, overlay: "custom", activeTitleId: value.slice(6) });
+                else patch({ tshLayout: null, overlay: value as typeof overlay.id });
               }}
               className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm"
             >
@@ -171,6 +182,7 @@ export function FgcApp() {
                 <optgroup key={group} label={group}>
                   {FGC_OVERLAYS.filter((item) => item.group === group).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
                   {fgc.titles.filter((item) => (item.group || "Custom") === group).map((item) => <option key={item.id} value={`title:${item.id}`}>{item.name}</option>)}
+                  {tshLayouts.filter((item) => item.group === group).map((item) => <option key={item.path} value={`tsh:${item.path}`}>{item.name}</option>)}
                 </optgroup>
               ))}
             </select>
@@ -224,9 +236,13 @@ export function FgcApp() {
               <p className="text-sm text-muted">{shown.note} {fgc.event?.game ? `Live data is the ${fgc.event.game} set.` : "Import a game or enter a set by hand."}</p>
             </div>
             <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
-              <ScaleFrame>
-                <FgcOverlay source={overlay.id} titleId={overlay.id === "custom" ? savedTitle?.id ?? "" : ""} />
-              </ScaleFrame>
+              {fgc.tshLayout ? (
+                <iframe title={shown.name} src={href} className="h-full w-full border-0 bg-black" />
+              ) : (
+                <ScaleFrame>
+                  <FgcOverlay source={overlay.id} titleId={overlay.id === "custom" ? savedTitle?.id ?? "" : ""} />
+                </ScaleFrame>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted">{pageUrl}</p>
@@ -247,7 +263,7 @@ export function FgcApp() {
                 ))}
               </ul>
             </details>
-            {overlay.id === "custom" ? <FgcDesigner /> : null}
+            {overlay.id === "custom" && !fgc.tshLayout ? <FgcDesigner /> : null}
           </section>
         ) : null}
       </main>

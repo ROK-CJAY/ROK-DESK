@@ -151,6 +151,7 @@ export type FgcState = {
   overlay: FgcOverlayId;
   titles: FgcTitle[];
   activeTitleId: string | null;
+  tshLayout: string | null;
 };
 
 export const EMPTY_FGC: FgcState = {
@@ -170,6 +171,7 @@ export const EMPTY_FGC: FgcState = {
   overlay: "hud",
   titles: [],
   activeTitleId: null,
+  tshLayout: null,
 };
 
 export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {

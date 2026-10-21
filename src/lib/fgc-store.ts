@@ -158,10 +158,20 @@ function read(): FgcState {
   }
 }
 
+let publishTimer = 0;
+
 function write(fgc: FgcState) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(KEY, JSON.stringify(fgc));
   writeLibraries(fgc.libraries);
+  window.clearTimeout(publishTimer);
+  publishTimer = window.setTimeout(() => {
+    void fetch("/api/fgc/program-state", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(fgc),
+    });
+  }, 250);
 }
 
 export const useFgcStore = create<FgcStore>((set, get) => ({
