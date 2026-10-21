@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { FgcGraphic } from "@/components/fgc/fgc-graphics";
 import { activeTitle, liveSet, titleImage, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
 
 function useLiveFgc() {
@@ -18,27 +19,6 @@ function useLiveFgc() {
 
 function Plate({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`rounded-md bg-black/80 px-6 py-4 text-white shadow-lg ${className}`}>{children}</div>;
-}
-
-function Versus() {
-  const fgc = useLiveFgc();
-  const set = liveSet(fgc);
-  return (
-    <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-10 px-16 text-white">
-      <Plate>
-        <p className="font-display text-6xl font-semibold uppercase">{playerLabel(set?.p1 ?? null)}</p>
-        <p className="mt-3 font-mono text-lg tracking-wide text-white/70 uppercase">{set?.p1?.character || "Player 1"}</p>
-      </Plate>
-      <div className="text-center">
-        <p className="font-mono text-sm tracking-[0.28em] text-white/70 uppercase">{[fgc.event?.game, set?.round, set?.bestOf ? `Bo${set.bestOf}` : ""].filter(Boolean).join(" · ")}</p>
-        <p className="font-display mt-3 text-7xl font-semibold">VS</p>
-      </div>
-      <Plate className="text-right">
-        <p className="font-display text-6xl font-semibold uppercase">{playerLabel(set?.p2 ?? null)}</p>
-        <p className="mt-3 font-mono text-lg tracking-wide text-white/70 uppercase">{set?.p2?.character || "Player 2"}</p>
-      </Plate>
-    </div>
-  );
 }
 
 function Casters() {
@@ -122,7 +102,8 @@ export function CustomLayout({ editing = false }: { editing?: boolean }) {
 
 export function FgcOverlay({ source }: { source: string }) {
   const id = (source || "hud") as FgcOverlayId;
-  if (id === "versus") return <Versus />;
+  const graphic = FgcGraphic({ id });
+  if (graphic) return graphic;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;

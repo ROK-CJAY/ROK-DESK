@@ -2,13 +2,32 @@ import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, t
 
 export type { FgcOverlayId, FgcTitle, FgcTitleElement };
 
-export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string }[] = [
-  { id: "hud", name: "Scoreboard HUD", note: "Names, characters, and score along the bottom." },
-  { id: "versus", name: "Versus", note: "Full-frame match intro." },
-  { id: "casters", name: "Commentators", note: "Plates for the commentators on the desk." },
-  { id: "lower", name: "Lower third", note: "Event, players, and round in one bar." },
-  { id: "winner", name: "Winner", note: "The player who is ahead." },
-  { id: "custom", name: "Custom layout", note: "The layout you built in the designer." },
+export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group: string }[] = [
+  { id: "hud", group: "In game", name: "Scoreboard", note: "In-game names, characters, and score along the bottom." },
+  { id: "scoreboard-simple", group: "In game", name: "Scoreboard simple", note: "A thinner bottom scoreboard." },
+  { id: "scoreboard-topleft", group: "In game", name: "Scoreboard top left", note: "Compact scoreboard in the top left." },
+  { id: "scoreboard-4by3", group: "In game", name: "Scoreboard 4:3", note: "Scoreboard kept inside a 4:3 frame." },
+  { id: "versus", group: "Versus", name: "Versus", note: "Match intro. Smash, Tekken, or Pokkén is picked from the game." },
+  { id: "versus-tekken", group: "Versus", name: "Versus · Tekken", note: "Tekken versus screen." },
+  { id: "versus-pokken", group: "Versus", name: "Versus · Pokkén", note: "Pokkén versus screen." },
+  { id: "casters", group: "People", name: "Commentators", note: "Plates for the commentators on the desk." },
+  { id: "player-list", group: "People", name: "Player list", note: "Everyone in the imported bracket." },
+  { id: "character-gallery", group: "People", name: "Character gallery", note: "The downloaded character roster." },
+  { id: "character-line", group: "People", name: "Character line", note: "The characters in the live set, in a row." },
+  { id: "bracket", group: "Bracket", name: "Bracket", note: "Sets by round." },
+  { id: "bracket-ultimate", group: "Bracket", name: "Bracket · Ultimate", note: "Winners on top, losers underneath." },
+  { id: "top-8", group: "Bracket", name: "Top 8", note: "The eight players with the most wins." },
+  { id: "top-n", group: "Bracket", name: "Top list", note: "A longer standings list." },
+  { id: "last-sets", group: "Bracket", name: "Last sets", note: "The latest finished sets." },
+  { id: "recent-sets", group: "Bracket", name: "Recent sets", note: "A longer list of finished sets." },
+  { id: "tournament-history", group: "Bracket", name: "Tournament history", note: "Event, phases, and how many sets are done." },
+  { id: "stage-strike", group: "Desk", name: "Stage strike", note: "Neutrals, counterpicks, and the stage in play." },
+  { id: "stream-queue", group: "Desk", name: "Stream queue", note: "Sets marked for the stream." },
+  { id: "ruleset", group: "Desk", name: "Ruleset", note: "The saved ruleset on stream." },
+  { id: "world", group: "Desk", name: "World", note: "Players grouped by country." },
+  { id: "lower", group: "Desk", name: "Lower third", note: "Event, players, and round in one bar." },
+  { id: "winner", group: "Desk", name: "Winner", note: "The player who is ahead." },
+  { id: "custom", group: "Custom", name: "Custom layout", note: "The layout you built in the designer." },
 ];
 
 export const TITLE_BINDS = [

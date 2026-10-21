@@ -1,6 +1,31 @@
 export type FgcSetState = "pending" | "live" | "done";
 
-export type FgcOverlayId = "hud" | "versus" | "casters" | "lower" | "winner" | "custom";
+export type FgcOverlayId =
+  | "hud"
+  | "scoreboard-simple"
+  | "scoreboard-topleft"
+  | "scoreboard-4by3"
+  | "versus"
+  | "versus-tekken"
+  | "versus-pokken"
+  | "casters"
+  | "player-list"
+  | "character-gallery"
+  | "character-line"
+  | "bracket"
+  | "bracket-ultimate"
+  | "top-8"
+  | "top-n"
+  | "last-sets"
+  | "recent-sets"
+  | "tournament-history"
+  | "stage-strike"
+  | "stream-queue"
+  | "ruleset"
+  | "world"
+  | "lower"
+  | "winner"
+  | "custom";
 
 export type FgcTitleElement = {
   id: string;

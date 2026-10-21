@@ -148,7 +148,11 @@ export function FgcApp() {
               onChange={(e) => patch({ overlay: e.target.value as typeof overlay.id })}
               className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm"
             >
-              {FGC_OVERLAYS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              {[...new Set(FGC_OVERLAYS.map((item) => item.group))].map((group) => (
+                <optgroup key={group} label={group}>
+                  {FGC_OVERLAYS.filter((item) => item.group === group).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </optgroup>
+              ))}
             </select>
           </Field>
           <a href={href} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface-2 px-3 text-sm">
