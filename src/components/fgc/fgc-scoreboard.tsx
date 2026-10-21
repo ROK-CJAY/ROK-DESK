@@ -29,30 +29,82 @@ function Preview({ url, className }: { url: string; className: string }) {
   return <img src={src} alt="" className={className} />;
 }
 
+function Picker({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: { value: string; label: string; url?: string }[];
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+  return (
+    <div className="relative min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex h-10 w-full items-center gap-2 rounded-md border border-border bg-surface-2 px-2 text-left text-sm"
+      >
+        {selected?.url ? <Preview url={selected.url} className="h-7 w-7 shrink-0 rounded bg-black object-contain" /> : null}
+        <span className="min-w-0 flex-1 truncate">{selected?.label || "Select"}</span>
+      </button>
+      {open ? (
+        <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => {
+                onChange(option.value);
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+            >
+              {option.url ? <Preview url={option.url} className="h-7 w-7 shrink-0 rounded bg-black object-contain" /> : null}
+              <span className="truncate">{option.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
+  const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const characters = library?.characters ?? [];
   if (!characters.length) return <Input className="min-w-0 flex-1" value={value} onChange={(e) => onChange(e.target.value)} />;
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} className="h-10 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-3 text-sm">
-      <option value="">Character</option>
-      {characters.map((character) => (
-        <option key={character.code} value={character.name}>{character.name}</option>
-      ))}
-    </select>
+    <Picker
+      value={value}
+      onChange={onChange}
+      options={characters.map((character) => ({
+        value: character.name,
+        label: character.name,
+        url: previewUrl(assetBase, library?.code ?? "", character.code, 0),
+      }))}
+    />
   );
 }
 
 function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
-  const skins = library?.characters.find((item) => item.name === character)?.skins ?? 0;
-  if (!skins) return <Input className="min-w-0 flex-1" type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
+  const assetBase = useFgcStore((s) => s.fgc.assetBase);
+  const found = library?.characters.find((item) => item.name === character);
+  if (!found?.skins) return <Input className="min-w-0 flex-1" type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
   return (
-    <select value={value} onChange={(e) => onChange(Number(e.target.value))} className="h-10 w-16 shrink-0 rounded-md border border-border bg-surface-2 px-2 text-sm">
-      {Array.from({ length: skins }, (_, index) => (
-        <option key={index} value={index}>{index}</option>
-      ))}
-    </select>
+    <Picker
+      value={String(value)}
+      onChange={(next) => onChange(Number(next))}
+      options={Array.from({ length: found.skins }, (_, skin) => ({
+        value: String(skin),
+        label: String(skin),
+        url: previewUrl(assetBase, library?.code ?? "", found.code, skin),
+      }))}
+    />
   );
 }
 
@@ -71,11 +123,7 @@ function PlayerCard({
 }) {
   const patchPlayer = useFgcStore((s) => s.patchPlayer);
   const patchSet = useFgcStore((s) => s.patchSet);
-  const library = useFgcStore((s) => libraryFor(s.fgc));
-  const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const set = (partial: Partial<FgcPlayer>) => patchPlayer(setId, side, partial);
-  const character = library?.characters.find((item) => item.name === player.character);
-  const skins = character?.skins ?? 0;
 
   return (
     <div className="rounded-lg border border-border bg-surface-2 p-3">
@@ -113,38 +161,10 @@ function PlayerCard({
           <Input value={player.region} onChange={(e) => set({ region: e.target.value })} />
         </Field>
         <Field label="Character">
-          <div className="flex items-center gap-2">
-            <CharacterField value={player.character} onChange={(character) => set({ character })} />
-            {character ? (
-              <Preview
-                url={previewUrl(assetBase, library?.code ?? "", character.code, player.skin)}
-                className="h-10 w-10 shrink-0 rounded-md border border-border bg-black object-contain"
-              />
-            ) : null}
-          </div>
+          <CharacterField value={player.character} onChange={(character) => set({ character })} />
         </Field>
         <Field label="Skin">
-          <div className="flex items-center gap-2">
-            <SkinField character={player.character} value={player.skin} onChange={(skin) => set({ skin })} />
-            {character && skins ? (
-              <div className="flex gap-1">
-                {Array.from({ length: skins }, (_, skin) => (
-                  <button
-                    key={skin}
-                    type="button"
-                    onClick={() => set({ skin })}
-                    className={skin === player.skin ? "rounded ring-2 ring-accent" : "rounded"}
-                    aria-label={`Skin ${skin}`}
-                  >
-                    <Preview
-                      url={previewUrl(assetBase, library?.code ?? "", character.code, skin)}
-                      className="h-10 w-10 rounded border border-border bg-black object-contain"
-                    />
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <SkinField character={player.character} value={player.skin} onChange={(skin) => set({ skin })} />
         </Field>
         <Field label="Character 2">
           <Input value={player.character2} onChange={(e) => set({ character2: e.target.value })} />
