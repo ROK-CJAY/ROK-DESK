@@ -264,6 +264,8 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
     }))
     .filter((player) => player.name);
 }
+
+export async function importStartggEvent(url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Paste a start.gg event link, like start.gg/tournament/name/event/singles");
   const eventData = await startggQuery<RawEvent>(EVENT_QUERY, { slug }, "FgcEvent");
