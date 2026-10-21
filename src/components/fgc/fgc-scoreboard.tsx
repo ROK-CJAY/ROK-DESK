@@ -249,11 +249,8 @@ function PlayerCard({
         <Field label="Pronouns">
           <Input value={player.pronouns} onChange={(e) => set({ pronouns: e.target.value })} />
         </Field>
-        <Field label="Country">
-          <Input value={[player.flag, player.country].filter(Boolean).join(" ")} onChange={(e) => set({ country: e.target.value, flag: flagOf(e.target.value) })} />
-        </Field>
         <Field label="State / region">
-          <Input value={player.region} onChange={(e) => set({ region: e.target.value })} />
+          <Input value={[player.flag, player.region].filter(Boolean).join(" ")} onChange={(e) => set({ region: e.target.value.replace(/^[\u{1F1E6}-\u{1F1FF}]+\s*/u, "") })} />
         </Field>
         <Field label="Character">
           <CharacterField value={player.character} onChange={(character) => set({ character })} />

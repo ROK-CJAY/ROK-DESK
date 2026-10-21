@@ -191,7 +191,7 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
     realName: user?.name?.trim() || "",
     country,
     flag: flagOf(country),
-    region: [user?.location?.city, user?.location?.state].filter(Boolean).join(", "),
+    region: user?.location?.state?.trim() || user?.location?.city?.trim() || "",
     twitter: twitter.replace(/^@/, ""),
     pronouns: user?.genderPronoun?.trim() || "",
     character: "",
