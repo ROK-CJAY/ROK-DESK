@@ -104,47 +104,6 @@ function Picker({
     </div>
   );
 }
-  const [open, setOpen] = useState(false);
-  const selected = options.find((option) => option.value === value);
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
-  return (
-    <div className="relative min-w-0 flex-1">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="flex h-10 w-full items-center gap-2 rounded-md border border-border bg-surface-2 px-2 text-left text-sm"
-      >
-        {selected?.url ? <Preview url={selected.url} className="h-7 w-7 shrink-0 rounded bg-black object-contain" /> : null}
-        <span className="min-w-0 flex-1 truncate">{selected?.label || "Select"}</span>
-      </button>
-      {open ? (
-        <div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => {
-                onChange(option.value);
-                setOpen(false);
-              }}
-              className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-surface-2"
-            >
-              {option.url ? <Preview url={option.url} className="h-7 w-7 shrink-0 rounded bg-black object-contain" /> : null}
-              <span className="truncate">{option.label}</span>
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
