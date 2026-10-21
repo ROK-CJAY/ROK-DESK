@@ -5,11 +5,15 @@ import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { FgcScoreboard } from "@/components/fgc/fgc-scoreboard";
 import { FgcCommentary, FgcTournamentInfo, FgcBracket } from "@/components/fgc/fgc-panels";
+import { FgcDesigner } from "@/components/fgc/fgc-designer";
+import { FgcOverlay } from "@/components/fgc/fgc-overlays";
+import { ScaleFrame } from "@/components/overlays/scale-frame";
 import { FgcRulesetEditor } from "@/components/fgc/fgc-ruleset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blankSet, playerLabel, streamSetOf, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { FGC_OVERLAYS, overlayHref } from "@/lib/fgc-titles";
 import { cn } from "@/lib/cn";
 
 function stateLabel(state: FgcSet["state"]) {
@@ -102,7 +106,10 @@ export function FgcApp() {
   const clearImport = useFgcStore((s) => s.clearImport);
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
-  const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset">("scoreboard");
+  const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
+  const [copied, setCopied] = useState(false);
+  const overlay = FGC_OVERLAYS.find((item) => item.id === fgc.overlay) ?? FGC_OVERLAYS[0];
+  const href = overlayHref(overlay.id);
 
   useEffect(() => {
     hydrate();
@@ -135,15 +142,22 @@ export function FgcApp() {
           <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
             Stream set
           </Button>
-          <a
-            href="/fgc/overlay/hud"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface-2 px-3 text-sm"
-          >
+          <Field label={`Overlay${fgc.event?.game ? ` · ${fgc.event.game}` : ""}`}>
+            <select
+              value={overlay.id}
+              onChange={(e) => patch({ overlay: e.target.value as typeof overlay.id })}
+              className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm"
+            >
+              {FGC_OVERLAYS.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          </Field>
+          <a href={href} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface-2 px-3 text-sm">
             <Radio className="size-4" />
-            HUD
+            Open
           </a>
+          <Button variant="outline" onClick={() => { void navigator.clipboard.writeText(`${window.location.origin}${href}`); setCopied(true); window.setTimeout(() => setCopied(false), 1200); }}>
+            {copied ? "Copied" : "Copy link"}
+          </Button>
           {fgc.event ? (
             <a href={fgc.event.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-xs text-muted hover:text-fg">
               {fgc.event.game} · {fgc.sets.length} sets <ExternalLink className="size-3" />
@@ -160,6 +174,7 @@ export function FgcApp() {
               ["info", "Tournament info"],
               ["bracket", "Bracket"],
               ["ruleset", "Ruleset"],
+              ["overlays", "Overlays"],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -178,6 +193,20 @@ export function FgcApp() {
         {tab === "info" ? <FgcTournamentInfo /> : null}
         {tab === "bracket" ? <FgcBracket /> : null}
         {tab === "ruleset" ? <FgcRulesetEditor /> : null}
+        {tab === "overlays" ? (
+          <section className="grid gap-4 rounded-xl border border-border bg-surface p-4">
+            <div>
+              <p className="font-medium">{overlay.name}</p>
+              <p className="text-sm text-muted">{overlay.note} {fgc.event?.game ? `Live data is the ${fgc.event.game} set.` : "Import a game or enter a set by hand."}</p>
+            </div>
+            <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
+              <ScaleFrame>
+                <FgcOverlay source={overlay.id} />
+              </ScaleFrame>
+            </div>
+            {overlay.id === "custom" ? <FgcDesigner /> : null}
+          </section>
+        ) : null}
       </main>
       <SetPicker open={picker} onClose={() => setPicker(false)} />
       <FgcAssetsDialog open={assets} onClose={() => setAssets(false)} />

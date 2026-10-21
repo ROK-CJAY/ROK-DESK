@@ -1,5 +1,29 @@
 export type FgcSetState = "pending" | "live" | "done";
 
+export type FgcOverlayId = "hud" | "versus" | "casters" | "lower" | "winner" | "custom";
+
+export type FgcTitleElement = {
+  id: string;
+  kind: "text" | "rect" | "image";
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  bind: string;
+  text: string;
+  color: string;
+  bg: string;
+  size: number;
+  align: "left" | "center" | "right";
+  src: string;
+};
+
+export type FgcTitle = {
+  id: string;
+  name: string;
+  elements: FgcTitleElement[];
+};
+
 export type FgcPlayer = {
   id: string;
   profileId: string;
@@ -83,6 +107,9 @@ export type FgcState = {
   activeRulesetId: string | null;
   libraries: FgcLibrary[];
   importedAt: string | null;
+  overlay: FgcOverlayId;
+  titles: FgcTitle[];
+  activeTitleId: string | null;
 };
 
 export const EMPTY_FGC: FgcState = {
@@ -99,6 +126,9 @@ export const EMPTY_FGC: FgcState = {
   activeRulesetId: null,
   libraries: [],
   importedAt: null,
+  overlay: "hud",
+  titles: [],
+  activeTitleId: null,
 };
 
 export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
