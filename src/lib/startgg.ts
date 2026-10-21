@@ -58,7 +58,7 @@ const EVENT_QUERY = `
       id
       name
       slug
-      tournament { name slug venueAddress startAt endAt numAttendees }
+      tournament { name slug venueAddress startAt endAt numAttendees streamQueue { stream { streamName } sets { id } } }
       numEntrants
       startAt
       endAt
@@ -87,6 +87,8 @@ const SETS_QUERY = `
           identifier
           state
           winnerId
+          stream { streamName }
+          station { number }
           slots {
             standing { stats { score { value } } }
             entrant {
@@ -118,7 +120,7 @@ type RawEvent = {
     id: string;
     name: string;
     slug: string;
-    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null; rules?: string | null } | null;
+    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null; streamQueue?: { stream?: { streamName?: string | null } | null; sets?: { id: string }[] | null }[] | null } | null;
     numEntrants?: number | null;
     startAt?: number | null;
     endAt?: number | null;
@@ -148,6 +150,8 @@ type RawSet = {
   identifier?: string | null;
   state?: number | null;
   winnerId?: number | string | null;
+  stream?: { streamName?: string | null } | null;
+  station?: { number?: number | string | null } | null;
   slots?: {
     standing?: { stats?: { score?: { value?: number | null } | null } | null } | null;
     entrant?: {
@@ -210,6 +214,9 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     group,
     round: raw.fullRoundText?.trim() || "Set",
     identifier: raw.identifier?.trim() || "",
+    streamName: raw.stream?.streamName?.trim() || "",
+    station: raw.station?.number == null ? "" : String(raw.station.number),
+    queued: false,
     bestOf: 3,
     stage: "",
     losers1: false,
@@ -297,6 +304,11 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
     }
   }
 
+  const queue = event.tournament?.streamQueue;
+  const queued = (Array.isArray(queue) ? queue : queue ? [queue] : []).flatMap((item) =>
+    (item.sets ?? []).map((set) => ({ id: String(set.id), channel: item.stream?.streamName?.trim() || "" })),
+  );
+  const byId = new Map(queued.map((item) => [item.id, item.channel]));
   return {
     event: {
       id: event.id,
@@ -311,7 +323,7 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
       startAt: when(event.startAt ?? event.tournament?.startAt),
       endAt: when(event.endAt ?? event.tournament?.endAt),
     },
-    sets,
+    sets: sets.map((set) => ({ ...set, queued: byId.has(set.id), streamName: byId.get(set.id) || set.streamName })),
   };
 }
 

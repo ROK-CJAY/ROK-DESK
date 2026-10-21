@@ -32,6 +32,9 @@ export type FgcSet = {
   group: string;
   round: string;
   identifier: string;
+  streamName: string;
+  station: string;
+  queued: boolean;
   bestOf: number;
   stage: string;
   playersPerTeam: number;
@@ -119,6 +122,9 @@ export function blankSet(): FgcSet {
     group: "",
     round: "",
     identifier: "",
+    streamName: "",
+    station: "",
+    queued: false,
     bestOf: 3,
     stage: "",
     playersPerTeam: 1,

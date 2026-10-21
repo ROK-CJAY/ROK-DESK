@@ -28,13 +28,15 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   const sets = useMemo(() => {
     const needle = filter.trim().toLowerCase();
-    return fgc.sets.filter((set) => {
-      if (!completed && set.state === "done") return false;
-      if (pairs && (!set.p1?.tag || !set.p2?.tag)) return false;
-      if (!needle) return true;
-      const text = [set.phase, set.group, set.round, set.identifier, playerLabel(set.p1), playerLabel(set.p2)].join(" ").toLowerCase();
-      return text.includes(needle);
-    });
+    return fgc.sets
+      .filter((set) => {
+        if (!completed && set.state === "done") return false;
+        if (pairs && (!set.p1?.tag || !set.p2?.tag)) return false;
+        if (!needle) return true;
+        const text = [set.phase, set.group, set.round, set.identifier, set.streamName, set.station, playerLabel(set.p1), playerLabel(set.p2)].join(" ").toLowerCase();
+        return text.includes(needle);
+      })
+      .sort((a, b) => Number(b.queued) - Number(a.queued));
   }, [completed, fgc.sets, filter, pairs]);
 
   if (!open) return null;
@@ -58,6 +60,7 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
             <thead className="sticky top-0 bg-surface-2 text-muted">
               <tr>
                 <th className="px-3 py-2 font-medium">Stream</th>
+                <th className="px-3 py-2 font-medium">Channel</th>
                 <th className="px-3 py-2 font-medium">Station</th>
                 <th className="px-3 py-2 font-medium">Phase</th>
                 <th className="px-3 py-2 font-medium">Match</th>
@@ -68,8 +71,9 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
             <tbody>
               {sets.map((set) => (
                 <tr key={set.id} className={cn("cursor-pointer border-b border-border hover:bg-surface-2", picked === set.id && "bg-surface-2")} onClick={() => setPicked(set.id)} onDoubleClick={() => { selectSet(set.id); onClose(); }}>
-                  <td className="px-3 py-2"><input type="checkbox" checked={picked === set.id} readOnly /></td>
-                  <td className="px-3 py-2 text-muted">{set.identifier || "—"}</td>
+                  <td className="px-3 py-2">{set.queued ? "Queued" : ""}</td>
+                  <td className="px-3 py-2">{set.streamName || "—"}</td>
+                  <td className="px-3 py-2 text-muted">{set.station || set.identifier || "—"}</td>
                   <td className="px-3 py-2">{set.phase || "—"}</td>
                   <td className="px-3 py-2">{[set.round, set.group].filter(Boolean).join(" · ") || "—"}</td>
                   <td className="px-3 py-2">{playerLabel(set.p1)}</td>
