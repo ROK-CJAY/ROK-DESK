@@ -57,6 +57,7 @@ type FgcStore = {
   saveCaster: (caster: FgcCaster) => void;
   moveCaster: (index: number, direction: -1 | 1) => void;
   clearCaster: (id: string) => void;
+  setCasterCount: (count: number) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;

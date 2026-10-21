@@ -7,20 +7,28 @@ import { useEffect, useState } from "react";
 
 export function FgcCommentary() {
   const casters = useFgcStore((s) => s.fgc.casters);
-  const patchCaster = useFgcStore((s) => s.patchCaster);
-  const saveCaster = useFgcStore((s) => s.saveCaster);
-  const saved = useFgcStore((s) => s.casters);
-  const [note, setNote] = useState("");
+  const setCasterCount = useFgcStore((s) => s.setCasterCount);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Commentary</p>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Commentary</p>
+        <label className="flex items-center gap-2 text-sm">
+          Commentators
+          <select
+            value={casters.length}
+            onChange={(e) => setCasterCount(Number(e.target.value))}
+            className="h-9 rounded-md border border-border bg-surface-2 px-2"
+          >
+            {[1, 2, 3, 4].map((count) => <option key={count} value={count}>{count}</option>)}
+          </select>
+        </label>
+      </div>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {casters.map((caster, index) => (
           <CasterCard key={caster.id} index={index} />
         ))}
       </div>
-      {note ? <p className="mt-2 text-xs text-muted">{note}</p> : null}
     </section>
   );
 }
