@@ -67,6 +67,7 @@ import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiFgcProgramStateRouteImport } from './routes/api/fgc/program-state'
+import { Route as ApiFgcTshLayoutRouteImport } from './routes/api/fgc/tsh-layout'
 import { Route as ApiTournamentExportRouteImport } from './routes/api/tournament/export'
 import { Route as ApiTournamentOfficialPdfRouteImport } from './routes/api/tournament/official-pdf'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
@@ -365,6 +366,11 @@ const ApiFgcProgramStateRoute = ApiFgcProgramStateRouteImport.update({
   path: '/api/fgc/program-state',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFgcTshLayoutRoute = ApiFgcTshLayoutRouteImport.update({
+  id: '/api/fgc/tsh-layout',
+  path: '/api/fgc/tsh-layout',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTournamentExportRoute = ApiTournamentExportRouteImport.update({
   id: '/export',
   path: '/export',
@@ -462,6 +468,7 @@ export interface FileRoutesByFullPath {
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
+  '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -528,6 +535,7 @@ export interface FileRoutesByTo {
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
+  '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -596,6 +604,7 @@ export interface FileRoutesById {
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
+  '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -665,6 +674,7 @@ export interface FileRouteTypes {
     | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/fgc/program-state'
+    | '/api/fgc/tsh-layout'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -731,6 +741,7 @@ export interface FileRouteTypes {
     | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/fgc/program-state'
+    | '/api/fgc/tsh-layout'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -798,6 +809,7 @@ export interface FileRouteTypes {
     | '/$game/overlay/$source'
     | '/api/auth/$'
     | '/api/fgc/program-state'
+    | '/api/fgc/tsh-layout'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -845,6 +857,7 @@ export interface RootRouteChildren {
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiFgcProgramStateRoute: typeof ApiFgcProgramStateRoute
+  ApiFgcTshLayoutRoute: typeof ApiFgcTshLayoutRoute
   GameSlotOverlaySourceRoute: typeof GameSlotOverlaySourceRoute
   TshAssetsCountry_flagSplatRoute: typeof TshAssetsCountry_flagSplatRoute
 }
@@ -1257,6 +1270,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFgcProgramStateRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/fgc/tsh-layout': {
+      id: '/api/fgc/tsh-layout'
+      path: '/api/fgc/tsh-layout'
+      fullPath: '/api/fgc/tsh-layout'
+      preLoaderRoute: typeof ApiFgcTshLayoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tournament/export': {
       id: '/api/tournament/export'
       path: '/export'
@@ -1427,6 +1447,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiFgcProgramStateRoute: ApiFgcProgramStateRoute,
+  ApiFgcTshLayoutRoute: ApiFgcTshLayoutRoute,
   GameSlotOverlaySourceRoute: GameSlotOverlaySourceRoute,
   TshAssetsCountry_flagSplatRoute: TshAssetsCountry_flagSplatRoute,
 }

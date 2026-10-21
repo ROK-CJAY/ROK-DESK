@@ -1,5 +1,8 @@
 // Global variable containing current data red from out/program_state.json
 var data = {};
+document.addEventListener("DOMContentLoaded", function () {
+  if (document.body) document.body.style.opacity = "1";
+});
 function tshAsset(asset) {
   if (!asset) return "";
   if (/^(https?:|data:|\/)/.test(asset)) return asset;
@@ -238,16 +241,16 @@ async function InitAll() {
     GetLogoColors();
   }
 
+  setInterval(async () => {
+    await UpdateData();
+  }, 500);
+  await UpdateData();
+
   try {
     await LoadKuroshiro();
   } catch (e) {
     console.log(e);
   }
-
-  setInterval(async () => {
-    await UpdateData();
-  }, 500);
-  await UpdateData();
 
   // await UpdateData();
 
