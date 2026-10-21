@@ -205,46 +205,15 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   });
 }
 
-export async function stockIcons(gameId: string): Promise<Record<string, string>> {
-  if (!gameId) return {};
-  const res = await fetch("https://www.start.gg/api/-/gql", {
-    method: "POST",
-    headers: { "content-type": "application/json", origin: "https://www.start.gg", "client-version": "20" },
-    body: JSON.stringify({
-      operationName: "StockIcons",
-      variables: { id: gameId },
-      query: `query StockIcons($id: ID!) {
-        videogame(id: $id) {
-          characters { name images { url type } }
-        }
-      }`,
-    }),
-  });
-  if (!res.ok) return {};
-  const body = (await res.json()) as { data?: { videogame?: { characters?: { name?: string; images?: { url?: string; type?: string }[] }[] } } };
-  const icons: Record<string, string> = {};
-  for (const character of body.data?.videogame?.characters ?? []) {
-    const icon = character.images?.find((image) => image.type === "stockIcon")?.url;
-    if (character.name && icon) icons[character.name.toLowerCase()] = icon;
-  }
-  return icons;
-}
-
 export async function stockIconsFor(game: string, gameId?: string): Promise<Record<string, string>> {
-  if (gameId) return stockIcons(gameId);
-  const res = await fetch("https://www.start.gg/api/-/gql", {
+  const res = await fetch("/api/startgg", {
     method: "POST",
-    headers: { "content-type": "application/json", origin: "https://www.start.gg", "client-version": "20" },
-    body: JSON.stringify({
-      operationName: "GameId",
-      variables: { name: game },
-      query: `query GameId($name: String!) { videogames(query: { filter: { name: $name }, perPage: 1 }) { nodes { id } } }`,
-    }),
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ action: "icons", game, gameId }),
   });
   if (!res.ok) return {};
-  const body = (await res.json()) as { data?: { videogames?: { nodes?: { id?: string | number }[] } } };
-  const id = body.data?.videogames?.nodes?.[0]?.id;
-  return id ? stockIcons(String(id)) : {};
+  const body = (await res.json()) as { icons?: Record<string, string> };
+  return body.icons ?? {};
 }
 
 export function withIcons(characters: FgcCharacter[], icons: Record<string, string>): FgcCharacter[] {
@@ -281,7 +250,7 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
         name,
         code: typeof value === "string" ? value : value.codename || name,
       }));
-  const icons = await stockIcons(String(body.smashgg_game_id ?? ""));
+  const icons = await stockIconsFor(game.name, body.smashgg_game_id ? String(body.smashgg_game_id) : undefined);
   return {
     game: game.name,
     code: game.code,

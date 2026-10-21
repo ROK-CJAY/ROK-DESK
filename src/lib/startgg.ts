@@ -240,6 +240,30 @@ function when(value: number | null | undefined): string {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
 }
 
+export async function stockIcons(game: string, gameId?: string): Promise<Record<string, string>> {
+  let id = gameId;
+  if (!id && game) {
+    const found = await startggQuery<{ videogames?: { nodes?: { id?: string | number }[] } }>(
+      `query GameId($name: String!) { videogames(query: { filter: { name: $name }, perPage: 1 }) { nodes { id } } }`,
+      { name: game },
+      "GameId",
+    );
+    id = found.videogames?.nodes?.[0]?.id ? String(found.videogames.nodes[0].id) : "";
+  }
+  if (!id) return {};
+  const data = await startggQuery<{ videogame?: { characters?: { name?: string; images?: { url?: string; type?: string }[] }[] } }>(
+    `query StockIcons($id: ID!) { videogame(id: $id) { characters { name images { url type } } } }`,
+    { id },
+    "StockIcons",
+  );
+  const icons: Record<string, string> = {};
+  for (const character of data.videogame?.characters ?? []) {
+    const icon = character.images?.find((image) => image.type === "stockIcon")?.url;
+    if (character.name && icon) icons[character.name.toLowerCase()] = icon;
+  }
+  return icons;
+}
+
 export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; twitter: string; pronouns: string }[]> {
   const query = name.trim();
   if (query.length < 2) return [];

@@ -120,7 +120,7 @@ function CharacterField({ value, onChange }: { value: string; onChange: (charact
         .map((character) => ({
           value: character.name,
           label: character.name,
-          url: character.icon || resolvePreview(assetBase, library?.code ?? "", character.code, 0),
+          url: character.icon,
         }))}
     />
   );
