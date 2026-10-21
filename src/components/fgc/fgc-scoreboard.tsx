@@ -114,6 +114,8 @@ function StageField({ value, onChange }: { value: string; onChange: (stage: stri
       }))}
     />
   );
+}
+
 function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
