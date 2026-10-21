@@ -95,6 +95,30 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
+function TshFrame({ path }: { path: string }) {
+  const [doc, setDoc] = useState("");
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const file = `/tsh/layout/${path}`;
+    const dir = file.slice(0, file.lastIndexOf("/") + 1);
+    setDoc("");
+    setFailed(false);
+    void fetch(file)
+      .then((res) => {
+        if (!res.ok) throw new Error("missing");
+        return res.text();
+      })
+      .then((html) => {
+        const base = `<base href="${window.location.origin}${dir}">`;
+        setDoc(/<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (tag) => `${tag}${base}`) : `<head>${base}</head>${html}`);
+      })
+      .catch(() => setFailed(true));
+  }, [path]);
+  if (failed) return <p className="grid h-full place-items-center text-sm text-muted">This layout did not load.</p>;
+  if (!doc) return null;
+  return <iframe title={path} srcDoc={doc} className="h-full w-full border-0 bg-transparent" />;
+}
+
 export function FgcApp() {
   const hydrate = useFgcStore((s) => s.hydrate);
   const fgc = useFgcStore((s) => s.fgc);
@@ -237,7 +261,7 @@ export function FgcApp() {
             </div>
             <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
               {fgc.tshLayout ? (
-                <iframe title={shown.name} src={href} className="h-full w-full border-0 bg-black" />
+                <TshFrame path={fgc.tshLayout} />
               ) : (
                 <ScaleFrame>
                   <FgcOverlay source={overlay.id} titleId={overlay.id === "custom" ? savedTitle?.id ?? "" : ""} />
