@@ -52,7 +52,7 @@ function CasterCard({ index }: { index: number }) {
   }, [query]);
   if (!caster) return null;
   const suggestions = [
-    ...saved.filter((item) => item.name.toLowerCase().includes(query.toLowerCase())).map((item) => ({ ...item, source: "Saved" })),
+    ...saved.filter((item) => item.name.toLowerCase().includes(query.toLowerCase())).map((item) => ({ ...item, realName: "", photo: "", source: "Saved" })),
     ...matches.map((item) => ({ ...item, source: "start.gg" })),
   ].slice(0, 8);
 
