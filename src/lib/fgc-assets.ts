@@ -246,11 +246,15 @@ export async function stockIconsFor(game: string, gameId?: string): Promise<Reco
   const id = body.data?.videogames?.nodes?.[0]?.id;
   return id ? stockIcons(String(id)) : {};
 }
+
+export function withIcons(characters: FgcCharacter[], icons: Record<string, string>): FgcCharacter[] {
   return characters.map((character) => ({
     ...character,
     icon: icons[character.name.toLowerCase()] || character.icon,
   }));
 }
+
+export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
   const root = base.trim().replace(/\/$/, "");
   const configUrl = root
     ? `${root}/games/${game.code}/library.json`
