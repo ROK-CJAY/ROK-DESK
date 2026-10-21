@@ -174,16 +174,42 @@ function PlayerCard({
           <Input value={player.prefix} onChange={(e) => set({ prefix: e.target.value })} />
         </Field>
         <Field label="Tag">
-          <Input
-            value={player.tag}
-            onChange={(e) => set({ tag: e.target.value })}
-            onBlur={() => {
-              const match =
-                (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
-                saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
-              if (match) set(match);
-            }}
-          />
+          <div className="relative">
+            <Input
+              value={player.tag}
+              onChange={(e) => set({ tag: e.target.value })}
+              onBlur={() => {
+                window.setTimeout(() => setSavedNote(""), 150);
+                const match =
+                  (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
+                  saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
+                if (match) set(match);
+              }}
+              onFocus={() => setSavedNote("open")}
+            />
+            {savedNote === "open" && player.tag.trim() ? (
+              <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
+                {saved
+                  .filter((item) => item.tag.toLowerCase().includes(player.tag.trim().toLowerCase()))
+                  .slice(0, 8)
+                  .map((item) => (
+                    <button
+                      key={item.profileId || item.tag}
+                      type="button"
+                      className="block w-full px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        set(item);
+                        setSavedNote("");
+                      }}
+                    >
+                      {item.tag}
+                      {item.character ? <span className="ml-2 text-muted">{item.character}</span> : null}
+                    </button>
+                  ))}
+              </div>
+            ) : null}
+          </div>
         </Field>
         <Field label="Real name">
           <Input value={player.realName} onChange={(e) => set({ realName: e.target.value })} />

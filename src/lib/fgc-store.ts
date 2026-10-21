@@ -60,7 +60,31 @@ type FgcStore = {
   clear: () => void;
 };
 
-function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer | null {
+function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]): SavedPlayer[] {
+  const next = [...existing];
+  for (const player of incoming) {
+    if (!player?.tag && !player?.profileId) continue;
+    const known = next.some((item) =>
+      player.profileId ? item.profileId === player.profileId : item.tag.toLowerCase() === player.tag.trim().toLowerCase(),
+    );
+    if (known) continue;
+    next.unshift({
+      profileId: player.profileId,
+      tag: player.tag.trim(),
+      prefix: player.prefix,
+      realName: player.realName,
+      country: player.country,
+      region: player.region,
+      twitter: player.twitter,
+      pronouns: player.pronouns,
+      character: player.character,
+      skin: player.skin,
+      character2: player.character2,
+      skin2: player.skin2,
+    });
+  }
+  return next;
+}
   if (!player) return player;
   const match =
     (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
@@ -168,19 +192,23 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       }
       if (!res.ok || !body.event || !body.sets) throw new Error(body.error || "Import failed");
       const live = body.sets.find((set) => set.state === "live");
+      const players = rememberPlayers(get().players, body.sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
+      writeJson(PLAYERS_KEY, players);
       const fgc: FgcState = {
         ...get().fgc,
         event: body.event,
         sets: body.sets.map((set) => ({
           ...set,
-          p1: applySaved(set.p1, get().players),
-          p2: applySaved(set.p2, get().players),
+          p1: applySaved(set.p1, players),
+          p2: applySaved(set.p2, players),
+          p1b: applySaved(set.p1b, players),
+          p2b: applySaved(set.p2b, players),
         })),
         streamSetId: live?.id ?? get().fgc.streamSetId,
         importedAt: new Date().toISOString(),
       };
       write(fgc);
-      set({ fgc, importing: false });
+      set({ fgc, players, importing: false });
     } catch (err) {
       set({ importing: false, error: err instanceof Error ? err.message : "Import failed" });
     }
