@@ -121,7 +121,7 @@ export function FgcDesigner() {
       <div className="grid gap-3 xl:grid-cols-[1fr_20rem]">
         <div
           ref={frame}
-          className="relative aspect-video overflow-hidden rounded-lg border border-border bg-[linear-gradient(45deg,#1a1a1a_25%,#111_25%,#111_50%,#1a1a1a_50%,#1a1a1a_75%,#111_75%)] bg-[length:24px_24px] [container-type:inline-size]"
+          className="relative aspect-video overflow-hidden border border-border bg-[linear-gradient(45deg,#1a1a1a_25%,#111_25%,#111_50%,#1a1a1a_50%,#1a1a1a_75%,#111_75%)] bg-[length:24px_24px] [container-type:inline-size]"
           onPointerDown={drawNew}
           onPointerMove={(event) => setCursor(point(event))}
         >

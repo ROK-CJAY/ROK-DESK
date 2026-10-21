@@ -1,4 +1,4 @@
-import type { Layer, Psd } from "ag-psd";
+import type { BezierPath, Layer, LayerMaskData, LayerVectorMask, Psd } from "ag-psd";
 import { saveTitleImage } from "@/lib/fgc-assets";
 import type { FgcTitle, FgcTitleElement, FgcTitleLayer } from "@/lib/fgc-types";
 import { blankElement } from "@/lib/fgc-titles";
@@ -22,6 +22,8 @@ const BLEND: Record<string, string> = {
   color: "color",
   luminosity: "luminosity",
 };
+
+type Clip = { canvas: HTMLCanvasElement; x: number; y: number; invert?: boolean };
 
 function uid(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -47,50 +49,131 @@ function canvasBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), "image/png"));
 }
 
-function layerCanvas(layer: Layer): HTMLCanvasElement | null {
-  if (!layer.canvas || layer.canvas.width < 1 || layer.canvas.height < 1) return null;
-  const mask = layer.mask?.canvas;
-  if (!mask || layer.mask?.disabled || mask.width < 1 || mask.height < 1) return layer.canvas;
+function drawPath(ctx: CanvasRenderingContext2D, path: BezierPath) {
+  if (path.open || path.knots.length < 2) return;
+  const anchor = (index: number) => ({ x: path.knots[index].points[2], y: path.knots[index].points[3] });
+  const leave = (index: number) => ({ x: path.knots[index].points[4], y: path.knots[index].points[5] });
+  const enter = (index: number) => ({ x: path.knots[index].points[0], y: path.knots[index].points[1] });
+  ctx.beginPath();
+  const start = anchor(0);
+  ctx.moveTo(start.x, start.y);
+  for (let index = 0; index < path.knots.length; index += 1) {
+    const next = (index + 1) % path.knots.length;
+    const c1 = leave(index);
+    const c2 = enter(next);
+    const point = anchor(next);
+    ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, point.x, point.y);
+  }
+  ctx.closePath();
+}
+
+function rasterVectorMask(mask: LayerVectorMask, width: number, height: number): HTMLCanvasElement | null {
+  if (mask.disable || !mask.paths?.length || width < 1 || height < 1) return null;
   const canvas = document.createElement("canvas");
-  canvas.width = layer.canvas.width;
-  canvas.height = layer.canvas.height;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return layer.canvas;
-  ctx.drawImage(layer.canvas, 0, 0);
-  ctx.globalCompositeOperation = "destination-in";
-  ctx.drawImage(mask, (layer.mask?.left ?? layer.left ?? 0) - (layer.left ?? 0), (layer.mask?.top ?? layer.top ?? 0) - (layer.top ?? 0));
+  if (!ctx) return null;
+  if (mask.fillStartsWithAllPixels) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, width, height);
+  }
+  for (const path of mask.paths) {
+    const operation = path.operation || "combine";
+    ctx.globalCompositeOperation = operation === "subtract" || operation === "exclude" ? "destination-out" : operation === "intersect" ? "destination-in" : "source-over";
+    ctx.fillStyle = "#fff";
+    drawPath(ctx, path);
+    ctx.fill(path.fillRule === "even-odd" ? "evenodd" : "nonzero");
+  }
   return canvas;
 }
 
-function clipOnto(base: HTMLCanvasElement, bx: number, by: number, over: HTMLCanvasElement, ox: number, oy: number, opacity: number) {
-  const left = Math.min(bx, ox);
-  const top = Math.min(by, oy);
+function rasterLayerMask(mask: LayerMaskData, width: number, height: number, layer: Layer): HTMLCanvasElement | null {
+  if (mask.disabled || !mask.canvas || width < 1 || height < 1) return null;
   const canvas = document.createElement("canvas");
-  canvas.width = Math.max(bx + base.width, ox + over.width) - left;
-  canvas.height = Math.max(by + base.height, oy + over.height) - top;
+  canvas.width = width;
+  canvas.height = height;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return { canvas: base, x: bx, y: by };
-  ctx.drawImage(base, bx - left, by - top);
-  ctx.globalCompositeOperation = "source-atop";
-  ctx.globalAlpha = opacity;
-  ctx.drawImage(over, ox - left, oy - top);
-  return { canvas, x: left, y: top };
+  if (!ctx) return null;
+  if ((mask.defaultColor ?? 0) > 0) {
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, width, height);
+  }
+  const originX = mask.positionRelativeToLayer ? (layer.left ?? 0) : 0;
+  const originY = mask.positionRelativeToLayer ? (layer.top ?? 0) : 0;
+  ctx.drawImage(mask.canvas, (mask.left ?? 0) + originX, (mask.top ?? 0) + originY);
+  return canvas;
 }
 
-async function objectsFrom(layer: Layer, layerId: string, scaleX: number, scaleY: number, opacity: number, canvas = layerCanvas(layer)): Promise<FgcTitleElement[]> {
-  const left = layer.left ?? layer.text?.left ?? 0;
-  const top = layer.top ?? layer.text?.top ?? 0;
-  const right = layer.right ?? layer.text?.right ?? left;
-  const bottom = layer.bottom ?? layer.text?.bottom ?? top;
-  const width = Math.round((right - left) * scaleX);
-  const height = Math.round((bottom - top) * scaleY);
-  if (width < 1 || height < 1) return [];
+function masksOf(layer: Layer, width: number, height: number): Clip[] {
+  const clips: Clip[] = [];
+  if (layer.mask) {
+    const canvas = rasterLayerMask(layer.mask, width, height, layer);
+    if (canvas) clips.push({ canvas, x: 0, y: 0 });
+  }
+  if (layer.vectorMask) {
+    const canvas = rasterVectorMask(layer.vectorMask, width, height);
+    if (canvas) clips.push({ canvas, x: 0, y: 0, invert: layer.vectorMask.invert });
+  }
+  return clips;
+}
+
+function crop(canvas: HTMLCanvasElement, x: number, y: number) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx || canvas.width < 1 || canvas.height < 1) return { canvas, x, y };
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  let minX = canvas.width;
+  let minY = canvas.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let index = 3; index < data.length; index += 4) {
+    if (data[index] < 2) continue;
+    const pixel = (index - 3) / 4;
+    const px = pixel % canvas.width;
+    const py = Math.floor(pixel / canvas.width);
+    if (px < minX) minX = px;
+    if (py < minY) minY = py;
+    if (px > maxX) maxX = px;
+    if (py > maxY) maxY = py;
+  }
+  if (maxX < minX) return null;
+  const w = maxX - minX + 1;
+  const h = maxY - minY + 1;
+  if (w === canvas.width && h === canvas.height) return { canvas, x, y };
+  const next = document.createElement("canvas");
+  next.width = w;
+  next.height = h;
+  next.getContext("2d")?.drawImage(canvas, minX, minY, w, h, 0, 0, w, h);
+  return { canvas: next, x: x + minX, y: y + minY };
+}
+
+function clipCanvas(source: HTMLCanvasElement, x: number, y: number, clips: Clip[]) {
+  if (!clips.length) return { canvas: source, x, y };
+  const canvas = document.createElement("canvas");
+  canvas.width = source.width;
+  canvas.height = source.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { canvas: source, x, y };
+  ctx.drawImage(source, 0, 0);
+  for (const clip of clips) {
+    ctx.globalCompositeOperation = clip.invert ? "destination-out" : "destination-in";
+    ctx.drawImage(clip.canvas, clip.x - x, clip.y - y);
+  }
+  return crop(canvas, x, y);
+}
+
+async function objectsFrom(layer: Layer, layerId: string, scaleX: number, scaleY: number, opacity: number, canvas: HTMLCanvasElement | null, at: { x: number; y: number }): Promise<FgcTitleElement[]> {
+  const width = canvas ? canvas.width : Math.max(0, (layer.right ?? 0) - (layer.left ?? 0));
+  const height = canvas ? canvas.height : Math.max(0, (layer.bottom ?? 0) - (layer.top ?? 0));
+  const boxW = Math.round(width * scaleX);
+  const boxH = Math.round(height * scaleY);
+  if (boxW < 1 || boxH < 1) return [];
   const created: FgcTitleElement[] = [];
   const shared = {
-    x: Math.round(left * scaleX),
-    y: Math.round(top * scaleY),
-    w: width,
-    h: height,
+    x: Math.round(at.x * scaleX),
+    y: Math.round(at.y * scaleY),
+    w: boxW,
+    h: boxH,
     locked: !!layer.protected?.position,
     opacity: Math.max(0, Math.min(1, (layer.opacity ?? 1) * opacity)),
     blend: BLEND[layer.blendMode || ""] || "",
@@ -112,7 +195,7 @@ async function objectsFrom(layer: Layer, layerId: string, scaleX: number, scaleY
       bind: "",
       text: layer.text.text,
       blend: "",
-      size: Math.max(8, Math.round((layer.text.style?.fontSize || height) * scaleY)),
+      size: Math.max(8, Math.round((layer.text.style?.fontSize || boxH) * scaleY)),
       color: colorOf(layer.text.style?.fillColor as { r?: number; g?: number; b?: number } | undefined),
       align: alignOf(layer.text.paragraphStyle?.justification),
       bg: "transparent",
@@ -123,42 +206,34 @@ async function objectsFrom(layer: Layer, layerId: string, scaleX: number, scaleY
 }
 
 export async function titleFromPsd(psd: Psd, name: string): Promise<FgcTitle> {
-  const scaleX = psd.width ? 1920 / psd.width : 1;
-  const scaleY = psd.height ? 1080 / psd.height : 1;
+  const docW = psd.width || 1920;
+  const docH = psd.height || 1080;
+  const scaleX = docW ? 1920 / docW : 1;
+  const scaleY = docH ? 1080 / docH : 1;
   const buckets: { layer: FgcTitleLayer; elements: FgcTitleElement[] }[] = [];
 
-  const placeLeaves = async (leaves: Layer[], group: FgcTitleLayer, parentOpacity: number) => {
+  const placeLeaves = async (leaves: Layer[], group: FgcTitleLayer, parentOpacity: number, clips: Clip[], clipBase: Clip | null) => {
     const elements: FgcTitleElement[] = [];
-    let base: { element: FgcTitleElement; canvas: HTMLCanvasElement; x: number; y: number } | null = null;
     for (const leaf of leaves) {
-      const pixels = layerCanvas(leaf);
-      if (leaf.clipping && base && pixels) {
-        const next = clipOnto(base.canvas, base.x, base.y, pixels, leaf.left ?? 0, leaf.top ?? 0, leaf.opacity ?? 1);
-        const blob = await canvasBlob(next.canvas);
-        if (blob) {
-          base.canvas = next.canvas;
-          base.x = next.x;
-          base.y = next.y;
-          base.element.x = Math.round(next.x * scaleX);
-          base.element.y = Math.round(next.y * scaleY);
-          base.element.w = Math.max(1, Math.round(next.canvas.width * scaleX));
-          base.element.h = Math.max(1, Math.round(next.canvas.height * scaleY));
-          await saveTitleImage(base.element.imageKey, blob);
-        }
-        continue;
-      }
-      const made = await objectsFrom(leaf, group.id, scaleX, scaleY, parentOpacity, pixels);
+      const raw = leaf.canvas && leaf.canvas.width > 0 && leaf.canvas.height > 0 ? leaf.canvas : null;
+      const own = masksOf(leaf, docW, docH);
+      const leafClips = leaf.clipping && clipBase ? [...clips, ...own, clipBase] : [...clips, ...own];
+      const placed = raw ? clipCanvas(raw, leaf.left ?? 0, leaf.top ?? 0, leafClips) : null;
+      const made = await objectsFrom(leaf, group.id, scaleX, scaleY, parentOpacity, placed?.canvas ?? null, { x: placed?.x ?? leaf.left ?? 0, y: placed?.y ?? leaf.top ?? 0 });
       elements.push(...made);
-      const image = [...made].reverse().find((item) => item.kind === "image" && item.imageKey);
-      base = image && pixels ? { element: image, canvas: pixels, x: leaf.left ?? 0, y: leaf.top ?? 0 } : null;
+      if (!leaf.clipping && placed) clipBase = { canvas: placed.canvas, x: placed.x, y: placed.y };
+      else if (!leaf.clipping) clipBase = null;
     }
     if (elements.length) buckets.push({ layer: group, elements });
+    return clipBase;
   };
 
-  const append = async (layer: Layer, parentOpacity: number) => {
+  const append = async (layer: Layer, parentOpacity: number, clips: Clip[]) => {
     const opacity = (layer.opacity ?? 1) * parentOpacity;
+    const nextClips = [...clips, ...masksOf(layer, docW, docH)];
     if (layer.children?.length) {
       let pending: Layer[] = [];
+      let clipBase: Clip | null = null;
       const flush = async () => {
         if (!pending.length) return;
         const group: FgcTitleLayer = {
@@ -169,14 +244,16 @@ export async function titleFromPsd(psd: Psd, name: string): Promise<FgcTitle> {
         };
         const leaves = pending;
         pending = [];
-        await placeLeaves(leaves, group, opacity);
+        const before = buckets.length;
+        clipBase = await placeLeaves(leaves, group, opacity, nextClips, clipBase);
         const last = buckets[buckets.length - 1];
-        if (last?.layer.id === group.id && layer.hidden) last.elements.forEach((item) => { item.visible = false; });
+        if (last && buckets.length > before && layer.hidden) last.elements.forEach((item) => { item.visible = false; });
       };
       for (const child of layer.children) {
         if (child.children?.length) {
           await flush();
-          await append(child, opacity);
+          await append(child, opacity, child.clipping && clipBase ? [...nextClips, clipBase] : nextClips);
+          if (!child.clipping) clipBase = null;
         } else pending.push(child);
       }
       await flush();
@@ -188,10 +265,10 @@ export async function titleFromPsd(psd: Psd, name: string): Promise<FgcTitle> {
       visible: !layer.hidden,
       locked: !!layer.protected?.position,
     };
-    await placeLeaves([layer], group, parentOpacity);
+    await placeLeaves([layer], group, parentOpacity, clips, null);
   };
 
-  for (const layer of psd.children ?? []) await append(layer, 1);
+  for (const layer of psd.children ?? []) await append(layer, 1, []);
 
   if (!buckets.some((bucket) => bucket.elements.length)) throw new Error("That PSD has no visible layers to import.");
   return {
