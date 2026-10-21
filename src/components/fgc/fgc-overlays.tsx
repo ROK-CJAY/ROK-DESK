@@ -3,7 +3,7 @@ import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
-import { activeTitle, liveSet, titleImage, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
+import { activeTitle, liveSet, titleImage, titleStack, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
 
 function useLiveFgc() {
   const hydrate = useFgcStore((s) => s.hydrate);
@@ -71,7 +71,7 @@ export function CustomLayout({ editing = false }: { editing?: boolean }) {
   const title = activeTitle(fgc);
   return (
     <div className="relative h-full w-full">
-      {title.elements.map((element) => (
+      {titleStack(title).map((element) => (
         <div
           key={element.id}
           className="absolute overflow-hidden"
@@ -86,6 +86,7 @@ export function CustomLayout({ editing = false }: { editing?: boolean }) {
             textAlign: element.align,
             lineHeight: 1.1,
             fontWeight: 650,
+            opacity: element.opacity,
             outline: editing ? "1px dashed rgba(255,255,255,0.35)" : undefined,
           }}
         >

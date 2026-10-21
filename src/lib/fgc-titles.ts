@@ -1,6 +1,6 @@
-import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-types";
+import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
-export type { FgcOverlayId, FgcTitle, FgcTitleElement };
+export type { FgcOverlayId, FgcTitle, FgcTitleElement, FgcTitleLayer };
 
 export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group: string }[] = [
   { id: "hud", group: "In game", name: "Scoreboard", note: "In-game names, characters, and score along the bottom." },
@@ -66,15 +66,24 @@ export const TITLE_BINDS = [
   { id: "p2.icon", label: "P2 character icon" },
 ];
 
-export function blankElement(kind: FgcTitleElement["kind"]): FgcTitleElement {
+export function blankLayer(): FgcTitleLayer {
+  return { id: `layer-${Date.now()}`, name: "Layer", visible: true, locked: false };
+}
+
+export function blankElement(kind: FgcTitleElement["kind"], layer = "layer-1"): FgcTitleElement {
   return {
     id: `el-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     kind,
+    name: kind === "text" ? "Text" : kind === "image" ? "Image" : "Rectangle",
+    layer,
+    visible: true,
+    locked: false,
+    opacity: 1,
     x: 120,
     y: 120,
     w: kind === "text" ? 480 : 240,
     h: kind === "text" ? 80 : 140,
-    bind: kind === "text" ? "p1.name" : kind === "image" ? "event.icon" : "",
+    bind: kind === "text" ? "p1.name" : kind === "image" ? "" : "",
     text: kind === "text" ? "Text" : "",
     color: "#ffffff",
     bg: kind === "rect" ? "#111111" : "transparent",
@@ -84,10 +93,35 @@ export function blankElement(kind: FgcTitleElement["kind"]): FgcTitleElement {
   };
 }
 
+export function normalizeTitle(title: FgcTitle): FgcTitle {
+  const rawLayers = title.layers?.length ? title.layers : [{ id: "layer-1", name: "Layer 1", visible: true, locked: false }];
+  return {
+    ...title,
+    layers: rawLayers,
+    elements: (title.elements ?? []).map((element) => ({
+      ...blankElement(element.kind || "text", rawLayers[0].id),
+      ...element,
+      name: element.name || (element.kind === "text" ? "Text" : element.kind === "image" ? "Image" : "Rectangle"),
+      layer: element.layer || rawLayers[0].id,
+      visible: element.visible !== false,
+      locked: !!element.locked,
+      opacity: typeof element.opacity === "number" ? element.opacity : 1,
+    })),
+  };
+}
+
+export function titleStack(title: FgcTitle): FgcTitleElement[] {
+  const normalized = normalizeTitle(title);
+  return normalized.layers.flatMap((layer) =>
+    layer.visible ? normalized.elements.filter((element) => element.layer === layer.id && element.visible) : [],
+  );
+}
+
 export function starterTitle(): FgcTitle {
   return {
     id: "scorebug",
     name: "Scorebug",
+    layers: [{ id: "layer-1", name: "Layer 1", visible: true, locked: false }],
     elements: [
       { ...blankElement("rect"), id: "bar", x: 80, y: 900, w: 1760, h: 120, bg: "#111111" },
       { ...blankElement("text"), id: "p1", x: 110, y: 918, w: 620, h: 84, bind: "p1.name", align: "left", size: 46 },
@@ -149,7 +183,7 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
 }
 
 export function activeTitle(fgc: FgcState): FgcTitle {
-  return fgc.titles.find((item) => item.id === fgc.activeTitleId) ?? fgc.titles[0] ?? starterTitle();
+  return normalizeTitle(fgc.titles.find((item) => item.id === fgc.activeTitleId) ?? fgc.titles[0] ?? starterTitle());
 }
 
 export function liveSet(fgc: FgcState): FgcSet | null {

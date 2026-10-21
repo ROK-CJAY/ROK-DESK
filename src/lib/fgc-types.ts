@@ -28,9 +28,21 @@ export type FgcOverlayId =
   | "winner"
   | "custom";
 
+export type FgcTitleLayer = {
+  id: string;
+  name: string;
+  visible: boolean;
+  locked: boolean;
+};
+
 export type FgcTitleElement = {
   id: string;
   kind: "text" | "rect" | "image";
+  name: string;
+  layer: string;
+  visible: boolean;
+  locked: boolean;
+  opacity: number;
   x: number;
   y: number;
   w: number;
@@ -47,6 +59,7 @@ export type FgcTitleElement = {
 export type FgcTitle = {
   id: string;
   name: string;
+  layers: FgcTitleLayer[];
   elements: FgcTitleElement[];
 };
 
