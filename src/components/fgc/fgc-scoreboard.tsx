@@ -123,7 +123,11 @@ function PlayerCard({
 }) {
   const patchPlayer = useFgcStore((s) => s.patchPlayer);
   const patchSet = useFgcStore((s) => s.patchSet);
+  const savePlayer = useFgcStore((s) => s.savePlayer);
+  const saved = useFgcStore((s) => s.players);
+  const [savedNote, setSavedNote] = useState("");
   const set = (partial: Partial<FgcPlayer>) => patchPlayer(setId, side, partial);
+  const matches = saved.filter((item) => player.tag && item.tag.toLowerCase().includes(player.tag.toLowerCase()));
 
   return (
     <div className="rounded-lg border border-border bg-surface-2 p-3">
@@ -143,7 +147,29 @@ function PlayerCard({
           <Input value={player.prefix} onChange={(e) => set({ prefix: e.target.value })} />
         </Field>
         <Field label="Tag">
-          <Input value={player.tag} onChange={(e) => set({ tag: e.target.value })} />
+          <Input
+            value={player.tag}
+            onChange={(e) => set({ tag: e.target.value })}
+            onBlur={() => {
+              const match = saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
+              if (match && !player.character) set(match);
+            }}
+            list={`saved-players-${side}`}
+          />
+          <datalist id={`saved-players-${side}`}>
+            {saved.map((item) => (
+              <option key={item.tag} value={item.tag} />
+            ))}
+          </datalist>
+          {matches.length && !matches.some((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase()) ? (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {matches.slice(0, 4).map((item) => (
+                <button key={item.tag} type="button" className="rounded border border-border px-2 py-0.5 text-xs" onClick={() => set(item)}>
+                  {item.tag}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </Field>
         <Field label="Real name">
           <Input value={player.realName} onChange={(e) => set({ realName: e.target.value })} />
@@ -178,9 +204,37 @@ function PlayerCard({
           />
         </Field>
       </div>
-      <Button className="mt-3" size="sm" variant="outline" onClick={() => patchSet(setId, { [side]: blankPlayer() })}>
-        Clear player
-      </Button>
+      <div className="mt-3 flex items-center gap-2">
+        <Button
+          size="sm"
+          onClick={() => {
+            savePlayer(player);
+            setSavedNote("Saved");
+          }}
+          disabled={!player.tag.trim()}
+        >
+          Save player
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => patchSet(setId, { [side]: blankPlayer() })}>
+          Clear player
+        </Button>
+        {saved.length ? (
+          <select
+            className="h-9 rounded-md border border-border bg-surface px-2 text-sm"
+            value=""
+            onChange={(e) => {
+              const found = saved.find((item) => item.tag === e.target.value);
+              if (found) set(found);
+            }}
+          >
+            <option value="">Load saved</option>
+            {saved.map((item) => (
+              <option key={item.tag} value={item.tag}>{item.tag}</option>
+            ))}
+          </select>
+        ) : null}
+        {savedNote ? <span className="text-xs text-muted">{savedNote}</span> : null}
+      </div>
     </div>
   );
 }

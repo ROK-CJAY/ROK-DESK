@@ -1,11 +1,16 @@
 import { Field } from "@/components/desk/field";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { useState } from "react";
 
 export function FgcCommentary() {
   const casters = useFgcStore((s) => s.fgc.casters);
   const patchCaster = useFgcStore((s) => s.patchCaster);
+  const saveCaster = useFgcStore((s) => s.saveCaster);
+  const saved = useFgcStore((s) => s.casters);
+  const [note, setNote] = useState("");
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
@@ -15,7 +20,12 @@ export function FgcCommentary() {
           <div key={caster.id} className="grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
             <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Caster {index + 1}</p>
             <Field label="Name">
-              <Input value={caster.name} onChange={(e) => patchCaster(caster.id, { name: e.target.value })} />
+              <Input value={caster.name} onChange={(e) => patchCaster(caster.id, { name: e.target.value })} list="saved-casters" />
+              <datalist id="saved-casters">
+                {saved.map((item) => (
+                  <option key={item.name} value={item.name} />
+                ))}
+              </datalist>
             </Field>
             <Field label="Twitter">
               <Input value={caster.twitter} onChange={(e) => patchCaster(caster.id, { twitter: e.target.value.replace(/^@/, "") })} />
@@ -23,9 +33,37 @@ export function FgcCommentary() {
             <Field label="Pronouns">
               <Input value={caster.pronouns} onChange={(e) => patchCaster(caster.id, { pronouns: e.target.value })} />
             </Field>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                disabled={!caster.name.trim()}
+                onClick={() => {
+                  saveCaster(caster);
+                  setNote("Saved");
+                }}
+              >
+                Save commentator
+              </Button>
+              {saved.length ? (
+                <select
+                  className="h-9 rounded-md border border-border bg-surface px-2 text-sm"
+                  value=""
+                  onChange={(e) => {
+                    const found = saved.find((item) => item.name === e.target.value);
+                    if (found) patchCaster(caster.id, found);
+                  }}
+                >
+                  <option value="">Load saved</option>
+                  {saved.map((item) => (
+                    <option key={item.name} value={item.name}>{item.name}</option>
+                  ))}
+                </select>
+              ) : null}
+            </div>
           </div>
         ))}
       </div>
+      {note ? <p className="mt-2 text-xs text-muted">{note}</p> : null}
     </section>
   );
 }

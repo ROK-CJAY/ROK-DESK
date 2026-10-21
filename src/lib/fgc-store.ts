@@ -3,24 +3,39 @@ import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type Fg
 
 const KEY = "rok-fgc";
 const LIBRARIES_KEY = "rok-fgc-libraries";
+const PLAYERS_KEY = "rok-fgc-players";
+const CASTERS_KEY = "rok-fgc-casters";
 
-function readLibraries(): FgcLibrary[] {
-  if (typeof window === "undefined") return [];
+export type SavedPlayer = Omit<FgcPlayer, "id" | "seed">;
+export type SavedCaster = Omit<FgcCaster, "id">;
+
+function readJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
   try {
-    const raw = window.localStorage.getItem(LIBRARIES_KEY);
-    return raw ? (JSON.parse(raw) as FgcLibrary[]) : [];
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
-    return [];
+    return fallback;
   }
 }
 
-function writeLibraries(libraries: FgcLibrary[]) {
+function writeJson(key: string, value: unknown) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(LIBRARIES_KEY, JSON.stringify(libraries));
+  window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function readLibraries(): FgcLibrary[] {
+  return readJson<FgcLibrary[]>(LIBRARIES_KEY, []);
+}
+
+function writeLibraries(libraries: FgcLibrary[]) {
+  writeJson(LIBRARIES_KEY, libraries);
 }
 
 type FgcStore = {
   fgc: FgcState;
+  players: SavedPlayer[];
+  casters: SavedCaster[];
   ready: boolean;
   importing: boolean;
   error: string;
@@ -38,12 +53,19 @@ type FgcStore = {
   deleteRuleset: (id: string) => void;
   selectRuleset: (id: string | null) => void;
   setLibrary: (library: FgcLibrary) => void;
+  savePlayer: (player: FgcPlayer) => void;
+  saveCaster: (caster: FgcCaster) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
 };
 
-function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
+function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer | null {
+  if (!player?.tag) return player;
+  const match = saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
+  if (!match) return player;
+  return { ...player, ...match, id: player.id, seed: player.seed };
+}
   if (!raw) return null;
   return { ...blankPlayer(), ...raw, id: raw.id || blankPlayer().id, skin: raw.skin ?? raw.stocks ?? 0 };
 }
@@ -89,6 +111,8 @@ function write(fgc: FgcState) {
 
 export const useFgcStore = create<FgcStore>((set, get) => ({
   fgc: EMPTY_FGC,
+  players: [],
+  casters: [],
   ready: false,
   importing: false,
   error: "",
@@ -99,13 +123,13 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       const created = blankSet();
       const fgc = { ...loaded, sets: [created], streamSetId: created.id };
       write(fgc);
-      set({ fgc, ready: true });
+      set({ fgc, players: readJson<SavedPlayer[]>(PLAYERS_KEY, []), casters: readJson<SavedCaster[]>(CASTERS_KEY, []), ready: true });
       return;
     }
     const streamSetId = loaded.sets.some((set) => set.id === loaded.streamSetId) ? loaded.streamSetId : loaded.sets[0]?.id ?? null;
     const fgc = { ...loaded, streamSetId };
     write(fgc);
-    set({ fgc, ready: true });
+    set({ fgc, players: readJson<SavedPlayer[]>(PLAYERS_KEY, []), casters: readJson<SavedCaster[]>(CASTERS_KEY, []), ready: true });
   },
   reload: () => set({ fgc: read(), ready: true }),
   patch: (partial) => {
@@ -145,7 +169,19 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     }
   },
   selectSet: (id) => {
-    const fgc = { ...get().fgc, streamSetId: id };
+    const players = get().players;
+    const fgc = {
+      ...get().fgc,
+      streamSetId: id,
+      sets: get().fgc.sets.map((set) => {
+        if (set.id !== id) return set;
+        return {
+          ...set,
+          p1: applySaved(set.p1, players),
+          p2: applySaved(set.p2, players),
+        };
+      }),
+    };
     write(fgc);
     set({ fgc });
   },
@@ -232,6 +268,34 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     const fgc = { ...get().fgc, libraries };
     write(fgc);
     set({ fgc });
+  },
+  savePlayer: (player) => {
+    const tag = player.tag.trim();
+    if (!tag) return;
+    const saved: SavedPlayer = {
+      tag,
+      prefix: player.prefix,
+      realName: player.realName,
+      country: player.country,
+      region: player.region,
+      twitter: player.twitter,
+      pronouns: player.pronouns,
+      character: player.character,
+      skin: player.skin,
+      character2: player.character2,
+      skin2: player.skin2,
+    };
+    const players = [saved, ...get().players.filter((item) => item.tag.toLowerCase() !== tag.toLowerCase())];
+    writeJson(PLAYERS_KEY, players);
+    set({ players });
+  },
+  saveCaster: (caster) => {
+    const name = caster.name.trim();
+    if (!name) return;
+    const saved: SavedCaster = { name, twitter: caster.twitter, pronouns: caster.pronouns };
+    const casters = [saved, ...get().casters.filter((item) => item.name.toLowerCase() !== name.toLowerCase())];
+    writeJson(CASTERS_KEY, casters);
+    set({ casters });
   },
   swapTeams: (id) => {
     const fgc = {
