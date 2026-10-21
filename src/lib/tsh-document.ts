@@ -6,9 +6,7 @@ const FILL = `
 <script>
 (function () {
   function esc(value) {
-    return String(value == null ? "" : value).replace(/[&<>"]/g, function (c) {
-      return { "&": "&", "<": "<", ">": ">", '"': """ }[c];
-    });
+    return String(value == null ? "" : value).split("&").join("&" + "amp;").split("<").join("&" + "lt;").split(">").join("&" + "gt;").split('"').join("&" + "quot;");
   }
   function paint(selector, value) {
     var text = value == null ? "" : String(value);
