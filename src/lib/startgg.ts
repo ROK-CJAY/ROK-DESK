@@ -360,6 +360,7 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
       url: `https://www.start.gg/${slug}`,
       venue: event.tournament?.venueAddress?.trim() || "",
       shortLink: event.tournament?.slug?.split("/").pop() || "",
+      icon: "",
       ruleset: "",
       entrants: event.numEntrants ?? event.tournament?.numAttendees ?? 0,
       startAt: when(event.startAt ?? event.tournament?.startAt),
