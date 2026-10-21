@@ -173,7 +173,9 @@ export function blankRuleset(): FgcRuleset {
     neutralStages: [],
     counterpickStages: [],
     strikeOrder: [1, 2, 1],
+    banMode: "fixed",
     banCount: 1,
+    bansByGames: "3:3,5:2",
     dsr: "none",
   };
 }
