@@ -395,6 +395,25 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     write(fgc);
     set({ fgc });
   },
+  setCasterCount: (count) => {
+    const total = Math.min(4, Math.max(1, count));
+    const current = get().fgc.casters;
+    const casters = Array.from({ length: total }, (_, index) => current[index] ?? {
+      id: `c${index + 1}`,
+      profileId: "",
+      prefix: "",
+      name: "",
+      realName: "",
+      twitter: "",
+      pronouns: "",
+      country: "",
+      flag: "",
+      region: "",
+    });
+    const fgc = { ...get().fgc, casters };
+    write(fgc);
+    set({ fgc });
+  },
   swapTeams: (id) => {
     const fgc = {
       ...get().fgc,
