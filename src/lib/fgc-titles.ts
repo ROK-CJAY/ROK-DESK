@@ -2,6 +2,8 @@ import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, t
 
 export type { FgcOverlayId, FgcTitle, FgcTitleElement, FgcTitleLayer };
 
+export const TITLE_GROUPS = ["In game", "Versus", "People", "Bracket", "Desk"] as const;
+
 export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group: string }[] = [
   { id: "hud", group: "In game", name: "Scoreboard", note: "In-game names, characters, and score along the bottom." },
   { id: "scoreboard-simple", group: "In game", name: "Scoreboard simple", note: "A thinner bottom scoreboard." },
@@ -97,6 +99,7 @@ export function normalizeTitle(title: FgcTitle): FgcTitle {
   const rawLayers = title.layers?.length ? title.layers : [{ id: "layer-1", name: "Layer 1", visible: true, locked: false }];
   return {
     ...title,
+    group: title.group || "",
     layers: rawLayers,
     elements: (title.elements ?? []).map((element) => ({
       ...blankElement(element.kind || "text", rawLayers[0].id),
@@ -121,6 +124,7 @@ export function starterTitle(): FgcTitle {
   return {
     id: "scorebug",
     name: "Scorebug",
+    group: "",
     layers: [{ id: "layer-1", name: "Layer 1", visible: true, locked: false }],
     elements: [
       { ...blankElement("rect"), id: "bar", x: 80, y: 900, w: 1760, h: 120, bg: "#111111" },
@@ -182,14 +186,16 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
   return element.src;
 }
 
-export function activeTitle(fgc: FgcState): FgcTitle {
-  return normalizeTitle(fgc.titles.find((item) => item.id === fgc.activeTitleId) ?? fgc.titles[0] ?? starterTitle());
+export function activeTitle(fgc: FgcState, id?: string | null): FgcTitle {
+  const key = id || fgc.activeTitleId;
+  return normalizeTitle(fgc.titles.find((item) => item.id === key) ?? fgc.titles[0] ?? starterTitle());
 }
 
 export function liveSet(fgc: FgcState): FgcSet | null {
   return streamSetOf(fgc) ?? fgc.sets[0] ?? null;
 }
 
-export function overlayHref(id: FgcOverlayId): string {
+export function overlayHref(id: string, titleId?: string | null): string {
+  if (id === "custom" && titleId) return `/fgc/overlay/hud?source=custom&title=${encodeURIComponent(titleId)}`;
   return id === "hud" ? "/fgc/overlay/hud" : `/fgc/overlay/hud?source=${id}`;
 }

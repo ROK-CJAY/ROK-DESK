@@ -108,8 +108,11 @@ export function FgcApp() {
   const [assets, setAssets] = useState(false);
   const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
   const [copied, setCopied] = useState(false);
+  const savedTitle = fgc.titles.find((item) => item.id === fgc.activeTitleId) ?? null;
   const overlay = FGC_OVERLAYS.find((item) => item.id === fgc.overlay) ?? FGC_OVERLAYS[0];
-  const href = overlayHref(overlay.id);
+  const shown = fgc.overlay === "custom" && savedTitle ? { ...overlay, name: savedTitle.name, note: `Saved in ${savedTitle.group || "Custom"}.` } : overlay;
+  const href = overlayHref(fgc.overlay, fgc.overlay === "custom" ? fgc.activeTitleId : null);
+  const overlayValue = fgc.overlay === "custom" && savedTitle ? `title:${savedTitle.id}` : fgc.overlay;
 
   useEffect(() => {
     hydrate();
@@ -144,13 +147,18 @@ export function FgcApp() {
           </Button>
           <Field label={`Overlay${fgc.event?.game ? ` · ${fgc.event.game}` : ""}`}>
             <select
-              value={overlay.id}
-              onChange={(e) => patch({ overlay: e.target.value as typeof overlay.id })}
+              value={overlayValue}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value.startsWith("title:")) patch({ overlay: "custom", activeTitleId: value.slice(6) });
+                else patch({ overlay: value as typeof overlay.id });
+              }}
               className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm"
             >
               {[...new Set(FGC_OVERLAYS.map((item) => item.group))].map((group) => (
                 <optgroup key={group} label={group}>
                   {FGC_OVERLAYS.filter((item) => item.group === group).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  {fgc.titles.filter((item) => (item.group || "Custom") === group).map((item) => <option key={item.id} value={`title:${item.id}`}>{item.name}</option>)}
                 </optgroup>
               ))}
             </select>
@@ -200,8 +208,8 @@ export function FgcApp() {
         {tab === "overlays" ? (
           <section className="grid gap-4 rounded-xl border border-border bg-surface p-4">
             <div>
-              <p className="font-medium">{overlay.name}</p>
-              <p className="text-sm text-muted">{overlay.note} {fgc.event?.game ? `Live data is the ${fgc.event.game} set.` : "Import a game or enter a set by hand."}</p>
+              <p className="font-medium">{shown.name}</p>
+              <p className="text-sm text-muted">{shown.note} {fgc.event?.game ? `Live data is the ${fgc.event.game} set.` : "Import a game or enter a set by hand."}</p>
             </div>
             <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
               <ScaleFrame>

@@ -65,10 +65,10 @@ function Winner() {
   );
 }
 
-export function CustomLayout({ editing = false }: { editing?: boolean }) {
+export function CustomLayout({ editing = false, titleId = "" }: { editing?: boolean; titleId?: string }) {
   const fgc = useLiveFgc();
   const set = liveSet(fgc);
-  const title = activeTitle(fgc);
+  const title = activeTitle(fgc, titleId);
   return (
     <div className="relative h-full w-full">
       {titleStack(title).map((element) => (
@@ -101,13 +101,13 @@ export function CustomLayout({ editing = false }: { editing?: boolean }) {
   );
 }
 
-export function FgcOverlay({ source }: { source: string }) {
+export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?: string }) {
   const id = (source || "hud") as FgcOverlayId;
   const graphic = FgcGraphic({ id });
   if (graphic) return graphic;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;
-  if (id === "custom") return <CustomLayout />;
+  if (id === "custom") return <CustomLayout titleId={titleId} />;
   return <FgcHud />;
 }

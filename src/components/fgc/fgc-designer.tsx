@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFgcStore } from "@/lib/fgc-store";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
-import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, titleImage, titleText } from "@/lib/fgc-titles";
+import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
 type Tool = "select" | "text" | "image" | "rect";
 
@@ -16,6 +16,8 @@ export function FgcDesigner() {
   const [layerId, setLayerId] = useState("layer-1");
   const [tool, setTool] = useState<Tool>("select");
   const [saved, setSaved] = useState(false);
+  const [askPlace, setAskPlace] = useState(false);
+  const [place, setPlace] = useState<(typeof TITLE_GROUPS)[number]>("In game");
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const title = normalizeTitle(activeTitle(fgc));
   const set = liveSet(fgc);
@@ -186,7 +188,10 @@ export function FgcDesigner() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Input className="max-w-xs" value={title.name} onChange={(e) => commit({ ...title, name: e.target.value })} />
-        <Button size="sm" onClick={() => { commit(title); setSaved(true); window.setTimeout(() => setSaved(false), 1200); }}>{saved ? "Saved" : "Save layout"}</Button>
+        <Button size="sm" onClick={() => {
+          setPlace(TITLE_GROUPS.includes(title.group as (typeof TITLE_GROUPS)[number]) ? title.group as (typeof TITLE_GROUPS)[number] : "In game");
+          setAskPlace(true);
+        }}>{saved ? "Saved" : "Save layout"}</Button>
         <Button size="sm" variant="outline" onClick={() => {
           const created = { ...starterTitle(), id: `title-${Date.now()}`, name: "New layout", elements: [] };
           patch({ titles: [...fgc.titles, created], activeTitleId: created.id });
@@ -206,6 +211,25 @@ export function FgcDesigner() {
           {fgc.titles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </div>
+      {askPlace ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
+          <div className="grid w-full max-w-sm gap-3 rounded-xl border border-border bg-surface p-4">
+            <p className="font-medium">Where should this layout go?</p>
+            <select className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm" value={place} onChange={(e) => setPlace(e.target.value as (typeof TITLE_GROUPS)[number])}>
+              {TITLE_GROUPS.map((group) => <option key={group} value={group}>{group}</option>)}
+            </select>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAskPlace(false)}>Cancel</Button>
+              <Button onClick={() => {
+                commit({ ...title, group: place });
+                setAskPlace(false);
+                setSaved(true);
+                window.setTimeout(() => setSaved(false), 1200);
+              }}>Save</Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

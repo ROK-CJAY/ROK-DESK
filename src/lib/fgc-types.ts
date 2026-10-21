@@ -59,6 +59,7 @@ export type FgcTitleElement = {
 export type FgcTitle = {
   id: string;
   name: string;
+  group: string;
   layers: FgcTitleLayer[];
   elements: FgcTitleElement[];
 };
