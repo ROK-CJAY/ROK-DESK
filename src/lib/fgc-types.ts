@@ -64,6 +64,8 @@ export type FgcEvent = {
   game: string;
   url: string;
   venue: string;
+  shortLink: string;
+  icon: string;
   ruleset: string;
   entrants: number;
   startAt: string;

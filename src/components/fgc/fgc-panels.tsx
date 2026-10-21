@@ -150,52 +150,59 @@ function CasterCard({ index }: { index: number }) {
 
 export function FgcTournamentInfo() {
   const event = useFgcStore((s) => s.fgc.event);
-  const assetBase = useFgcStore((s) => s.fgc.assetBase);
+  const url = useFgcStore((s) => s.fgc.url);
+  const importEvent = useFgcStore((s) => s.importEvent);
   const patch = useFgcStore((s) => s.patch);
+  const current = event ?? {
+    id: "manual",
+    name: "",
+    slug: "",
+    tournamentName: "",
+    game: "",
+    url: "",
+    venue: "",
+    shortLink: "",
+    icon: "",
+    ruleset: "",
+    entrants: 0,
+    startAt: "",
+    endAt: "",
+  };
+  const set = (partial: Partial<typeof current>) => patch({ event: { ...current, ...partial } });
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Tournament info</p>
-      {event ? (
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Field label="Tournament">
-            <Input value={event.tournamentName} onChange={(e) => patch({ event: { ...event, tournamentName: e.target.value } })} />
-          </Field>
-          <Field label="Event">
-            <Input value={event.name} onChange={(e) => patch({ event: { ...event, name: e.target.value } })} />
-          </Field>
-          <Field label="Game">
-            <Input value={event.game} onChange={(e) => patch({ event: { ...event, game: e.target.value } })} />
-          </Field>
-          <Field label="Ruleset">
-            <Input value={event.ruleset} onChange={(e) => patch({ event: { ...event, ruleset: e.target.value } })} />
-          </Field>
-          <Field label="Entrants">
-            <Input value={String(event.entrants || "")} onChange={(e) => patch({ event: { ...event, entrants: Number(e.target.value) || 0 } })} />
-          </Field>
-          <Field label="Venue" className="sm:col-span-2">
-            <Input value={event.venue} onChange={(e) => patch({ event: { ...event, venue: e.target.value } })} />
-          </Field>
-          <Field label="Starts">
-            <Input value={event.startAt} onChange={(e) => patch({ event: { ...event, startAt: e.target.value } })} />
-          </Field>
-          <Field label="Ends">
-            <Input value={event.endAt} onChange={(e) => patch({ event: { ...event, endAt: e.target.value } })} />
-          </Field>
+      <p className="font-medium">Tournament Info</p>
+      <div className="mt-4 grid gap-3">
+        <Field label="Tournament Name"><Input value={current.tournamentName} onChange={(e) => set({ tournamentName: e.target.value })} /></Field>
+        <Field label="Event Name"><Input value={current.name} onChange={(e) => set({ name: e.target.value })} /></Field>
+        <Field label="Entrant Number"><Input type="number" value={String(current.entrants || "")} onChange={(e) => set({ entrants: Number(e.target.value) || 0 })} /></Field>
+        <Field label="Address"><Input value={current.venue} onChange={(e) => set({ venue: e.target.value })} /></Field>
+        <Field label="Short Link"><Input value={current.shortLink} onChange={(e) => set({ shortLink: e.target.value })} /></Field>
+        <Field label="Date"><Input type="date" value={current.startAt.slice(0, 10)} onChange={(e) => set({ startAt: e.target.value })} /></Field>
+        <Button variant="secondary" disabled={!url} onClick={() => void importEvent()}>Load from tournament</Button>
+        <Button variant="outline" onClick={() => patch({ event: null })}>Clear</Button>
+      </div>
+      <div className="mt-6 border-t border-border pt-4">
+        <p className="font-medium">Tournament Icon</p>
+        <div className="mt-3 flex items-center gap-4">
+          {current.icon ? <img src={current.icon} alt="" className="h-16 w-16 rounded bg-black object-contain" /> : <div className="h-16 w-16 rounded bg-surface-2" />}
+          <div className="grid flex-1 gap-2">
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-md border border-border text-sm">
+              Load local file
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => set({ icon: String(reader.result || "") });
+                reader.readAsDataURL(file);
+              }} />
+            </label>
+            <Button variant="outline" disabled={!url} onClick={() => void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "icon", url }) }).then((res) => res.json()).then((body: { icon?: string }) => body.icon && set({ icon: body.icon }))}>Download tournament icon</Button>
+            <Button variant="ghost" onClick={() => set({ icon: "" })}>Default</Button>
+          </div>
         </div>
-      ) : (
-        <p className="mt-4 text-sm text-muted">Import a tournament to fill this in. You can still run a set by hand.</p>
-      )}
-      <Field label="Asset CDN" className="mt-3">
-        <Input
-          value={assetBase}
-          onChange={(e) => patch({ assetBase: e.target.value })}
-          placeholder="https://assets.rok.gg"
-        />
-      </Field>
-      <p className="mt-2 text-xs text-muted">
-        Later this points at the ROK asset CDN. Character and stage art will load from there by name.
-      </p>
+      </div>
     </section>
   );
 }

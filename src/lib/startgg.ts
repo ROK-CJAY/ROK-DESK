@@ -359,6 +359,7 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
       game: event.videogame?.name?.trim() || "Fighting game",
       url: `https://www.start.gg/${slug}`,
       venue: event.tournament?.venueAddress?.trim() || "",
+      shortLink: event.tournament?.slug?.split("/").pop() || "",
       ruleset: "",
       entrants: event.numEntrants ?? event.tournament?.numAttendees ?? 0,
       startAt: when(event.startAt ?? event.tournament?.startAt),
@@ -381,7 +382,17 @@ const STREAM_QUERY = `
   }
 `;
 
-export async function currentStreamSetId(url: string): Promise<string | null> {
+export async function tournamentIcon(url: string): Promise<string> {
+  const slug = startggSlug(url);
+  if (!slug) return "";
+  const data = await startggQuery<{ event?: { tournament?: { images?: { url?: string; type?: string }[] } } }>(
+    `query TournamentIcon($slug: String!) { event(slug: $slug) { tournament { images { url type } } } }`,
+    { slug },
+    "TournamentIcon",
+  );
+  const images = data.event?.tournament?.images ?? [];
+  return images.find((image) => image.type === "profile")?.url || images[0]?.url || "";
+}
   const slug = startggSlug(url);
   if (!slug) throw new Error("Import the event first");
   const data = await startggQuery<{

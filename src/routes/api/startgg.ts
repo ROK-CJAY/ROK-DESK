@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { currentStreamSetId, importStartggEvent, searchStartggPlayers, stockIcons } from "@/lib/startgg";
+import { currentStreamSetId, importStartggEvent, searchStartggPlayers, stockIcons, tournamentIcon } from "@/lib/startgg";
 
 export const Route = createFileRoute("/api/startgg")({
   server: {
@@ -25,6 +25,10 @@ export const Route = createFileRoute("/api/startgg")({
           if (body.action === "stream") {
             const setId = await currentStreamSetId(url);
             return Response.json({ setId });
+          }
+          if (body.action === "icon") {
+            const icon = await tournamentIcon(url);
+            return Response.json({ icon });
           }
           const imported = await importStartggEvent(url);
           return Response.json(imported);
