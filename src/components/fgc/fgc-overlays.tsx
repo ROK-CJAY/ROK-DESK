@@ -94,9 +94,9 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
           }}
         >
           {element.kind === "image" ? (
-            titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="h-full w-full" /> : null
+            titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="h-full w-full object-cover" /> : null
           ) : element.kind === "text" ? (
-            <span className="block h-full uppercase">{titleText(fgc, set, element.bind, element.text)}</span>
+            <span className="block h-full overflow-hidden whitespace-pre-wrap break-words">{titleText(fgc, set, element.bind, element.text)}</span>
           ) : null}
         </div>
       ))}
