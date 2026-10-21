@@ -52,11 +52,11 @@ export function FgcRulesetEditor() {
           <a href="/fgc/strike" target="_blank" rel="noreferrer" className="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">Open stage strike</a>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap items-end gap-2">
+      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_16rem_auto]">
         <Field label="Ruleset name">
           <Input value={shown.name} onChange={(e) => setDraft({ ...shown, name: e.target.value })} />
         </Field>
-        {fgc.rulesets.length ? (
+        <Field label="Saved rulesets">
           <select
             value={fgc.activeRulesetId ?? ""}
             onChange={(e) => {
@@ -68,12 +68,14 @@ export function FgcRulesetEditor() {
             }}
             className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm"
           >
-            <option value="">Saved rulesets</option>
+            <option value="">Select a saved ruleset</option>
             {fgc.rulesets.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
           </select>
-        ) : null}
-        <Button onClick={() => saveRuleset(shown)}>Save</Button>
-        {fgc.activeRulesetId ? <Button variant="outline" onClick={() => deleteRuleset(fgc.activeRulesetId!)}>Delete</Button> : null}
+        </Field>
+        <div className="flex items-end gap-2">
+          <Button onClick={() => saveRuleset(shown)}>Save</Button>
+          {fgc.activeRulesetId ? <Button variant="outline" onClick={() => deleteRuleset(fgc.activeRulesetId!)}>Delete</Button> : null}
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_3rem_minmax(16rem,1fr)]">
