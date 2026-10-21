@@ -1,4 +1,4 @@
-import type { FgcEvent, FgcPlayer, FgcSet, FgcSetState } from "@/lib/fgc-types";
+import { blankPlayer, type FgcEvent, type FgcPlayer, type FgcSet, type FgcSetState } from "@/lib/fgc-types";
 
 const ENDPOINT = "https://www.start.gg/api/-/gql";
 
@@ -213,6 +213,10 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     winnerId: raw.winnerId == null ? null : String(raw.winnerId),
     p1: playerOf(slots[0]),
     p2: playerOf(slots[1]),
+    p1b: blankPlayer(),
+    p2b: blankPlayer(),
+    playersPerTeam: 1,
+    charactersPerPlayer: 1,
     score1: slots[0]?.standing?.stats?.score?.value ?? 0,
     score2: slots[1]?.standing?.stats?.score?.value ?? 0,
   };

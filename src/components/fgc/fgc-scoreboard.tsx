@@ -140,12 +140,14 @@ function PlayerCard({
   player,
   losers,
   label,
+  characters,
 }: {
   setId: string;
-  side: "p1" | "p2";
+  side: "p1" | "p2" | "p1b" | "p2b";
   player: FgcPlayer;
   losers: boolean;
   label: string;
+  characters: number;
 }) {
   const patchPlayer = useFgcStore((s) => s.patchPlayer);
   const patchSet = useFgcStore((s) => s.patchSet);
@@ -204,17 +206,16 @@ function PlayerCard({
         <Field label="Skin">
           <SkinField character={player.character} value={player.skin} onChange={(skin) => set({ skin })} />
         </Field>
-        <Field label="Character 2">
-          <Input value={player.character2} onChange={(e) => set({ character2: e.target.value })} />
-        </Field>
-        <Field label="Skin 2">
-          <Input
-            type="number"
-            min={0}
-            value={player.skin2}
-            onChange={(e) => set({ skin2: Number(e.target.value) || 0 })}
-          />
-        </Field>
+        {characters > 1 ? (
+          <>
+            <Field label="Character 2">
+              <CharacterField value={player.character2} onChange={(character2) => set({ character2 })} />
+            </Field>
+            <Field label="Skin 2">
+              <SkinField character={player.character2} value={player.skin2} onChange={(skin2) => set({ skin2 })} />
+            </Field>
+          </>
+        ) : null}
       </div>
       <div className="mt-3 flex items-center gap-2">
         <Button
@@ -262,8 +263,30 @@ export function FgcScoreboard({ set }: { set: FgcSet }) {
         </div>
       </div>
 
+      <div className="mt-4 flex flex-wrap gap-3">
+        <Field label="Characters per player">
+          <select
+            value={set.charactersPerPlayer || 1}
+            onChange={(e) => patchSet(set.id, { charactersPerPlayer: Number(e.target.value) })}
+            className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm"
+          >
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+          </select>
+        </Field>
+        <Field label="Players per team">
+          <select
+            value={set.playersPerTeam || 1}
+            onChange={(e) => patchSet(set.id, { playersPerTeam: Number(e.target.value) })}
+            className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm"
+          >
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+          </select>
+        </Field>
+      </div>
       <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_14rem_1fr]">
-        <PlayerCard setId={set.id} side="p1" player={p1} losers={set.losers1} label="Team 1" />
+        <PlayerCard setId={set.id} side="p1" player={p1} losers={set.losers1} label="Team 1" characters={set.charactersPerPlayer || 1} />
         <div className="grid content-start gap-2 rounded-lg border border-border bg-surface-2 p-3">
           <Field label="Phase">
             <Input value={set.phase} onChange={(e) => patchSet(set.id, { phase: e.target.value })} />
@@ -301,7 +324,14 @@ export function FgcScoreboard({ set }: { set: FgcSet }) {
             </Field>
           </div>
         </div>
-        <PlayerCard setId={set.id} side="p2" player={p2} losers={set.losers2} label="Team 2" />
+        <PlayerCard setId={set.id} side="p2" player={p2} losers={set.losers2} label="Team 2" characters={set.charactersPerPlayer || 1} />
+        {(set.playersPerTeam || 1) > 1 ? (
+          <>
+            <PlayerCard setId={set.id} side="p1b" player={set.p1b ?? blankPlayer()} losers={false} label="Team 1 partner" characters={set.charactersPerPlayer || 1} />
+            <div />
+            <PlayerCard setId={set.id} side="p2b" player={set.p2b ?? blankPlayer()} losers={false} label="Team 2 partner" characters={set.charactersPerPlayer || 1} />
+          </>
+        ) : null}
       </div>
     </section>
   );

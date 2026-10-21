@@ -32,12 +32,16 @@ export type FgcSet = {
   identifier: string;
   bestOf: number;
   stage: string;
+  playersPerTeam: number;
+  charactersPerPlayer: number;
   losers1: boolean;
   losers2: boolean;
   state: FgcSetState;
   winnerId: string | null;
   p1: FgcPlayer | null;
   p2: FgcPlayer | null;
+  p1b: FgcPlayer | null;
+  p2b: FgcPlayer | null;
   score1: number;
   score2: number;
 };
@@ -114,12 +118,16 @@ export function blankSet(): FgcSet {
     identifier: "",
     bestOf: 3,
     stage: "",
+    playersPerTeam: 1,
+    charactersPerPlayer: 1,
     losers1: false,
     losers2: false,
     state: "live",
     winnerId: null,
     p1: blankPlayer(),
     p2: blankPlayer(),
+    p1b: blankPlayer(),
+    p2b: blankPlayer(),
     score1: 0,
     score2: 0,
   };

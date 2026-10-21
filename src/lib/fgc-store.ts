@@ -45,7 +45,7 @@ type FgcStore = {
   importEvent: () => Promise<void>;
   selectSet: (id: string | null) => void;
   patchSet: (id: string, partial: Partial<FgcSet>) => void;
-  patchPlayer: (setId: string, side: "p1" | "p2", partial: Partial<FgcPlayer>) => void;
+  patchPlayer: (setId: string, side: "p1" | "p2" | "p1b" | "p2b", partial: Partial<FgcPlayer>) => void;
   newSet: () => void;
   loadStreamSet: () => Promise<void>;
   patchCaster: (id: string, partial: Partial<FgcCaster>) => void;
@@ -81,6 +81,10 @@ function setOf(raw: Partial<FgcSet>): FgcSet {
     id: raw.id || blankSet().id,
     p1: playerOf(raw.p1),
     p2: playerOf(raw.p2),
+    p1b: playerOf(raw.p1b) ?? blankPlayer(),
+    p2b: playerOf(raw.p2b) ?? blankPlayer(),
+    playersPerTeam: raw.playersPerTeam || 1,
+    charactersPerPlayer: raw.charactersPerPlayer || 1,
   };
 }
 
@@ -321,7 +325,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       ...get().fgc,
       sets: get().fgc.sets.map((set) =>
         set.id === id
-          ? { ...set, p1: set.p2, p2: set.p1, score1: set.score2, score2: set.score1, losers1: set.losers2, losers2: set.losers1 }
+          ? { ...set, p1: set.p2, p2: set.p1, p1b: set.p2b, p2b: set.p1b, score1: set.score2, score2: set.score1, losers1: set.losers2, losers2: set.losers1 }
           : set,
       ),
     };
