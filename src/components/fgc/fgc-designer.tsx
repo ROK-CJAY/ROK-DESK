@@ -2,13 +2,16 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { Eye, EyeOff, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTitleImages } from "@/lib/fgc-assets";
 import { useFgcStore } from "@/lib/fgc-store";
+import { titleFromPsd } from "@/lib/psd-title";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
 import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
 type Tool = "select" | "text" | "image" | "rect";
 
 export function FgcDesigner() {
+  useTitleImages();
   const fgc = useFgcStore((s) => s.fgc);
   const patch = useFgcStore((s) => s.patch);
   const frame = useRef<HTMLDivElement>(null);
@@ -18,6 +21,8 @@ export function FgcDesigner() {
   const [saved, setSaved] = useState(false);
   const [askPlace, setAskPlace] = useState(false);
   const [place, setPlace] = useState<(typeof TITLE_GROUPS)[number]>("In game");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState("");
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const title = normalizeTitle(activeTitle(fgc));
   const set = liveSet(fgc);
@@ -198,6 +203,31 @@ export function FgcDesigner() {
           setLayerId("layer-1");
           setSelected(null);
         }}>New</Button>
+        <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-border px-3 text-xs">
+          {importing ? "Reading PSD" : "Import PSD"}
+          <input
+            type="file"
+            accept=".psd,application/octet-stream"
+            className="hidden"
+            disabled={importing}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file) return;
+              setImporting(true);
+              setImportError("");
+              void file.arrayBuffer().then(async (buffer) => {
+                const { readPsd } = await import("ag-psd");
+                const imported = await titleFromPsd(readPsd(buffer, { skipCompositeImageData: true, skipThumbnail: true }), file.name.replace(/\.psd$/i, ""));
+                commit(imported);
+                setLayerId(imported.layers[0]?.id ?? "layer-1");
+                setSelected(null);
+              }).catch((error: unknown) => {
+                setImportError(error instanceof Error ? error.message : "Could not read that PSD");
+              }).finally(() => setImporting(false));
+            }}
+          />
+        </label>
         <Button size="sm" variant="outline" onClick={() => {
           const titles = fgc.titles.filter((item) => item.id !== title.id);
           patch({ titles, activeTitleId: titles[0]?.id ?? null });
@@ -211,6 +241,7 @@ export function FgcDesigner() {
           {fgc.titles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </div>
+      {importError ? <p className="text-sm text-live">{importError}</p> : null}
       {askPlace ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
           <div className="grid w-full max-w-sm gap-3 rounded-xl border border-border bg-surface p-4">

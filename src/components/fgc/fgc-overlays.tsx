@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
 import { activeTitle, liveSet, titleImage, titleStack, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
 
@@ -66,6 +67,7 @@ function Winner() {
 }
 
 export function CustomLayout({ editing = false, titleId = "" }: { editing?: boolean; titleId?: string }) {
+  useTitleImages();
   const fgc = useLiveFgc();
   const set = liveSet(fgc);
   const title = activeTitle(fgc, titleId);

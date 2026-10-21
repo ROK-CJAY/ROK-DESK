@@ -54,6 +54,7 @@ export type FgcTitleElement = {
   size: number;
   align: "left" | "center" | "right";
   src: string;
+  imageKey: string;
 };
 
 export type FgcTitle = {

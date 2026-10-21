@@ -1,3 +1,4 @@
+import { useEffect, useSyncExternalStore } from "react";
 import type { FgcCharacter, FgcLibrary } from "@/lib/fgc-types";
 
 export type AssetPack = {
@@ -54,8 +55,38 @@ export function stageIconUrl(base: string, game: string, code: string): string {
   return `${host}/games/${game}/stage_icon/stage_2_${code}.png`;
 }
 
+const titleImages = new Map<string, string>();
 const localSkins = new Map<string, string>();
 const localStages = new Map<string, string>();
+let titleVersion = 0;
+const titleListeners = new Set<() => void>();
+
+function bumpTitleImages() {
+  titleVersion += 1;
+  titleListeners.forEach((listener) => listener());
+}
+
+export function subscribeTitleImages(listener: () => void) {
+  titleListeners.add(listener);
+  return () => titleListeners.delete(listener);
+}
+
+export function titleImageVersion() {
+  return titleVersion;
+}
+
+export function titleImageObjectUrl(key: string) {
+  return titleImages.get(key) ?? "";
+}
+
+export async function saveTitleImage(key: string, blob: Blob) {
+  const db = await assetDb();
+  await putFile(db, key, blob);
+  const previous = titleImages.get(key);
+  if (previous) URL.revokeObjectURL(previous);
+  titleImages.set(key, URL.createObjectURL(blob));
+  bumpTitleImages();
+}
 
 function assetDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -113,7 +144,9 @@ export async function hydrateLocalAssets() {
     const url = URL.createObjectURL(row.blob);
     if (row.key.startsWith("skin:")) localSkins.set(row.key, url);
     if (row.key.startsWith("stage:")) localStages.set(row.key, url);
+    if (row.key.startsWith("title:") && !titleImages.has(row.key)) titleImages.set(row.key, url);
   }
+  bumpTitleImages();
 }
 
 export function parseAssetName(filename: string): { key: string; name: string; index: number } {
@@ -262,4 +295,11 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
     characters: withIcons(characters, icons),
     stages,
   };
+}
+
+export function useTitleImages() {
+  useSyncExternalStore(subscribeTitleImages, titleImageVersion, () => 0);
+  useEffect(() => {
+    void hydrateLocalAssets();
+  }, []);
 }

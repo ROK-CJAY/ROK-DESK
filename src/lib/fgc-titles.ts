@@ -1,3 +1,4 @@
+import { titleImageObjectUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
 export type { FgcOverlayId, FgcTitle, FgcTitleElement, FgcTitleLayer };
@@ -92,6 +93,7 @@ export function blankElement(kind: FgcTitleElement["kind"], layer = "layer-1"): 
     size: 42,
     align: "left",
     src: "",
+    imageKey: "",
   };
 }
 
@@ -109,6 +111,7 @@ export function normalizeTitle(title: FgcTitle): FgcTitle {
       visible: element.visible !== false,
       locked: !!element.locked,
       opacity: typeof element.opacity === "number" ? element.opacity : 1,
+      imageKey: element.imageKey || "",
     })),
   };
 }
@@ -183,6 +186,7 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
   const library = libraryFor(fgc);
   const name = element.bind === "p1.icon" ? set?.p1?.character : element.bind === "p2.icon" ? set?.p2?.character : "";
   if (name && library) return library.characters.find((item) => item.name === name)?.icon || "";
+  if (element.imageKey) return titleImageObjectUrl(element.imageKey) || element.src;
   return element.src;
 }
 
