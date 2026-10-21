@@ -376,7 +376,74 @@ function History() {
   );
 }
 
+function UltimateBoard() {
+  const fgc = useLiveFgc();
+  const set = liveSet(fgc);
+  const logo = fgc.event?.icon || "/brand/rok-mark.png";
+  return (
+    <div className="relative h-full w-full overflow-hidden text-white">
+      <div className="absolute top-3 right-5 left-5 grid grid-cols-[auto_minmax(0,1fr)_4.5rem_minmax(0,1fr)] items-start gap-3">
+        <div className="grid gap-1">
+          <div className="bg-black px-3 py-1 font-display text-xl leading-none font-semibold uppercase">{set?.round || "Round"}</div>
+          {set?.phase ? <div className="bg-black px-3 py-1 text-[11px] tracking-[0.16em] uppercase">{set.phase}</div> : null}
+        </div>
+        <UltimateSide fgc={fgc} player={set?.p1 ?? null} score={set?.score1 ?? 0} losers={!!set?.losers1} side="left" />
+        <img src={logo} alt="" className="mt-6 h-14 w-full object-contain" />
+        <UltimateSide fgc={fgc} player={set?.p2 ?? null} score={set?.score2 ?? 0} losers={!!set?.losers2} side="right" />
+      </div>
+      <div className="absolute bottom-5 left-5 h-40 w-72 border-[3px] border-[#e10600] bg-transparent" />
+      <div className="absolute right-5 bottom-5 h-40 w-72 border-[3px] border-[#2f6bff] bg-transparent" />
+      <UltimateFeet fgc={fgc} player={set?.p1 ?? null} side="left" />
+      <UltimateFeet fgc={fgc} player={set?.p2 ?? null} side="right" />
+      <img src={fgc.event?.icon || "/overlays/rok-wordmark.png"} alt="" className="absolute bottom-6 left-1/2 h-24 max-w-xs -translate-x-1/2 object-contain" />
+    </div>
+  );
+}
+
+function UltimateSide({ fgc, player, score, losers, side }: { fgc: FgcState; player: FgcPlayer | null; score: number; losers: boolean; side: "left" | "right" }) {
+  const icon = characterIcon(fgc, player?.character || "");
+  const chips = [
+    player?.flag,
+    player?.region,
+    player?.pronouns,
+    player?.twitter ? `X ${player.twitter.replace(/^@/, "")}` : "",
+    player?.seed ? `Seed ${player.seed}` : "",
+  ].filter(Boolean) as string[];
+  const ordered = side === "right" ? [...chips].reverse() : chips;
+  const tone = side === "left" ? "bg-[#e10600]" : "bg-[#2f6bff]";
+  return (
+    <div className={`grid gap-1 ${side === "left" ? "justify-items-end" : "justify-items-start"}`}>
+      <div className="flex flex-wrap gap-1">
+        {ordered.map((chip) => <span key={chip} className={`${tone} px-2 py-0.5 text-[13px] font-semibold tracking-wide uppercase`}>{chip}</span>)}
+      </div>
+      <div className={`flex h-12 w-full max-w-[34rem] items-stretch bg-black ${side === "right" ? "flex-row-reverse" : ""}`}>
+        {icon ? <img src={icon} alt="" className="h-12 w-12 object-cover" /> : <span className="w-2" />}
+        <span className="flex flex-1 items-center justify-center px-3 font-display text-2xl font-semibold uppercase">{playerLabel(player)}{losers ? " (L)" : ""}</span>
+        <span className={`flex w-12 items-center justify-center font-display text-3xl font-semibold ${tone}`}>{score}</span>
+      </div>
+    </div>
+  );
+}
+
+function UltimateFeet({ fgc, player, side }: { fgc: FgcState; player: FgcPlayer | null; side: "left" | "right" }) {
+  const icon = characterIcon(fgc, player?.character || "");
+  return (
+    <div className={`absolute bottom-6 flex items-end gap-2 ${side === "left" ? "left-[19.5rem]" : "right-[19.5rem] flex-row-reverse"}`}>
+      {icon ? <img src={icon} alt="" className="h-20 w-20 object-contain" /> : null}
+      <div className="bg-black px-3 py-1 font-display text-lg font-semibold uppercase">{playerLabel(player)}</div>
+    </div>
+  );
+}
+
+function SmashHud() {
+  const fgc = useLiveFgc();
+  if (!/smash/i.test(fgc.event?.game || "")) return null;
+  return <UltimateBoard />;
+}
+
 export function FgcGraphic({ id }: { id: FgcOverlayId }) {
+  if (id === "hud") return <SmashHud />;
+  if (id === "scoreboard-ultimate") return <UltimateBoard />;
   if (id === "versus" || id === "versus-tekken" || id === "versus-pokken") return <Versus id={id} />;
   if (id === "scoreboard-simple") return <Scoreboard style="simple" />;
   if (id === "scoreboard-topleft") return <Scoreboard style="topleft" />;

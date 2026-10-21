@@ -5,6 +5,7 @@ export type FgcOverlayId =
   | "scoreboard-simple"
   | "scoreboard-topleft"
   | "scoreboard-4by3"
+  | "scoreboard-ultimate"
   | "versus"
   | "versus-tekken"
   | "versus-pokken"

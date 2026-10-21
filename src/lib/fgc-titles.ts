@@ -7,6 +7,7 @@ export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group
   { id: "scoreboard-simple", group: "In game", name: "Scoreboard simple", note: "A thinner bottom scoreboard." },
   { id: "scoreboard-topleft", group: "In game", name: "Scoreboard top left", note: "Compact scoreboard in the top left." },
   { id: "scoreboard-4by3", group: "In game", name: "Scoreboard 4:3", note: "Scoreboard kept inside a 4:3 frame." },
+  { id: "scoreboard-ultimate", group: "In game", name: "Scoreboard · Ultimate", note: "Smash Bros. Ultimate. Tag, losers, seed, state, flag, Twitter, pronouns, character, and camera wells." },
   { id: "versus", group: "Versus", name: "Versus", note: "Match intro. Smash, Tekken, or Pokkén is picked from the game." },
   { id: "versus-tekken", group: "Versus", name: "Versus · Tekken", note: "Tekken versus screen." },
   { id: "versus-pokken", group: "Versus", name: "Versus · Pokkén", note: "Pokkén versus screen." },
