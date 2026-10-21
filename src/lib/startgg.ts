@@ -393,6 +393,8 @@ export async function tournamentIcon(url: string): Promise<string> {
   const images = data.event?.tournament?.images ?? [];
   return images.find((image) => image.type === "profile")?.url || images[0]?.url || "";
 }
+
+export async function currentStreamSetId(url: string): Promise<string | null> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Import the event first");
   const data = await startggQuery<{
