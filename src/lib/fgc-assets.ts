@@ -217,9 +217,11 @@ export async function stockIconsFor(game: string, gameId?: string): Promise<Reco
 }
 
 export function withIcons(characters: FgcCharacter[], icons: Record<string, string>): FgcCharacter[] {
+  const key = (value: string) => value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const keyed = Object.fromEntries(Object.entries(icons).map(([name, url]) => [key(name), url]));
   return characters.map((character) => ({
     ...character,
-    icon: icons[character.name.toLowerCase()] || character.icon,
+    icon: keyed[key(character.name)] || character.icon,
   }));
 }
 
