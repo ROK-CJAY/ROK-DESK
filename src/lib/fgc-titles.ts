@@ -92,6 +92,8 @@ export function blankElement(kind: FgcTitleElement["kind"], layer = "layer-1"): 
     bg: kind === "rect" ? "#111111" : "transparent",
     size: 42,
     align: "left",
+    font: "",
+    weight: 0,
     src: "",
     imageKey: "",
     blend: "",
@@ -114,6 +116,8 @@ export function normalizeTitle(title: FgcTitle): FgcTitle {
       opacity: typeof element.opacity === "number" ? element.opacity : 1,
       imageKey: element.imageKey || "",
       blend: element.blend || "",
+      font: element.font || "",
+      weight: element.weight || 0,
     })),
   };
 }

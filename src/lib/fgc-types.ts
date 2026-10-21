@@ -53,6 +53,8 @@ export type FgcTitleElement = {
   bg: string;
   size: number;
   align: "left" | "center" | "right";
+  font: string;
+  weight: number;
   src: string;
   imageKey: string;
   blend: string;

@@ -162,7 +162,55 @@ function clipCanvas(source: HTMLCanvasElement, x: number, y: number, clips: Clip
   return crop(canvas, x, y);
 }
 
+function fontFace(name: string | undefined) {
+  if (!name) return "";
+  return name.replace(/MT$|PS$/i, "").replace(/-(Bold|Italic|Regular|Medium|Black|Light|Semibold|SemiBold).*$/i, "").replace(/([a-z])([A-Z])/g, "$1 $2").trim();
+}
+
+function textObject(layer: Layer, layerId: string, scaleX: number, scaleY: number, opacity: number): FgcTitleElement | null {
+  const source = layer.text;
+  if (!source?.text?.trim()) return null;
+  const style = source.style?.fontSize ? source.style : source.styleRuns?.[0]?.style || source.style;
+  const left = layer.left ?? source.left ?? 0;
+  const top = layer.top ?? source.top ?? 0;
+  const right = layer.right ?? source.right ?? left;
+  const bottom = layer.bottom ?? source.bottom ?? top;
+  const boxW = Math.max(1, Math.round((right - left) * scaleX));
+  const boxH = Math.max(1, Math.round((bottom - top) * scaleY));
+  const transform = source.transform || [];
+  const transformScale = transform.length >= 4 ? Math.max(0.01, Math.hypot(transform[1] || 0, transform[3] || 0)) : 1;
+  const raw = style?.fontSize || 0;
+  const text = source.text.replace(/\r/g, "\n");
+  const lines = Math.max(1, text.split("\n").length);
+  const fitted = Math.max(8, Math.round((boxH / lines) * 0.82));
+  const scaled = raw ? Math.round(raw * transformScale * scaleY) : fitted;
+  const caps = style?.fontCaps === 2;
+  const bold = !!style?.fauxBold || /bold|black|heavy/i.test(style?.font?.name || "");
+  return {
+    ...blankElement("text", layerId),
+    name: layer.name || "Text",
+    bind: "",
+    text: caps ? text.toUpperCase() : text,
+    x: Math.round(left * scaleX),
+    y: Math.round(top * scaleY),
+    w: boxW,
+    h: boxH,
+    size: Math.max(8, Math.min(scaled, Math.round(fitted * 1.2))),
+    color: colorOf(style?.fillColor as { r?: number; g?: number; b?: number } | undefined),
+    align: alignOf(source.paragraphStyle?.justification || source.paragraphStyleRuns?.[0]?.style.justification),
+    font: fontFace(style?.font?.name),
+    weight: bold ? 700 : 500,
+    bg: "transparent",
+    blend: "",
+    locked: !!layer.protected?.position,
+    opacity: Math.max(0, Math.min(1, (layer.opacity ?? 1) * opacity)),
+    visible: !layer.hidden,
+  };
+}
+
 async function objectsFrom(layer: Layer, layerId: string, scaleX: number, scaleY: number, opacity: number, canvas: HTMLCanvasElement | null, at: { x: number; y: number }): Promise<FgcTitleElement[]> {
+  const text = textObject(layer, layerId, scaleX, scaleY, opacity);
+  if (text) return [text];
   const width = canvas ? canvas.width : Math.max(0, (layer.right ?? 0) - (layer.left ?? 0));
   const height = canvas ? canvas.height : Math.max(0, (layer.bottom ?? 0) - (layer.top ?? 0));
   const boxW = Math.round(width * scaleX);
@@ -186,21 +234,6 @@ async function objectsFrom(layer: Layer, layerId: string, scaleX: number, scaleY
       await saveTitleImage(image.imageKey, blob);
       created.push(image);
     }
-  }
-  if (layer.text?.text) {
-    created.push({
-      ...blankElement("text", layerId),
-      ...shared,
-      name: created.length ? `${layer.name || "Text"} text` : layer.name || "Text",
-      bind: "",
-      text: layer.text.text,
-      blend: "",
-      size: Math.max(8, Math.round((layer.text.style?.fontSize || boxH) * scaleY)),
-      color: colorOf(layer.text.style?.fillColor as { r?: number; g?: number; b?: number } | undefined),
-      align: alignOf(layer.text.paragraphStyle?.justification),
-      bg: "transparent",
-      visible: !layer.hidden && created.length === 0,
-    });
   }
   return created;
 }

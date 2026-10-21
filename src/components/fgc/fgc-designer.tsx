@@ -255,6 +255,8 @@ export function FgcDesigner() {
                     color: element.color,
                     background: element.kind === "image" ? "transparent" : element.bg,
                     fontSize: `${(element.size / 1920) * 100}cqw`,
+                    fontFamily: element.font || undefined,
+                    fontWeight: element.weight || 500,
                     textAlign: element.align,
                     lineHeight: 1,
                     opacity: element.opacity,
@@ -447,6 +449,7 @@ function ObjectFields({ current, update, onDelete }: { current: FgcTitleElement;
           ))}
         </div>
       ) : null}
+      {current.kind === "text" ? <Input value={current.font} placeholder="Font" onChange={(e) => update({ font: e.target.value })} /> : null}
       {current.kind === "text" ? <Input type="number" value={current.size} onChange={(e) => update({ size: Number(e.target.value) || 16 })} /> : null}
       <div className="grid grid-cols-2 gap-2">
         <Input type="color" value={current.color} onChange={(e) => update({ color: e.target.value })} />
