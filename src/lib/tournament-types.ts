@@ -9,7 +9,7 @@ export const PRESET_SIZES = [4, 8, 16, 32] as const;
 
 export function clampBracketSize(n: number): number {
   if (!Number.isFinite(n)) return 8;
-  return Math.max(2, Math.min(128, Math.round(n)));
+  return Math.max(2, Math.min(4096, Math.round(n)));
 }
 
 export function isPresetSize(n: number): boolean {
@@ -92,6 +92,7 @@ export type Entrant = {
   birthDate: string;
   ink1: string;
   ink2: string;
+  inks: string;
   photoUrl: string;
   note: string;
   judgeNote: string;
@@ -201,6 +202,7 @@ export type GameDesk = {
   tomOrganizerName: string;
   tomOrganizerPopId: string;
   tomStartDate: string;
+  playHubEvent: string;
 };
 
 export type TournamentState = {
@@ -239,6 +241,7 @@ export type TournamentState = {
   tomOrganizerName: string;
   tomOrganizerPopId: string;
   tomStartDate: string;
+  playHubEvent: string;
 };
 
 const slotSchema = z.object({
@@ -267,6 +270,7 @@ const entrantSchema: z.ZodType<Entrant> = z.object({
   birthDate: z.string().optional().transform((v) => v ?? ""),
   ink1: z.string().optional().transform((v) => v ?? ""),
   ink2: z.string().optional().transform((v) => v ?? ""),
+  inks: z.string().optional().transform((v) => v ?? ""),
   photoUrl: z.string().optional().transform((v) => v ?? ""),
   note: z.string().optional().transform((v) => v ?? ""),
   judgeNote: z.string().optional().transform((v) => v ?? ""),
@@ -308,7 +312,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   streamChannel: z.string().optional().transform((v) => v ?? ""),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
-  size: z.number().int().min(2).max(128),
+  size: z.number().int().min(2).max(4096),
   bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
   phase: z.enum(["setup", "running", "complete"]),
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
@@ -336,6 +340,7 @@ const gameDeskSchema: z.ZodType<GameDesk> = z.object({
   tomOrganizerName: z.string().optional().transform((v) => v ?? ""),
   tomOrganizerPopId: z.string().optional().transform((v) => v ?? ""),
   tomStartDate: z.string().optional().transform((v) => v ?? ""),
+  playHubEvent: z.string().max(16).optional().transform((v) => v ?? ""),
 });
 
 export const tournamentSchema: z.ZodType<TournamentState> = z.object({
@@ -345,7 +350,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   gameId: z.enum(["pokemon-vgc", "pokemon-vgc-seniors", "pokemon-vgc-juniors", "pokemon-tcg", "pokemon-tcg-seniors", "pokemon-tcg-juniors", "one-piece", "yugioh", "mtg", "mtg-commander", "lorcana", "swu", "riftbound"]),
   formatName: z.string(),
   bracketType: z.enum(["single", "double", "swiss"]),
-  size: z.number().int().min(2).max(128),
+  size: z.number().int().min(2).max(4096),
   bestOf: z.union([z.literal(1), z.literal(3), z.literal(5), z.literal(7)]),
   phase: z.enum(["setup", "running", "complete"]),
   overlayView: z.enum(["full", "winners", "losers", "top16", "top8", "top4", "finals", "standings"]),
@@ -374,6 +379,7 @@ export const tournamentSchema: z.ZodType<TournamentState> = z.object({
   tomOrganizerName: z.string().optional().transform((v) => v ?? ""),
   tomOrganizerPopId: z.string().optional().transform((v) => v ?? ""),
   tomStartDate: z.string().optional().transform((v) => v ?? ""),
+  playHubEvent: z.string().max(16).optional().transform((v) => v ?? ""),
 });
 
 export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
@@ -394,6 +400,7 @@ export function blankEntrant(overrides: Partial<Entrant> = {}): Entrant {
     birthDate: "",
     ink1: "",
     ink2: "",
+    inks: "",
     photoUrl: "",
     note: "",
     ...overrides,
@@ -450,6 +457,7 @@ export function snapshotDesk(t: Pick<TournamentState, keyof GameDesk>): GameDesk
     tomOrganizerName: t.tomOrganizerName ?? "",
     tomOrganizerPopId: t.tomOrganizerPopId ?? "",
     tomStartDate: t.tomStartDate ?? "",
+    playHubEvent: t.playHubEvent ?? "",
   };
 }
 
@@ -498,6 +506,7 @@ export function emptyDesk(gameId: GameId): GameDesk {
     tomOrganizerName: "",
     tomOrganizerPopId: "",
     tomStartDate: "",
+    playHubEvent: "",
   };
 }
 

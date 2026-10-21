@@ -101,6 +101,7 @@ export type PlayerSide = {
   recordD: number;
   ink1: string;
   ink2: string;
+  inks: string;
   decklist: DeckCard[];
 };
 
@@ -255,6 +256,7 @@ const playerSchema: z.ZodType<PlayerSide> = z.object({
   recordD: z.number().optional().transform((v) => (typeof v === "number" && v >= 0 ? v : 0)),
   ink1: z.string().optional().transform((v) => v ?? ""),
   ink2: z.string().optional().transform((v) => v ?? ""),
+  inks: z.string().optional().transform((v) => v ?? ""),
   decklist: z.unknown().optional().transform((rows) => mergeDecklist(rows)),
 });
 
@@ -523,6 +525,7 @@ export function blankPlayer(overrides: Partial<PlayerSide> = {}): PlayerSide {
     recordD: overrides.recordD ?? 0,
     ink1: overrides.ink1 ?? "",
     ink2: overrides.ink2 ?? "",
+    inks: overrides.inks ?? "",
     decklist: mergeDecklist(overrides.decklist ?? emptyDecklist()),
   };
 }
@@ -603,12 +606,13 @@ export function defaultDesk(): DeskState {
 export type TopDeckSlot = {
   name: string;
   deck: string;
+  inks: string;
   faces: [DeckCard | null, DeckCard | null];
   place: boolean;
 };
 
 export function emptyTopDeckSlot(): TopDeckSlot {
-  return { name: "", deck: "", faces: [null, null], place: false };
+  return { name: "", deck: "", inks: "", faces: [null, null], place: false };
 }
 
 export function parseTopDeckSlots(raw: unknown): TopDeckSlot[] {
@@ -618,6 +622,7 @@ export function parseTopDeckSlots(raw: unknown): TopDeckSlot[] {
     return {
       name: String(row.name ?? "").slice(0, 80),
       deck: String(row.deck ?? "").slice(0, 80),
+      inks: String(row.inks ?? "").slice(0, 80),
       faces: facePair(row.faces),
       place: row.place === true,
     };

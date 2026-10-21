@@ -3,7 +3,7 @@ import { PresentedByBar } from "@/components/overlays/presented-by";
 import { ManaPip } from "@/components/overlays/mana-pip";
 import { deckColorIdentity } from "@/lib/commander-colors";
 import type { DeskState, PlayerSide, SideId } from "@/lib/desk-types";
-import { formatRecord, inkSrc, isLorcanaInk } from "@/lib/lorcana";
+import { formatRecord, inkSrc, lorcanaInks } from "@/lib/lorcana";
 
 const CYAN = "#00eeff";
 const PINK = "#ff4791";
@@ -80,11 +80,12 @@ function PlayerFrame({
 }
 
 function InkPair({ player }: { player: PlayerSide }) {
-  const inks = [player.ink1, player.ink2].filter(isLorcanaInk);
+  const inks = lorcanaInks(player);
+  const size = inks.length >= 6 ? "size-8" : inks.length >= 4 ? "size-10" : "size-12";
   return (
-    <div className="mt-3 flex h-12 items-center justify-center gap-3">
+    <div className="mt-3 flex h-12 items-center justify-center gap-2">
       {inks.length ? (
-        inks.map((ink) => <img key={ink} src={inkSrc(ink)} alt="" className="size-12 drop-shadow-[0_2px_6px_rgb(0_0_0_/_0.65)]" />)
+        inks.map((ink) => <img key={ink} src={inkSrc(ink)} alt="" className={`${size} drop-shadow-[0_2px_6px_rgb(0_0_0_/_0.65)]`} />)
       ) : (
         <span className="size-12 rounded-full border border-white/25" />
       )}

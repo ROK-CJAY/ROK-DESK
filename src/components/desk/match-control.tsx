@@ -483,6 +483,7 @@ function PlayerColumn({
               <InkPicker
                 ink1={player.ink1}
                 ink2={player.ink2}
+                inks={player.inks}
                 onChange={(next) => onChange(next)}
               />
             </div>

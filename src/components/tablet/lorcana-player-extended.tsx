@@ -170,7 +170,7 @@ function PlayerDesk({ side, flip = false, stacked = false }: { side: SideId; fli
           className="mt-1 min-w-0 overflow-hidden pb-0.5 [&_button]:p-0.5 [&_img]:h-(--ink) [&_img]:w-(--ink)"
           style={{ ["--ink" as string]: "clamp(1.35rem, min(11cqw, 14cqh), 3rem)" }}
         >
-          <InkPicker ink1={player.ink1} ink2={player.ink2} size="lg" quiet onChange={(next) => setPlayer(side, next)} />
+          <InkPicker ink1={player.ink1} ink2={player.ink2} inks={player.inks} size="lg" quiet onChange={(next) => setPlayer(side, next)} />
         </div>
       </div>
 

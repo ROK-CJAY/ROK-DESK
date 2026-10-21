@@ -210,6 +210,7 @@ export function RemoteSignupPanel({
           team: row.team,
           ink1: row.ink1,
           ink2: row.ink2,
+          inks: row.inks,
           note: row.note,
           photoUrl: row.photoUrl,
           decklist: row.decklist,

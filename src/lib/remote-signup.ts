@@ -4,7 +4,7 @@ import { dbSource, getSql } from "@/lib/db";
 import { gameIdFromSlug, isGameId, isVgcTitle, playAgeDivisionOf, slugOf, type GameId } from "@/lib/games";
 import { mergeDecklist } from "@/lib/decklist";
 import { countFilledMons, mergeTeam } from "@/lib/pokemon-vgc";
-import { sanitizeInk } from "@/lib/lorcana";
+import { sanitizeInk, sanitizeInkList } from "@/lib/lorcana";
 import { normalizeSignupCode } from "@/lib/remote-signup-code";
 
 export { PUBLIC_SIGNUP_ORIGIN, makeSignupCode, normalizeSignupCode } from "@/lib/remote-signup-code";
@@ -75,6 +75,7 @@ const bodySchema = z.object({
   team: z.unknown().optional(),
   ink1: z.string().trim().max(20).optional().default(""),
   ink2: z.string().trim().max(20).optional().default(""),
+  inks: z.string().trim().max(80).optional().default(""),
   note: z.string().trim().max(160).optional().default(""),
   photoUrl: z.string().trim().max(400).optional().default(""),
   decklist: z.unknown().optional(),
@@ -294,6 +295,7 @@ export async function submitRemoteSignup(
     decklist,
     ink1: sanitizeInk(parsed.data.ink1),
     ink2: sanitizeInk(parsed.data.ink2),
+    inks: sanitizeInkList(parsed.data.inks, parsed.data.ink1, parsed.data.ink2),
     ageDivision: playAgeDivisionOf(gameId) ?? parsed.data.ageDivision,
     game: slugOf(gameId),
   };

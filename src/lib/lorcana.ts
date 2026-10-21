@@ -17,6 +17,29 @@ export function sanitizeInk(value: unknown): LorcanaInkId | "" {
   return typeof value === "string" && isLorcanaInk(value) ? value : "";
 }
 
+/** Every ink a player selected. Older saves only stored the first two. */
+export function lorcanaInks(source: { ink1?: string; ink2?: string; inks?: string }): LorcanaInkId[] {
+  const listed = (source.inks ?? "")
+    .split(",")
+    .map((part) => part.trim())
+    .filter(isLorcanaInk);
+  const chosen = new Set(listed.length ? listed : [source.ink1 ?? "", source.ink2 ?? ""].filter(isLorcanaInk));
+  return LORCANA_INKS.map((ink) => ink.id).filter((id) => chosen.has(id));
+}
+
+export function packInks(ids: readonly string[]): { ink1: string; ink2: string; inks: string } {
+  const inks = lorcanaInks({ inks: ids.filter(isLorcanaInk).join(",") });
+  return { ink1: inks[0] ?? "", ink2: inks[1] ?? "", inks: inks.join(",") };
+}
+
+export function sanitizeInkList(value: unknown, ink1?: unknown, ink2?: unknown): string {
+  return lorcanaInks({
+    inks: typeof value === "string" ? value : "",
+    ink1: typeof ink1 === "string" ? ink1 : "",
+    ink2: typeof ink2 === "string" ? ink2 : "",
+  }).join(",");
+}
+
 export function inkSrc(id: LorcanaInkId): string {
   return `/lorcana/inks/${id}.png`;
 }

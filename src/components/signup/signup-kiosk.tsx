@@ -136,6 +136,7 @@ export function SignupKiosk({ gameId: pinnedGame, remote }: { gameId?: GameId; r
           team: vgc ? draft.team : undefined,
           ink1: t.gameId === "lorcana" ? draft.ink1 : undefined,
           ink2: t.gameId === "lorcana" ? draft.ink2 : undefined,
+          inks: t.gameId === "lorcana" ? draft.inks : undefined,
           note: draft.note.trim(),
           decklist: draft.decklist,
         }),
@@ -193,7 +194,7 @@ export function SignupKiosk({ gameId: pinnedGame, remote }: { gameId?: GameId; r
               {vgc
                 ? ". Fill the official Video Game Team List — player info plus all six Pokémon — then submit."
                 : t.gameId === "lorcana"
-                  ? `. Enter your name, ${idField.label}, deck, and up to two inks for ${game.name}.`
+                  ? `. Enter your name, ${idField.label}, deck, and inks for ${game.name}.`
                   : commander
                     ? `. Enter your name, ${idField.label}, commander, and partner if you have one.`
                     : `. Enter your name, ${idField.label}, and ${extra.label.toLowerCase()} for ${game.name}.`}
@@ -355,6 +356,7 @@ export function SignupKiosk({ gameId: pinnedGame, remote }: { gameId?: GameId; r
                     <InkPicker
                       ink1={draft.ink1}
                       ink2={draft.ink2}
+                      inks={draft.inks}
                       onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
                     />
                   </div>

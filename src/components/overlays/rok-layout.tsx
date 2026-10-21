@@ -3,7 +3,7 @@ import { FadeValue } from "@/components/overlays/fade-value";
 import { CardStackArt } from "@/components/overlays/card";
 import { useCardImageSrc } from "@/components/ui/remote-art";
 import { formatClock, remainingSeconds, resourceLimit, visibleCardStack, RIFT_OT_LAST_TURN, type DeskState, type SideId } from "@/lib/desk-types";
-import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
+import { formatRecord, gameDiamonds, inkSrc, lorcanaInks, type LorcanaInkId } from "@/lib/lorcana";
 import { isMtgTitle, isPtcgTitle, type GameId } from "@/lib/games";
 import { PokeballIcon } from "@/components/overlays/pips";
 import { cn } from "@/lib/cn";
@@ -82,7 +82,8 @@ function RokSide({
   const hasInit = swu && desk.initiativeSide === side;
   const max = resourceLimit(desk);
   const needed = rokDiamondCount(desk);
-  const inks = [player.ink1, player.ink2].filter(isLorcanaInk);
+  const inks = lorcanaInks(player);
+  const inkSize = inks.length >= 5 ? "size-7" : "size-10";
 
   return (
     <div className={cn("absolute inset-y-0 flex", right ? "right-0 flex-row-reverse" : "left-0")}>
@@ -92,9 +93,9 @@ function RokSide({
         </div>
         <div className="relative aspect-[4/5] overflow-hidden border-2 border-ov-fg/80 bg-transparent">
           {lorcana ? (
-            <div className={cn("absolute top-2.5 flex gap-2", right ? "left-2.5" : "right-2.5")}>
+            <div className={cn("absolute top-2.5 flex max-w-[9.5rem] flex-wrap gap-1", right ? "left-2.5" : "right-2.5")}>
               {inks.map((ink) => (
-                <InkEmblem key={ink} ink={ink} />
+                <InkEmblem key={ink} ink={ink} className={inkSize} />
               ))}
             </div>
           ) : null}
@@ -321,13 +322,13 @@ function LoreLadder({ value, max }: { value: number; max: number }) {
   );
 }
 
-function InkEmblem({ ink }: { ink: LorcanaInkId }) {
+function InkEmblem({ ink, className = "size-10" }: { ink: LorcanaInkId; className?: string }) {
   return (
     <img
       src={inkSrc(ink)}
       alt=""
       title={ink}
-      className="size-10 drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.65)]"
+      className={cn(className, "drop-shadow-[0_1px_2px_rgb(0_0_0_/_0.65)]")}
     />
   );
 }

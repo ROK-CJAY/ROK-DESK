@@ -4,6 +4,14 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.4.8 — 2026-10-21
+
+### Added
+
+- **Lorcana Play Hub** — Tournament can link a public Ravensburger Play Hub event. It loads players, pairings, and standings and starts the event. Update pulls the next round and results. Stop ends the link and marks the tournament complete.
+- **Lorcana inks** — a deck can use any number of inks, including all six. The play layout, versus screen, and tablets show the full set.
+- **Top decks** — Lorcana cards can pick inks. Those inkwells show on the graphic.
+
 ## v1.4.7 — 2026-10-20
 
 ### Added

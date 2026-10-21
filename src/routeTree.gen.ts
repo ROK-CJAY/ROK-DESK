@@ -63,6 +63,7 @@ import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
 import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiLorcanaPlayhubRouteImport } from './routes/api/lorcana/playhub'
 import { Route as ApiTournamentExportRouteImport } from './routes/api/tournament/export'
 import { Route as ApiTournamentOfficialPdfRouteImport } from './routes/api/tournament/official-pdf'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
@@ -339,6 +340,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLorcanaPlayhubRoute = ApiLorcanaPlayhubRouteImport.update({
+  id: '/api/lorcana/playhub',
+  path: '/api/lorcana/playhub',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiTournamentExportRoute = ApiTournamentExportRouteImport.update({
   id: '/export',
   path: '/export',
@@ -421,6 +427,7 @@ export interface FileRoutesByFullPath {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -481,6 +488,7 @@ export interface FileRoutesByTo {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -543,6 +551,7 @@ export interface FileRoutesById {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -606,6 +615,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/lorcana/playhub'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -666,6 +676,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/lorcana/playhub'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -727,6 +738,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/lorcana/playhub'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -769,6 +781,7 @@ export interface RootRouteChildren {
   GameSlotTabletRoute: typeof GameSlotTabletRoute
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiLorcanaPlayhubRoute: typeof ApiLorcanaPlayhubRoute
   GameSlotOverlaySourceRoute: typeof GameSlotOverlaySourceRoute
 }
 
@@ -1152,6 +1165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lorcana/playhub': {
+      id: '/api/lorcana/playhub'
+      path: '/api/lorcana/playhub'
+      fullPath: '/api/lorcana/playhub'
+      preLoaderRoute: typeof ApiLorcanaPlayhubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/tournament/export': {
       id: '/api/tournament/export'
       path: '/export'
@@ -1293,6 +1313,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameSlotTabletRoute: GameSlotTabletRoute,
   GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiLorcanaPlayhubRoute: ApiLorcanaPlayhubRoute,
   GameSlotOverlaySourceRoute: GameSlotOverlaySourceRoute,
 }
 export const routeTree = rootRouteImport
