@@ -33,11 +33,77 @@ function Picker({
   value,
   options,
   onChange,
+  searchable = false,
 }: {
   value: string;
   options: { value: string; label: string; url?: string }[];
   onChange: (value: string) => void;
+  searchable?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const selected = options.find((option) => option.value === value);
+  const shown = options.filter((option) => option.label.toLowerCase().includes(query.trim().toLowerCase()));
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+  return (
+    <div className="relative min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((current) => !current);
+          setQuery("");
+        }}
+        className="flex h-10 w-full items-center gap-2 rounded-md border border-border bg-surface-2 px-2 text-left text-sm"
+      >
+        {selected?.url ? <Preview url={selected.url} className="h-7 w-7 shrink-0 rounded bg-black object-contain" /> : null}
+        <span className="min-w-0 flex-1 truncate">{selected?.label || "Select"}</span>
+      </button>
+      {open ? (
+        <div className="absolute z-20 mt-1 w-full rounded-md border border-border bg-surface shadow-lg">
+          {searchable ? (
+            <input
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && shown[0]) {
+                  onChange(shown[0].value);
+                  setOpen(false);
+                }
+              }}
+              placeholder="Type to search"
+              className="h-9 w-full border-b border-border bg-transparent px-2 text-sm outline-none"
+            />
+          ) : null}
+          <div className="max-h-72 overflow-y-auto">
+            {shown.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+              >
+                {option.url ? <Preview url={option.url} className="h-7 w-7 shrink-0 rounded bg-black object-contain" /> : null}
+                <span className="truncate">{option.label}</span>
+              </button>
+            ))}
+            {!shown.length ? <p className="px-2 py-2 text-sm text-muted">No match</p> : null}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
   const [open, setOpen] = useState(false);
   const selected = options.find((option) => option.value === value);
   useEffect(() => {
@@ -87,13 +153,16 @@ function CharacterField({ value, onChange }: { value: string; onChange: (charact
   if (!characters.length) return <Input className="min-w-0 flex-1" value={value} onChange={(e) => onChange(e.target.value)} />;
   return (
     <Picker
+      searchable
       value={value}
       onChange={onChange}
-      options={characters.map((character) => ({
-        value: character.name,
-        label: character.name,
-        url: character.icon || resolvePreview(assetBase, library?.code ?? "", character.code, 0),
-      }))}
+      options={[...characters]
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((character) => ({
+          value: character.name,
+          label: character.name,
+          url: character.icon || resolvePreview(assetBase, library?.code ?? "", character.code, 0),
+        }))}
     />
   );
 }
