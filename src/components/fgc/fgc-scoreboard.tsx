@@ -154,6 +154,7 @@ function PlayerCard({
   const savePlayer = useFgcStore((s) => s.savePlayer);
   const saved = useFgcStore((s) => s.players);
   const [savedNote, setSavedNote] = useState("");
+  const [open, setOpen] = useState(false);
   const set = (partial: Partial<FgcPlayer>) => patchPlayer(setId, side, partial);
 
   return (
@@ -179,15 +180,15 @@ function PlayerCard({
               value={player.tag}
               onChange={(e) => set({ tag: e.target.value })}
               onBlur={() => {
-                window.setTimeout(() => setSavedNote(""), 150);
+                window.setTimeout(() => setOpen(false), 150);
                 const match =
                   (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
                   saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
                 if (match) set(match);
               }}
-              onFocus={() => setSavedNote("open")}
+              onFocus={() => setOpen(true)}
             />
-            {savedNote === "open" && player.tag.trim() ? (
+            {open && player.tag.trim() ? (
               <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
                 {saved
                   .filter((item) => item.tag.toLowerCase().includes(player.tag.trim().toLowerCase()))
@@ -200,7 +201,7 @@ function PlayerCard({
                       onMouseDown={(e) => {
                         e.preventDefault();
                         set(item);
-                        setSavedNote("");
+                        setOpen(false);
                       }}
                     >
                       {item.tag}

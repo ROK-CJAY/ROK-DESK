@@ -85,6 +85,8 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
   }
   return next;
 }
+
+function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer | null {
   if (!player) return player;
   const match =
     (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
@@ -224,6 +226,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
           ...set,
           p1: applySaved(set.p1, players),
           p2: applySaved(set.p2, players),
+          p1b: applySaved(set.p1b, players),
+          p2b: applySaved(set.p2b, players),
         };
       }),
     };
