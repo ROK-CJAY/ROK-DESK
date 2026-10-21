@@ -7,6 +7,7 @@ export type FgcPlayer = {
   prefix: string;
   realName: string;
   country: string;
+  flag: string;
   region: string;
   twitter: string;
   pronouns: string;
@@ -98,6 +99,7 @@ export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
     prefix: "",
     realName: "",
     country: "",
+    flag: "",
     region: "",
     twitter: "",
     pronouns: "",
@@ -189,7 +191,15 @@ export function assetUrl(base: string, kind: "characters" | "stages", name: stri
   return `${root}/${kind}/${file}.png`;
 }
 
-export function playerLabel(player: FgcPlayer | null): string {
+export function flagOf(country: string): string {
+  const code = FLAGS[country.trim().toLowerCase()];
+  if (!code) return "";
+  return [...code].map((letter) => String.fromCodePoint(127397 + letter.charCodeAt(0))).join("");
+}
+
+const FLAGS: Record<string, string> = {
+  "united states": "US", "united kingdom": "GB", canada: "CA", mexico: "MX", japan: "JP", france: "FR", germany: "DE", spain: "ES", italy: "IT", brazil: "BR", australia: "AU", "south korea": "KR", korea: "KR", netherlands: "NL", sweden: "SE", norway: "NO", finland: "FI", denmark: "DK", poland: "PL", argentina: "AR", chile: "CL", peru: "PE", colombia: "CO", china: "CN", taiwan: "TW", "hong kong": "HK", philippines: "PH", india: "IN", "new zealand": "NZ", ireland: "IE", portugal: "PT", belgium: "BE", switzerland: "CH", austria: "AT", "czech republic": "CZ", "united arab emirates": "AE", "saudi arabia": "SA", "south africa": "ZA",
+};
   if (!player) return "TBD";
   const tag = player.tag.trim();
   const prefix = player.prefix.trim();

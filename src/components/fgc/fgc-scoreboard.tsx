@@ -4,7 +4,7 @@ import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cachedThumb, hydrateLocalAssets, loadThumb, resolvePreview, resolveStage, stockIconsFor, withIcons } from "@/lib/fgc-assets";
-import { blankPlayer, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
+import { blankPlayer, flagOf, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
 function Preview({ url, className }: { url: string; className: string }) {
@@ -250,7 +250,7 @@ function PlayerCard({
           <Input value={player.pronouns} onChange={(e) => set({ pronouns: e.target.value })} />
         </Field>
         <Field label="Country">
-          <Input value={player.country} onChange={(e) => set({ country: e.target.value })} />
+          <Input value={[player.flag, player.country].filter(Boolean).join(" ")} onChange={(e) => set({ country: e.target.value, flag: flagOf(e.target.value) })} />
         </Field>
         <Field label="State / region">
           <Input value={player.region} onChange={(e) => set({ region: e.target.value })} />

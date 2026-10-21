@@ -1,4 +1,4 @@
-import { blankPlayer, type FgcEvent, type FgcPlayer, type FgcSet, type FgcSetState } from "@/lib/fgc-types";
+import { blankPlayer, flagOf, type FgcEvent, type FgcPlayer, type FgcSet, type FgcSetState } from "@/lib/fgc-types";
 
 const ENDPOINT = "https://www.start.gg/api/-/gql";
 
@@ -100,7 +100,8 @@ const SETS_QUERY = `
                 user {
                   id
                   name
-                  location { country }
+                  genderPronoun
+                  location { country state city }
                   authorizations(types: [TWITTER]) { externalUsername type }
                 }
               }
@@ -160,7 +161,8 @@ type RawSet = {
         user?: {
           id?: string | number | null;
           name?: string | null;
-          location?: { country?: string | null } | null;
+          genderPronoun?: string | null;
+          location?: { country?: string | null; state?: string | null; city?: string | null } | null;
           authorizations?: { externalUsername?: string | null; type?: string | null }[] | null;
         } | null;
       }[] | null;
@@ -178,17 +180,20 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
   const entrant = slot?.entrant;
   if (!entrant) return null;
   const person = entrant.participants?.[0];
-  const twitter = person?.user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "";
+  const user = person?.user;
+  const country = user?.location?.country?.trim() || "";
+  const twitter = user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "";
   return {
     id: entrant.id,
-    profileId: person?.user?.id == null ? "" : String(person.user.id),
+    profileId: user?.id == null ? "" : String(user.id),
     tag: person?.gamerTag?.trim() || entrant.name?.trim() || "TBD",
     prefix: person?.prefix?.trim() || "",
-    realName: person?.user?.name?.trim() || "",
-    country: person?.user?.location?.country?.trim() || "",
-    region: "",
+    realName: user?.name?.trim() || "",
+    country,
+    flag: flagOf(country),
+    region: [user?.location?.city, user?.location?.state].filter(Boolean).join(", "),
     twitter: twitter.replace(/^@/, ""),
-    pronouns: "",
+    pronouns: user?.genderPronoun?.trim() || "",
     character: "",
     skin: 0,
     character2: "",
