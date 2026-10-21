@@ -66,6 +66,8 @@ function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer |
   if (!match) return player;
   return { ...player, ...match, id: player.id, seed: player.seed };
 }
+
+function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
   if (!raw) return null;
   return { ...blankPlayer(), ...raw, id: raw.id || blankPlayer().id, skin: raw.skin ?? raw.stocks ?? 0 };
 }
