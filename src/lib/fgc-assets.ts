@@ -40,12 +40,44 @@ export async function loadCatalog(base: string): Promise<CatalogGame[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const TSH_SITE = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main";
+const TSH_SITE = "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
 
 export function previewUrl(base: string, game: string, code: string, skin: number): string {
   const root = base.trim().replace(/\/$/, "");
   const host = root || TSH_SITE;
   return `${host}/games/${game}/website/${code}_${skin}.png`;
+}
+
+const thumbCache = new Map<string, string>();
+
+export function cachedThumb(url: string): string | null {
+  return thumbCache.get(url) ?? null;
+}
+
+export async function loadThumb(url: string): Promise<string> {
+  const cached = thumbCache.get(url);
+  if (cached) return cached;
+  const image = await loadImage(url);
+  const height = 96;
+  const width = Math.max(1, Math.round((image.width / image.height) * height));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext("2d")?.drawImage(image, 0, 0, width, height);
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.8));
+  const thumb = blob ? URL.createObjectURL(blob) : url;
+  thumbCache.set(url, thumb);
+  return thumb;
+}
+
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("preview failed"));
+    image.src = url;
+  });
 }
 
 export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
