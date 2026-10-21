@@ -61,6 +61,7 @@ type FgcStore = {
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
+  clearImport: () => void;
 };
 
 function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]): SavedPlayer[] {
@@ -436,6 +437,12 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   },
   clear: () => {
     const fgc = EMPTY_FGC;
+    write(fgc);
+    set({ fgc, error: "" });
+  },
+  clearImport: () => {
+    const created = blankSet();
+    const fgc = { ...get().fgc, url: "", event: null, sets: [created], streamSetId: created.id, importedAt: null };
     write(fgc);
     set({ fgc, error: "" });
   },

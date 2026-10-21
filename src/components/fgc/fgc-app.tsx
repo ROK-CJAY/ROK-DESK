@@ -98,7 +98,7 @@ export function FgcApp() {
   const error = useFgcStore((s) => s.error);
   const patch = useFgcStore((s) => s.patch);
   const importEvent = useFgcStore((s) => s.importEvent);
-  const loadStreamSet = useFgcStore((s) => s.loadStreamSet);
+  const clearImport = useFgcStore((s) => s.clearImport);
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
   const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset">("scoreboard");
@@ -130,7 +130,7 @@ export function FgcApp() {
             Select set
           </Button>
           <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
-          <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
+          <Button variant="outline" onClick={() => clearImport()}>Clear import</Button>
             Stream set
           </Button>
           <a
