@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { stageIconUrl } from "@/lib/fgc-assets";
+import { resolveStage } from "@/lib/fgc-assets";
 import { blankRuleset, libraryFor, type FgcRuleset, type FgcStage } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
@@ -148,7 +148,7 @@ export function FgcRulesetEditor() {
 function StageRow({ stage, game, base, selected, onClick }: { stage: FgcStage; game: string; base: string; selected: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className={`flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-surface-2 ${selected ? "bg-surface-2" : ""}`}>
-      <img src={stageIconUrl(base, game, stage.code)} alt="" className="h-6 w-10 rounded bg-black object-cover" />
+      <img src={resolveStage(base, game, stage.code)} alt="" className="h-6 w-10 rounded bg-black object-cover" />
       <span className="truncate">{stage.name}</span>
     </button>
   );

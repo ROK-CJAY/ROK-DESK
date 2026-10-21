@@ -54,7 +54,124 @@ export function stageIconUrl(base: string, game: string, code: string): string {
   return `${host}/games/${game}/stage_icon/stage_2_${code}.png`;
 }
 
-const thumbCache = new Map<string, string>();
+const localSkins = new Map<string, string>();
+const localStages = new Map<string, string>();
+
+function assetDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("rok-fgc-assets", 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("files")) db.createObjectStore("files");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export function skinKey(game: string, code: string, skin: number): string {
+  return `skin:${game}:${code}:${skin}`;
+}
+
+export function stageKey(game: string, code: string): string {
+  return `stage:${game}:${code}`;
+}
+
+export function localSkin(game: string, code: string, skin: number): string | null {
+  return localSkins.get(skinKey(game, code, skin)) ?? null;
+}
+
+export function localStage(game: string, code: string): string | null {
+  return localStages.get(stageKey(game, code)) ?? null;
+}
+
+export function resolvePreview(base: string, game: string, code: string, skin: number): string {
+  return localSkin(game, code, skin) ?? previewUrl(base, game, code, skin);
+}
+
+export function resolveStage(base: string, game: string, code: string): string {
+  return localStage(game, code) ?? stageIconUrl(base, game, code);
+}
+
+export async function hydrateLocalAssets() {
+  const db = await assetDb();
+  const rows = await new Promise<{ key: string; blob: Blob }[]>((resolve, reject) => {
+    const rows: { key: string; blob: Blob }[] = [];
+    const request = db.transaction("files").objectStore("files").openCursor();
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) {
+        resolve(rows);
+        return;
+      }
+      rows.push({ key: String(cursor.key), blob: cursor.value as Blob });
+      cursor.continue();
+    };
+  });
+  for (const row of rows) {
+    const url = URL.createObjectURL(row.blob);
+    if (row.key.startsWith("skin:")) localSkins.set(row.key, url);
+    if (row.key.startsWith("stage:")) localStages.set(row.key, url);
+  }
+}
+
+export function parseAssetName(filename: string): { key: string; name: string; index: number } {
+  const base = filename.replace(/\.[^.]+$/, "");
+  const numbered = base.match(/^(.*?)[_-](\d+)$/);
+  const name = (numbered ? numbered[1] : base).replace(/[_-]+/g, " ").trim();
+  return {
+    key: name.toLowerCase().replace(/[^a-z0-9]/g, ""),
+    name,
+    index: numbered ? Number(numbered[2]) : 0,
+  };
+}
+
+export async function saveUploadedPack(
+  library: FgcLibrary,
+  files: File[],
+  kind: "skin" | "stage",
+): Promise<{ library: FgcLibrary; matched: string[]; unmatched: string[] }> {
+  const db = await assetDb();
+  const matched: string[] = [];
+  const unmatched: string[] = [];
+  const characters = [...library.characters];
+  const stages = [...library.stages];
+  for (const file of files) {
+    const parsed = parseAssetName(file.name);
+    if (!parsed.key) {
+      unmatched.push(file.name);
+      continue;
+    }
+    if (kind === "skin") {
+      const found = characters.find((item) => item.name.toLowerCase().replace(/[^a-z0-9]/g, "") === parsed.key || item.code.toLowerCase().replace(/[^a-z0-9]/g, "") === parsed.key);
+      const character = found ?? { name: parsed.name.replace(/\b\w/g, (letter) => letter.toUpperCase()), code: parsed.name.replace(/\s+/g, ""), skins: 1 };
+      if (!found) characters.push(character);
+      character.skins = Math.max(character.skins, parsed.index + 1);
+      const key = skinKey(library.code, character.code, parsed.index);
+      await putFile(db, key, file);
+      localSkins.set(key, URL.createObjectURL(file));
+      matched.push(`${file.name} → ${character.name} skin ${parsed.index}`);
+    } else {
+      const found = stages.find((item) => item.name.toLowerCase().replace(/[^a-z0-9]/g, "") === parsed.key || item.code.toLowerCase().replace(/[^a-z0-9]/g, "") === parsed.key);
+      const stage = found ?? { name: parsed.name.replace(/\b\w/g, (letter) => letter.toUpperCase()), code: parsed.name.replace(/\s+/g, "") };
+      if (!found) stages.push(stage);
+      const key = stageKey(library.code, stage.code);
+      await putFile(db, key, file);
+      localStages.set(key, URL.createObjectURL(file));
+      matched.push(`${file.name} → ${stage.name}`);
+    }
+  }
+  return { library: { ...library, characters, stages, pack: library.pack || "Uploaded" }, matched, unmatched };
+}
+
+function putFile(db: IDBDatabase, key: string, file: Blob): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const request = db.transaction("files", "readwrite").objectStore("files").put(file, key);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
 
 export function cachedThumb(url: string): string | null {
   return thumbCache.get(url) ?? null;

@@ -3,7 +3,7 @@ import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cachedThumb, loadThumb, previewUrl, stageIconUrl } from "@/lib/fgc-assets";
+import { cachedThumb, hydrateLocalAssets, loadThumb, resolvePreview, resolveStage } from "@/lib/fgc-assets";
 import { blankPlayer, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
@@ -92,7 +92,7 @@ function CharacterField({ value, onChange }: { value: string; onChange: (charact
       options={characters.map((character) => ({
         value: character.name,
         label: character.name,
-        url: previewUrl(assetBase, library?.code ?? "", character.code, 0),
+        url: resolvePreview(assetBase, library?.code ?? "", character.code, 0),
       }))}
     />
   );
@@ -110,7 +110,7 @@ function StageField({ value, onChange }: { value: string; onChange: (stage: stri
       options={stages.map((stage) => ({
         value: stage.name,
         label: stage.name,
-        url: stageIconUrl(assetBase, library?.code ?? "", stage.code),
+        url: resolveStage(assetBase, library?.code ?? "", stage.code),
       }))}
     />
   );
@@ -128,7 +128,7 @@ function SkinField({ character, value, onChange }: { character: string; value: n
       options={Array.from({ length: found.skins }, (_, skin) => ({
         value: String(skin),
         label: String(skin),
-        url: previewUrl(assetBase, library?.code ?? "", found.code, skin),
+        url: resolvePreview(assetBase, library?.code ?? "", found.code, skin),
       }))}
     />
   );
@@ -270,6 +270,9 @@ export function FgcScoreboard({ set }: { set: FgcSet }) {
   const resetScore = useFgcStore((s) => s.resetScore);
   const p1 = set.p1 ?? blankPlayer();
   const p2 = set.p2 ?? blankPlayer();
+  useEffect(() => {
+    void hydrateLocalAssets();
+  }, []);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">

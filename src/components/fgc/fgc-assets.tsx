@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, X } from "lucide-react";
+import { Download, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { installLibrary, loadCatalog, type CatalogGame } from "@/lib/fgc-assets";
+import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type CatalogGame } from "@/lib/fgc-assets";
+import { type FgcLibrary } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
 export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -14,6 +15,8 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [kind, setKind] = useState<"skin" | "stage">("skin");
+  const [report, setReport] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -21,6 +24,7 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
     void loadCatalog(assetBase)
       .then(setGames)
       .catch((err) => setError(err instanceof Error ? err.message : "Catalog failed"));
+    void hydrateLocalAssets();
   }, [assetBase, open]);
 
   const shown = useMemo(() => {
@@ -58,7 +62,54 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
             </p>
           ) : null}
           {selected ? (
-            <ul className="divide-y divide-border">
+            <div className="grid gap-4">
+              <div className="rounded-md border border-border p-3">
+                <p className="font-medium">Upload a pack</p>
+                <p className="mt-1 text-xs text-muted">Mario.png ties to Mario. Mario_1.png is skin 1. Same matching for stage icons.</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <select value={kind} onChange={(e) => setKind(e.target.value as "skin" | "stage")} className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm">
+                    <option value="skin">Skins</option>
+                    <option value="stage">Stage icons</option>
+                  </select>
+                  <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-border px-3 text-sm">
+                    <Upload className="size-4" />
+                    Choose files
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = [...(e.target.files ?? [])];
+                        if (!files.length) return;
+                        const current = libraries.find((item) => item.code === selected.code) ?? ({
+                          game: selected.name,
+                          code: selected.code,
+                          pack: "Uploaded",
+                          version: "",
+                          characters: [],
+                          stages: [],
+                        } satisfies FgcLibrary);
+                        setBusy("upload");
+                        void saveUploadedPack(current, files, kind)
+                          .then((result) => {
+                            setLibrary(result.library);
+                            setReport(`${result.matched.length} matched${result.unmatched.length ? `, ${result.unmatched.length} skipped` : ""}`);
+                            setBusy("");
+                          })
+                          .catch((err) => {
+                            setError(err instanceof Error ? err.message : "Upload failed");
+                            setBusy("");
+                          });
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                  {busy === "upload" ? <span className="text-xs text-muted">Saving</span> : null}
+                  {report ? <span className="text-xs text-muted">{report}</span> : null}
+                </div>
+              </div>
+              <ul className="divide-y divide-border">
               {selected.packs.map((pack) => (
                 <li key={pack.name} className="flex items-center gap-3 py-3">
                   <div className="min-w-0 flex-1">
@@ -90,7 +141,8 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                   </Button>
                 </li>
               ))}
-            </ul>
+              </ul>
+            </div>
           ) : (
             <p className="py-8 text-center text-sm text-muted">Pick a game to see its libraries.</p>
           )}
