@@ -131,6 +131,7 @@ export function FgcApp() {
           </Button>
           <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
           <Button variant="outline" onClick={() => clearImport()}>Clear import</Button>
+          <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
             Stream set
           </Button>
           <a
