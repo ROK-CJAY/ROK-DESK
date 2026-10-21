@@ -1,4 +1,4 @@
-import { useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { Eye, EyeOff, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -140,13 +140,14 @@ export function FgcDesigner() {
                 fontSize: `${(element.size / 1920) * 100}cqw`,
                 textAlign: element.align,
                 opacity: element.opacity,
+                mixBlendMode: (element.blend || undefined) as CSSProperties["mixBlendMode"],
                 outline: selected === element.id ? "2px solid #e11d2e" : "1px dashed rgba(255,255,255,0.28)",
                 pointerEvents: tool === "select" && element.layer === layer.id && !element.locked && !layer.locked ? "auto" : "none",
               }}
               onPointerDown={(event) => dragExisting(element, event)}
             >
               {element.kind === "image" ? (
-                titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="pointer-events-none h-full w-full object-contain" /> : <span className="text-xs text-white/60">Image</span>
+                titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="pointer-events-none h-full w-full" /> : <span className="text-xs text-white/60">Image</span>
               ) : element.kind === "text" ? (
                 <span className="pointer-events-none block uppercase">{titleText(fgc, set, element.bind, element.text) || element.name}</span>
               ) : null}

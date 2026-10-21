@@ -55,6 +55,7 @@ export type FgcTitleElement = {
   align: "left" | "center" | "right";
   src: string;
   imageKey: string;
+  blend: string;
 };
 
 export type FgcTitle = {

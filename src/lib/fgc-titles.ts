@@ -94,6 +94,7 @@ export function blankElement(kind: FgcTitleElement["kind"], layer = "layer-1"): 
     align: "left",
     src: "",
     imageKey: "",
+    blend: "",
   };
 }
 
@@ -112,6 +113,7 @@ export function normalizeTitle(title: FgcTitle): FgcTitle {
       locked: !!element.locked,
       opacity: typeof element.opacity === "number" ? element.opacity : 1,
       imageKey: element.imageKey || "",
+      blend: element.blend || "",
     })),
   };
 }

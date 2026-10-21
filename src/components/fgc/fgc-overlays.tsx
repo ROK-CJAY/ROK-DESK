@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
@@ -89,11 +89,12 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
             lineHeight: 1.1,
             fontWeight: 650,
             opacity: element.opacity,
+            mixBlendMode: (element.blend || undefined) as CSSProperties["mixBlendMode"],
             outline: editing ? "1px dashed rgba(255,255,255,0.35)" : undefined,
           }}
         >
           {element.kind === "image" ? (
-            titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="h-full w-full object-contain" /> : null
+            titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="h-full w-full" /> : null
           ) : element.kind === "text" ? (
             <span className="block h-full uppercase">{titleText(fgc, set, element.bind, element.text)}</span>
           ) : null}
