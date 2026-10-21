@@ -271,6 +271,7 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
     players?: {
       nodes?: {
         gamerTag?: string | null;
+        prefix?: string | null;
         user?: {
           id?: string | number | null;
           name?: string | null;
@@ -286,6 +287,7 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
       players(query: { filter: { gamerTag: $query }, perPage: 8 }) {
         nodes {
           gamerTag
+          prefix
           user { id name genderPronoun location { country state } images(type: "profile") { url } authorizations(types: [TWITTER]) { externalUsername } }
         }
       }
