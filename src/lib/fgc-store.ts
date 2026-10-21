@@ -61,15 +61,17 @@ type FgcStore = {
 };
 
 function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer | null {
-  if (!player?.tag) return player;
-  const match = saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
+  if (!player) return player;
+  const match =
+    (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
+    saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
   if (!match) return player;
-  return { ...player, ...match, id: player.id, seed: player.seed };
+  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId };
 }
 
 function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
   if (!raw) return null;
-  return { ...blankPlayer(), ...raw, id: raw.id || blankPlayer().id, skin: raw.skin ?? raw.stocks ?? 0 };
+  return { ...blankPlayer(), ...raw, id: raw.id || blankPlayer().id, profileId: raw.profileId || "", skin: raw.skin ?? raw.stocks ?? 0 };
 }
 
 function setOf(raw: Partial<FgcSet>): FgcSet {
@@ -160,7 +162,11 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       const fgc: FgcState = {
         ...get().fgc,
         event: body.event,
-        sets: body.sets,
+        sets: body.sets.map((set) => ({
+          ...set,
+          p1: applySaved(set.p1, get().players),
+          p2: applySaved(set.p2, get().players),
+        })),
         streamSetId: live?.id ?? get().fgc.streamSetId,
         importedAt: new Date().toISOString(),
       };
@@ -273,8 +279,9 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   },
   savePlayer: (player) => {
     const tag = player.tag.trim();
-    if (!tag) return;
+    if (!tag && !player.profileId) return;
     const saved: SavedPlayer = {
+      profileId: player.profileId,
       tag,
       prefix: player.prefix,
       realName: player.realName,
@@ -287,7 +294,12 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       character2: player.character2,
       skin2: player.skin2,
     };
-    const players = [saved, ...get().players.filter((item) => item.tag.toLowerCase() !== tag.toLowerCase())];
+    const players = [
+      saved,
+      ...get().players.filter((item) =>
+        player.profileId ? item.profileId !== player.profileId : item.tag.toLowerCase() !== tag.toLowerCase(),
+      ),
+    ];
     writeJson(PLAYERS_KEY, players);
     set({ players });
   },

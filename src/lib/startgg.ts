@@ -98,6 +98,7 @@ const SETS_QUERY = `
                 gamerTag
                 prefix
                 user {
+                  id
                   name
                   location { country }
                   authorizations(types: [TWITTER]) { externalUsername type }
@@ -157,6 +158,7 @@ type RawSet = {
         gamerTag?: string | null;
         prefix?: string | null;
         user?: {
+          id?: string | number | null;
           name?: string | null;
           location?: { country?: string | null } | null;
           authorizations?: { externalUsername?: string | null; type?: string | null }[] | null;
@@ -179,6 +181,7 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
   const twitter = person?.user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "";
   return {
     id: entrant.id,
+    profileId: person?.user?.id == null ? "" : String(person.user.id),
     tag: person?.gamerTag?.trim() || entrant.name?.trim() || "TBD",
     prefix: person?.prefix?.trim() || "",
     realName: person?.user?.name?.trim() || "",

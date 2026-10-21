@@ -2,6 +2,7 @@ export type FgcSetState = "pending" | "live" | "done";
 
 export type FgcPlayer = {
   id: string;
+  profileId: string;
   tag: string;
   prefix: string;
   realName: string;
@@ -87,6 +88,7 @@ export const EMPTY_FGC: FgcState = {
 export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
   return {
     id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    profileId: "",
     tag: "",
     prefix: "",
     realName: "",
