@@ -130,13 +130,18 @@ export type FgcCharacter = {
   skins: number;
 };
 
+export type FgcStage = {
+  name: string;
+  code: string;
+};
+
 export type FgcLibrary = {
   game: string;
   code: string;
   pack: string;
   version: string;
   characters: FgcCharacter[];
-  stages: string[];
+  stages: FgcStage[];
 };
 
 export type FgcRuleset = {

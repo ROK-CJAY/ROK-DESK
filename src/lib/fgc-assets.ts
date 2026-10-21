@@ -48,6 +48,12 @@ export function previewUrl(base: string, game: string, code: string, skin: numbe
   return `${host}/games/${game}/website/${code}_${skin}.png`;
 }
 
+export function stageIconUrl(base: string, game: string, code: string): string {
+  const root = base.trim().replace(/\/$/, "");
+  const host = root || TSH_SITE;
+  return `${host}/games/${game}/stage_icon/stage_2_${code}.png`;
+}
+
 const thumbCache = new Map<string, string>();
 
 export function cachedThumb(url: string): string | null {
@@ -89,9 +95,9 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
   if (!res.ok) throw new Error("That pack has no character library yet");
   const body = (await res.json()) as {
     characters?: FgcCharacter[];
-    stages?: string[];
+    stages?: { name: string; code: string }[];
     character_to_codename?: Record<string, { codename?: string }>;
-    stage_to_codename?: Record<string, unknown>;
+    stage_to_codename?: Record<string, { codename?: string } | string>;
   };
   const characters = body.characters?.length
     ? body.characters
@@ -100,7 +106,12 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
         code: value.codename || name,
         skins: 8,
       }));
-  const stages = body.stages ?? Object.keys(body.stage_to_codename ?? {});
+  const stages = body.stages?.length
+    ? body.stages
+    : Object.entries(body.stage_to_codename ?? {}).map(([name, value]) => ({
+        name,
+        code: typeof value === "string" ? value : value.codename || name,
+      }));
   return {
     game: game.name,
     code: game.code,

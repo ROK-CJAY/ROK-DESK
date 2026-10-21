@@ -100,7 +100,12 @@ function read(): FgcState {
       sets: (parsed.sets ?? []).map(setOf),
       casters: parsed.casters?.length ? parsed.casters : EMPTY_FGC.casters,
       rulesets: parsed.rulesets ?? [],
-      libraries: readLibraries().length ? readLibraries() : parsed.libraries ?? [],
+      libraries: (readLibraries().length ? readLibraries() : parsed.libraries ?? []).map((library) => ({
+        ...library,
+        stages: (library.stages ?? []).map((stage) =>
+          typeof stage === "string" ? { name: stage, code: stage } : stage,
+        ),
+      })),
     };
   } catch {
     return EMPTY_FGC;

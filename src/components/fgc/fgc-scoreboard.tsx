@@ -3,7 +3,7 @@ import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cachedThumb, loadThumb, previewUrl } from "@/lib/fgc-assets";
+import { cachedThumb, loadThumb, previewUrl, stageIconUrl } from "@/lib/fgc-assets";
 import { blankPlayer, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
@@ -98,7 +98,23 @@ function CharacterField({ value, onChange }: { value: string; onChange: (charact
   );
 }
 
-function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
+function StageField({ value, onChange }: { value: string; onChange: (stage: string) => void }) {
+  const library = useFgcStore((s) => libraryFor(s.fgc));
+  const assetBase = useFgcStore((s) => s.fgc.assetBase);
+  const stages = library?.stages ?? [];
+  if (!stages.length) return <Input value={value} onChange={(e) => onChange(e.target.value)} />;
+  return (
+    <Picker
+      value={value}
+      onChange={onChange}
+      options={stages.map((stage) => ({
+        value: stage.name,
+        label: stage.name,
+        url: stageIconUrl(assetBase, library?.code ?? "", stage.code),
+      }))}
+    />
+  );
+}
   const library = useFgcStore((s) => libraryFor(s.fgc));
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const found = library?.characters.find((item) => item.name === character);
@@ -278,7 +294,7 @@ export function FgcScoreboard({ set }: { set: FgcSet }) {
             />
           </Field>
           <Field label="Stage">
-            <Input value={set.stage} onChange={(e) => patchSet(set.id, { stage: e.target.value })} />
+            <StageField value={set.stage} onChange={(stage) => patchSet(set.id, { stage })} />
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Score 1">
