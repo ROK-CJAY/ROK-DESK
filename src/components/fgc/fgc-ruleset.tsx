@@ -15,7 +15,7 @@ export function FgcRulesetEditor() {
   const library = libraryFor(fgc);
   const active = fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? blankRuleset();
   const [draft, setDraft] = useState<FgcRuleset>(active);
-  const shown = { banMode: "fixed" as const, bansByGames: "3:3,5:2", ...(draft.id === active.id ? draft : active) };
+  const shown = { ...(draft.id === active.id ? draft : active), banMode: (draft.id === active.id ? draft : active).banMode || "fixed", bansByGames: (draft.id === active.id ? draft : active).bansByGames || "3:3,5:2" };
   const [selected, setSelected] = useState("");
   const [filter, setFilter] = useState("All stages");
   const stages = library?.stages ?? [];
