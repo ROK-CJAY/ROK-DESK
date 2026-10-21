@@ -34,7 +34,7 @@ function CasterCard({ index }: { index: number }) {
   const clearCaster = useFgcStore((s) => s.clearCaster);
   const saved = useFgcStore((s) => s.casters);
   const [open, setOpen] = useState(false);
-  const [matches, setMatches] = useState<{ profileId: string; name: string; realName?: string; photo?: string; twitter: string; pronouns: string; country?: string; region?: string; flag?: string }[]>([]);
+  const [matches, setMatches] = useState<{ profileId: string; name: string; realName?: string; photo?: string; twitter: string; pronouns: string; country?: string; region?: string; flag?: string; prefix?: string }[]>([]);
   const query = caster?.name.trim() ?? "";
   useEffect(() => {
     if (query.length < 2) {
@@ -87,6 +87,7 @@ function CasterCard({ index }: { index: number }) {
                         e.preventDefault();
                         set({
                           name: item.name,
+                          prefix: item.prefix || "",
                           realName: item.realName,
                           twitter: item.twitter,
                           pronouns: item.pronouns,

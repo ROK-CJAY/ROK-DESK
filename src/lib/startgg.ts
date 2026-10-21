@@ -264,7 +264,7 @@ export async function stockIcons(game: string, gameId?: string): Promise<Record<
   return icons;
 }
 
-export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string; country: string; region: string; flag: string }[]> {
+export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string; country: string; region: string; flag: string; prefix: string }[]> {
   const query = name.trim();
   if (query.length < 2) return [];
   const data = await startggQuery<{
@@ -298,6 +298,7 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
     .map((player) => ({
       profileId: player.user?.id == null ? "" : String(player.user.id),
       name: player.gamerTag?.trim() || player.user?.name?.trim() || "",
+      prefix: player.prefix?.trim() || "",
       realName: player.user?.name?.trim() || "",
       photo: player.user?.images?.find((image) => image.url)?.url || "",
       twitter: (player.user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "").replace(/^@/, ""),
