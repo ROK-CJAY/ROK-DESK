@@ -98,6 +98,7 @@ export function FgcApp() {
   const error = useFgcStore((s) => s.error);
   const patch = useFgcStore((s) => s.patch);
   const importEvent = useFgcStore((s) => s.importEvent);
+  const loadStreamSet = useFgcStore((s) => s.loadStreamSet);
   const clearImport = useFgcStore((s) => s.clearImport);
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
