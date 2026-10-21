@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, ListFilter, Radio, RefreshCw, X } from "lucide-react";
 import { FgcAssetsDialog } from "@/components/fgc/fgc-assets";
 import { AppChrome } from "@/components/app/app-chrome";
@@ -96,27 +96,27 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 function TshFrame({ path }: { path: string }) {
-  const [doc, setDoc] = useState("");
-  const [failed, setFailed] = useState(false);
+  const frame = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
   useEffect(() => {
-    const file = `/tsh/layout/${path}`;
-    const dir = file.slice(0, file.lastIndexOf("/") + 1);
-    setDoc("");
-    setFailed(false);
-    void fetch(file)
-      .then((res) => {
-        if (!res.ok) throw new Error("missing");
-        return res.text();
-      })
-      .then((html) => {
-        const base = `<base href="${window.location.origin}${dir}">`;
-        setDoc(/<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (tag) => `${tag}${base}`) : `<head>${base}</head>${html}`);
-      })
-      .catch(() => setFailed(true));
-  }, [path]);
-  if (failed) return <p className="grid h-full place-items-center text-sm text-muted">This layout did not load.</p>;
-  if (!doc) return null;
-  return <iframe title={path} srcDoc={doc} className="h-full w-full border-0 bg-transparent" />;
+    const node = frame.current;
+    if (!node) return;
+    const fit = () => setScale(Math.max(0.1, node.clientWidth / 1920));
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+  return (
+    <div ref={frame} className="relative h-full w-full overflow-hidden bg-black">
+      <iframe
+        title={path}
+        src={`/tsh/layout/${path}`}
+        className="absolute top-0 left-0 border-0 bg-black"
+        style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}
+      />
+    </div>
+  );
 }
 
 export function FgcApp() {

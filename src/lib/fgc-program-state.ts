@@ -98,6 +98,9 @@ function slotFrom(fgc: FgcState, player: FgcPlayer | null) {
   return { name: "", player: { "1": tshPlayer(fgc, player) } };
 }
 
+let lastProgramJson = "";
+let lastProgramStamp = 1;
+
 export function programState(fgc: FgcState) {
   const set = liveSet(fgc);
   const library = libraryFor(fgc);
@@ -115,8 +118,7 @@ export function programState(fgc: FgcState) {
   });
   const slots: Record<string, unknown> = {};
   for (let index = 1; index <= 8; index += 1) slots[String(index)] = slotFrom(fgc, null);
-  return {
-    timestamp: Date.now(),
+  const body = {
     tournamentInfo: {
       tournamentName: fgc.event?.tournamentName || "",
       eventName: fgc.event?.name || "",
@@ -143,6 +145,12 @@ export function programState(fgc: FgcState) {
     commentary,
     player_list: { slot: slots },
   };
+  const json = JSON.stringify(body);
+  if (json !== lastProgramJson) {
+    lastProgramJson = json;
+    lastProgramStamp = Date.now();
+  }
+  return { timestamp: lastProgramStamp, ...body };
 }
 
 export async function loadFgcState(): Promise<FgcState> {

@@ -32,19 +32,36 @@ var Update = async (event) => {
 
 // Wrapper for the update call
 async function UpdateWrapper(event) {
-  await Update(event);
+  try {
+    await Update(event);
+  } catch (e) {
+    console.log(e);
+  }
 
   // If initialization wasn't done yet, call Start()
   // We use gsap.globalTimeline.timeScale as 0 for animation to not play before this
   if (gsap.globalTimeline.timeScale() == 0) {
     gsap.globalTimeline.timeScale(1);
-    window.requestAnimationFrame(() => {
-      $(document).waitForImages(() => {
-        $("body").fadeTo(1, 1, () => {
-          console.log("Start()");
-          Start();
-        });
+    let revealed = false;
+    const reveal = () => {
+      if (revealed) return;
+      revealed = true;
+      $("body").fadeTo(1, 1, () => {
+        console.log("Start()");
+        Start();
       });
+    };
+    window.requestAnimationFrame(() => {
+      const timer = setTimeout(reveal, 1200);
+      try {
+        $(document).waitForImages(() => {
+          clearTimeout(timer);
+          reveal();
+        });
+      } catch (e) {
+        clearTimeout(timer);
+        reveal();
+      }
     });
   }
 }
@@ -306,20 +323,28 @@ function RegisterFit(element) {
   }
 }
 
+var tshFitting = false;
+
 // Scale content to fit div
 function FitText(target) {
+  if (tshFitting || target == null) return;
   document.fonts.ready.then(() => {
-    if (target == null) return;
+    if (tshFitting || target == null) return;
     if (target.css("font-size") == null) return;
-    if (target.css("width") == null) return;
+    const targetWidth = target.width();
+    if (!targetWidth) return;
 
     let textElement = target.find(".text");
+    if (!textElement.length || !textElement[0]) return;
     RegisterFit(target);
 
     if (textElement.text().trim().toLowerCase() == "undefined") {
       textElement.html("");
     }
 
+    if (textElement[0].scrollWidth <= targetWidth + 1 && (textElement[0].style.fontSize || textElement[0].style.transform)) return;
+
+    tshFitting = true;
     textElement.css("transform", "");
     textElement.css("font-size", "");
 
@@ -329,8 +354,6 @@ function FitText(target) {
       );
 
       let fontSize = originalFontSize;
-
-      const targetWidth = target.width();
 
       while (
         textElement[0].scrollWidth > targetWidth &&
@@ -342,11 +365,12 @@ function FitText(target) {
     } else {
       let scaleX = 1;
 
-      if (textElement[0].scrollWidth * scaleX > target.width()) {
-        scaleX = target.width() / textElement[0].scrollWidth;
+      if (textElement[0].scrollWidth * scaleX > targetWidth) {
+        scaleX = targetWidth / textElement[0].scrollWidth;
         textElement.css("transform", "scaleX(" + scaleX + ")");
       }
     }
+    requestAnimationFrame(() => { tshFitting = false; });
   });
 }
 
@@ -543,15 +567,18 @@ function GenerateMulticharacterPositions(
 // Only needed when downscaling images, to avoid bad image quality
 // Detect div size changes for character images
 var imageResizeObserver = new ResizeObserver((entries) => {
+  if (tshFitting) return;
   for (const entry of entries) {
-    console.log("Resized");
+    if (entry.contentRect.width < 2) continue;
     CenterImageDo(entry.target);
   }
 });
 
 // Detect div size changes for text elements
 var divResizeObserver = new ResizeObserver((entries) => {
+  if (tshFitting) return;
   for (const entry of entries) {
+    if (entry.contentRect.width < 2) continue;
     FitText($(entry.target));
   }
 });
