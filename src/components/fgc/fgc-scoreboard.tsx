@@ -218,21 +218,6 @@ function PlayerCard({
         <Button size="sm" variant="outline" onClick={() => patchSet(setId, { [side]: blankPlayer() })}>
           Clear player
         </Button>
-        {saved.length ? (
-          <select
-            className="h-9 rounded-md border border-border bg-surface px-2 text-sm"
-            value=""
-            onChange={(e) => {
-              const found = saved.find((item) => item.tag === e.target.value);
-              if (found) set(found);
-            }}
-          >
-            <option value="">Load saved</option>
-            {saved.map((item) => (
-              <option key={item.tag} value={item.tag}>{item.tag}</option>
-            ))}
-          </select>
-        ) : null}
         {savedNote ? <span className="text-xs text-muted">{savedNote}</span> : null}
       </div>
     </div>
