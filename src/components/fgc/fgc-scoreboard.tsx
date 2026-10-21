@@ -114,7 +114,7 @@ function StageField({ value, onChange }: { value: string; onChange: (stage: stri
       }))}
     />
   );
-}
+function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const found = library?.characters.find((item) => item.name === character);
@@ -151,7 +151,6 @@ function PlayerCard({
   const saved = useFgcStore((s) => s.players);
   const [savedNote, setSavedNote] = useState("");
   const set = (partial: Partial<FgcPlayer>) => patchPlayer(setId, side, partial);
-  const matches = saved.filter((item) => player.tag && item.tag.toLowerCase().includes(player.tag.toLowerCase()));
 
   return (
     <div className="rounded-lg border border-border bg-surface-2 p-3">
@@ -229,21 +228,6 @@ function PlayerCard({
         <Button size="sm" variant="outline" onClick={() => patchSet(setId, { [side]: blankPlayer() })}>
           Clear player
         </Button>
-        {saved.length ? (
-          <select
-            className="h-9 rounded-md border border-border bg-surface px-2 text-sm"
-            value=""
-            onChange={(e) => {
-              const found = saved.find((item) => item.tag === e.target.value);
-              if (found) set(found);
-            }}
-          >
-            <option value="">Load saved</option>
-            {saved.map((item) => (
-              <option key={item.tag} value={item.tag}>{item.tag}</option>
-            ))}
-          </select>
-        ) : null}
         {savedNote ? <span className="text-xs text-muted">{savedNote}</span> : null}
       </div>
     </div>
