@@ -31,7 +31,7 @@ function CasterCard({ index }: { index: number }) {
   const saveCaster = useFgcStore((s) => s.saveCaster);
   const saved = useFgcStore((s) => s.casters);
   const [open, setOpen] = useState(false);
-  const [matches, setMatches] = useState<{ profileId: string; name: string; twitter: string; pronouns: string }[]>([]);
+  const [matches, setMatches] = useState<{ profileId: string; name: string; realName?: string; photo?: string; twitter: string; pronouns: string }[]>([]);
   const query = caster?.name.trim() ?? "";
   useEffect(() => {
     if (query.length < 2) {
@@ -68,14 +68,18 @@ function CasterCard({ index }: { index: number }) {
                 <button
                   key={`${item.source}-${item.profileId || item.name}`}
                   type="button"
-                  className="flex w-full items-center justify-between px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-surface-2"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     patchCaster(caster.id, { name: item.name, twitter: item.twitter, pronouns: item.pronouns, profileId: item.profileId });
                     setOpen(false);
                   }}
                 >
-                  <span>{item.name}</span>
+                  {item.photo ? <img src={item.photo} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="h-7 w-7 rounded-full bg-surface-2" />}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{item.name}</span>
+                    {item.realName ? <span className="block truncate text-xs text-muted">{item.realName}</span> : null}
+                  </span>
                   <span className="text-xs text-muted">{item.source}</span>
                 </button>
               ))}

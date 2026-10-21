@@ -264,7 +264,7 @@ export async function stockIcons(game: string, gameId?: string): Promise<Record<
   return icons;
 }
 
-export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; twitter: string; pronouns: string }[]> {
+export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string }[]> {
   const query = name.trim();
   if (query.length < 2) return [];
   const data = await startggQuery<{
@@ -275,30 +275,40 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
           id?: string | number | null;
           name?: string | null;
           genderPronoun?: string | null;
+          images?: { url?: string | null }[] | null;
           authorizations?: { externalUsername?: string | null }[] | null;
         } | null;
       }[] | null;
     } | null;
   }>(
     `query PlayersSearch($query: String!) {
-      players(query: { filter: { gamerTag: $query }, perPage: 6 }) {
+      players(query: { filter: { gamerTag: $query }, perPage: 8 }) {
         nodes {
           gamerTag
-          user { id name genderPronoun authorizations(types: [TWITTER]) { externalUsername } }
+          user { id name genderPronoun images(type: "profile") { url } authorizations(types: [TWITTER]) { externalUsername } }
         }
       }
     }`,
     { query },
     "PlayersSearch",
   );
+  const seen = new Set<string>();
   return (data.players?.nodes ?? [])
     .map((player) => ({
       profileId: player.user?.id == null ? "" : String(player.user.id),
       name: player.gamerTag?.trim() || player.user?.name?.trim() || "",
+      realName: player.user?.name?.trim() || "",
+      photo: player.user?.images?.find((image) => image.url)?.url || "",
       twitter: (player.user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "").replace(/^@/, ""),
       pronouns: player.user?.genderPronoun?.trim() || "",
     }))
-    .filter((player) => player.name);
+    .filter((player) => {
+      if (!player.name) return false;
+      const key = player.profileId || player.name.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 export async function importStartggEvent(url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
