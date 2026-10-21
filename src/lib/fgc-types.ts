@@ -137,6 +137,7 @@ export type FgcCharacter = {
   name: string;
   code: string;
   skins: number;
+  icon?: string;
 };
 
 export type FgcStage = {
@@ -149,6 +150,7 @@ export type FgcLibrary = {
   code: string;
   pack: string;
   version: string;
+  startggGameId?: string;
   characters: FgcCharacter[];
   stages: FgcStage[];
 };

@@ -3,7 +3,7 @@ import { ArrowLeftRight, Plus, RotateCcw } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cachedThumb, hydrateLocalAssets, loadThumb, resolvePreview, resolveStage } from "@/lib/fgc-assets";
+import { cachedThumb, hydrateLocalAssets, loadThumb, resolvePreview, resolveStage, stockIconsFor, withIcons } from "@/lib/fgc-assets";
 import { blankPlayer, libraryFor, type FgcPlayer, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
@@ -92,7 +92,7 @@ function CharacterField({ value, onChange }: { value: string; onChange: (charact
       options={characters.map((character) => ({
         value: character.name,
         label: character.name,
-        url: resolvePreview(assetBase, library?.code ?? "", character.code, 0),
+        url: character.icon || resolvePreview(assetBase, library?.code ?? "", character.code, 0),
       }))}
     />
   );
@@ -272,6 +272,12 @@ export function FgcScoreboard({ set }: { set: FgcSet }) {
   const p2 = set.p2 ?? blankPlayer();
   useEffect(() => {
     void hydrateLocalAssets();
+    const library = useFgcStore.getState().fgc.libraries.find((item) => item.characters.some((character) => !character.icon));
+    if (!library) return;
+    void stockIconsFor(library.game, library.startggGameId).then((icons) => {
+      if (!Object.keys(icons).length) return;
+      useFgcStore.getState().setLibrary({ ...library, characters: withIcons(library.characters, icons) });
+    });
   }, []);
 
   return (
