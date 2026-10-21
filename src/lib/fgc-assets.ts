@@ -173,6 +173,8 @@ function putFile(db: IDBDatabase, key: string, file: Blob): Promise<void> {
   });
 }
 
+const thumbCache = new Map<string, string>();
+
 export function cachedThumb(url: string): string | null {
   return thumbCache.get(url) ?? null;
 }
