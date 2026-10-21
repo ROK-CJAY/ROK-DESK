@@ -9,6 +9,7 @@ export function FgcDesigner() {
   const patch = useFgcStore((s) => s.patch);
   const frame = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const title = activeTitle(fgc);
   const set = liveSet(fgc);
   const current = title.elements.find((item) => item.id === selected) ?? null;
@@ -88,7 +89,7 @@ export function FgcDesigner() {
           <Button size="sm" variant="secondary" onClick={() => { const element = blankElement("text"); write([...title.elements, element]); setSelected(element.id); }}>Text</Button>
           <Button size="sm" variant="secondary" onClick={() => { const element = blankElement("rect"); write([...title.elements, element]); setSelected(element.id); }}>Box</Button>
           <Button size="sm" variant="secondary" onClick={() => { const element = blankElement("image"); write([...title.elements, element]); setSelected(element.id); }}>Image</Button>
-          <Button size="sm" variant="outline" disabled={!current} onClick={() => current && write(title.elements.filter((item) => item.id !== current.id))}>Delete</Button>
+          <Button size="sm" variant="outline" disabled={!current} onClick={() => current && write(title.elements.filter((item) => item.id !== current.id))}>Delete layer</Button>
         </div>
       </div>
       <div className="grid content-start gap-2">
@@ -115,6 +116,21 @@ export function FgcDesigner() {
           const titles = fgc.titles.some((item) => item.id === next.id) ? fgc.titles.map((item) => item.id === next.id ? next : item) : [...fgc.titles, next];
           patch({ titles, activeTitleId: next.id });
         }} />
+        <div className="grid grid-cols-2 gap-2">
+          <Button size="sm" onClick={() => {
+            const state = useFgcStore.getState().fgc;
+            const base = activeTitle(state);
+            const titles = state.titles.some((item) => item.id === base.id) ? state.titles.map((item) => item.id === base.id ? base : item) : [...state.titles, base];
+            patch({ titles, activeTitleId: base.id });
+            setSaved(true);
+            window.setTimeout(() => setSaved(false), 1200);
+          }}>{saved ? "Saved" : "Save layout"}</Button>
+          <Button size="sm" variant="outline" onClick={() => {
+            const titles = fgc.titles.filter((item) => item.id !== title.id);
+            patch({ titles, activeTitleId: titles[0]?.id ?? null });
+            setSelected(null);
+          }}>Delete layout</Button>
+        </div>
         {current ? (
           <>
             <label className="grid gap-1 text-xs text-muted">
@@ -124,7 +140,35 @@ export function FgcDesigner() {
               </select>
             </label>
             {current.kind === "text" && !current.bind ? <Input value={current.text} onChange={(e) => update({ text: e.target.value })} placeholder="Text" /> : null}
-            {current.kind === "image" && !current.bind ? <Input value={current.src} onChange={(e) => update({ src: e.target.value })} placeholder="Image URL" /> : null}
+            {current.kind === "image" ? (
+              <>
+                {!current.bind ? <Input value={current.src.startsWith("data:") ? "" : current.src} onChange={(e) => update({ src: e.target.value })} placeholder="Image URL" /> : null}
+                <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md border border-border text-sm">
+                  Upload image
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                      const image = new Image();
+                      image.onload = () => {
+                        const max = 960;
+                        const scale = Math.min(1, max / Math.max(image.width, image.height));
+                        const canvas = document.createElement("canvas");
+                        canvas.width = Math.max(1, Math.round(image.width * scale));
+                        canvas.height = Math.max(1, Math.round(image.height * scale));
+                        canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+                        const png = file.type === "image/png";
+                        update({ src: canvas.toDataURL(png ? "image/png" : "image/jpeg", 0.85), bind: "" });
+                      };
+                      image.src = String(reader.result || "");
+                    };
+                    reader.readAsDataURL(file);
+                  }} />
+                </label>
+              </>
+            ) : null}
             <div className="grid grid-cols-2 gap-2">
               <Input type="number" value={current.x} onChange={(e) => update({ x: Number(e.target.value) || 0 })} />
               <Input type="number" value={current.y} onChange={(e) => update({ y: Number(e.target.value) || 0 })} />
