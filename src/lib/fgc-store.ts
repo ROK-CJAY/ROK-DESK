@@ -55,6 +55,8 @@ type FgcStore = {
   setLibrary: (library: FgcLibrary) => void;
   savePlayer: (player: FgcPlayer) => void;
   saveCaster: (caster: FgcCaster) => void;
+  moveCaster: (index: number, direction: -1 | 1) => void;
+  clearCaster: (id: string) => void;
   swapTeams: (id: string) => void;
   resetScore: (id: string) => void;
   clear: () => void;
@@ -129,7 +131,18 @@ function read(): FgcState {
       ...parsed,
       event,
       sets: (parsed.sets ?? []).map(setOf),
-      casters: parsed.casters?.length ? parsed.casters : EMPTY_FGC.casters,
+      casters: (parsed.casters?.length ? parsed.casters : EMPTY_FGC.casters).map((caster) => ({
+        id: caster.id,
+        profileId: caster.profileId || "",
+        prefix: caster.prefix || "",
+        name: caster.name || "",
+        realName: caster.realName || "",
+        twitter: caster.twitter || "",
+        pronouns: caster.pronouns || "",
+        country: caster.country || "",
+        flag: caster.flag || "",
+        region: caster.region || "",
+      })),
       rulesets: parsed.rulesets ?? [],
       libraries: (readLibraries().length ? readLibraries() : parsed.libraries ?? []).map((library) => ({
         ...library,
@@ -349,10 +362,37 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   saveCaster: (caster) => {
     const name = caster.name.trim();
     if (!name) return;
-    const saved: SavedCaster = { profileId: caster.profileId, name, twitter: caster.twitter, pronouns: caster.pronouns };
+    const saved: SavedCaster = {
+      profileId: caster.profileId,
+      prefix: caster.prefix,
+      name,
+      realName: caster.realName,
+      twitter: caster.twitter,
+      pronouns: caster.pronouns,
+      country: caster.country,
+      flag: caster.flag,
+      region: caster.region,
+    };
     const casters = [saved, ...get().casters.filter((item) => item.name.toLowerCase() !== name.toLowerCase())];
     writeJson(CASTERS_KEY, casters);
     set({ casters });
+  },
+  moveCaster: (index, direction) => {
+    const casters = [...get().fgc.casters];
+    const next = index + direction;
+    if (next < 0 || next >= casters.length) return;
+    [casters[index], casters[next]] = [casters[next], casters[index]];
+    const fgc = { ...get().fgc, casters };
+    write(fgc);
+    set({ fgc });
+  },
+  clearCaster: (id) => {
+    const fgc = {
+      ...get().fgc,
+      casters: get().fgc.casters.map((caster) => (caster.id === id ? { ...caster, profileId: "", prefix: "", name: "", realName: "", twitter: "", pronouns: "", country: "", flag: "", region: "" } : caster)),
+    };
+    write(fgc);
+    set({ fgc });
   },
   swapTeams: (id) => {
     const fgc = {

@@ -1,7 +1,7 @@
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { playerLabel, type FgcSet } from "@/lib/fgc-types";
+import { flagOf, playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { useEffect, useState } from "react";
 
@@ -27,11 +27,14 @@ export function FgcCommentary() {
 
 function CasterCard({ index }: { index: number }) {
   const caster = useFgcStore((s) => s.fgc.casters[index]);
+  const total = useFgcStore((s) => s.fgc.casters.length);
   const patchCaster = useFgcStore((s) => s.patchCaster);
   const saveCaster = useFgcStore((s) => s.saveCaster);
+  const moveCaster = useFgcStore((s) => s.moveCaster);
+  const clearCaster = useFgcStore((s) => s.clearCaster);
   const saved = useFgcStore((s) => s.casters);
   const [open, setOpen] = useState(false);
-  const [matches, setMatches] = useState<{ profileId: string; name: string; realName?: string; photo?: string; twitter: string; pronouns: string }[]>([]);
+  const [matches, setMatches] = useState<{ profileId: string; name: string; realName?: string; photo?: string; twitter: string; pronouns: string; country?: string; region?: string; flag?: string }[]>([]);
   const query = caster?.name.trim() ?? "";
   useEffect(() => {
     if (query.length < 2) {
@@ -52,48 +55,86 @@ function CasterCard({ index }: { index: number }) {
   }, [query]);
   if (!caster) return null;
   const suggestions = [
-    ...saved.filter((item) => item.name.toLowerCase().includes(query.toLowerCase())).map((item) => ({ ...item, realName: "", photo: "", source: "Saved" })),
+    ...saved.filter((item) => item.name.toLowerCase().includes(query.toLowerCase())).map((item) => ({ ...item, photo: "", source: "Saved" })),
     ...matches.map((item) => ({ ...item, source: "start.gg" })),
   ].slice(0, 8);
+  const set = (partial: Partial<typeof caster>) => patchCaster(caster.id, partial);
 
   return (
-    <div className="grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
-      <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Caster {index + 1}</p>
-      <Field label="Name">
-        <div className="relative">
-          <Input value={caster.name} onChange={(e) => patchCaster(caster.id, { name: e.target.value })} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 150)} />
-          {open && query ? (
-            <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
-              {suggestions.map((item) => (
-                <button
-                  key={`${item.source}-${item.profileId || item.name}`}
-                  type="button"
-                  className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-surface-2"
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    patchCaster(caster.id, { name: item.name, twitter: item.twitter, pronouns: item.pronouns, profileId: item.profileId });
-                    setOpen(false);
-                  }}
-                >
-                  {item.photo ? <img src={item.photo} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="h-7 w-7 rounded-full bg-surface-2" />}
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{item.name}</span>
-                    {item.realName ? <span className="block truncate text-xs text-muted">{item.realName}</span> : null}
-                  </span>
-                  <span className="text-xs text-muted">{item.source}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
+    <div className="rounded-lg border border-border bg-surface-2 p-3">
+      <div className="mb-3 flex items-center justify-between">
+        <span />
+        <p className="font-medium">Commentator {index + 1}</p>
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" disabled={index === 0} onClick={() => moveCaster(index, -1)} aria-label="Move up">↑</Button>
+          <Button size="icon" variant="ghost" disabled={index === total - 1} onClick={() => moveCaster(index, 1)} aria-label="Move down">↓</Button>
         </div>
-      </Field>
-      <Field label="Twitter">
-        <Input value={caster.twitter} onChange={(e) => patchCaster(caster.id, { twitter: e.target.value.replace(/^@/, "") })} />
-      </Field>
-      <Field label="Pronouns">
-        <Input value={caster.pronouns} onChange={(e) => patchCaster(caster.id, { pronouns: e.target.value })} />
-      </Field>
-      <Button size="sm" disabled={!caster.name.trim()} onClick={() => saveCaster(caster)}>Save commentator</Button>
+      </div>
+      <div className="grid gap-3">
+        <Field label="Sponsor / tag">
+          <div className="grid grid-cols-[8rem_1fr] gap-2">
+            <Input value={caster.prefix} onChange={(e) => set({ prefix: e.target.value })} placeholder="Sponsor" />
+            <div className="relative">
+              <Input value={caster.name} onChange={(e) => set({ name: e.target.value })} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 150)} />
+              {open && query ? (
+                <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
+                  {suggestions.map((item) => (
+                    <button
+                      key={`${item.source}-${item.profileId || item.name}`}
+                      type="button"
+                      className="flex w-full items-center gap-2 px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        set({
+                          name: item.name,
+                          realName: item.realName,
+                          twitter: item.twitter,
+                          pronouns: item.pronouns,
+                          profileId: item.profileId,
+                          country: item.country || "",
+                          region: item.region || "",
+                          flag: item.flag || "",
+                        });
+                        setOpen(false);
+                      }}
+                    >
+                      {item.photo ? <img src={item.photo} alt="" className="h-7 w-7 rounded-full object-cover" /> : <span className="h-7 w-7 rounded-full bg-surface-2" />}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate">{item.name}</span>
+                        {item.realName ? <span className="block truncate text-xs text-muted">{item.realName}</span> : null}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </Field>
+        <Field label="Real name">
+          <Input value={caster.realName} onChange={(e) => set({ realName: e.target.value })} />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Twitter">
+            <Input value={caster.twitter} onChange={(e) => set({ twitter: e.target.value.replace(/^@/, "") })} />
+          </Field>
+          <Field label="Pronouns">
+            <Input value={caster.pronouns} onChange={(e) => set({ pronouns: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Country">
+            <Input value={[caster.flag, caster.country].filter(Boolean).join(" ")} onChange={(e) => set({ country: e.target.value.replace(/^[\u{1F1E6}-\u{1F1FF}]+\s*/u, ""), flag: flagOf(e.target.value) })} />
+          </Field>
+          <Field label="State / region">
+            <Input value={caster.region} onChange={(e) => set({ region: e.target.value })} />
+          </Field>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Button variant="secondary" disabled={!caster.name.trim()} onClick={() => saveCaster(caster)}>Update commentator</Button>
+          <Button variant="outline" onClick={() => clearCaster(caster.id)}>Delete entry</Button>
+          <Button variant="ghost" onClick={() => clearCaster(caster.id)}>Clear</Button>
+        </div>
+      </div>
     </div>
   );
 }

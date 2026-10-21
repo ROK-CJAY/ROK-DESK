@@ -264,7 +264,7 @@ export async function stockIcons(game: string, gameId?: string): Promise<Record<
   return icons;
 }
 
-export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string }[]> {
+export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string; country: string; region: string; flag: string }[]> {
   const query = name.trim();
   if (query.length < 2) return [];
   const data = await startggQuery<{
@@ -275,6 +275,7 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
           id?: string | number | null;
           name?: string | null;
           genderPronoun?: string | null;
+          location?: { country?: string | null; state?: string | null } | null;
           images?: { url?: string | null }[] | null;
           authorizations?: { externalUsername?: string | null }[] | null;
         } | null;
@@ -285,7 +286,7 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
       players(query: { filter: { gamerTag: $query }, perPage: 8 }) {
         nodes {
           gamerTag
-          user { id name genderPronoun images(type: "profile") { url } authorizations(types: [TWITTER]) { externalUsername } }
+          user { id name genderPronoun location { country state } images(type: "profile") { url } authorizations(types: [TWITTER]) { externalUsername } }
         }
       }
     }`,
@@ -301,6 +302,9 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
       photo: player.user?.images?.find((image) => image.url)?.url || "",
       twitter: (player.user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "").replace(/^@/, ""),
       pronouns: player.user?.genderPronoun?.trim() || "",
+      country: player.user?.location?.country?.trim() || "",
+      region: player.user?.location?.state?.trim() || "",
+      flag: flagOf(player.user?.location?.country?.trim() || ""),
     }))
     .filter((player) => {
       if (!player.name) return false;
