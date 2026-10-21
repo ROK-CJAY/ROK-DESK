@@ -19,6 +19,7 @@ export type FgcPlayer = {
 
 export type FgcCaster = {
   id: string;
+  profileId: string;
   name: string;
   twitter: string;
   pronouns: string;
@@ -79,8 +80,8 @@ export const EMPTY_FGC: FgcState = {
   sets: [],
   streamSetId: null,
   casters: [
-    { id: "c1", name: "", twitter: "", pronouns: "" },
-    { id: "c2", name: "", twitter: "", pronouns: "" },
+    { id: "c1", profileId: "", name: "", twitter: "", pronouns: "" },
+    { id: "c2", profileId: "", name: "", twitter: "", pronouns: "" },
   ],
   assetBase: "",
   rulesets: [],

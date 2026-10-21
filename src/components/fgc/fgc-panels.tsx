@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function FgcCommentary() {
   const casters = useFgcStore((s) => s.fgc.casters);
@@ -17,54 +17,80 @@ export function FgcCommentary() {
       <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Commentary</p>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {casters.map((caster, index) => (
-          <div key={caster.id} className="grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
-            <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Caster {index + 1}</p>
-            <Field label="Name">
-              <Input value={caster.name} onChange={(e) => patchCaster(caster.id, { name: e.target.value })} list="saved-casters" />
-              <datalist id="saved-casters">
-                {saved.map((item) => (
-                  <option key={item.name} value={item.name} />
-                ))}
-              </datalist>
-            </Field>
-            <Field label="Twitter">
-              <Input value={caster.twitter} onChange={(e) => patchCaster(caster.id, { twitter: e.target.value.replace(/^@/, "") })} />
-            </Field>
-            <Field label="Pronouns">
-              <Input value={caster.pronouns} onChange={(e) => patchCaster(caster.id, { pronouns: e.target.value })} />
-            </Field>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                disabled={!caster.name.trim()}
-                onClick={() => {
-                  saveCaster(caster);
-                  setNote("Saved");
-                }}
-              >
-                Save commentator
-              </Button>
-              {saved.length ? (
-                <select
-                  className="h-9 rounded-md border border-border bg-surface px-2 text-sm"
-                  value=""
-                  onChange={(e) => {
-                    const found = saved.find((item) => item.name === e.target.value);
-                    if (found) patchCaster(caster.id, found);
-                  }}
-                >
-                  <option value="">Load saved</option>
-                  {saved.map((item) => (
-                    <option key={item.name} value={item.name}>{item.name}</option>
-                  ))}
-                </select>
-              ) : null}
-            </div>
-          </div>
+          <CasterCard key={caster.id} index={index} />
         ))}
       </div>
       {note ? <p className="mt-2 text-xs text-muted">{note}</p> : null}
     </section>
+  );
+}
+
+function CasterCard({ index }: { index: number }) {
+  const caster = useFgcStore((s) => s.fgc.casters[index]);
+  const patchCaster = useFgcStore((s) => s.patchCaster);
+  const saveCaster = useFgcStore((s) => s.saveCaster);
+  const saved = useFgcStore((s) => s.casters);
+  const [open, setOpen] = useState(false);
+  const [matches, setMatches] = useState<{ profileId: string; name: string; twitter: string; pronouns: string }[]>([]);
+  const query = caster?.name.trim() ?? "";
+  useEffect(() => {
+    if (query.length < 2) {
+      setMatches([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void fetch("/api/startgg", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "search", query }),
+      })
+        .then((res) => res.json())
+        .then((body: { players?: typeof matches }) => setMatches(body.players ?? []))
+        .catch(() => setMatches([]));
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  if (!caster) return null;
+  const suggestions = [
+    ...saved.filter((item) => item.name.toLowerCase().includes(query.toLowerCase())).map((item) => ({ ...item, source: "Saved" })),
+    ...matches.map((item) => ({ ...item, source: "start.gg" })),
+  ].slice(0, 8);
+
+  return (
+    <div className="grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
+      <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Caster {index + 1}</p>
+      <Field label="Name">
+        <div className="relative">
+          <Input value={caster.name} onChange={(e) => patchCaster(caster.id, { name: e.target.value })} onFocus={() => setOpen(true)} onBlur={() => window.setTimeout(() => setOpen(false), 150)} />
+          {open && query ? (
+            <div className="absolute z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-border bg-surface shadow-lg">
+              {suggestions.map((item) => (
+                <button
+                  key={`${item.source}-${item.profileId || item.name}`}
+                  type="button"
+                  className="flex w-full items-center justify-between px-2 py-1.5 text-left text-sm hover:bg-surface-2"
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    patchCaster(caster.id, { name: item.name, twitter: item.twitter, pronouns: item.pronouns, profileId: item.profileId });
+                    setOpen(false);
+                  }}
+                >
+                  <span>{item.name}</span>
+                  <span className="text-xs text-muted">{item.source}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Field>
+      <Field label="Twitter">
+        <Input value={caster.twitter} onChange={(e) => patchCaster(caster.id, { twitter: e.target.value.replace(/^@/, "") })} />
+      </Field>
+      <Field label="Pronouns">
+        <Input value={caster.pronouns} onChange={(e) => patchCaster(caster.id, { pronouns: e.target.value })} />
+      </Field>
+      <Button size="sm" disabled={!caster.name.trim()} onClick={() => saveCaster(caster)}>Save commentator</Button>
+    </div>
   );
 }
 

@@ -347,7 +347,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   saveCaster: (caster) => {
     const name = caster.name.trim();
     if (!name) return;
-    const saved: SavedCaster = { name, twitter: caster.twitter, pronouns: caster.pronouns };
+    const saved: SavedCaster = { profileId: caster.profileId, name, twitter: caster.twitter, pronouns: caster.pronouns };
     const casters = [saved, ...get().casters.filter((item) => item.name.toLowerCase() !== name.toLowerCase())];
     writeJson(CASTERS_KEY, casters);
     set({ casters });

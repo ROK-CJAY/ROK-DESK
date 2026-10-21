@@ -228,7 +228,42 @@ function when(value: number | null | undefined): string {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
 }
 
-export async function importStartggEvent(url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
+export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; twitter: string; pronouns: string }[]> {
+  const query = name.trim();
+  if (query.length < 2) return [];
+  const data = await startggQuery<{
+    players?: {
+      nodes?: {
+        gamerTag?: string | null;
+        user?: {
+          id?: string | number | null;
+          name?: string | null;
+          genderPronoun?: string | null;
+          authorizations?: { externalUsername?: string | null }[] | null;
+        } | null;
+      }[] | null;
+    } | null;
+  }>(
+    `query PlayersSearch($query: String!) {
+      players(query: { filter: { gamerTag: $query }, perPage: 6 }) {
+        nodes {
+          gamerTag
+          user { id name genderPronoun authorizations(types: [TWITTER]) { externalUsername } }
+        }
+      }
+    }`,
+    { query },
+    "PlayersSearch",
+  );
+  return (data.players?.nodes ?? [])
+    .map((player) => ({
+      profileId: player.user?.id == null ? "" : String(player.user.id),
+      name: player.gamerTag?.trim() || player.user?.name?.trim() || "",
+      twitter: (player.user?.authorizations?.find((row) => row.externalUsername)?.externalUsername ?? "").replace(/^@/, ""),
+      pronouns: player.user?.genderPronoun?.trim() || "",
+    }))
+    .filter((player) => player.name);
+}
   const slug = startggSlug(url);
   if (!slug) throw new Error("Paste a start.gg event link, like start.gg/tournament/name/event/singles");
   const eventData = await startggQuery<RawEvent>(EVENT_QUERY, { slug }, "FgcEvent");
