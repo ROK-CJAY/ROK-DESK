@@ -107,15 +107,27 @@ export function FgcApp() {
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
   const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
   const savedTitle = fgc.titles.find((item) => item.id === fgc.activeTitleId) ?? null;
   const overlay = FGC_OVERLAYS.find((item) => item.id === fgc.overlay) ?? FGC_OVERLAYS[0];
   const shown = fgc.overlay === "custom" && savedTitle ? { ...overlay, name: savedTitle.name, note: `Saved in ${savedTitle.group || "Custom"}.` } : overlay;
   const href = overlayHref(fgc.overlay, fgc.overlay === "custom" ? fgc.activeTitleId : null);
   const overlayValue = fgc.overlay === "custom" && savedTitle ? `title:${savedTitle.id}` : fgc.overlay;
+  const pageUrl = `${origin}${href}`;
+  const copyLink = (path: string) => {
+    void navigator.clipboard.writeText(`${window.location.origin}${path}`);
+    setCopied(path);
+    window.setTimeout(() => setCopied(null), 1200);
+  };
+  const browserSources = [
+    ...FGC_OVERLAYS.map((item) => ({ key: item.id, name: item.name, group: item.group, path: overlayHref(item.id) })),
+    ...fgc.titles.filter((item) => item.group).map((item) => ({ key: item.id, name: item.name, group: item.group, path: overlayHref("custom", item.id) })),
+  ];
 
   useEffect(() => {
     hydrate();
+    setOrigin(window.location.origin);
   }, [hydrate]);
 
   const live = streamSetOf(fgc) ?? fgc.sets[0] ?? blankSet();
@@ -167,8 +179,8 @@ export function FgcApp() {
             <Radio className="size-4" />
             Open
           </a>
-          <Button variant="outline" onClick={() => { void navigator.clipboard.writeText(`${window.location.origin}${href}`); setCopied(true); window.setTimeout(() => setCopied(false), 1200); }}>
-            {copied ? "Copied" : "Copy link"}
+          <Button variant="outline" onClick={() => copyLink(href)}>
+            {copied === href ? "Copied" : "Copy link"}
           </Button>
           {fgc.event ? (
             <a href={fgc.event.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-xs text-muted hover:text-fg">
@@ -213,9 +225,28 @@ export function FgcApp() {
             </div>
             <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
               <ScaleFrame>
-                <FgcOverlay source={overlay.id} />
+                <FgcOverlay source={overlay.id} titleId={overlay.id === "custom" ? savedTitle?.id ?? "" : ""} />
               </ScaleFrame>
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="min-w-0 flex-1 truncate font-mono text-xs text-muted">{pageUrl}</p>
+              <Button size="sm" variant="outline" onClick={() => copyLink(href)}>{copied === href ? "Copied" : "Copy browser source"}</Button>
+              <a href={href} target="_blank" rel="noreferrer" className="text-xs underline-offset-2 hover:underline">Open</a>
+            </div>
+            <p className="text-xs text-muted">OBS and vMix: browser source, 1920 × 1080, transparent background. Paste the link above.</p>
+            <details className="rounded-lg bg-surface-2 px-3 py-2">
+              <summary className="cursor-pointer text-sm">Browser sources</summary>
+              <ul className="mt-2 space-y-1">
+                {browserSources.map((item) => (
+                  <li key={item.key} className="flex items-center justify-between gap-2 text-xs">
+                    <span className="text-muted">{item.group} · {item.name}</span>
+                    <button type="button" className="underline-offset-2 hover:underline" onClick={() => copyLink(item.path)}>
+                      {copied === item.path ? "Copied" : "Copy"}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </details>
             {overlay.id === "custom" ? <FgcDesigner /> : null}
           </section>
         ) : null}
