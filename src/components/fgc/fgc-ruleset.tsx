@@ -106,19 +106,38 @@ export function FgcRulesetEditor() {
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <Field label="Game 1 strike order">
+        <Field label="Stage ban rule">
+          <div className="flex h-10 items-center gap-4 text-sm">
+            {(["none", "dsr", "mdsr"] as const).map((mode) => (
+              <label key={mode} className="flex items-center gap-1.5">
+                <input type="radio" checked={shown.dsr === mode} onChange={() => setDraft({ ...shown, dsr: mode })} />
+                {mode === "none" ? "No DSR" : mode.toUpperCase()}
+              </label>
+            ))}
+          </div>
+        </Field>
+        <Field label="Strike order (game 1)">
           <Input value={strike} onChange={(e) => setDraft({ ...shown, strikeOrder: e.target.value.split(",").map((item) => Number(item.trim())).filter((item) => item > 0) })} placeholder="1, 2, 1" />
         </Field>
-        <Field label="Later-game ban count">
-          <Input type="number" min={0} value={shown.banCount} onChange={(e) => setDraft({ ...shown, banCount: Number(e.target.value) || 0 })} />
+        <Field label="Ban count">
+          <div className="grid gap-1">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="radio" checked={shown.banMode === "fixed"} onChange={() => setDraft({ ...shown, banMode: "fixed" })} />
+              Fixed
+              <Input className="h-8 w-16" type="number" min={0} value={shown.banCount} onChange={(e) => setDraft({ ...shown, banCount: Number(e.target.value) || 0, banMode: "fixed" })} />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input type="radio" checked={shown.banMode === "byGames"} onChange={() => setDraft({ ...shown, banMode: "byGames" })} />
+              By games
+              <Input className="h-8" value={shown.bansByGames} onChange={(e) => setDraft({ ...shown, bansByGames: e.target.value, banMode: "byGames" })} placeholder="3:3,5:2" />
+            </label>
+          </div>
         </Field>
-        <Field label="Stage ban rule">
-          <select value={shown.dsr} onChange={(e) => setDraft({ ...shown, dsr: e.target.value as FgcRuleset["dsr"] })} className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm">
-            <option value="none">No DSR</option>
-            <option value="dsr">DSR</option>
-            <option value="mdsr">Modified DSR</option>
-          </select>
-        </Field>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <Button onClick={() => saveRuleset(shown)}>Save</Button>
+        {fgc.activeRulesetId ? <Button variant="outline" onClick={() => deleteRuleset(fgc.activeRulesetId!)}>Delete</Button> : null}
+        <Button variant="outline" onClick={() => setDraft(blankRuleset())}>Clear</Button>
       </div>
     </section>
   );

@@ -159,7 +159,9 @@ export type FgcRuleset = {
   neutralStages: string[];
   counterpickStages: string[];
   strikeOrder: number[];
+  banMode: "fixed" | "byGames";
   banCount: number;
+  bansByGames: string;
   dsr: "none" | "dsr" | "mdsr";
 };
 
