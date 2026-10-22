@@ -84,6 +84,8 @@ function Side({
           {columns.map((column, index) => column.rows.map((row) => {
             const winner1 = row.set.winnerId && row.set.winnerId === row.set.p1.id;
             const winner2 = row.set.winnerId && row.set.winnerId === row.set.p2.id;
+            const called = row.set.state === 2 || row.set.state === 6;
+            const place = called ? [row.set.station, row.set.stream].filter(Boolean).join(" · ") : "";
             return (
               <button
                 key={row.set.id}
@@ -97,7 +99,7 @@ function Side({
                 <span className={cn("absolute top-1 right-1 font-mono text-xs", winner1 ? "text-emerald-400" : "text-muted")}>{row.set.state === 3 || row.set.score1 || row.set.score2 ? row.set.score1 : ""}</span>
                 <span className={cn("absolute bottom-4 right-2 left-8 truncate text-xs", winner2 ? "font-semibold text-fg" : "text-muted")}>{row.set.p2.name}</span>
                 <span className={cn("absolute right-1 bottom-4 font-mono text-xs", winner2 ? "text-emerald-400" : "text-muted")}>{row.set.state === 3 || row.set.score1 || row.set.score2 ? row.set.score2 : ""}</span>
-                {row.set.station ? <span className="absolute bottom-0 left-8 text-[0.6rem] text-accent">{row.set.station}</span> : null}
+                {place ? <span className="absolute bottom-0 left-8 truncate text-[0.6rem] text-accent">{place}</span> : null}
               </button>
             );
           }))}
