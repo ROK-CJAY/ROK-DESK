@@ -377,7 +377,7 @@ export async function reportToSet(
   winnerId: string,
   score1: number,
   score2: number,
-  detail?: { stageId?: string; entrant1?: string; character1?: string; entrant2?: string; character2?: string },
+  detail?: { stageId?: string; entrant1?: string; character1?: string; entrant2?: string; character2?: string; dq?: boolean },
 ) {
   const selections = [
     detail?.entrant1 && detail.character1 ? { entrantId: detail.entrant1, characterId: detail.character1 } : null,
@@ -391,18 +391,19 @@ export async function reportToSet(
     ...(detail?.stageId ? { stageId: detail.stageId } : {}),
     ...(selections.length ? { selections } : {}),
   }];
+  const isDQ = Boolean(detail?.dq);
   try {
     await mutate(
       token,
-      `mutation ReportSet($setId: ID!, $winnerId: ID!, $gameData: [BracketSetGameDataInput]) { reportBracketSet(setId: $setId, winnerId: $winnerId, gameData: $gameData) { id state } }`,
-      { setId, winnerId, gameData },
+      `mutation ReportSet($setId: ID!, $winnerId: ID!, $isDQ: Boolean, $gameData: [BracketSetGameDataInput]) { reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ, gameData: $gameData) { id state } }`,
+      { setId, winnerId, isDQ, gameData },
       "ReportSet",
     );
   } catch {
     await mutate(
       token,
-      `mutation ReportSet($setId: ID!, $winnerId: ID!) { reportBracketSet(setId: $setId, winnerId: $winnerId) { id state } }`,
-      { setId, winnerId },
+      `mutation ReportSet($setId: ID!, $winnerId: ID!, $isDQ: Boolean) { reportBracketSet(setId: $setId, winnerId: $winnerId, isDQ: $isDQ) { id state } }`,
+      { setId, winnerId, isDQ },
       "ReportSet",
     );
   }

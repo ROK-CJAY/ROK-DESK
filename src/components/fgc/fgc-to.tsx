@@ -398,6 +398,8 @@ function StationFloor({
             <div className="flex flex-wrap gap-2">
               <Button size="sm" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id })}>{set.p1.name} wins</Button>
               <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id })}>{set.p2.name} wins</Button>
+              <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id, dq: true })}>DQ {set.p1.name}</Button>
+              <Button size="sm" variant="outline" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id, dq: true })}>DQ {set.p2.name}</Button>
             </div>
           </section>
         </div>

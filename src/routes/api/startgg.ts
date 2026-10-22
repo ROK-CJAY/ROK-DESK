@@ -25,6 +25,7 @@ export const Route = createFileRoute("/api/startgg")({
           entrant2?: string;
           character1?: string;
           character2?: string;
+          dq?: boolean;
         };
         try {
           body = (await request.json()) as typeof body;
@@ -59,6 +60,7 @@ export const Route = createFileRoute("/api/startgg")({
                 entrant2: body.entrant2,
                 character1: body.character1,
                 character2: body.character2,
+                dq: body.dq,
               });
             }
             return Response.json({ ok: true });
