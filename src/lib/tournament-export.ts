@@ -436,6 +436,7 @@ function filesForGame(t: TournamentState, prefix = ""): Array<{ name: string; bo
           birth_date: player.birthDate,
           ink_1: player.ink1,
           ink_2: player.ink2,
+          inks: player.inks,
           photo_url: player.photoUrl,
           team_size: player.teamSize,
           decklist_cards: decklistCount(player.decklist),

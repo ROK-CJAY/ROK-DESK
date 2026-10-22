@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Field } from "@/components/desk/field";
+import { InkPicker } from "@/components/desk/ink-picker";
 import { overlayPath, overlayWindowName } from "@/components/desk/sources";
 import { topDeckEntrants } from "@/components/overlays/top-decks";
 import { Button } from "@/components/ui/button";
@@ -125,6 +126,11 @@ export function TopDeckFaces({
     write(index, { ...current, place });
   };
 
+  const setInks = (index: number, inks: string) => {
+    const current = deskLaneOf(useDeskStore.getState().desk, gameId, 1).topDeckSlots[index] ?? emptyTopDeckSlot();
+    write(index, { ...current, inks });
+  };
+
   return (
     <div className={cn("grid gap-2", wide && "lg:grid-cols-2")}>
       <p className={cn("text-xs text-muted", wide && "lg:col-span-2")}>
@@ -162,6 +168,16 @@ export function TopDeckFaces({
               onChange={(e) => setDeck(index, e.target.value)}
               aria-label={`Player ${index + 1} deck`}
             />
+            {gameId === "lorcana" ? (
+              <InkPicker
+                quiet
+                size="sm"
+                ink1={player?.ink1 ?? ""}
+                ink2={player?.ink2 ?? ""}
+                inks={slot.inks || player?.inks || ""}
+                onChange={(next) => setInks(index, next.inks)}
+              />
+            ) : null}
             <div className="grid gap-1.5 sm:grid-cols-2">
               <FaceSlot catalog={catalog} formatName={formatName} card={slot.faces[0]} onChange={(card) => setFace(index, 0, card)} />
               <FaceSlot catalog={catalog} formatName={formatName} card={slot.faces[1]} onChange={(card) => setFace(index, 1, card)} />

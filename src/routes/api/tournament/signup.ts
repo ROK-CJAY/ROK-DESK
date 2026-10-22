@@ -5,7 +5,7 @@ import { loadTournament, saveTournament } from "@/lib/tournament-server";
 import { countFilledMons, mergeTeam } from "@/lib/pokemon-vgc";
 import { mergeDecklist } from "@/lib/decklist";
 import { gameIdFromSlug, isVgcTitle, playAgeDivisionOf } from "@/lib/games";
-import { sanitizeInk } from "@/lib/lorcana";
+import { sanitizeInk, sanitizeInkList } from "@/lib/lorcana";
 
 const noStore = {
   "cache-control": "no-store, no-cache, must-revalidate",
@@ -30,6 +30,7 @@ const signupSchema = z.object({
   game: z.string().trim().max(40).optional(),
   ink1: z.string().trim().max(20).optional().default(""),
   ink2: z.string().trim().max(20).optional().default(""),
+  inks: z.string().trim().max(80).optional().default(""),
   note: z.string().trim().max(160).optional().default(""),
   photoUrl: z.string().trim().max(400).optional().default(""),
   decklist: z.unknown().optional(),
@@ -88,6 +89,7 @@ export const Route = createFileRoute("/api/tournament/signup")({
           team,
           ink1: sanitizeInk(parsed.data.ink1),
           ink2: sanitizeInk(parsed.data.ink2),
+          inks: sanitizeInkList(parsed.data.inks, parsed.data.ink1, parsed.data.ink2),
           note: parsed.data.note,
           photoUrl: parsed.data.photoUrl,
           decklist: mergeDecklist(parsed.data.decklist),

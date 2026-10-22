@@ -17,6 +17,7 @@ export type SignupDraft = {
   idPrivacy: boolean;
   ink1: string;
   ink2: string;
+  inks: string;
   note: string;
   photoUrl: string;
   decklist: DeckCard[];
@@ -38,6 +39,7 @@ export const emptySignupDraft = (): SignupDraft => ({
   idPrivacy: false,
   ink1: "",
   ink2: "",
+  inks: "",
   note: "",
   photoUrl: "",
   decklist: emptyDecklist(),

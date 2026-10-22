@@ -18,7 +18,7 @@ import {
   type Caster,
 } from "@/lib/desk-types";
 import { COUNTRIES } from "@/lib/countries";
-import { formatRecord, inkSrc, isLorcanaInk } from "@/lib/lorcana";
+import { formatRecord, inkSrc, lorcanaInks } from "@/lib/lorcana";
 import { spriteFallbackUrl, spriteUrl, TERA_LABEL, type TeamMon } from "@/lib/pokemon-vgc";
 import { emptyPtcgSide, type PtcgMon, type PtcgSideBoard } from "@/lib/ptcg-board";
 import { useDeskStore } from "@/lib/desk-store";
@@ -281,7 +281,7 @@ function PlayerSheet({
   const deck = commander
     ? formatCommanderLine(player.archetype, player.extra)
     : player.archetype || player.extra;
-  const inks = [player.ink1, player.ink2].filter(isLorcanaInk);
+  const inks = lorcanaInks(player);
   const hasInit = desk.gameId === "swu" && desk.initiativeSide === seat;
   const twoSeat = !commander || desk.tableSize <= 2;
   const seatLabel = twoSeat ? (seat === "p1" ? "Player 1" : "Player 2") : SEAT_LABELS[seat];

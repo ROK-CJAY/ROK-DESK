@@ -1,4 +1,5 @@
 import { facePair } from "@/lib/decklist";
+import { sanitizeInkList } from "@/lib/lorcana";
 import { coerceDeskGameId } from "@/lib/games";
 import {
   DRAW_ID,
@@ -131,6 +132,7 @@ function playerFromExport(item: unknown, index: number): Entrant {
     birthDate: text(p.birthDate ?? p.birth_date),
     ink1: text(p.ink1 ?? p.ink_1),
     ink2: text(p.ink2 ?? p.ink_2),
+    inks: sanitizeInkList(text(p.inks), text(p.ink1 ?? p.ink_1), text(p.ink2 ?? p.ink_2)),
     photoUrl: text(p.photoUrl ?? p.photo_url),
     note: text(p.note),
     judgeNote: text(p.judgeNote ?? p.judge_notes),

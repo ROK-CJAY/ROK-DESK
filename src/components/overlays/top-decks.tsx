@@ -2,6 +2,7 @@ import { RemoteArt } from "@/components/ui/remote-art";
 import { rokCardBack } from "@/components/overlays/rok-layout";
 import { computeStandings } from "@/lib/tournament-bracket";
 import type { DeckCard } from "@/lib/decklist";
+import { inkSrc, lorcanaInks, type LorcanaInkId } from "@/lib/lorcana";
 import type { TopDeckSlot } from "@/lib/desk-types";
 import type { Entrant, TournamentState } from "@/lib/tournament-types";
 
@@ -81,6 +82,18 @@ export function TopDecksOverlay({
                   ) : null}
                   <div className="rounded-xl border border-white/15 bg-[#12151a]/95 p-2 shadow-[0_12px_28px_rgb(0_0_0/0.4)]">
                     <CardPair faces={row.faces} height={cardH} back={back} />
+                    {row.inks.length ? (
+                      <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1">
+                        {row.inks.map((ink) => (
+                          <img
+                            key={ink}
+                            src={inkSrc(ink)}
+                            alt=""
+                            className={row.inks.length >= 5 || rowCount >= 4 ? "size-6" : "size-8"}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
                     <div className="mt-2 rounded-md bg-[#d4534c] px-2 py-1.5 text-center">
                       <p className="truncate font-display leading-none font-semibold tracking-wide text-white uppercase" style={{ fontSize: nameSize }}>
                         {row.name}
@@ -132,7 +145,7 @@ export function topDeckEntrants(tournament: TournamentState, count: number): Ent
 export function topDeckRows(tournament: TournamentState, slots: TopDeckSlot[], count: number) {
   const shown = Math.min(16, Math.max(1, Math.round(count) || 8));
   const players = topDeckEntrants(tournament, shown);
-  const rows: { name: string; deck: string; place: number | null; faces: [DeckCard | null, DeckCard | null] }[] = [];
+  const rows: { name: string; deck: string; place: number | null; faces: [DeckCard | null, DeckCard | null]; inks: LorcanaInkId[] }[] = [];
   for (let i = 0; i < shown; i += 1) {
     const slot = slots[i];
     const player = players[i];
@@ -141,7 +154,9 @@ export function topDeckRows(tournament: TournamentState, slots: TopDeckSlot[], c
     const fromCards = faces.flatMap((card) => (card?.name ? [card.name] : []));
     const deck = (slot?.deck || player?.deck || "").trim() || fromCards.join(" / ");
     if (!name && !deck && !faces[0] && !faces[1]) continue;
-    rows.push({ name: name || "Player", deck: deck || "Deck", place: slot?.place ? i + 1 : null, faces });
+    const chosen = lorcanaInks({ inks: slot?.inks ?? "" });
+    const inks = tournament.gameId === "lorcana" ? (chosen.length ? chosen : lorcanaInks(player ?? {})) : [];
+    rows.push({ name: name || "Player", deck: deck || "Deck", place: slot?.place ? i + 1 : null, faces, inks });
   }
   return rows;
 }

@@ -1,26 +1,25 @@
 import { cn } from "@/lib/cn";
-import { LORCANA_INKS, inkSrc, isLorcanaInk, type LorcanaInkId } from "@/lib/lorcana";
+import { LORCANA_INKS, inkSrc, lorcanaInks, packInks, type LorcanaInkId } from "@/lib/lorcana";
 
 export function InkPicker({
   ink1,
   ink2,
+  inks = "",
   onChange,
   size = "md",
   quiet = false,
 }: {
   ink1: string;
   ink2: string;
-  onChange: (next: { ink1: string; ink2: string }) => void;
+  inks?: string;
+  onChange: (next: { ink1: string; ink2: string; inks: string }) => void;
   size?: "sm" | "md" | "lg";
   quiet?: boolean;
 }) {
-  const selected = [ink1, ink2].filter(isLorcanaInk);
+  const selected = lorcanaInks({ ink1, ink2, inks });
   const toggle = (id: LorcanaInkId) => {
-    if (ink1 === id) onChange({ ink1: ink2, ink2: "" });
-    else if (ink2 === id) onChange({ ink1, ink2: "" });
-    else if (!ink1) onChange({ ink1: id, ink2 });
-    else if (!ink2) onChange({ ink1, ink2: id });
-    else onChange({ ink1, ink2: id });
+    const next = selected.includes(id) ? selected.filter((ink) => ink !== id) : [...selected, id];
+    onChange(packInks(next));
   };
 
   return (
@@ -51,7 +50,7 @@ export function InkPicker({
       </div>
       {quiet ? null : (
         <p className="text-[0.7rem] text-muted">
-          {selected.map((id) => LORCANA_INKS.find((ink) => ink.id === id)?.label).join(" / ") || "Tap up to two inks"}
+          {selected.map((id) => LORCANA_INKS.find((ink) => ink.id === id)?.label).join(" / ") || "Tap any inks"}
         </p>
       )}
     </div>

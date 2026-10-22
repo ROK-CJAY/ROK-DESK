@@ -27,6 +27,8 @@ import { PlayerIdStaffNote } from "@/components/signup/player-id-privacy";
 import { InkPicker } from "@/components/desk/ink-picker";
 import { ExportTournamentButton } from "@/components/tournament/export-button";
 import { ImportTournamentButton } from "@/components/tournament/import-button";
+import { PlayHubLink } from "@/components/tournament/playhub-link";
+import { sendMatchToStream } from "@/lib/stream-from-tournament";
 import { TomReportsPanel } from "@/components/tournament/tom-reports-panel";
 import { exportTournamentFiles } from "@/lib/tournament-export";
 import { StaffPanel } from "@/components/tournament/staff-panel";
@@ -298,13 +300,13 @@ function SetupPanel() {
             <Input
               inputMode="numeric"
               min={2}
-              max={128}
+              max={4096}
               value={sizeDraft}
               onChange={(e) => {
                 const raw = e.target.value.replace(/[^\d]/g, "");
                 setSizeDraft(raw);
                 const n = Number(raw);
-                if (Number.isFinite(n) && n >= 2 && n <= 128) setShape({ size: n });
+                if (Number.isFinite(n) && n >= 2 && n <= 4096) setShape({ size: n });
               }}
               onBlur={() => {
                 const next = clampBracketSize(Number(sizeDraft) || t.size);
@@ -470,6 +472,11 @@ function SetupPanel() {
             Copy bracket URL
           </Button>
         </div>
+        {t.playHubEvent ? (
+          <p className="text-[0.65rem] leading-relaxed text-subtle">
+            Linked to Play Hub. The event is live. Send a table below, then hit Update Play Hub when the next round or results post.
+          </p>
+        ) : (
         <div className="flex flex-wrap gap-2">
           <Button onClick={generate} className="flex-1">
             <Trophy className="size-3.5" />
@@ -482,6 +489,7 @@ function SetupPanel() {
             </Button>
           ) : null}
         </div>
+        )}
         {t.matches.length > 0 && t.phase !== "complete" ? (
           <Button variant="secondary" onClick={finishTournament}>
             <Flag className="size-3.5" />
@@ -494,6 +502,7 @@ function SetupPanel() {
           </Button>
         ) : null}
         <ExportTournamentButton variant={t.phase === "complete" ? "default" : "outline"} full />
+        <PlayHubLink />
         <ImportTournamentButton variant="outline" full />
         <div className="flex items-center justify-between gap-3 rounded-lg bg-surface-2 px-3 py-2">
           <div>
@@ -519,78 +528,6 @@ function finishTournament() {
   });
 }
 
-function sendMatchToStream(matchId: string, slot: MatchSlot = 1) {
-  const t = useTournamentStore.getState().tournament;
-  const match = t.matches.find((m) => m.id === matchId);
-  if (!match) return;
-  const seat = (entrantId: string | null | undefined) => {
-    const e = entrantId ? t.entrants.find((row) => row.id === entrantId) : null;
-    const vgc = isVgcTitle(t.gameId);
-    return {
-      name: e?.name ?? "",
-      tag: e?.tag ?? "",
-      country: e?.country ?? "US",
-      pronouns: e?.pronouns ?? "",
-      archetype: e?.deck ?? "",
-      extra: e?.extra ?? "",
-      photoUrl: e?.photoUrl ?? "",
-      note: e?.note ?? "",
-      judgeNote: e?.judgeNote ?? "",
-      decklist: e?.decklist ?? [],
-      team: vgc ? (teamHasMons(e?.team) ? e!.team : emptyTeam()) : undefined,
-      ink1: e?.ink1 ?? "",
-      ink2: e?.ink2 ?? "",
-      recordW: e?.recordW ?? 0,
-      recordL: e?.recordL ?? 0,
-      recordD: e?.recordD ?? 0,
-    };
-  };
-  const pod = isPodMatch(match);
-  const deskSlot = slot;
-  useTournamentStore.getState().setStreamMatch(matchId, deskSlot);
-  void (async () => {
-    let p1 = seat(match.p1.entrantId);
-    let p2 = seat(match.p2.entrantId);
-    let p3 = pod ? seat(match.p3?.entrantId) : undefined;
-    let p4 = pod ? seat(match.p4?.entrantId) : undefined;
-    if (isPtcgTitle(t.gameId)) {
-      const [d1, d2, d3, d4] = await Promise.all([
-        hydrateDeckOnClient(p1.decklist ?? []),
-        hydrateDeckOnClient(p2.decklist ?? []),
-        p3 ? hydrateDeckOnClient(p3.decklist ?? []) : Promise.resolve([]),
-        p4 ? hydrateDeckOnClient(p4.decklist ?? []) : Promise.resolve([]),
-      ]);
-      p1 = { ...p1, decklist: d1 };
-      p2 = { ...p2, decklist: d2 };
-      if (p3) p3 = { ...p3, decklist: d3 };
-      if (p4) p4 = { ...p4, decklist: d4 };
-    }
-    useDeskStore.getState().loadStreamMatch({
-      eventName: t.name,
-      streamChannel: t.streamChannel,
-      roundName: match.label,
-      eventPhase:
-        t.bracketType === "double"
-          ? "Double elimination"
-          : t.bracketType === "swiss"
-            ? pod
-              ? "Swiss pods"
-              : "Swiss"
-            : "Single elimination",
-      bestOf: t.bestOf,
-      gameId: t.gameId,
-      formatName: t.formatName,
-      tableSize: pod ? 4 : 2,
-      matchId: match.id,
-      matchSlot: deskSlot,
-      p1,
-      p2,
-      p3,
-      p4,
-    });
-  })();
-}
-
 function namesForMatch(t: import("@/lib/tournament-types").TournamentState, match: import("@/lib/tournament-types").BracketMatch) {
   const names = matchEntrantIds(match).map((id) => entrantById(t, id)?.name ?? "TBD");
   if (names.length > 2) return names.join(" · ");
@@ -611,7 +548,18 @@ function liveForSlot(t: import("@/lib/tournament-types").TournamentState, slot: 
 
 function StreamPanel() {
   const t = useTournamentStore((s) => s.tournament);
-  const ready = readyMatches(t);
+  const hubRound = t.playHubEvent
+    ? t.matches.reduce((max, match) => (!match.winnerId && matchEntrantIds(match).length >= 2 ? Math.max(max, match.round) : max), 0) ||
+      t.matches.reduce((max, match) => Math.max(max, match.round), 0)
+    : 0;
+  const ready = t.playHubEvent
+    ? t.matches.filter((match) => match.round === hubRound && matchEntrantIds(match).length >= 2)
+    : readyMatches(t);
+  const [tableQuery, setTableQuery] = useState("");
+  const needle = tableQuery.trim().toLowerCase();
+  const listed = needle
+    ? ready.filter((match) => `${match.position} ${namesForMatch(t, match)}`.toLowerCase().includes(needle))
+    : ready;
   const lives = MATCH_SLOTS.map((slot) => ({ slot, match: liveForSlot(t, slot) }));
   const anyLive = lives.some((row) => row.match);
 
@@ -639,10 +587,15 @@ function StreamPanel() {
         </p>
       )}
       <ul className="mt-3 space-y-2">
-        {ready.length === 0 ? (
-          <li className="text-xs text-subtle">No ready matches.</li>
+        {t.playHubEvent ? (
+          <li>
+            <Input className="h-8" value={tableQuery} placeholder={`Round ${hubRound} player or table`} onChange={(e) => setTableQuery(e.target.value)} />
+          </li>
+        ) : null}
+        {listed.length === 0 ? (
+          <li className="text-xs text-subtle">{t.playHubEvent ? "No tables in this round yet. Update Play Hub when the next round posts." : "No ready matches."}</li>
         ) : (
-          ready.map((match) => {
+          listed.slice(0, t.playHubEvent ? 20 : listed.length).map((match) => {
             const on: Record<MatchSlot, boolean> = {
               1: t.streamMatchId === match.id,
               2: t.streamMatchId2 === match.id,
@@ -650,7 +603,9 @@ function StreamPanel() {
             };
             return (
               <li key={match.id} className="rounded-lg border border-border bg-surface-2 px-3 py-2">
-                <p className="text-xs text-muted">{match.label}</p>
+                <p className="text-xs text-muted">
+                  {match.position > 0 && match.label === `Round ${match.round}` ? `Round ${match.round} · Table ${match.position}` : match.label}
+                </p>
                 <p className="text-sm">{namesForMatch(t, match)}</p>
                 <div className="mt-2 grid grid-cols-3 gap-1.5">
                   {MATCH_SLOTS.map((slot) => (
@@ -718,7 +673,7 @@ function RosterPanel({
   const extra = extraFieldFor(t.gameId, t.formatName);
   const commander = isCommanderLane(t);
   const idField = playerIdField(t.gameId);
-  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: "US", ink1: "", ink2: "" });
+  const [draft, setDraft] = useState({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: "US", ink1: "", ink2: "", inks: "" });
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
@@ -735,9 +690,10 @@ function RosterPanel({
       country: draft.country,
       ink1: draft.ink1,
       ink2: draft.ink2,
+      inks: draft.inks,
       ageDivision: playAgeDivisionOf(t.gameId) ?? "",
     });
-    setDraft({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: draft.country, ink1: "", ink2: "" });
+    setDraft({ name: "", tag: "", playerId: "", deck: "", extra: "", note: "", photoUrl: "", country: draft.country, ink1: "", ink2: "", inks: "" });
   };
 
   return (
@@ -866,6 +822,7 @@ function RosterPanel({
             size="sm"
             ink1={draft.ink1}
             ink2={draft.ink2}
+            inks={draft.inks}
             onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
           />
         </div>
@@ -1074,6 +1031,7 @@ function EntrantRow({
             size="sm"
             ink1={entrant.ink1}
             ink2={entrant.ink2}
+            inks={entrant.inks}
             onChange={(next) => onChange(entrant.id, next)}
           />
         </td>
@@ -1183,11 +1141,27 @@ function BracketBoard() {
   const setScore = useTournamentStore((s) => s.setScore);
   const pairNext = useTournamentStore((s) => s.pairNext);
   const startCut = useTournamentStore((s) => s.startCut);
-  const groups = groupByRound(t.matches);
   const standings = t.bracketType === "swiss" ? computeStandings(t) : [];
   const round = currentSwissRound(t);
   const cutReady = canStartTopCut(t);
   const inCut = topCutStarted(t);
+  const roundNumbers = [...new Set(t.matches.map((match) => match.round))].sort((a, b) => a - b);
+  const crowded = t.matches.length > 40;
+  const [roundOn, setRoundOn] = useState<number | null>(null);
+  const [pairQuery, setPairQuery] = useState("");
+  const openRound = t.matches.reduce(
+    (max, match) => (!match.winnerId && matchEntrantIds(match).length >= 2 ? Math.max(max, match.round) : max),
+    0,
+  );
+  const pickedRound = roundOn ?? (openRound || roundNumbers[roundNumbers.length - 1]) ?? null;
+  const needle = pairQuery.trim().toLowerCase();
+  const boardMatches = t.matches.filter((match) => {
+    if (crowded && pickedRound != null && match.round !== pickedRound) return false;
+    if (!needle) return true;
+    const names = matchEntrantIds(match).map((id) => entrantById(t, id)?.name ?? "").join(" ");
+    return `${match.label} ${match.position} ${names}`.toLowerCase().includes(needle);
+  });
+  const groups = groupByRound(boardMatches);
   const canPair =
     t.bracketType === "swiss" &&
     !inCut &&
@@ -1224,6 +1198,10 @@ function BracketBoard() {
             : "Bracket"}
         </p>
         <div className="flex flex-wrap gap-2">
+          {t.playHubEvent ? (
+            <p className="text-xs text-muted">Play Hub is running this event. Update Play Hub to bring in results and the next round.</p>
+          ) : (
+            <>
         {canPair ? (
           <Button size="sm" onClick={pairNext}>
             Pair round {round + 1}
@@ -1241,8 +1219,20 @@ function BracketBoard() {
             Complete tournament
           </Button>
         ) : null}
+            </>
+          )}
         </div>
       </div>
+      {crowded ? (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <NativeSelect className="h-8 w-36" value={String(pickedRound ?? "")} onChange={(e) => setRoundOn(Number(e.target.value))}>
+            {roundNumbers.map((n) => (
+              <option key={n} value={n}>Round {n}</option>
+            ))}
+          </NativeSelect>
+          <Input className="h-8 max-w-xs" value={pairQuery} placeholder="Player or table" onChange={(e) => setPairQuery(e.target.value)} />
+        </div>
+      ) : null}
       {t.bracketType === "swiss" ? <StandingsTable t={t} standings={standings} /> : null}
       <div className="mt-3 flex flex-col gap-6">
         {groups.map((group) => (
@@ -1277,6 +1267,9 @@ function BracketBoard() {
                             live ? "border-live" : "border-border",
                           )}
                         >
+                          {match.label === `Round ${col.round}` && match.position > 0 ? (
+                            <p className="mb-1 font-mono text-[0.6rem] tracking-[0.14em] text-muted uppercase">Table {match.position}</p>
+                          ) : null}
                           {seats.map((row) => {
                             const player = entrantById(t, row.slot.entrantId);
                             return (

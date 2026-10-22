@@ -8,7 +8,7 @@ import {
   type DeskState,
   type PlayerSide,
 } from "@/lib/desk-types";
-import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk } from "@/lib/lorcana";
+import { formatRecord, gameDiamonds, inkSrc, isLorcanaInk, lorcanaInks } from "@/lib/lorcana";
 import { currentPresentedSponsor } from "@/lib/sponsors";
 import { OV_CHROME, OV_DEEP, OV_RAIL } from "@/lib/overlay-look";
 import { cn } from "@/lib/cn";
@@ -39,20 +39,21 @@ function CameraWell({ player, accent }: { player: PlayerSide; accent: string }) 
   );
 }
 
-function InkSlot({ ink }: { ink: string }) {
+function InkSlot({ ink, className }: { ink: string; className?: string }) {
+  const size = className ?? "size-11";
   if (isLorcanaInk(ink)) {
     return (
       <img
         src={inkSrc(ink)}
         alt=""
         title={ink}
-        className="size-11 drop-shadow-[0_2px_4px_rgb(0_0_0_/_0.65)]"
+        className={cn(size, "drop-shadow-[0_2px_4px_rgb(0_0_0_/_0.65)]")}
       />
     );
   }
   return (
     <span
-      className="size-11"
+      className={size}
       style={{
         clipPath: "polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%)",
         background: "rgb(197 204 214 / 0.1)",
@@ -63,10 +64,14 @@ function InkSlot({ ink }: { ink: string }) {
 }
 
 function InkRow({ player }: { player: PlayerSide }) {
+  const inks = lorcanaInks(player);
+  const shown = inks.length ? inks : ["", ""];
+  const size = shown.length >= 6 ? "size-7" : shown.length >= 4 ? "size-8" : "size-11";
   return (
-    <div className="flex h-11 items-center justify-center gap-2.5">
-      <InkSlot ink={player.ink1} />
-      <InkSlot ink={player.ink2} />
+    <div className="flex h-11 max-w-full items-center justify-center gap-1.5">
+      {shown.map((ink, index) => (
+        <InkSlot key={`${ink}-${index}`} ink={ink} className={size} />
+      ))}
     </div>
   );
 }
