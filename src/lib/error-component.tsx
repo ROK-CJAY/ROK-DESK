@@ -7,12 +7,10 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
 
   useEffect(() => {
     if (!importFail || typeof window === "undefined") return;
-    const key = "rok-chunk-reload";
-    const tries = Number(sessionStorage.getItem(key) || "0");
-    if (!Number.isFinite(tries) || tries >= 2) return;
-    sessionStorage.setItem(key, String(tries + 1));
-    const timer = window.setTimeout(() => window.location.reload(), 500);
-    return () => window.clearTimeout(timer);
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("rok-reload") === "1") return;
+    url.searchParams.set("rok-reload", "1");
+    window.location.replace(url.toString());
   }, [importFail]);
 
   return (
@@ -34,12 +32,9 @@ export function AppErrorComponent({ error }: ErrorComponentProps) {
       <button
         type="button"
         onClick={() => {
-          try {
-            sessionStorage.removeItem("rok-chunk-reload");
-          } catch {
-            /* ignore */
-          }
-          window.location.reload();
+          const url = new URL(window.location.href);
+          url.searchParams.delete("rok-reload");
+          window.location.replace(url.toString());
         }}
         className="mt-2 rounded-md border border-zinc-600 px-3 py-1.5 text-sm text-zinc-200 hover:bg-zinc-800"
       >

@@ -2,7 +2,7 @@ import { titleImageObjectUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
 export function tshLayoutHref(file: string) {
-  return `/api/fgc/tsh-layout?path=${encodeURIComponent(file)}`;
+  return `/tsh/layout/${file.replace(/^\/+/, "")}`;
 }
 
 export type { FgcOverlayId, FgcTitle, FgcTitleElement, FgcTitleLayer };
