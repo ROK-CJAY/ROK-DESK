@@ -145,7 +145,7 @@ const BOARD_QUERY = `
 const SETS_QUERY = `
   query ToSets($id: ID!, $page: Int!) {
     phaseGroup(id: $id) {
-      sets(page: $page, perPage: 30, sortType: ROUND) {
+      sets(page: $page, perPage: 12, sortType: ROUND) {
         pageInfo { totalPages }
         nodes {
           id
@@ -158,11 +158,6 @@ const SETS_QUERY = `
           startedAt
           station { id number prefix }
           stream { id streamName }
-          games {
-            orderNum
-            stage { id name }
-            selections { entrant { id } character { id name } }
-          }
           slots {
             prereqId
             prereqType
@@ -242,7 +237,7 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
     if (!group.id) continue;
     let page = 1;
     let pages = 1;
-    while (page <= pages && page <= 8) {
+    while (page <= pages && page <= 20) {
       const block = await startggQuery<SetPage>(SETS_QUERY, { id: group.id, page }, "ToSets", token);
       const pageSets = block.phaseGroup?.sets;
       pages = pageSets?.pageInfo?.totalPages ?? 1;
