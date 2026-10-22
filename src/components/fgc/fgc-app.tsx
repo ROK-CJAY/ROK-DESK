@@ -113,7 +113,7 @@ function TshFrame({ path }: { path: string }) {
     <div ref={frame} className="relative h-full w-full overflow-hidden bg-black">
       <iframe
         title={path}
-        src={tshLayoutHref(path)}
+        src={`${tshLayoutHref(path)}&preview=1`}
         className="absolute top-0 left-0 border-0 bg-transparent"
         style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}
       />

@@ -101,7 +101,7 @@ function slotFrom(fgc: FgcState, player: FgcPlayer | null) {
 let lastProgramJson = "";
 let lastProgramStamp = 1;
 
-export function programState(fgc: FgcState) {
+export function programState(fgc: FgcState, preview = false) {
   const set = liveSet(fgc);
   const library = libraryFor(fgc);
   const commentary: Record<string, unknown> = {};
@@ -145,12 +145,32 @@ export function programState(fgc: FgcState) {
     commentary,
     player_list: { slot: slots },
   };
+  if (preview) fillPreview(body);
   const json = JSON.stringify(body);
   if (json !== lastProgramJson) {
     lastProgramJson = json;
     lastProgramStamp = Date.now();
   }
   return { timestamp: lastProgramStamp, ...body };
+}
+
+function fillPreview(body: {
+  tournamentInfo: { tournamentName: string; eventName: string };
+  score: { "1": { team: { "1": { player: { "1": { name: string } } }; "2": { player: { "1": { name: string } } } }; match: string; phase: string; best_of_text: string } };
+  commentary: Record<string, unknown>;
+}) {
+  const score = body.score["1"];
+  if (!score.team["1"].player["1"].name) score.team["1"].player["1"].name = "Player 1";
+  if (!score.team["2"].player["1"].name) score.team["2"].player["1"].name = "Player 2";
+  if (!score.match) score.match = "Round 1";
+  if (!score.phase) score.phase = "Winners";
+  if (!score.best_of_text) score.best_of_text = "Best of 3";
+  if (!body.tournamentInfo.tournamentName) body.tournamentInfo.tournamentName = "Tournament";
+  if (!body.tournamentInfo.eventName) body.tournamentInfo.eventName = "Event";
+  if (!Object.keys(body.commentary).length) {
+    body.commentary["1"] = { name: "Caster 1", team: "", pronoun: "", real_name: "", twitter: "", country: { asset: "", code: "" }, state: { asset: "", code: "" } };
+    body.commentary["2"] = { name: "Caster 2", team: "", pronoun: "", real_name: "", twitter: "", country: { asset: "", code: "" }, state: { asset: "", code: "" } };
+  }
 }
 
 export async function loadFgcState(): Promise<FgcState> {

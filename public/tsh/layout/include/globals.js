@@ -280,7 +280,7 @@ async function InitAll() {
 function getData() {
   return $.ajax({
     dataType: "json",
-    url: "/api/fgc/program-state",
+    url: tshPreviewMode() ? "/api/fgc/program-state?preview=1" : "/api/fgc/program-state",
     cache: false,
   });
 }

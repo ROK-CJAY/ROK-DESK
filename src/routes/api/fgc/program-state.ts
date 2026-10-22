@@ -6,9 +6,10 @@ const noStore = { "cache-control": "no-store, no-cache, must-revalidate" };
 export const Route = createFileRoute("/api/fgc/program-state")({
   server: {
     handlers: {
-      GET: async () => {
+      GET: async ({ request }) => {
         const { loadFgcState, programState } = await import("@/lib/fgc-program-state");
-        return Response.json(programState(await loadFgcState()), { headers: noStore });
+        const preview = new URL(request.url).searchParams.get("preview") === "1";
+        return Response.json(programState(await loadFgcState(), preview), { headers: noStore });
       },
       PUT: async ({ request }) => {
         const { saveFgcState } = await import("@/lib/fgc-program-state");
