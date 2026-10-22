@@ -18,7 +18,7 @@ function letterRank(value: string) {
 type Placed = { set: ToSet; y: number };
 
 function placeSide(sets: ToSet[]): { title: string; rows: Placed[] }[] {
-  const rounds = [...new Set(sets.map((set) => set.roundNum))].sort((a, b) => a - b);
+  const rounds = [...new Set(sets.map((set) => set.roundNum))].sort((a, b) => Math.abs(a) - Math.abs(b) || a - b);
   const columns = rounds.map((round) =>
     sets
       .filter((set) => set.roundNum === round)
