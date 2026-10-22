@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { readToRefresh, readToToken, writeToSession, clearToSession } from "@/lib/startgg-link";
 import { rokDesktop } from "@/lib/rok-desktop";
 import { PUBLIC_SIGNUP_ORIGIN } from "@/lib/remote-signup-code";
-import type { ToBoard, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
+import type { ToBoard, ToOption, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
 import { BracketBoard } from "@/components/fgc/fgc-bracket";
 import { cn } from "@/lib/cn";
 
@@ -31,6 +31,16 @@ function setLabel(state: number) {
   if (state === 3) return "Done";
   if (state === 6) return "Started";
   return "Waiting";
+}
+
+function characterOptions(characters: ToOption[], id: string, name: string) {
+  if (!id || characters.some((character) => character.id === id)) return characters;
+  return [{ id, name: name || "Selected", icon: "" }, ...characters];
+}
+
+function CharacterMark({ characters, id, fallback }: { characters: ToOption[]; id: string; fallback: string }) {
+  const icon = characters.find((character) => character.id === id)?.icon || fallback;
+  return icon ? <img src={icon} alt="" className="h-8 w-8 shrink-0 object-contain" /> : <span className="h-8 w-8 shrink-0" />;
 }
 
 async function toApi(body: Record<string, unknown>) {
@@ -94,7 +104,19 @@ export function FgcTournamentDesk() {
         }]));
         if (!quiet) return incoming;
         const openId = pickedRef.current;
-        return openId && current[openId] ? { ...incoming, [openId]: current[openId] } : incoming;
+        if (!openId || !current[openId]) return incoming;
+        const local = current[openId];
+        const fresh = incoming[openId];
+        return {
+          ...incoming,
+          [openId]: {
+            ...fresh,
+            ...local,
+            character1: local.character1 || fresh?.character1 || "",
+            character2: local.character2 || fresh?.character2 || "",
+            stageId: local.stageId || fresh?.stageId || "",
+          },
+        };
       });
     } catch (err) {
       if (!quiet) setError(err instanceof Error ? err.message : "Could not load the event");
@@ -444,17 +466,23 @@ function StationFloor({
             <div className="grid gap-2 md:grid-cols-2">
               <label className="grid gap-1 text-xs text-muted">
                 {set.p1.name} character
-                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character1} onChange={(e) => onDraft(set.id, { character1: e.target.value })}>
-                  <option value="">Character</option>
-                  {board.characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
-                </select>
+                <span className="flex items-center gap-2">
+                  <CharacterMark characters={board.characters} id={draft.character1} fallback={set.p1.characterIcon} />
+                  <select className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character1} onChange={(e) => onDraft(set.id, { character1: e.target.value })}>
+                    <option value="">Character</option>
+                    {characterOptions(board.characters, draft.character1, set.p1.character).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+                  </select>
+                </span>
               </label>
               <label className="grid gap-1 text-xs text-muted">
                 {set.p2.name} character
-                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character2} onChange={(e) => onDraft(set.id, { character2: e.target.value })}>
-                  <option value="">Character</option>
-                  {board.characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
-                </select>
+                <span className="flex items-center gap-2">
+                  <CharacterMark characters={board.characters} id={draft.character2} fallback={set.p2.characterIcon} />
+                  <select className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character2} onChange={(e) => onDraft(set.id, { character2: e.target.value })}>
+                    <option value="">Character</option>
+                    {characterOptions(board.characters, draft.character2, set.p2.character).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+                  </select>
+                </span>
               </label>
               <label className="grid gap-1 text-xs text-muted">
                 Stage

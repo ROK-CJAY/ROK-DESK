@@ -5,7 +5,7 @@ export type ToEvent = { id: string; name: string; slug: string; game: string; en
 export type ToTournament = { id: string; name: string; slug: string; startAt: number; when: string; city: string; events: ToEvent[] };
 export type ToStation = { id: string; number: string; name: string; streamId: string };
 export type ToStream = { id: string; name: string; stationId: string };
-export type ToOption = { id: string; name: string };
+export type ToOption = { id: string; name: string; icon: string };
 export type ToSet = {
   id: string;
   phase: string;
@@ -22,8 +22,8 @@ export type ToSet = {
   updatedAt: number | null;
   startedAt: number | null;
   prereqs: string[];
-  p1: { id: string; name: string; characterId: string; character: string };
-  p2: { id: string; name: string; characterId: string; character: string };
+  p1: { id: string; name: string; characterId: string; character: string; characterIcon: string };
+  p2: { id: string; name: string; characterId: string; character: string; characterIcon: string };
   score1: number;
   score2: number;
   stageId: string;
@@ -152,7 +152,7 @@ const BOARD_QUERY = `
 const SETS_QUERY = `
   query ToSets($id: ID!, $page: Int!) {
     phaseGroup(id: $id) {
-      sets(page: $page, perPage: 20, sortType: ROUND) {
+      sets(page: $page, perPage: 10, sortType: ROUND) {
         pageInfo { totalPages }
         nodes {
           id
@@ -165,6 +165,9 @@ const SETS_QUERY = `
           startedAt
           station { id number prefix }
           stream { id streamName }
+          games {
+            selections { entrant { id } character { id name } }
+          }
           slots {
             prereqId
             prereqType
@@ -244,7 +247,7 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
     if (!group.id) continue;
     let page = 1;
     let pages = 1;
-    while (page <= pages && page <= 20) {
+    while (page <= pages && page <= 40) {
       const block = await startggQuery<SetPage>(SETS_QUERY, { id: group.id, page }, "ToSets", token);
       const pageSets = block.phaseGroup?.sets;
       pages = pageSets?.pageInfo?.totalPages ?? 1;
@@ -261,6 +264,7 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
             name: slots[index]?.entrant?.name?.trim() || "TBD",
             characterId: selected?.character?.id == null ? "" : String(selected.character.id),
             character: selected?.character?.name?.trim() || "",
+            characterIcon: "",
           };
         };
         const p1 = side(0);
@@ -297,12 +301,26 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
   let characters: ToOption[] = [];
   let stages: ToOption[] = [];
   try {
-    const game = await startggQuery<{ event?: { videogame?: { characters?: { id?: string | number | null; name?: string | null }[] | null; stages?: { id?: string | number | null; name?: string | null }[] | null } | null } | null }>(GAME_QUERY, { slug }, "ToGame", token);
+    const game = await startggQuery<{ event?: { videogame?: { characters?: { id?: string | number | null; name?: string | null; images?: { url?: string | null }[] | null }[] | null } | null } | null }>(CHARACTER_QUERY, { slug }, "ToCharacters", token);
     characters = optionsOf(game.event?.videogame?.characters);
+  } catch {
+    try {
+      const game = await startggQuery<{ event?: { videogame?: { characters?: { id?: string | number | null; name?: string | null }[] | null } | null } | null }>(CHARACTER_NAMES_QUERY, { slug }, "ToCharacterNames", token);
+      characters = optionsOf(game.event?.videogame?.characters);
+    } catch {
+      characters = [];
+    }
+  }
+  try {
+    const game = await startggQuery<{ event?: { videogame?: { stages?: { id?: string | number | null; name?: string | null }[] | null } | null } | null }>(STAGE_QUERY, { slug }, "ToStages", token);
     stages = optionsOf(game.event?.videogame?.stages);
   } catch {
-    characters = [];
     stages = [];
+  }
+  const icons = new Map(characters.map((character) => [character.id, character.icon]));
+  for (const set of sets) {
+    set.p1.characterIcon = icons.get(set.p1.characterId) || "";
+    set.p2.characterIcon = icons.get(set.p2.characterId) || "";
   }
   return {
     event: {
@@ -337,10 +355,26 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
   };
 }
 
-const GAME_QUERY = `
-  query ToGame($slug: String!) {
+const CHARACTER_QUERY = `
+  query ToCharacters($slug: String!) {
     event(slug: $slug) {
-      videogame { characters { id name } stages { id name } }
+      videogame { characters { id name images(type: "stockicon") { url } } }
+    }
+  }
+`;
+
+const CHARACTER_NAMES_QUERY = `
+  query ToCharacterNames($slug: String!) {
+    event(slug: $slug) {
+      videogame { characters { id name images { url type } } }
+    }
+  }
+`;
+
+const STAGE_QUERY = `
+  query ToStages($slug: String!) {
+    event(slug: $slug) {
+      videogame { stages { id name } }
     }
   }
 `;
@@ -351,10 +385,14 @@ function stationLabel(prefix: string | null | undefined, number: number | string
   return `${name} ${number}`.replace(/\s+/g, " ").trim();
 }
 
-function optionsOf(rows: { id?: string | number | null; name?: string | null }[] | null | undefined): ToOption[] {
+function optionsOf(rows: { id?: string | number | null; name?: string | null; images?: { url?: string | null; type?: string | null }[] | null }[] | null | undefined): ToOption[] {
   return (rows ?? [])
     .filter((row) => row.id != null && row.name?.trim())
-    .map((row) => ({ id: String(row.id), name: row.name!.trim() }))
+    .map((row) => {
+      const images = row.images ?? [];
+      const stock = images.find((image) => /stock/i.test(image.type || "") && image.url) || images.find((image) => image.url);
+      return { id: String(row.id), name: row.name!.trim(), icon: stock?.url || "" };
+    })
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
