@@ -2,7 +2,19 @@
 var data = {};
 document.addEventListener("DOMContentLoaded", function () {
   if (document.body) document.body.style.opacity = "1";
+  fitTshStage();
 });
+window.addEventListener("resize", fitTshStage);
+
+function fitTshStage() {
+  const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  const root = document.documentElement;
+  root.style.overflow = "hidden";
+  root.style.width = "1920px";
+  root.style.height = "1080px";
+  root.style.transformOrigin = "top left";
+  root.style.transform = scale > 0 && Math.abs(scale - 1) > 0.01 ? "scale(" + scale + ")" : "";
+}
 function tshAsset(asset) {
   if (!asset) return "";
   if (/^(https?:|data:|\/)/.test(asset)) return asset;

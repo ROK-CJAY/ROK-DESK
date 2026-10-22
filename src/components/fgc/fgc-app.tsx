@@ -103,7 +103,12 @@ function TshFrame({ path }: { path: string }) {
   useEffect(() => {
     const node = frame.current;
     if (!node) return;
-    const fit = () => setScale(Math.max(0.1, node.clientWidth / 1920));
+    const fit = () => {
+      const width = node.clientWidth;
+      const height = node.clientHeight;
+      if (width < 2 || height < 2) return;
+      setScale(Math.max(0.05, Math.min(width / 1920, height / 1080)));
+    };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(node);
