@@ -1,6 +1,10 @@
 import { titleImageObjectUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
+export function tshLayoutHref(file: string) {
+  return `/api/fgc/tsh-layout?path=${encodeURIComponent(file)}`;
+}
+
 export type { FgcOverlayId, FgcTitle, FgcTitleElement, FgcTitleLayer };
 
 export const TITLE_GROUPS = ["In game", "Versus", "People", "Bracket", "Desk"] as const;

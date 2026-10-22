@@ -77,10 +77,6 @@ const FILL = `
 })();
 </script>`;
 
-export function tshLayoutHref(file: string) {
-  return `/api/fgc/tsh-layout?path=${encodeURIComponent(file)}`;
-}
-
 export function renderTshDocument(html: string, baseHref: string) {
   const clean = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
   const base = `<base href="${baseHref}">`;

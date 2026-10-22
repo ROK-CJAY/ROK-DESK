@@ -34,11 +34,15 @@ import { Route as ApiPtcgDeckImportRouteImport } from './routes/api/ptcg-deck-im
 import { Route as ApiRemoteSignupRouteImport } from './routes/api/remote-signup'
 import { Route as ApiRiftCardsRouteImport } from './routes/api/rift-cards'
 import { Route as ApiStartggRouteImport } from './routes/api/startgg'
+import { Route as ApiStartggOauthRouteImport } from './routes/api/startgg-oauth'
 import { Route as ApiSwuCardsRouteImport } from './routes/api/swu-cards'
 import { Route as ApiTcgCatalogRouteImport } from './routes/api/tcg-catalog'
 import { Route as ApiTournamentRouteImport } from './routes/api/tournament'
 import { Route as ApiYgoCardsRouteImport } from './routes/api/ygo-cards'
+import { Route as FgcIndexRouteImport } from './routes/fgc/index'
+import { Route as FgcProductionRouteImport } from './routes/fgc/production'
 import { Route as FgcStrikeRouteImport } from './routes/fgc/strike'
+import { Route as FgcTournamentRouteImport } from './routes/fgc/tournament'
 import { Route as JoinIndexRouteImport } from './routes/join/index'
 import { Route as JoinCodeRouteImport } from './routes/join/$code'
 import { Route as OverlayIndexRouteImport } from './routes/overlay/index'
@@ -69,6 +73,7 @@ import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiFgcProgramStateRouteImport } from './routes/api/fgc/program-state'
 import { Route as ApiFgcTshLayoutRouteImport } from './routes/api/fgc/tsh-layout'
 import { Route as ApiLorcanaPlayhubRouteImport } from './routes/api/lorcana/playhub'
+import { Route as ApiStartggOauthCallbackRouteImport } from './routes/api/startgg-oauth/callback'
 import { Route as ApiTournamentExportRouteImport } from './routes/api/tournament/export'
 import { Route as ApiTournamentOfficialPdfRouteImport } from './routes/api/tournament/official-pdf'
 import { Route as ApiTournamentSignupRouteImport } from './routes/api/tournament/signup'
@@ -202,6 +207,11 @@ const ApiStartggRoute = ApiStartggRouteImport.update({
   path: '/api/startgg',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStartggOauthRoute = ApiStartggOauthRouteImport.update({
+  id: '/api/startgg-oauth',
+  path: '/api/startgg-oauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSwuCardsRoute = ApiSwuCardsRouteImport.update({
   id: '/api/swu-cards',
   path: '/api/swu-cards',
@@ -222,9 +232,24 @@ const ApiYgoCardsRoute = ApiYgoCardsRouteImport.update({
   path: '/api/ygo-cards',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FgcIndexRoute = FgcIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FgcRoute,
+} as any)
+const FgcProductionRoute = FgcProductionRouteImport.update({
+  id: '/production',
+  path: '/production',
+  getParentRoute: () => FgcRoute,
+} as any)
 const FgcStrikeRoute = FgcStrikeRouteImport.update({
   id: '/strike',
   path: '/strike',
+  getParentRoute: () => FgcRoute,
+} as any)
+const FgcTournamentRoute = FgcTournamentRouteImport.update({
+  id: '/tournament',
+  path: '/tournament',
   getParentRoute: () => FgcRoute,
 } as any)
 const JoinIndexRoute = JoinIndexRouteImport.update({
@@ -377,6 +402,11 @@ const ApiLorcanaPlayhubRoute = ApiLorcanaPlayhubRouteImport.update({
   path: '/api/lorcana/playhub',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStartggOauthCallbackRoute = ApiStartggOauthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => ApiStartggOauthRoute,
+} as any)
 const ApiTournamentExportRoute = ApiTournamentExportRouteImport.update({
   id: '/export',
   path: '/export',
@@ -441,11 +471,14 @@ export interface FileRoutesByFullPath {
   '/api/remote-signup': typeof ApiRemoteSignupRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/startgg': typeof ApiStartggRoute
+  '/api/startgg-oauth': typeof ApiStartggOauthRouteWithChildren
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
+  '/fgc/production': typeof FgcProductionRoute
   '/fgc/strike': typeof FgcStrikeRoute
+  '/fgc/tournament': typeof FgcTournamentRoute
   '/join/$code': typeof JoinCodeRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
@@ -468,6 +501,7 @@ export interface FileRoutesByFullPath {
   '/overlay/winner': typeof OverlayWinnerRoute
   '/print/deck-list': typeof PrintDeckListRoute
   '/print/team-list': typeof PrintTeamListRoute
+  '/fgc/': typeof FgcIndexRoute
   '/join/': typeof JoinIndexRoute
   '/overlay/': typeof OverlayIndexRoute
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
@@ -476,6 +510,7 @@ export interface FileRoutesByFullPath {
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
+  '/api/startgg-oauth/callback': typeof ApiStartggOauthCallbackRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -487,7 +522,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/browser': typeof BrowserRoute
-  '/fgc': typeof FgcRouteWithChildren
   '/login': typeof LoginRoute
   '/pod': typeof PodRoute
   '/production': typeof ProductionRoute
@@ -509,11 +543,14 @@ export interface FileRoutesByTo {
   '/api/remote-signup': typeof ApiRemoteSignupRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/startgg': typeof ApiStartggRoute
+  '/api/startgg-oauth': typeof ApiStartggOauthRouteWithChildren
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
+  '/fgc/production': typeof FgcProductionRoute
   '/fgc/strike': typeof FgcStrikeRoute
+  '/fgc/tournament': typeof FgcTournamentRoute
   '/join/$code': typeof JoinCodeRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
@@ -536,6 +573,7 @@ export interface FileRoutesByTo {
   '/overlay/winner': typeof OverlayWinnerRoute
   '/print/deck-list': typeof PrintDeckListRoute
   '/print/team-list': typeof PrintTeamListRoute
+  '/fgc': typeof FgcIndexRoute
   '/join': typeof JoinIndexRoute
   '/overlay': typeof OverlayIndexRoute
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
@@ -544,6 +582,7 @@ export interface FileRoutesByTo {
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
+  '/api/startgg-oauth/callback': typeof ApiStartggOauthCallbackRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -579,11 +618,14 @@ export interface FileRoutesById {
   '/api/remote-signup': typeof ApiRemoteSignupRoute
   '/api/rift-cards': typeof ApiRiftCardsRoute
   '/api/startgg': typeof ApiStartggRoute
+  '/api/startgg-oauth': typeof ApiStartggOauthRouteWithChildren
   '/api/swu-cards': typeof ApiSwuCardsRoute
   '/api/tcg-catalog': typeof ApiTcgCatalogRoute
   '/api/tournament': typeof ApiTournamentRouteWithChildren
   '/api/ygo-cards': typeof ApiYgoCardsRoute
+  '/fgc/production': typeof FgcProductionRoute
   '/fgc/strike': typeof FgcStrikeRoute
+  '/fgc/tournament': typeof FgcTournamentRoute
   '/join/$code': typeof JoinCodeRoute
   '/overlay/bracket': typeof OverlayBracketRoute
   '/overlay/card': typeof OverlayCardRoute
@@ -606,6 +648,7 @@ export interface FileRoutesById {
   '/overlay/winner': typeof OverlayWinnerRoute
   '/print/deck-list': typeof PrintDeckListRoute
   '/print/team-list': typeof PrintTeamListRoute
+  '/fgc/': typeof FgcIndexRoute
   '/join/': typeof JoinIndexRoute
   '/overlay/': typeof OverlayIndexRoute
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
@@ -614,6 +657,7 @@ export interface FileRoutesById {
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
+  '/api/startgg-oauth/callback': typeof ApiStartggOauthCallbackRoute
   '/api/tournament/export': typeof ApiTournamentExportRoute
   '/api/tournament/official-pdf': typeof ApiTournamentOfficialPdfRoute
   '/api/tournament/signup': typeof ApiTournamentSignupRoute
@@ -650,11 +694,14 @@ export interface FileRouteTypes {
     | '/api/remote-signup'
     | '/api/rift-cards'
     | '/api/startgg'
+    | '/api/startgg-oauth'
     | '/api/swu-cards'
     | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
+    | '/fgc/production'
     | '/fgc/strike'
+    | '/fgc/tournament'
     | '/join/$code'
     | '/overlay/bracket'
     | '/overlay/card'
@@ -677,6 +724,7 @@ export interface FileRouteTypes {
     | '/overlay/winner'
     | '/print/deck-list'
     | '/print/team-list'
+    | '/fgc/'
     | '/join/'
     | '/overlay/'
     | '/$game/$slot/tablet'
@@ -685,6 +733,7 @@ export interface FileRouteTypes {
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
+    | '/api/startgg-oauth/callback'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -696,7 +745,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/browser'
-    | '/fgc'
     | '/login'
     | '/pod'
     | '/production'
@@ -718,11 +766,14 @@ export interface FileRouteTypes {
     | '/api/remote-signup'
     | '/api/rift-cards'
     | '/api/startgg'
+    | '/api/startgg-oauth'
     | '/api/swu-cards'
     | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
+    | '/fgc/production'
     | '/fgc/strike'
+    | '/fgc/tournament'
     | '/join/$code'
     | '/overlay/bracket'
     | '/overlay/card'
@@ -745,6 +796,7 @@ export interface FileRouteTypes {
     | '/overlay/winner'
     | '/print/deck-list'
     | '/print/team-list'
+    | '/fgc'
     | '/join'
     | '/overlay'
     | '/$game/$slot/tablet'
@@ -753,6 +805,7 @@ export interface FileRouteTypes {
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
+    | '/api/startgg-oauth/callback'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -787,11 +840,14 @@ export interface FileRouteTypes {
     | '/api/remote-signup'
     | '/api/rift-cards'
     | '/api/startgg'
+    | '/api/startgg-oauth'
     | '/api/swu-cards'
     | '/api/tcg-catalog'
     | '/api/tournament'
     | '/api/ygo-cards'
+    | '/fgc/production'
     | '/fgc/strike'
+    | '/fgc/tournament'
     | '/join/$code'
     | '/overlay/bracket'
     | '/overlay/card'
@@ -814,6 +870,7 @@ export interface FileRouteTypes {
     | '/overlay/winner'
     | '/print/deck-list'
     | '/print/team-list'
+    | '/fgc/'
     | '/join/'
     | '/overlay/'
     | '/$game/$slot/tablet'
@@ -822,6 +879,7 @@ export interface FileRouteTypes {
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
+    | '/api/startgg-oauth/callback'
     | '/api/tournament/export'
     | '/api/tournament/official-pdf'
     | '/api/tournament/signup'
@@ -857,6 +915,7 @@ export interface RootRouteChildren {
   ApiRemoteSignupRoute: typeof ApiRemoteSignupRoute
   ApiRiftCardsRoute: typeof ApiRiftCardsRoute
   ApiStartggRoute: typeof ApiStartggRoute
+  ApiStartggOauthRoute: typeof ApiStartggOauthRouteWithChildren
   ApiSwuCardsRoute: typeof ApiSwuCardsRoute
   ApiTcgCatalogRoute: typeof ApiTcgCatalogRoute
   ApiTournamentRoute: typeof ApiTournamentRouteWithChildren
@@ -1052,6 +1111,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiStartggRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/startgg-oauth': {
+      id: '/api/startgg-oauth'
+      path: '/api/startgg-oauth'
+      fullPath: '/api/startgg-oauth'
+      preLoaderRoute: typeof ApiStartggOauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/swu-cards': {
       id: '/api/swu-cards'
       path: '/api/swu-cards'
@@ -1080,11 +1146,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiYgoCardsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/fgc/': {
+      id: '/fgc/'
+      path: '/'
+      fullPath: '/fgc/'
+      preLoaderRoute: typeof FgcIndexRouteImport
+      parentRoute: typeof FgcRoute
+    }
+    '/fgc/production': {
+      id: '/fgc/production'
+      path: '/production'
+      fullPath: '/fgc/production'
+      preLoaderRoute: typeof FgcProductionRouteImport
+      parentRoute: typeof FgcRoute
+    }
     '/fgc/strike': {
       id: '/fgc/strike'
       path: '/strike'
       fullPath: '/fgc/strike'
       preLoaderRoute: typeof FgcStrikeRouteImport
+      parentRoute: typeof FgcRoute
+    }
+    '/fgc/tournament': {
+      id: '/fgc/tournament'
+      path: '/tournament'
+      fullPath: '/fgc/tournament'
+      preLoaderRoute: typeof FgcTournamentRouteImport
       parentRoute: typeof FgcRoute
     }
     '/join/': {
@@ -1297,6 +1384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLorcanaPlayhubRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/startgg-oauth/callback': {
+      id: '/api/startgg-oauth/callback'
+      path: '/callback'
+      fullPath: '/api/startgg-oauth/callback'
+      preLoaderRoute: typeof ApiStartggOauthCallbackRouteImport
+      parentRoute: typeof ApiStartggOauthRoute
+    }
     '/api/tournament/export': {
       id: '/api/tournament/export'
       path: '/export'
@@ -1400,16 +1494,34 @@ const OverlayRouteRouteWithChildren = OverlayRouteRoute._addFileChildren(
 )
 
 interface FgcRouteChildren {
+  FgcProductionRoute: typeof FgcProductionRoute
   FgcStrikeRoute: typeof FgcStrikeRoute
+  FgcTournamentRoute: typeof FgcTournamentRoute
+  FgcIndexRoute: typeof FgcIndexRoute
   FgcOverlayHudRoute: typeof FgcOverlayHudRoute
 }
 
 const FgcRouteChildren: FgcRouteChildren = {
+  FgcProductionRoute: FgcProductionRoute,
   FgcStrikeRoute: FgcStrikeRoute,
+  FgcTournamentRoute: FgcTournamentRoute,
+  FgcIndexRoute: FgcIndexRoute,
   FgcOverlayHudRoute: FgcOverlayHudRoute,
 }
 
 const FgcRouteWithChildren = FgcRoute._addFileChildren(FgcRouteChildren)
+
+interface ApiStartggOauthRouteChildren {
+  ApiStartggOauthCallbackRoute: typeof ApiStartggOauthCallbackRoute
+}
+
+const ApiStartggOauthRouteChildren: ApiStartggOauthRouteChildren = {
+  ApiStartggOauthCallbackRoute: ApiStartggOauthCallbackRoute,
+}
+
+const ApiStartggOauthRouteWithChildren = ApiStartggOauthRoute._addFileChildren(
+  ApiStartggOauthRouteChildren,
+)
 
 interface ApiTournamentRouteChildren {
   ApiTournamentExportRoute: typeof ApiTournamentExportRoute
@@ -1455,6 +1567,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRemoteSignupRoute: ApiRemoteSignupRoute,
   ApiRiftCardsRoute: ApiRiftCardsRoute,
   ApiStartggRoute: ApiStartggRoute,
+  ApiStartggOauthRoute: ApiStartggOauthRouteWithChildren,
   ApiSwuCardsRoute: ApiSwuCardsRoute,
   ApiTcgCatalogRoute: ApiTcgCatalogRoute,
   ApiTournamentRoute: ApiTournamentRouteWithChildren,

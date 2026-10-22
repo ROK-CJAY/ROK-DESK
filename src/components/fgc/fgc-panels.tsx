@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { flagOf, playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { startggAuthBody } from "@/lib/startgg-link";
 import { useEffect, useState } from "react";
 
 export function FgcCommentary() {
@@ -53,7 +54,7 @@ function CasterCard({ index }: { index: number }) {
       void fetch("/api/startgg", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "search", query }),
+        body: JSON.stringify({ action: "search", query, ...startggAuthBody() }),
       })
         .then((res) => res.json())
         .then((body: { players?: typeof matches }) => setMatches(body.players ?? []))
@@ -198,7 +199,7 @@ export function FgcTournamentInfo() {
                 reader.readAsDataURL(file);
               }} />
             </label>
-            <Button variant="outline" disabled={!url} onClick={() => void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "icon", url }) }).then((res) => res.json()).then((body: { icon?: string }) => body.icon && set({ icon: body.icon }))}>Download tournament icon</Button>
+            <Button variant="outline" disabled={!url} onClick={() => void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "icon", url, ...startggAuthBody() }) }).then((res) => res.json()).then((body: { icon?: string }) => body.icon && set({ icon: body.icon }))}>Download tournament icon</Button>
             <Button variant="ghost" onClick={() => set({ icon: "" })}>Default</Button>
           </div>
         </div>

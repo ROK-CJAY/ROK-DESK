@@ -22,16 +22,21 @@ export function startggSlug(input: string): string | null {
 
 type GqlResponse<T> = { data?: T; errors?: { message: string }[] };
 
-export async function startggQuery<T>(query: string, variables: Record<string, unknown>, operationName: string): Promise<T> {
-  const res = await fetch(ENDPOINT, {
+export async function startggQuery<T>(query: string, variables: Record<string, unknown>, operationName: string, token?: string): Promise<T> {
+  const key = token?.trim() ?? "";
+  const res = await fetch(key ? "https://api.start.gg/gql/alpha" : ENDPOINT, {
     method: "POST",
     headers: {
       accept: "application/json",
       "content-type": "application/json",
-      "client-version": "20",
-      origin: "https://www.start.gg",
-      referer: "https://www.start.gg/",
-      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+      ...(key
+        ? { authorization: `Bearer ${key}` }
+        : {
+            "client-version": "20",
+            origin: "https://www.start.gg",
+            referer: "https://www.start.gg/",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+          }),
     },
     body: JSON.stringify({ operationName, query, variables }),
   });
@@ -240,13 +245,14 @@ function when(value: number | null | undefined): string {
   return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
 }
 
-export async function stockIcons(game: string, gameId?: string): Promise<Record<string, string>> {
+export async function stockIcons(game: string, gameId?: string, token?: string): Promise<Record<string, string>> {
   let id = gameId;
   if (!id && game) {
     const found = await startggQuery<{ videogames?: { nodes?: { id?: string | number }[] } }>(
       `query GameId($name: String!) { videogames(query: { filter: { name: $name }, perPage: 1 }) { nodes { id } } }`,
       { name: game },
       "GameId",
+      token,
     );
     id = found.videogames?.nodes?.[0]?.id ? String(found.videogames.nodes[0].id) : "";
   }
@@ -255,6 +261,7 @@ export async function stockIcons(game: string, gameId?: string): Promise<Record<
     `query StockIcons($id: ID!) { videogame(id: $id) { characters { name images { url type } } } }`,
     { id },
     "StockIcons",
+    token,
   );
   const icons: Record<string, string> = {};
   for (const character of data.videogame?.characters ?? []) {
@@ -264,7 +271,7 @@ export async function stockIcons(game: string, gameId?: string): Promise<Record<
   return icons;
 }
 
-export async function searchStartggPlayers(name: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string; country: string; region: string; flag: string; prefix: string }[]> {
+export async function searchStartggPlayers(name: string, token?: string): Promise<{ profileId: string; name: string; realName: string; photo: string; twitter: string; pronouns: string; country: string; region: string; flag: string; prefix: string }[]> {
   const query = name.trim();
   if (query.length < 2) return [];
   const data = await startggQuery<{
@@ -294,6 +301,7 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
     }`,
     { query },
     "PlayersSearch",
+    token,
   );
   const seen = new Set<string>();
   return (data.players?.nodes ?? [])
@@ -318,10 +326,10 @@ export async function searchStartggPlayers(name: string): Promise<{ profileId: s
     });
 }
 
-export async function importStartggEvent(url: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
+export async function importStartggEvent(url: string, token?: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Paste a start.gg event link, like start.gg/tournament/name/event/singles");
-  const eventData = await startggQuery<RawEvent>(EVENT_QUERY, { slug }, "FgcEvent");
+  const eventData = await startggQuery<RawEvent>(EVENT_QUERY, { slug }, "FgcEvent", token);
   const event = eventData.event;
   if (!event) throw new Error("No event found at that link");
 
@@ -337,7 +345,7 @@ export async function importStartggEvent(url: string): Promise<{ event: FgcEvent
     let page = 1;
     let pages = 1;
     while (page <= pages && page <= 12) {
-      const data = await startggQuery<RawSets>(SETS_QUERY, { id: group.id, page }, "FgcSets");
+      const data = await startggQuery<RawSets>(SETS_QUERY, { id: group.id, page }, "FgcSets", token);
       const block = data.phaseGroup?.sets;
       pages = block?.pageInfo?.totalPages ?? 1;
       for (const node of block?.nodes ?? []) sets.push(normalizeSet(node, group.phase, group.group));
@@ -383,19 +391,20 @@ const STREAM_QUERY = `
   }
 `;
 
-export async function tournamentIcon(url: string): Promise<string> {
+export async function tournamentIcon(url: string, token?: string): Promise<string> {
   const slug = startggSlug(url);
   if (!slug) return "";
   const data = await startggQuery<{ event?: { tournament?: { images?: { url?: string; type?: string }[] } } }>(
     `query TournamentIcon($slug: String!) { event(slug: $slug) { tournament { images { url type } } } }`,
     { slug },
     "TournamentIcon",
+    token,
   );
   const images = data.event?.tournament?.images ?? [];
   return images.find((image) => image.type === "profile")?.url || images[0]?.url || "";
 }
 
-export async function currentStreamSetId(url: string): Promise<string | null> {
+export async function currentStreamSetId(url: string, token?: string): Promise<string | null> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Import the event first");
   const data = await startggQuery<{
@@ -403,6 +412,6 @@ export async function currentStreamSetId(url: string): Promise<string | null> {
       tournament?: { streamQueue?: { sets?: { id: string }[] | null } | null } | null;
       sets?: { nodes?: { id: string }[] | null } | null;
     } | null;
-  }>(STREAM_QUERY, { slug }, "FgcStream");
+  }>(STREAM_QUERY, { slug }, "FgcStream", token);
   return data.event?.tournament?.streamQueue?.sets?.[0]?.id ?? data.event?.sets?.nodes?.[0]?.id ?? null;
 }

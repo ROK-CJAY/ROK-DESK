@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { FgcApp } from "@/components/fgc/fgc-app";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/fgc")({
-  component: FgcApp,
+  component: () => <Outlet />,
 });

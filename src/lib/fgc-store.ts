@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { startggAuthBody } from "@/lib/startgg-link";
 
 const KEY = "rok-fgc";
 const LIBRARIES_KEY = "rok-fgc-libraries";
@@ -209,7 +210,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       const res = await fetch("/api/startgg", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, ...startggAuthBody() }),
       });
       const text = await res.text();
       let body: { event?: FgcState["event"]; sets?: FgcState["sets"]; error?: string };
@@ -293,7 +294,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       const res = await fetch("/api/startgg", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url, action: "stream" }),
+        body: JSON.stringify({ url, action: "stream", ...startggAuthBody() }),
       });
       const body = (await res.json()) as { setId?: string | null; error?: string };
       if (!res.ok) throw new Error(body.error || "Could not read the stream set");

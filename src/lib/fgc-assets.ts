@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from "react";
 import type { FgcCharacter, FgcLibrary } from "@/lib/fgc-types";
+import { startggAuthBody } from "@/lib/startgg-link";
 
 export type AssetPack = {
   name: string;
@@ -242,7 +243,7 @@ export async function stockIconsFor(game: string, gameId?: string): Promise<Reco
   const res = await fetch("/api/startgg", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ action: "icons", game, gameId }),
+    body: JSON.stringify({ action: "icons", game, gameId, ...startggAuthBody() }),
   });
   if (!res.ok) return {};
   const body = (await res.json()) as { icons?: Record<string, string> };

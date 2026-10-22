@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, ListFilter, Radio, RefreshCw, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Clapperboard, ExternalLink, ListFilter, Radio, RefreshCw, Trophy, X } from "lucide-react";
 import { FgcAssetsDialog } from "@/components/fgc/fgc-assets";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
@@ -13,8 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blankSet, playerLabel, streamSetOf, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
-import { FGC_OVERLAYS, overlayHref } from "@/lib/fgc-titles";
-import { tshLayoutHref } from "@/lib/tsh-document";
+import { FGC_OVERLAYS, overlayHref, tshLayoutHref } from "@/lib/fgc-titles";
+import { readStartggLink, writeStartggLink } from "@/lib/startgg-link";
 import { cn } from "@/lib/cn";
 
 function stateLabel(state: FgcSet["state"]) {
@@ -120,7 +121,90 @@ function TshFrame({ path }: { path: string }) {
   );
 }
 
-export function FgcApp() {
+function StartggApiOption() {
+  const [enabled, setEnabled] = useState(false);
+  const [token, setToken] = useState("");
+  useEffect(() => {
+    const saved = readStartggLink();
+    setEnabled(saved.enabled);
+    setToken(saved.token);
+  }, []);
+  const save = (nextEnabled: boolean, nextToken: string) => {
+    setEnabled(nextEnabled);
+    setToken(nextToken);
+    writeStartggLink(nextEnabled, nextToken);
+  };
+  return (
+    <div className="grid gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
+      <label className="flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={enabled} onChange={(e) => save(e.target.checked, token)} />
+        Use the start.gg API
+      </label>
+      <p className="text-[0.7rem] leading-relaxed text-subtle">
+        Off by default. The event link above is the TSH-style pull. Turn this on only if you want those pulls to go through your start.gg API token instead.
+      </p>
+      {enabled ? (
+        <Input
+          type="password"
+          value={token}
+          placeholder="start.gg API token"
+          autoComplete="off"
+          onChange={(e) => save(true, e.target.value)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+function FgcSectionNav({ current }: { current: "tournament" | "production" }) {
+  const item = (id: "tournament" | "production", label: string) => (
+    <Link
+      to={id === "tournament" ? "/fgc/tournament" : "/fgc/production"}
+      className={cn("rounded-md px-3 py-1.5 text-xs font-medium", current === id ? "bg-surface text-fg" : "text-muted hover:text-fg")}
+    >
+      {label}
+    </Link>
+  );
+  return (
+    <nav className="flex w-fit rounded-lg border border-border bg-surface-2 p-0.5">
+      {item("tournament", "Tournament")}
+      {item("production", "Production")}
+    </nav>
+  );
+}
+
+export function FgcHome() {
+  return (
+    <div className="min-h-dvh bg-bg text-fg">
+      <AppChrome view="fgc" eyebrow="FGC control" />
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">FGC</p>
+        <h1 className="font-display mt-2 text-4xl font-semibold uppercase">FGC Control</h1>
+        <p className="mt-3 max-w-xl text-sm text-muted">Tournament control runs the floor. Production control is the TSH stream desk.</p>
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <Link to="/fgc/tournament" className="group rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40">
+            <Trophy className="size-5 text-muted group-hover:text-fg" />
+            <p className="font-display mt-4 text-2xl font-semibold uppercase">FGC Tournament Control</p>
+            <p className="mt-2 text-sm text-muted">Log in with start.gg, then call sets, assign stations and streams, start them, and report scores.</p>
+            <p className="mt-4 text-sm font-medium">Open tournament →</p>
+          </Link>
+          <Link to="/fgc/production" className="group rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40">
+            <Clapperboard className="size-5 text-muted group-hover:text-fg" />
+            <p className="font-display mt-4 text-2xl font-semibold uppercase">FGC Production Control</p>
+            <p className="mt-2 text-sm text-muted">The TSH desk. Import the event, run the scoreboard, and send overlays to the stream.</p>
+            <p className="mt-4 text-sm font-medium">Open production →</p>
+          </Link>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export function FgcProduction() {
+  return <FgcDesk />;
+}
+
+function FgcDesk() {
   const hydrate = useFgcStore((s) => s.hydrate);
   const fgc = useFgcStore((s) => s.fgc);
   const importing = useFgcStore((s) => s.importing);
@@ -169,85 +253,105 @@ export function FgcApp() {
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
-      <AppChrome view="fgc" />
+      <AppChrome view="fgc" eyebrow="FGC production">
+        <FgcSectionNav current="production" />
+      </AppChrome>
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4">
-        <section className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">
-          <Field label="Set tournament" className="min-w-[18rem] flex-1">
-            <Input
-              value={fgc.url}
-              onChange={(e) => patch({ url: e.target.value })}
-              placeholder="https://www.start.gg/tournament/…/event/…"
-            />
-          </Field>
-          <Button onClick={() => void importEvent()} disabled={importing || !fgc.url}>
-            <RefreshCw className={cn("size-4", importing && "animate-spin")} />
-            {importing ? "Importing" : "Import"}
-          </Button>
-          <Button variant="secondary" onClick={() => setPicker(true)}>
-            <ListFilter className="size-4" />
-            Select set
-          </Button>
-          <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
-          <Button variant="outline" onClick={() => clearImport()}>Clear import</Button>
-          <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
-            Stream set
-          </Button>
-          <Field label={`Overlay${fgc.event?.game ? ` · ${fgc.event.game}` : ""}`}>
-            <select
-              value={overlayValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (value.startsWith("tsh:")) patch({ tshLayout: value.slice(4) });
-                else if (value.startsWith("title:")) patch({ tshLayout: null, overlay: "custom", activeTitleId: value.slice(6) });
-                else patch({ tshLayout: null, overlay: value as typeof overlay.id });
-              }}
-              className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm"
-            >
-              {[...new Set(FGC_OVERLAYS.map((item) => item.group))].map((group) => (
-                <optgroup key={group} label={group}>
-                  {FGC_OVERLAYS.filter((item) => item.group === group).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                  {fgc.titles.filter((item) => (item.group || "Custom") === group).map((item) => <option key={item.id} value={`title:${item.id}`}>{item.name}</option>)}
-                  {tshLayouts.filter((item) => item.group === group).map((item) => <option key={item.path} value={`tsh:${item.path}`}>{item.name}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </Field>
-          <a href={href} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface-2 px-3 text-sm">
-            <Radio className="size-4" />
-            Open
-          </a>
-          <Button variant="outline" onClick={() => copyLink(href)}>
-            {copied === href ? "Copied" : "Copy link"}
-          </Button>
-          {fgc.event ? (
-            <a href={fgc.event.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-xs text-muted hover:text-fg">
-              {fgc.event.game} · {fgc.sets.length} sets <ExternalLink className="size-3" />
+          <section className="grid gap-3 rounded-xl border border-border bg-surface p-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <Field label="Set tournament" className="min-w-[18rem] flex-1">
+                <Input
+                  value={fgc.url}
+                  onChange={(e) => patch({ url: e.target.value })}
+                  placeholder="https://www.start.gg/tournament/…/event/…"
+                />
+              </Field>
+              <Button onClick={() => void importEvent()} disabled={importing || !fgc.url}>
+                <RefreshCw className={cn("size-4", importing && "animate-spin")} />
+                {importing ? "Importing" : "Import"}
+              </Button>
+              <Button variant="secondary" onClick={() => setPicker(true)}>
+                <ListFilter className="size-4" />
+                Select set
+              </Button>
+              <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
+              <Button variant="outline" onClick={() => clearImport()}>Clear import</Button>
+              <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
+                Stream set
+              </Button>
+              {fgc.event ? (
+                <a href={fgc.event.url} target="_blank" rel="noreferrer" className="ml-auto inline-flex items-center gap-1 text-xs text-muted hover:text-fg">
+                  {fgc.event.game} · {fgc.sets.length} sets <ExternalLink className="size-3" />
+                </a>
+              ) : null}
+            </div>
+            <StartggApiOption />
+            {error ? <p className="text-sm text-live">{error}</p> : null}
+          </section>
+          <section className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">
+            <div className="min-w-[12rem] flex-1">
+              <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">On stream</p>
+              <p className="text-sm">{playerLabel(live.p1) || "Player 1"} vs {playerLabel(live.p2) || "Player 2"}</p>
+              <p className="text-xs text-muted">{[live.round, live.phase, fgc.event?.name].filter(Boolean).join(" · ") || "No set selected"}</p>
+            </div>
+            <Button variant="secondary" onClick={() => setPicker(true)}>
+              <ListFilter className="size-4" />
+              Select set
+            </Button>
+            <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
+              Stream set
+            </Button>
+            <Field label={`Overlay${fgc.event?.game ? ` · ${fgc.event.game}` : ""}`}>
+              <select
+                value={overlayValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value.startsWith("tsh:")) patch({ tshLayout: value.slice(4) });
+                  else if (value.startsWith("title:")) patch({ tshLayout: null, overlay: "custom", activeTitleId: value.slice(6) });
+                  else patch({ tshLayout: null, overlay: value as typeof overlay.id });
+                }}
+                className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm"
+              >
+                {[...new Set(FGC_OVERLAYS.map((item) => item.group))].map((group) => (
+                  <optgroup key={group} label={group}>
+                    {FGC_OVERLAYS.filter((item) => item.group === group).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                    {fgc.titles.filter((item) => (item.group || "Custom") === group).map((item) => <option key={item.id} value={`title:${item.id}`}>{item.name}</option>)}
+                    {tshLayouts.filter((item) => item.group === group).map((item) => <option key={item.path} value={`tsh:${item.path}`}>{item.name}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </Field>
+            <a href={href} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-surface-2 px-3 text-sm">
+              <Radio className="size-4" />
+              Open
             </a>
-          ) : null}
-          {error ? <p className="w-full text-sm text-live">{error}</p> : null}
-        </section>
+            <Button variant="outline" onClick={() => copyLink(href)}>
+              {copied === href ? "Copied" : "Copy link"}
+            </Button>
+            {error ? <p className="w-full text-sm text-live">{error}</p> : null}
+          </section>
 
         <nav className="flex w-fit rounded-lg border border-border bg-surface p-0.5">
-          {(
-            [
-              ["scoreboard", "Scoreboard"],
-              ["commentary", "Commentary"],
-              ["info", "Tournament info"],
-              ["bracket", "Bracket"],
-              ["ruleset", "Ruleset"],
-              ["overlays", "Overlays"],
-            ] as const
-          ).map(([id, label]) => (
-            <button
-              key={id}
-              type="button"
-              className={cn("rounded-md px-3 py-1.5 text-xs font-medium", tab === id ? "bg-surface-2 text-fg" : "text-muted")}
-              onClick={() => setTab(id)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
+            {(
+              [
+                ["scoreboard", "Scoreboard"],
+                ["commentary", "Commentary"],
+                ["info", "Tournament info"],
+                ["bracket", "Bracket"],
+                ["ruleset", "Ruleset"],
+                ["overlays", "Overlays"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={cn("rounded-md px-3 py-1.5 text-xs font-medium", tab === id ? "bg-surface-2 text-fg" : "text-muted")}
+                onClick={() => setTab(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
 
         {tab === "scoreboard" ? <FgcScoreboard set={live} /> : null}
         {tab === "commentary" ? <FgcCommentary /> : null}

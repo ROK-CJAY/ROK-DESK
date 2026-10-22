@@ -67,7 +67,7 @@ export function Landing() {
           >
             <Gamepad2 className="size-5 text-muted group-hover:text-fg" />
             <p className="font-display mt-4 text-2xl font-semibold uppercase">FGC Control</p>
-            <p className="mt-2 text-sm text-muted">Import a start.gg event, pick the set on stream, and drive the FGC overlay.</p>
+            <p className="mt-2 text-sm text-muted">Tournament control and production control for a fighting game event.</p>
             <p className="mt-4 text-sm font-medium">Open FGC →</p>
           </Link>
         </div>

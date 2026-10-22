@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { loadFgcState, programState, saveFgcState } from "@/lib/fgc-program-state";
 import { EMPTY_FGC, type FgcState } from "@/lib/fgc-types";
 
 const noStore = { "cache-control": "no-store, no-cache, must-revalidate" };
@@ -7,8 +6,12 @@ const noStore = { "cache-control": "no-store, no-cache, must-revalidate" };
 export const Route = createFileRoute("/api/fgc/program-state")({
   server: {
     handlers: {
-      GET: async () => Response.json(programState(await loadFgcState()), { headers: noStore }),
+      GET: async () => {
+        const { loadFgcState, programState } = await import("@/lib/fgc-program-state");
+        return Response.json(programState(await loadFgcState()), { headers: noStore });
+      },
       PUT: async ({ request }) => {
+        const { saveFgcState } = await import("@/lib/fgc-program-state");
         let body: FgcState;
         try {
           body = { ...EMPTY_FGC, ...(await request.json() as FgcState) };

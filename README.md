@@ -11,6 +11,22 @@ ROK Desk is **free and in beta**. If it saves you a night, [donate via PayPal](h
 
 Version history: **[CHANGELOG.md](./CHANGELOG.md)**.
 
+### FGC log in with start.gg
+
+Tournament Control can log a TO into their own start.gg account. The app secret stays on the public host. It is not in the GitHub release, and players do not paste an API token.
+
+On [start.gg developer settings](https://www.start.gg/admin/profile/developer), create an OAuth app. Set the redirect URI to exactly:
+
+`https://rok-desk.vercel.app/api/startgg-oauth/callback`
+
+On the Vercel project, set:
+
+- `STARTGG_CLIENT_ID`
+- `STARTGG_CLIENT_SECRET`
+- `STARTGG_REDIRECT_URI` = `https://rok-desk.vercel.app/api/startgg-oauth/callback`
+
+Scopes the login asks for: `user.identity`, `tournament.manager`, `tournament.reporter`. Each person only sees upcoming events that account is allowed to run.
+
 ---
 
 ## What it does
