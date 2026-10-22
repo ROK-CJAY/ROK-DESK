@@ -20,6 +20,11 @@ export const Route = createFileRoute("/api/startgg")({
           winnerId?: string;
           score1?: number;
           score2?: number;
+          stageId?: string;
+          entrant1?: string;
+          entrant2?: string;
+          character1?: string;
+          character2?: string;
         };
         try {
           body = (await request.json()) as typeof body;
@@ -36,13 +41,26 @@ export const Route = createFileRoute("/api/startgg")({
             if (!token) return Response.json({ error: "Connect the start.gg account first." }, { status: 401 });
             return Response.json(await loadToBoard(token, body.slug?.trim() || ""));
           }
-          if (body.action === "call" || body.action === "begin" || body.action === "assign-station" || body.action === "assign-stream" || body.action === "report") {
+          if (body.action === "call" || body.action === "begin" || body.action === "assign-station" || body.action === "assign-stream" || body.action === "call-stream" || body.action === "report") {
             if (!token || !body.setId) return Response.json({ error: "Missing set." }, { status: 400 });
             if (body.action === "call") await callToSet(token, body.setId);
             if (body.action === "begin") await beginToSet(token, body.setId);
             if (body.action === "assign-station" && body.stationId) await stationToSet(token, body.setId, body.stationId);
             if (body.action === "assign-stream" && body.streamId) await streamToSet(token, body.setId, body.streamId);
-            if (body.action === "report" && body.winnerId) await reportToSet(token, body.setId, body.winnerId, Number(body.score1) || 0, Number(body.score2) || 0);
+            if (body.action === "call-stream" && body.streamId) {
+              await streamToSet(token, body.setId, body.streamId);
+              if (body.stationId) await stationToSet(token, body.setId, body.stationId);
+              await callToSet(token, body.setId);
+            }
+            if (body.action === "report" && body.winnerId) {
+              await reportToSet(token, body.setId, body.winnerId, Number(body.score1) || 0, Number(body.score2) || 0, {
+                stageId: body.stageId,
+                entrant1: body.entrant1,
+                entrant2: body.entrant2,
+                character1: body.character1,
+                character2: body.character2,
+              });
+            }
             return Response.json({ ok: true });
           }
           if (body.action === "search") {

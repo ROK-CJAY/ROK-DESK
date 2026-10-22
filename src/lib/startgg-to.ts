@@ -3,24 +3,41 @@ import { startggQuery } from "@/lib/startgg";
 export type ToUser = { id: string; name: string; tag: string };
 export type ToEvent = { id: string; name: string; slug: string; game: string; entrants: number };
 export type ToTournament = { id: string; name: string; slug: string; when: string; city: string; events: ToEvent[] };
-export type ToStation = { id: string; number: string };
-export type ToStream = { id: string; name: string };
+export type ToStation = { id: string; number: string; name: string; streamId: string };
+export type ToStream = { id: string; name: string; stationId: string };
+export type ToOption = { id: string; name: string };
 export type ToSet = {
   id: string;
   phase: string;
   round: string;
+  group: string;
+  roundNum: number;
   identifier: string;
   state: number;
+  winnerId: string;
   stationId: string;
   station: string;
   streamId: string;
   stream: string;
-  p1: { id: string; name: string };
-  p2: { id: string; name: string };
+  updatedAt: number | null;
+  startedAt: number | null;
+  prereqs: string[];
+  p1: { id: string; name: string; characterId: string; character: string };
+  p2: { id: string; name: string; characterId: string; character: string };
   score1: number;
   score2: number;
+  stageId: string;
+  stage: string;
 };
-export type ToBoard = { event: ToEvent; tournament: string; stations: ToStation[]; streams: ToStream[]; sets: ToSet[] };
+export type ToBoard = {
+  event: ToEvent;
+  tournament: string;
+  stations: ToStation[];
+  streams: ToStream[];
+  sets: ToSet[];
+  characters: ToOption[];
+  stages: ToOption[];
+};
 
 function when(value: number | null | undefined): string {
   if (!value) return "";
@@ -113,7 +130,7 @@ const BOARD_QUERY = `
       videogame { name }
       tournament {
         name
-        stations(page: 1, perPage: 80) { nodes { id number } }
+        stations(page: 1, perPage: 80) { nodes { id number prefix identifier stream { id streamName } } }
         streams { id streamName }
       }
       phases {
@@ -133,12 +150,25 @@ const SETS_QUERY = `
         nodes {
           id
           fullRoundText
+          round
           identifier
           state
           winnerId
-          station { id number }
+          updatedAt
+          startedAt
+          station { id number prefix }
           stream { id streamName }
+          games {
+            orderNum
+            stage { id name }
+            selections { entrant { id } character { id name } }
+          }
           slots {
+            prereqId
+            prereqType
+            standing { stats { score { value } } }
+            entrant { id name }
+          }
             standing { stats { score { value } } }
             entrant { id name }
           }
@@ -154,10 +184,14 @@ type BoardEvent = {
     name?: string | null;
     slug?: string | null;
     numEntrants?: number | null;
-    videogame?: { name?: string | null } | null;
+    videogame?: {
+      name?: string | null;
+      characters?: { id?: string | number | null; name?: string | null }[] | null;
+      stages?: { id?: string | number | null; name?: string | null }[] | null;
+    } | null;
     tournament?: {
       name?: string | null;
-      stations?: { nodes?: { id?: string | number | null; number?: number | string | null }[] | null } | null;
+      stations?: { nodes?: { id?: string | number | null; number?: number | string | null; prefix?: string | null; identifier?: number | string | null; stream?: { id?: string | number | null; streamName?: string | null } | null }[] | null } | null;
       streams?: { id?: string | number | null; streamName?: string | null }[] | null;
     } | null;
     phases?: { id?: string; name?: string | null; phaseGroups?: { nodes?: { id?: string; displayIdentifier?: string | null }[] | null } | null }[] | null;
@@ -171,11 +205,25 @@ type SetPage = {
       nodes?: {
         id?: string | number;
         fullRoundText?: string | null;
+        round?: number | null;
         identifier?: string | null;
         state?: number | null;
-        station?: { id?: string | number | null; number?: number | string | null } | null;
+        winnerId?: number | string | null;
+        updatedAt?: number | null;
+        startedAt?: number | null;
+        station?: { id?: string | number | null; number?: number | string | null; prefix?: string | null } | null;
         stream?: { id?: string | number | null; streamName?: string | null } | null;
-        slots?: { standing?: { stats?: { score?: { value?: number | null } | null } | null } | null; entrant?: { id?: string | number | null; name?: string | null } | null }[] | null;
+        games?: {
+          orderNum?: number | null;
+          stage?: { id?: string | number | null; name?: string | null } | null;
+          selections?: { entrant?: { id?: string | number | null } | null; character?: { id?: string | number | null; name?: string | null } | null }[] | null;
+        }[] | null;
+        slots?: {
+          prereqId?: string | null;
+          prereqType?: string | null;
+          standing?: { stats?: { score?: { value?: number | null } | null } | null } | null;
+          entrant?: { id?: string | number | null; name?: string | null } | null;
+        }[] | null;
       }[] | null;
     } | null;
   } | null;
@@ -204,28 +252,58 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
       for (const node of pageSets?.nodes ?? []) {
         if (!node.id) continue;
         const slots = node.slots ?? [];
-        const side = (index: number) => ({
-          id: slots[index]?.entrant?.id == null ? "" : String(slots[index]?.entrant?.id),
-          name: slots[index]?.entrant?.name?.trim() || "TBD",
-        });
+        const game = [...(node.games ?? [])].sort((a, b) => (a.orderNum ?? 0) - (b.orderNum ?? 0)).at(-1);
+        const pick = (entrantId: string) => game?.selections?.find((row) => String(row.entrant?.id ?? "") === entrantId);
+        const side = (index: number) => {
+          const id = slots[index]?.entrant?.id == null ? "" : String(slots[index]?.entrant?.id);
+          const selected = pick(id);
+          return {
+            id,
+            name: slots[index]?.entrant?.name?.trim() || "TBD",
+            characterId: selected?.character?.id == null ? "" : String(selected.character.id),
+            character: selected?.character?.name?.trim() || "",
+          };
+        };
+        const p1 = side(0);
+        const p2 = side(1);
         sets.push({
           id: String(node.id),
           phase: group.phase,
-          round: [node.fullRoundText?.trim(), group.group].filter(Boolean).join(" · ") || "Set",
+          round: node.fullRoundText?.trim() || "Set",
+          group: group.group,
+          roundNum: node.round ?? 0,
           identifier: node.identifier?.trim() || "",
           state: node.state ?? 1,
+          winnerId: node.winnerId == null ? "" : String(node.winnerId),
           stationId: node.station?.id == null ? "" : String(node.station.id),
-          station: node.station?.number == null ? "" : String(node.station.number),
+          station: stationLabel(node.station?.prefix, node.station?.number),
           streamId: node.stream?.id == null ? "" : String(node.stream.id),
           stream: node.stream?.streamName?.trim() || "",
-          p1: side(0),
-          p2: side(1),
+          updatedAt: node.updatedAt ?? null,
+          startedAt: node.startedAt ?? null,
+          prereqs: (node.slots ?? [])
+            .filter((slot) => slot.prereqId && (slot.prereqType ?? "").toLowerCase().includes("set"))
+            .map((slot) => String(slot.prereqId)),
+          p1,
+          p2,
           score1: slots[0]?.standing?.stats?.score?.value ?? 0,
           score2: slots[1]?.standing?.stats?.score?.value ?? 0,
+          stageId: game?.stage?.id == null ? "" : String(game.stage.id),
+          stage: game?.stage?.name?.trim() || "",
         });
       }
       page += 1;
     }
+  }
+  let characters: ToOption[] = [];
+  let stages: ToOption[] = [];
+  try {
+    const game = await startggQuery<{ event?: { videogame?: { characters?: { id?: string | number | null; name?: string | null }[] | null; stages?: { id?: string | number | null; name?: string | null }[] | null } | null } | null }>(GAME_QUERY, { slug }, "ToGame", token);
+    characters = optionsOf(game.event?.videogame?.characters);
+    stages = optionsOf(game.event?.videogame?.stages);
+  } catch {
+    characters = [];
+    stages = [];
   }
   return {
     event: {
@@ -236,16 +314,49 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
       entrants: event.numEntrants ?? 0,
     },
     tournament: event.tournament?.name?.trim() || "",
-    stations: (event.tournament?.stations?.nodes ?? []).filter((station) => station.id != null).map((station) => ({
-      id: String(station.id),
-      number: station.number == null ? "" : String(station.number),
-    })),
-    streams: (event.tournament?.streams ?? []).filter((stream) => stream.id != null).map((stream) => ({
-      id: String(stream.id),
-      name: stream.streamName?.trim() || "Stream",
-    })),
+    stations: (event.tournament?.stations?.nodes ?? [])
+      .filter((station) => station.id != null)
+      .map((station) => ({
+        id: String(station.id),
+        number: station.number == null ? "" : String(station.number),
+        name: station.stream?.streamName?.trim() || stationLabel(station.prefix, station.number ?? station.identifier),
+        streamId: station.stream?.id == null ? "" : String(station.stream.id),
+      }))
+      .sort((a, b) => Number(a.number) - Number(b.number) || a.name.localeCompare(b.name)),
+    streams: (event.tournament?.streams ?? []).filter((stream) => stream.id != null).map((stream) => {
+      const id = String(stream.id);
+      const station = (event.tournament?.stations?.nodes ?? []).find((item) => item.stream?.id != null && String(item.stream.id) === id);
+      return {
+        id,
+        name: stream.streamName?.trim() || "Stream",
+        stationId: station?.id == null ? "" : String(station.id),
+      };
+    }),
     sets,
+    characters,
+    stages,
   };
+}
+
+const GAME_QUERY = `
+  query ToGame($slug: String!) {
+    event(slug: $slug) {
+      videogame { characters { id name } stages { id name } }
+    }
+  }
+`;
+
+function stationLabel(prefix: string | null | undefined, number: number | string | null | undefined): string {
+  const name = prefix?.trim() || "Station";
+  if (number == null || number === "") return name;
+  return `${name} ${number}`.replace(/\s+/g, " ").trim();
+}
+
+function optionsOf(rows: { id?: string | number | null; name?: string | null }[] | null | undefined): ToOption[] {
+  return (rows ?? [])
+    .filter((row) => row.id != null && row.name?.trim())
+    .map((row) => ({ id: String(row.id), name: row.name!.trim() }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 async function mutate(token: string, query: string, variables: Record<string, unknown>, name: string) {
@@ -268,8 +379,26 @@ export async function streamToSet(token: string, setId: string, streamId: string
   await mutate(token, `mutation StreamSet($setId: ID!, $streamId: ID!) { assignStream(setId: $setId, streamId: $streamId) { id } }`, { setId, streamId }, "StreamSet");
 }
 
-export async function reportToSet(token: string, setId: string, winnerId: string, score1: number, score2: number) {
-  const gameData = [{ gameNum: 1, entrant1Score: score1, entrant2Score: score2, winnerId }];
+export async function reportToSet(
+  token: string,
+  setId: string,
+  winnerId: string,
+  score1: number,
+  score2: number,
+  detail?: { stageId?: string; entrant1?: string; character1?: string; entrant2?: string; character2?: string },
+) {
+  const selections = [
+    detail?.entrant1 && detail.character1 ? { entrantId: detail.entrant1, characterId: detail.character1 } : null,
+    detail?.entrant2 && detail.character2 ? { entrantId: detail.entrant2, characterId: detail.character2 } : null,
+  ].filter(Boolean);
+  const gameData = [{
+    gameNum: 1,
+    entrant1Score: score1,
+    entrant2Score: score2,
+    winnerId,
+    ...(detail?.stageId ? { stageId: detail.stageId } : {}),
+    ...(selections.length ? { selections } : {}),
+  }];
   try {
     await mutate(
       token,
