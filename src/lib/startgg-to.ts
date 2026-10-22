@@ -169,9 +169,6 @@ const SETS_QUERY = `
             standing { stats { score { value } } }
             entrant { id name }
           }
-            standing { stats { score { value } } }
-            entrant { id name }
-          }
         }
       }
     }
