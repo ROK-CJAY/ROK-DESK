@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { stageIconUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { FgcHud } from "@/components/overlays/fgc-hud";
 import { liveSet, type FgcOverlayId } from "@/lib/fgc-titles";
 
 function useLiveFgc() {
@@ -437,7 +438,7 @@ function UltimateFeet({ fgc, player, side }: { fgc: FgcState; player: FgcPlayer 
 
 function SmashHud() {
   const fgc = useLiveFgc();
-  if (!/smash/i.test(fgc.event?.game || "")) return null;
+  if (!/smash/i.test(fgc.event?.game || "")) return <FgcHud />;
   return <UltimateBoard />;
 }
 
