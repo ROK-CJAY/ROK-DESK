@@ -89,7 +89,7 @@ async function UpdateData() {
     oldData = data;
     data = await getData();
 
-    if (data.timestamp <= oldData.timestamp) {
+    if (data.timestamp === oldData.timestamp) {
       return;
     }
 
@@ -288,8 +288,78 @@ async function InitAll() {
   });
 }
 
+function deskProgram() {
+  try {
+    var raw = localStorage.getItem("rok-fgc");
+    if (!raw) return null;
+    var fgc = JSON.parse(raw);
+    var sets = fgc.sets || [];
+    var set = null;
+    for (var i = 0; i < sets.length; i += 1) {
+      if (sets[i] && sets[i].id === fgc.streamSetId) set = sets[i];
+    }
+    if (!set) set = sets[0] || {};
+    function person(player) {
+      player = player || {};
+      var name = [player.prefix, player.tag].filter(Boolean).join(" | ") || player.realName || "";
+      return {
+        name: name,
+        team: player.prefix || "",
+        twitter: player.twitter || "",
+        pronoun: player.pronouns || "",
+        real_name: player.realName || "",
+        seed: player.seed || "",
+        sponsor_logo: "",
+        avatar: "",
+        online_avatar: "",
+        country: { asset: "", code: player.country || "" },
+        state: { asset: "", code: player.region || "" },
+        character: {},
+      };
+    }
+    function side(which) {
+      var player = which === "1" ? set.p1 : set.p2;
+      return {
+        score: which === "1" ? set.score1 || 0 : set.score2 || 0,
+        losers: which === "1" ? !!set.losers1 : !!set.losers2,
+        name: "",
+        player: { "1": person(player) },
+      };
+    }
+    var event = fgc.event || {};
+    var body = {
+      tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "" },
+      score: {
+        "1": {
+          team: { "1": side("1"), "2": side("2") },
+          match: set.round || "",
+          phase: set.phase || "",
+          best_of: set.bestOf || 0,
+          best_of_text: set.bestOf ? "Best of " + set.bestOf : "",
+          stage: set.stage || "",
+          score_left: set.score1 || 0,
+          score_right: set.score2 || 0,
+        },
+      },
+      commentary: {},
+    };
+    var stamp = 2166136261;
+    var key = JSON.stringify(body);
+    for (var n = 0; n < key.length; n += 1) {
+      stamp ^= key.charCodeAt(n);
+      stamp = Math.imul(stamp, 16777619);
+    }
+    body.timestamp = (stamp >>> 0) || 1;
+    return body.score["1"].team["1"].player["1"].name || body.score["1"].team["2"].player["1"].name ? body : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Read program_state.json
 function getData() {
+  var local = deskProgram();
+  if (local) return Promise.resolve(local);
   return $.ajax({
     dataType: "json",
     url: tshPreviewMode() ? "/api/fgc/program-state?preview=1" : "/api/fgc/program-state",
@@ -1035,13 +1105,7 @@ function initOnBrowserActive(hide, show) {
     // this is here for regular browsers for better developer experiece
     // this will trigger every time the browser goes out of view (or back to view)
     document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        // if lights go out
-        hide();
-      } else {
-        // when the user comes back
-        show();
-      }
+      if (!document.hidden) UpdateData();
     });
   }
 }

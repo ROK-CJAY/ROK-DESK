@@ -1,7 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { EMPTY_FGC, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
-
-const FILE = "data/fgc-live.json";
+import { getSql } from "@/lib/db";
 
 function assetUrl(base: string, game: string, code: string, skin: number) {
   const root = base.trim().replace(/\/$/, "");
@@ -98,9 +96,6 @@ function slotFrom(fgc: FgcState, player: FgcPlayer | null) {
   return { name: "", player: { "1": tshPlayer(fgc, player) } };
 }
 
-let lastProgramJson = "";
-let lastProgramStamp = 1;
-
 export function programState(fgc: FgcState, preview = false) {
   const set = liveSet(fgc);
   const library = libraryFor(fgc);
@@ -147,11 +142,12 @@ export function programState(fgc: FgcState, preview = false) {
   };
   if (preview) fillPreview(body);
   const json = JSON.stringify(body);
-  if (json !== lastProgramJson) {
-    lastProgramJson = json;
-    lastProgramStamp = Date.now();
+  let hash = 2166136261;
+  for (let i = 0; i < json.length; i += 1) {
+    hash ^= json.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
   }
-  return { timestamp: lastProgramStamp, ...body };
+  return { timestamp: (hash >>> 0) || 1, ...body };
 }
 
 function fillPreview(body: {
@@ -173,16 +169,36 @@ function fillPreview(body: {
   }
 }
 
+const STATE_ID = "live";
+
+async function stateTable() {
+  const sql = await getSql();
+  await sql.query(`
+    create table if not exists fgc_state (
+      id text primary key,
+      payload text not null,
+      updated_at timestamptz default CURRENT_TIMESTAMP not null
+    )
+  `);
+  return sql;
+}
+
 export async function loadFgcState(): Promise<FgcState> {
   try {
-    const raw = await readFile(FILE, "utf8");
-    return { ...EMPTY_FGC, ...(JSON.parse(raw) as FgcState) };
+    const sql = await stateTable();
+    const rows = await sql<{ payload: string }>`select payload from fgc_state where id = ${STATE_ID}`;
+    return rows[0] ? { ...EMPTY_FGC, ...(JSON.parse(rows[0].payload) as FgcState) } : EMPTY_FGC;
   } catch {
     return EMPTY_FGC;
   }
 }
 
 export async function saveFgcState(fgc: FgcState) {
-  await mkdir("data", { recursive: true });
-  await writeFile(FILE, JSON.stringify(fgc));
+  const sql = await stateTable();
+  const payload = JSON.stringify(fgc);
+  await sql`
+    insert into fgc_state (id, payload, updated_at)
+    values (${STATE_ID}, ${payload}, CURRENT_TIMESTAMP)
+    on conflict (id) do update set payload = ${payload}, updated_at = CURRENT_TIMESTAMP
+  `;
 }
