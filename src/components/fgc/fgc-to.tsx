@@ -8,6 +8,7 @@ import { rokDesktop } from "@/lib/rok-desktop";
 import { PUBLIC_SIGNUP_ORIGIN } from "@/lib/remote-signup-code";
 import type { ToBoard, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
 import { BracketBoard } from "@/components/fgc/fgc-bracket";
+import { cn } from "@/lib/cn";
 
 type SetDraft = { score1: number; score2: number; character1: string; character2: string; stageId: string };
 
@@ -269,125 +270,138 @@ function StationFloor({
     : null;
   const stamp = set && set.state !== 1 ? (set.state === 6 ? set.startedAt ?? set.updatedAt : set.updatedAt) : null;
 
+  useEffect(() => {
+    if (!set) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onPick("");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [set, onPick]);
+
   return (
     <>
       <section className="rounded-xl border border-border bg-surface p-4">
-        <div className="mb-4">
-          <p className="font-medium">{board.event.name}</p>
-          <p className="text-xs text-muted">{[board.tournament, board.event.game, `${board.stations.length} stations`, `${board.event.entrants} entrants`].filter(Boolean).join(" · ")}. Click a set, then send it to a station.</p>
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="font-medium">{board.event.name}</p>
+            <p className="text-xs text-muted">{[board.tournament, board.event.game, `${board.stations.length} stations`, `${board.event.entrants} entrants`].filter(Boolean).join(" · ")}</p>
+          </div>
+          <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
         </div>
-        <BracketBoard sets={board.sets} selected={picked} onSelect={onPick} />
-      </section>
-      {board.stations.length ? (
-        <section className="grid gap-2 rounded-xl border border-border bg-surface p-4 sm:grid-cols-2 xl:grid-cols-4">
-          {board.stations.map((station) => {
-            const here = liveSet(board.sets.filter((row) => row.stationId === station.id && row.state !== 3));
-            const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
-            return (
-              <button key={station.id} type="button" onClick={() => here && onPick(here.id)} className="rounded-lg border border-border p-3 text-left">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-medium">{station.name}</p>
-                  <span className="font-mono text-[0.65rem] uppercase text-muted">{here ? setLabel(here.state) : "Open"}</span>
-                </div>
-                <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "No set"}</p>
-                <p className="font-mono text-lg">{mark ? clockText(now, mark) : "—"}</p>
-              </button>
-            );
-          })}
-        </section>
-      ) : null}
-      {board.streams.length ? (
-        <section className="rounded-xl border border-border bg-surface p-4">
-          <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Streams</p>
-          <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {board.streams.map((stream) => {
-              const here = liveSet(board.sets.filter((row) => row.streamId === stream.id && row.state !== 3));
+        {board.stations.length ? (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {board.stations.map((station) => {
+              const here = liveSet(board.sets.filter((row) => row.stationId === station.id && row.state !== 3));
               const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
-              const station = board.stations.find((item) => item.id === stream.stationId);
+              const open = !here;
               return (
-                <div key={stream.id} className="rounded-lg border border-border p-3">
+                <button key={station.id} type="button" onClick={() => here && onPick(here.id)} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{stream.name}</p>
-                    <span className="font-mono text-[0.65rem] uppercase text-muted">{here ? setLabel(here.state) : "Open"}</span>
+                    <p className="font-medium">{station.name}</p>
+                    <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
                   </div>
-                  <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "No set"}</p>
-                  <p className="text-xs text-muted">{station ? station.name : "No station linked on start.gg"}</p>
+                  <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
                   <p className="font-mono text-lg">{mark ? clockText(now, mark) : "—"}</p>
-                  <Button
-                    className="mt-2"
-                    size="sm"
-                    variant="secondary"
-                    disabled={!set || busy.startsWith(set.id)}
-                    onClick={() => set && void onAct(set, "call-stream", { streamId: stream.id, stationId: stream.stationId })}
-                  >
-                    Call selected set
-                  </Button>
-                </div>
+                </button>
               );
             })}
           </div>
-        </section>
-      ) : null}
+        ) : (
+          <p className="text-sm text-muted">This event has no stations on start.gg yet.</p>
+        )}
+        {board.streams.length ? (
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            {board.streams.map((stream) => {
+              const here = liveSet(board.sets.filter((row) => row.streamId === stream.id && row.state !== 3));
+              const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
+              return (
+                <button key={stream.id} type="button" onClick={() => here && onPick(here.id)} className="rounded-lg border border-border p-3 text-left">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-medium">{stream.name}</p>
+                    <span className="font-mono text-[0.65rem] uppercase text-muted">{here ? "Stream" : "Open"}</span>
+                  </div>
+                  <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "No set on stream"}</p>
+                  <p className="font-mono text-lg">{mark ? clockText(now, mark) : "—"}</p>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </section>
+      <section className="rounded-xl border border-border bg-surface p-4">
+        <BracketBoard sets={board.sets} selected={picked} onSelect={onPick} />
+      </section>
       {set && draft ? (
-        <section className="grid gap-3 rounded-xl border border-border bg-surface p-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{[set.identifier, set.round].filter(Boolean).join(" · ")}</p>
-              <p className="text-lg">{set.p1.name} vs {set.p2.name}</p>
-              <p className="text-xs text-muted">{stamp ? `${set.state === 6 ? "Started" : "Called"} ${clockText(now, stamp)}` : setLabel(set.state)}{set.station ? ` · ${set.station}` : ""}</p>
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => onPick("")}>
+          <section className="grid max-h-[90vh] w-full max-w-xl gap-3 overflow-auto rounded-xl border border-border bg-surface p-4" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{[set.identifier, set.round].filter(Boolean).join(" · ")}</p>
+                <p className="text-lg">{set.p1.name} vs {set.p2.name}</p>
+                <p className="text-xs text-muted">{stamp ? `${set.state === 6 ? "Started" : "Called"} ${clockText(now, stamp)}` : setLabel(set.state)}{set.station ? ` · ${set.station}` : ""}</p>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => onPick("")}>Close</Button>
             </div>
             <div className="flex flex-wrap gap-1">
               <Button size="sm" variant="secondary" disabled={busy.startsWith(set.id)} onClick={() => void onAct(set, "call")}>Call</Button>
               <Button size="sm" variant="secondary" disabled={busy.startsWith(set.id)} onClick={() => void onAct(set, "begin")}>Start</Button>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
             <select
               className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm"
               value={set.stationId}
               onChange={(e) => e.target.value && void onAct(set, "assign-station", { stationId: e.target.value })}
             >
               <option value="">{board.stations.length ? "Assign a station" : "No stations on this event"}</option>
-              {board.stations.map((station) => <option key={station.id} value={station.id}>{station.name}</option>)}
+              {board.stations.map((station) => {
+                const taken = board.sets.some((row) => row.stationId === station.id && row.state !== 3 && row.id !== set.id);
+                return <option key={station.id} value={station.id}>{station.name}{taken ? " · in use" : " · open"}</option>;
+              })}
             </select>
-          </div>
-          <div className="grid gap-2 md:grid-cols-2">
-            <label className="grid gap-1 text-xs text-muted">
-              {set.p1.name} character
-              <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character1} onChange={(e) => onDraft(set.id, { character1: e.target.value })}>
-                <option value="">Character</option>
-                {board.characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs text-muted">
-              {set.p2.name} character
-              <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character2} onChange={(e) => onDraft(set.id, { character2: e.target.value })}>
-                <option value="">Character</option>
-                {board.characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
-              </select>
-            </label>
-            <label className="grid gap-1 text-xs text-muted">
-              Stage
-              <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.stageId} onChange={(e) => onDraft(set.id, { stageId: e.target.value })}>
-                <option value="">Stage</option>
-                {board.stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
-              </select>
-            </label>
-            <div className="flex items-end gap-2">
-              <Input className="h-9 w-16" inputMode="numeric" value={draft.score1} onChange={(e) => onDraft(set.id, { score1: Number(e.target.value) || 0 })} />
-              <span className="pb-2 text-muted">-</span>
-              <Input className="h-9 w-16" inputMode="numeric" value={draft.score2} onChange={(e) => onDraft(set.id, { score2: Number(e.target.value) || 0 })} />
+            {board.streams.length ? (
+              <div className="flex flex-wrap gap-1">
+                {board.streams.map((stream) => (
+                  <Button key={stream.id} size="sm" variant="outline" disabled={busy.startsWith(set.id)} onClick={() => void onAct(set, "call-stream", { streamId: stream.id, stationId: stream.stationId })}>
+                    Call to {stream.name}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+            <div className="grid gap-2 md:grid-cols-2">
+              <label className="grid gap-1 text-xs text-muted">
+                {set.p1.name} character
+                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character1} onChange={(e) => onDraft(set.id, { character1: e.target.value })}>
+                  <option value="">Character</option>
+                  {board.characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-1 text-xs text-muted">
+                {set.p2.name} character
+                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character2} onChange={(e) => onDraft(set.id, { character2: e.target.value })}>
+                  <option value="">Character</option>
+                  {board.characters.map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-1 text-xs text-muted">
+                Stage
+                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.stageId} onChange={(e) => onDraft(set.id, { stageId: e.target.value })}>
+                  <option value="">Stage</option>
+                  {board.stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
+                </select>
+              </label>
+              <div className="flex items-end gap-2">
+                <Input className="h-9 w-16" inputMode="numeric" value={draft.score1} onChange={(e) => onDraft(set.id, { score1: Number(e.target.value) || 0 })} />
+                <span className="pb-2 text-muted">-</span>
+                <Input className="h-9 w-16" inputMode="numeric" value={draft.score2} onChange={(e) => onDraft(set.id, { score2: Number(e.target.value) || 0 })} />
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id })}>{set.p1.name} wins</Button>
-            <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id })}>{set.p2.name} wins</Button>
-          </div>
-          <p className="text-xs text-muted">Reporting the winner sends the score, characters, and stage to start.gg and advances the bracket.</p>
-        </section>
-      ) : (
-        <section className="rounded-xl border border-dashed border-border bg-surface p-4 text-sm text-muted">Select a set on the bracket to assign its station, call it, and report it.</section>
-      )}
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id })}>{set.p1.name} wins</Button>
+              <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id })}>{set.p2.name} wins</Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </>
   );
 }
