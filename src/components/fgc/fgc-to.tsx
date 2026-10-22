@@ -12,6 +12,8 @@ import { cn } from "@/lib/cn";
 
 type SetDraft = { score1: number; score2: number; character1: string; character2: string; stageId: string };
 
+type SetClock = { called: number | null; started: number | null };
+
 function clockText(now: number, at: number | null) {
   if (!at) return "";
   const start = at < 10_000_000_000 ? at * 1000 : at;
@@ -151,7 +153,29 @@ export function FgcTournamentDesk() {
     window.location.assign(`${host}/api/startgg-oauth?op=start&return=${encodeURIComponent(back)}`);
   };
 
+  const clocks = useRef<Record<string, SetClock>>({});
+  if (board) {
+    for (const item of board.sets) {
+      if (item.winnerId || item.state === 3) {
+        delete clocks.current[item.id];
+        continue;
+      }
+      if (item.state !== 2 && item.state !== 6) continue;
+      const slot = clocks.current[item.id] ?? { called: null, started: null };
+      if (item.state === 2) slot.called = slot.called ?? item.updatedAt;
+      if (item.state === 6) {
+        slot.started = item.startedAt ?? slot.started ?? item.updatedAt;
+        if (!slot.called && item.updatedAt && slot.started && item.updatedAt < (slot.started < 10_000_000_000 ? slot.started * 1000 : slot.started)) slot.called = item.updatedAt;
+      }
+      clocks.current[item.id] = slot;
+    }
+  }
+
   const act = async (set: ToSet, action: string, extra: Record<string, unknown> = {}) => {
+    const slot = clocks.current[set.id] ?? { called: null, started: null };
+    if (action === "call" || action === "call-station" || action === "call-stream") slot.called = Date.now();
+    if (action === "begin") slot.started = Date.now();
+    clocks.current[set.id] = slot;
     setBusy(set.id + action);
     setError("");
     try {
@@ -246,6 +270,7 @@ export function FgcTournamentDesk() {
                 busy={busy}
                 picked={picked}
                 scores={scores}
+                clocks={clocks.current}
                 onPick={setPicked}
                 onDraft={(id, patch) => setScores((current) => {
                   const prev = current[id] ?? { score1: 0, score2: 0, character1: "", character2: "", stageId: "" };
@@ -262,12 +287,14 @@ export function FgcTournamentDesk() {
 }
 
 function liveSet(sets: ToSet[]) {
-  return sets.find((set) => set.state === 6) ?? sets.find((set) => set.state === 2) ?? sets[0] ?? null;
+  const open = (set: ToSet) => !set.winnerId && set.state !== 3;
+  return sets.find((set) => set.state === 6 && open(set)) ?? sets.find((set) => set.state === 2 && open(set)) ?? null;
 }
 
 function StationFloor({
   board,
   now,
+  clocks,
   busy,
   picked,
   scores,
@@ -277,6 +304,7 @@ function StationFloor({
 }: {
   board: ToBoard;
   now: number;
+  clocks: Record<string, SetClock>;
   busy: string;
   picked: string;
   scores: Record<string, SetDraft>;
@@ -297,7 +325,8 @@ function StationFloor({
     setSendStation(set?.stationId ?? "");
     setSendStream(set?.streamId ?? "");
   }, [set?.id, set?.stationId, set?.streamId]);
-  const stamp = set && set.state !== 1 ? (set.state === 6 ? set.startedAt ?? set.updatedAt : set.updatedAt) : null;
+  const called = !!set && !set.winnerId && (set.state === 2 || set.state === 6);
+  const place = called ? [set.station, set.stream].filter((item) => item && item !== "Station").join(" · ") : "";
 
   const station = board.stations.find((item) => item.id === stationId) ?? null;
   const stationSets = board.sets.filter((item) => {
@@ -325,7 +354,7 @@ function StationFloor({
           <p className="font-medium">{board.event.name}</p>
           <p className="text-xs text-muted">{[board.tournament, board.event.game, `${board.stations.length} stations`, `${board.event.entrants} entrants`].filter(Boolean).join(" · ")}</p>
         </div>
-        <BracketBoard sets={board.sets} selected={picked} onSelect={onPick} />
+        <BracketBoard sets={board.sets} now={now} clocks={clocks} selected={picked} onSelect={onPick} />
       </section>
       <section className="rounded-xl border border-border bg-surface p-4">
         <p className="mb-3 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
@@ -333,7 +362,7 @@ function StationFloor({
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {board.stations.map((station) => {
               const here = liveSet(board.sets.filter((row) => row.stationId === station.id && row.state !== 3));
-              const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
+              const clock = here ? clocks[here.id] : null;
               const open = !here;
               return (
                 <button key={station.id} type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(station.id); }} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
@@ -342,7 +371,7 @@ function StationFloor({
                     <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
                   </div>
                   <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
-                  <p className="font-mono text-lg">{mark ? clockText(now, mark) : "—"}</p>
+                  <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
                 </button>
               );
             })}
@@ -354,7 +383,7 @@ function StationFloor({
           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {board.streams.map((stream) => {
               const here = liveSet(board.sets.filter((row) => row.streamId === stream.id && row.state !== 3));
-              const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
+              const clock = here ? clocks[here.id] : null;
               return (
                 <button key={stream.id} type="button" onClick={() => here && onPick(here.id)} className="rounded-lg border border-border p-3 text-left">
                   <div className="flex items-center justify-between gap-2">
@@ -362,7 +391,7 @@ function StationFloor({
                     <span className="font-mono text-[0.65rem] uppercase text-muted">{here ? "Stream" : "Open"}</span>
                   </div>
                   <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "No set on stream"}</p>
-                  <p className="font-mono text-lg">{mark ? clockText(now, mark) : "—"}</p>
+                  <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
                 </button>
               );
             })}
@@ -376,7 +405,7 @@ function StationFloor({
               <div>
                 <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{[set.identifier, set.round].filter(Boolean).join(" · ")}</p>
                 <p className="text-lg">{set.p1.name} vs {set.p2.name}</p>
-                <p className="text-xs text-muted">{stamp ? `${set.state === 6 ? "Started" : "Called"} ${clockText(now, stamp)}` : setLabel(set.state)}{set.station ? ` · ${set.station}` : ""}</p>
+                <p className="text-xs text-muted">{setLabel(set.state)}{place ? ` · ${place}` : ""}</p>
               </div>
               <Button size="sm" variant="ghost" onClick={() => onPick("")}>Close</Button>
             </div>

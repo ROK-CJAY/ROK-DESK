@@ -6,6 +6,18 @@ const CARD_H = 64;
 const COL_GAP = 64;
 const ROW_GAP = 16;
 
+function clockText(now: number, at: number | null) {
+  if (!at) return "";
+  const start = at < 10_000_000_000 ? at * 1000 : at;
+  const total = Math.max(0, Math.floor((now - start) / 1000));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const mm = String(minutes).padStart(2, "0");
+  const ss = String(seconds).padStart(2, "0");
+  return hours ? `${hours}:${mm}:${ss}` : `${minutes}:${ss}`;
+}
+
 function letterRank(value: string) {
   let rank = 0;
   for (const char of value.toUpperCase()) {
@@ -48,11 +60,15 @@ function placeSide(sets: ToSet[]): { title: string; rows: Placed[] }[] {
 function Side({
   title,
   columns,
+  now,
+  clocks,
   selected,
   onSelect,
 }: {
   title: string;
   columns: { title: string; rows: Placed[] }[];
+  now: number;
+  clocks: Record<string, { called: number | null; started: number | null }>;
   selected: string;
   onSelect: (id: string) => void;
 }) {
@@ -84,8 +100,14 @@ function Side({
           {columns.map((column, index) => column.rows.map((row) => {
             const winner1 = row.set.winnerId && row.set.winnerId === row.set.p1.id;
             const winner2 = row.set.winnerId && row.set.winnerId === row.set.p2.id;
-            const called = row.set.state === 2 || row.set.state === 6;
-            const place = called ? [row.set.station, row.set.stream].filter(Boolean).join(" · ") : "";
+            const active = !row.set.winnerId && (row.set.state === 2 || row.set.state === 6);
+            const clock = active ? clocks[row.set.id] : null;
+            const place = [
+              active ? row.set.station : "",
+              active ? row.set.stream : "",
+              clock?.called ? `Called ${clockText(now, clock.called)}` : "",
+              clock?.started ? `Started ${clockText(now, clock.started)}` : "",
+            ].filter((item) => item && item !== "Station").join(" · ");
             return (
               <button
                 key={row.set.id}
@@ -109,7 +131,19 @@ function Side({
   );
 }
 
-export function BracketBoard({ sets, selected, onSelect }: { sets: ToSet[]; selected: string; onSelect: (id: string) => void }) {
+export function BracketBoard({
+  sets,
+  now,
+  clocks,
+  selected,
+  onSelect,
+}: {
+  sets: ToSet[];
+  now: number;
+  clocks: Record<string, { called: number | null; started: number | null }>;
+  selected: string;
+  onSelect: (id: string) => void;
+}) {
   const phases = [...new Set(sets.map((set) => set.phase || "Bracket"))];
   if (!sets.length) return <p className="text-sm text-muted">No sets on this event yet.</p>;
   return (
@@ -121,8 +155,8 @@ export function BracketBoard({ sets, selected, onSelect }: { sets: ToSet[]; sele
         const label = mine[0]?.group ? `${phase} ${mine[0].group}` : phase;
         return (
           <div key={label} className="grid gap-5">
-            <Side title={losers.length ? `${label} · Winners` : label} columns={winners} selected={selected} onSelect={onSelect} />
-            <Side title={`${label} · Losers`} columns={losers} selected={selected} onSelect={onSelect} />
+            <Side title={losers.length ? `${label} · Winners` : label} columns={winners} now={now} clocks={clocks} selected={selected} onSelect={onSelect} />
+            <Side title={`${label} · Losers`} columns={losers} now={now} clocks={clocks} selected={selected} onSelect={onSelect} />
           </div>
         );
       })}
