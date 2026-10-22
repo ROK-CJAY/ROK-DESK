@@ -2,7 +2,7 @@ import { startggQuery } from "@/lib/startgg";
 
 export type ToUser = { id: string; name: string; tag: string };
 export type ToEvent = { id: string; name: string; slug: string; game: string; entrants: number };
-export type ToTournament = { id: string; name: string; slug: string; when: string; city: string; events: ToEvent[] };
+export type ToTournament = { id: string; name: string; slug: string; startAt: number; when: string; city: string; events: ToEvent[] };
 export type ToStation = { id: string; number: string; name: string; streamId: string };
 export type ToStream = { id: string; name: string; stationId: string };
 export type ToOption = { id: string; name: string };
@@ -104,6 +104,7 @@ export async function loadToAccount(token: string): Promise<{ user: ToUser; tour
         id: String(node.id),
         name: node.name?.trim() || "Tournament",
         slug: node.slug?.trim() || "",
+        startAt: node.startAt && node.startAt > 0 ? (node.startAt < 10_000_000_000 ? node.startAt * 1000 : node.startAt) : Number.MAX_SAFE_INTEGER,
         when: when(node.startAt),
         city: node.city?.trim() || "",
         events: (node.events ?? []).filter((event) => event?.id && event.slug).map((event) => ({
@@ -117,7 +118,13 @@ export async function loadToAccount(token: string): Promise<{ user: ToUser; tour
     }
     if (nodes.length < 40) break;
   }
-  return { user: user!, tournaments };
+  const seen = new Set<string>();
+  return {
+    user: user!,
+    tournaments: tournaments
+      .filter((tournament) => (seen.has(tournament.id) ? false : seen.add(tournament.id)))
+      .sort((a, b) => a.startAt - b.startAt || a.name.localeCompare(b.name)),
+  };
 }
 
 const BOARD_QUERY = `
@@ -145,7 +152,7 @@ const BOARD_QUERY = `
 const SETS_QUERY = `
   query ToSets($id: ID!, $page: Int!) {
     phaseGroup(id: $id) {
-      sets(page: $page, perPage: 12, sortType: ROUND) {
+      sets(page: $page, perPage: 20, sortType: ROUND) {
         pageInfo { totalPages }
         nodes {
           id

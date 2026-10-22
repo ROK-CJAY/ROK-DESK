@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Button } from "@/components/ui/button";
@@ -71,28 +71,48 @@ export function FgcTournamentDesk() {
     }
   };
 
-  const loadBoard = async (slug: string, auth = token) => {
+  const loadBoard = async (slug: string, auth = token, quiet = false) => {
     if (!slug || !auth) return;
-    setBusy("board");
-    setError("");
+    if (!quiet) {
+      setBusy("board");
+      setError("");
+    }
     setEventSlug(slug);
     try {
       const next = (await toApi({ action: "board", token: auth, slug })) as ToBoard;
       setBoard(next);
-      setPicked((current) => next.sets.some((set) => set.id === current) ? current : "");
-      setScores(Object.fromEntries(next.sets.map((set) => [set.id, {
-        score1: set.score1,
-        score2: set.score2,
-        character1: set.p1.characterId,
-        character2: set.p2.characterId,
-        stageId: set.stageId,
-      }])));
+      if (!quiet) setPicked((current) => next.sets.some((set) => set.id === current) ? current : "");
+      setScores((current) => {
+        const incoming = Object.fromEntries(next.sets.map((set) => [set.id, {
+          score1: set.score1,
+          score2: set.score2,
+          character1: set.p1.characterId,
+          character2: set.p2.characterId,
+          stageId: set.stageId,
+        }]));
+        if (!quiet) return incoming;
+        const openId = pickedRef.current;
+        return openId && current[openId] ? { ...incoming, [openId]: current[openId] } : incoming;
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load the event");
+      if (!quiet) setError(err instanceof Error ? err.message : "Could not load the event");
     } finally {
-      setBusy("");
+      if (!quiet) setBusy("");
     }
   };
+
+  const pickedRef = useRef("");
+  pickedRef.current = picked;
+  const refreshRef = useRef<() => void>(() => {});
+  refreshRef.current = () => {
+    if (!eventSlug || !token || busy) return;
+    void loadBoard(eventSlug, token, true);
+  };
+
+  useEffect(() => {
+    const timer = window.setInterval(() => refreshRef.current(), 8000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.slice(1));
@@ -266,10 +286,17 @@ function StationFloor({
 }) {
   const [stationId, setStationId] = useState("");
   const [stationQuery, setStationQuery] = useState("");
+  const [queuedSet, setQueuedSet] = useState("");
+  const [sendStation, setSendStation] = useState("");
+  const [sendStream, setSendStream] = useState("");
   const set = board.sets.find((item) => item.id === picked) ?? null;
   const draft = set
     ? scores[set.id] ?? { score1: set.score1, score2: set.score2, character1: set.p1.characterId, character2: set.p2.characterId, stageId: set.stageId }
     : null;
+  useEffect(() => {
+    setSendStation(set?.stationId ?? "");
+    setSendStream(set?.streamId ?? "");
+  }, [set?.id, set?.stationId, set?.streamId]);
   const stamp = set && set.state !== 1 ? (set.state === 6 ? set.startedAt ?? set.updatedAt : set.updatedAt) : null;
 
   const station = board.stations.find((item) => item.id === stationId) ?? null;
@@ -309,7 +336,7 @@ function StationFloor({
               const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
               const open = !here;
               return (
-                <button key={station.id} type="button" onClick={() => { setStationQuery(""); setStationId(station.id); }} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
+                <button key={station.id} type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(station.id); }} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-medium">{station.name}</p>
                     <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
@@ -357,26 +384,34 @@ function StationFloor({
               <Button size="sm" variant="secondary" disabled={busy.startsWith(set.id)} onClick={() => void onAct(set, "call")}>Call</Button>
               <Button size="sm" variant="secondary" disabled={busy.startsWith(set.id)} onClick={() => void onAct(set, "begin")}>Start</Button>
             </div>
-            <select
-              className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm"
-              value={set.stationId}
-              onChange={(e) => e.target.value && void onAct(set, "assign-station", { stationId: e.target.value })}
-            >
-              <option value="">{board.stations.length ? "Assign a station" : "No stations on this event"}</option>
-              {board.stations.map((station) => {
-                const taken = board.sets.some((row) => row.stationId === station.id && row.state !== 3 && row.id !== set.id);
-                return <option key={station.id} value={station.id}>{station.name}{taken ? " · in use" : " · open"}</option>;
-              })}
-            </select>
-            {board.streams.length ? (
-              <div className="flex flex-wrap gap-1">
-                {board.streams.map((stream) => (
-                  <Button key={stream.id} size="sm" variant="outline" disabled={busy.startsWith(set.id)} onClick={() => void onAct(set, "call-stream", { streamId: stream.id, stationId: stream.stationId })}>
-                    Call to {stream.name}
-                  </Button>
-                ))}
-              </div>
-            ) : null}
+            <div className="grid gap-2">
+              <label className="grid gap-1 text-xs text-muted">
+                Station
+                <span className="flex gap-2">
+                  <select className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={sendStation} onChange={(event) => setSendStation(event.target.value)}>
+                    <option value="">Choose a station</option>
+                    {board.stations.map((item) => {
+                      const taken = board.sets.some((row) => row.stationId === item.id && row.state !== 3 && row.id !== set.id);
+                      return <option key={item.id} value={item.id}>{item.name}{taken ? " · in use" : " · open"}</option>;
+                    })}
+                  </select>
+                  <Button size="sm" variant="secondary" disabled={!sendStation || busy.startsWith(set.id)} onClick={() => void onAct(set, "call-station", { stationId: sendStation })}>Send</Button>
+                </span>
+              </label>
+              <label className="grid gap-1 text-xs text-muted">
+                Stream
+                <span className="flex gap-2">
+                  <select className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={sendStream} onChange={(event) => setSendStream(event.target.value)}>
+                    <option value="">Choose a stream</option>
+                    {board.streams.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  </select>
+                  <Button size="sm" variant="secondary" disabled={!sendStream || busy.startsWith(set.id)} onClick={() => {
+                    const stream = board.streams.find((item) => item.id === sendStream);
+                    if (stream) void onAct(set, "call-stream", { streamId: stream.id, stationId: stream.stationId });
+                  }}>Send</Button>
+                </span>
+              </label>
+            </div>
             <div className="grid gap-2 md:grid-cols-2">
               <label className="grid gap-1 text-xs text-muted">
                 {set.p1.name} character
@@ -430,18 +465,49 @@ function StationFloor({
                 <button
                   key={item.id}
                   type="button"
-                  disabled={busy.startsWith(item.id)}
-                  className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left text-sm hover:bg-surface-2"
-                  onClick={() => {
-                    setStationId("");
-                    void onAct(item, "call-station", { stationId: station.id });
-                  }}
+                  className={cn("flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-left text-sm", item.id === queuedSet ? "border-accent bg-surface-2" : "border-border")}
+                  onClick={() => setQueuedSet(item.id)}
                 >
                   <span>{item.p1.name} vs {item.p2.name}</span>
                   <span className="text-xs text-muted">{[item.identifier, item.round, item.station].filter(Boolean).join(" · ")}</span>
                 </button>
               ))}
               {stationSets.length === 0 ? <p className="text-sm text-muted">No open sets match.</p> : null}
+            </div>
+            <label className="grid gap-1 text-xs text-muted">
+              Stream
+              <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={sendStream} onChange={(event) => setSendStream(event.target.value)}>
+                <option value="">Choose a stream</option>
+                {board.streams.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              </select>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                disabled={!queuedSet || busy.length > 0}
+                onClick={() => {
+                  const next = board.sets.find((item) => item.id === queuedSet);
+                  if (!next) return;
+                  setStationId("");
+                  void onAct(next, "call-station", { stationId: station.id });
+                }}
+              >
+                Send to {station.name}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={!queuedSet || !sendStream || busy.length > 0}
+                onClick={() => {
+                  const next = board.sets.find((item) => item.id === queuedSet);
+                  const stream = board.streams.find((item) => item.id === sendStream);
+                  if (!next || !stream) return;
+                  setStationId("");
+                  void onAct(next, "call-stream", { streamId: stream.id, stationId: stream.stationId });
+                }}
+              >
+                Send to stream
+              </Button>
             </div>
           </section>
         </div>
