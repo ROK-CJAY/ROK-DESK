@@ -264,31 +264,44 @@ function StationFloor({
   onDraft: (id: string, patch: Partial<SetDraft>) => void;
   onAct: (set: ToSet, action: string, extra?: Record<string, unknown>) => Promise<void>;
 }) {
+  const [stationId, setStationId] = useState("");
+  const [stationQuery, setStationQuery] = useState("");
   const set = board.sets.find((item) => item.id === picked) ?? null;
   const draft = set
     ? scores[set.id] ?? { score1: set.score1, score2: set.score2, character1: set.p1.characterId, character2: set.p2.characterId, stageId: set.stageId }
     : null;
   const stamp = set && set.state !== 1 ? (set.state === 6 ? set.startedAt ?? set.updatedAt : set.updatedAt) : null;
 
+  const station = board.stations.find((item) => item.id === stationId) ?? null;
+  const stationSets = board.sets.filter((item) => {
+    if (item.state === 3 || item.p1.name === "TBD" || item.p2.name === "TBD") return false;
+    const needle = stationQuery.trim().toLowerCase();
+    if (!needle) return true;
+    return `${item.p1.name} ${item.p2.name} ${item.round} ${item.identifier}`.toLowerCase().includes(needle);
+  });
+
   useEffect(() => {
-    if (!set) return;
+    if (!set && !station) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onPick("");
+      if (event.key !== "Escape") return;
+      onPick("");
+      setStationId("");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [set, onPick]);
+  }, [set, station, onPick]);
 
   return (
     <>
       <section className="rounded-xl border border-border bg-surface p-4">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="font-medium">{board.event.name}</p>
-            <p className="text-xs text-muted">{[board.tournament, board.event.game, `${board.stations.length} stations`, `${board.event.entrants} entrants`].filter(Boolean).join(" · ")}</p>
-          </div>
-          <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
+        <div className="mb-3">
+          <p className="font-medium">{board.event.name}</p>
+          <p className="text-xs text-muted">{[board.tournament, board.event.game, `${board.stations.length} stations`, `${board.event.entrants} entrants`].filter(Boolean).join(" · ")}</p>
         </div>
+        <BracketBoard sets={board.sets} selected={picked} onSelect={onPick} />
+      </section>
+      <section className="rounded-xl border border-border bg-surface p-4">
+        <p className="mb-3 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
         {board.stations.length ? (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {board.stations.map((station) => {
@@ -296,7 +309,7 @@ function StationFloor({
               const mark = here ? (here.state === 6 ? here.startedAt ?? here.updatedAt : here.state === 2 ? here.updatedAt : null) : null;
               const open = !here;
               return (
-                <button key={station.id} type="button" onClick={() => here && onPick(here.id)} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
+                <button key={station.id} type="button" onClick={() => { setStationQuery(""); setStationId(station.id); }} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-medium">{station.name}</p>
                     <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
@@ -328,9 +341,6 @@ function StationFloor({
             })}
           </div>
         ) : null}
-      </section>
-      <section className="rounded-xl border border-border bg-surface p-4">
-        <BracketBoard sets={board.sets} selected={picked} onSelect={onPick} />
       </section>
       {set && draft ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => onPick("")}>
@@ -400,6 +410,38 @@ function StationFloor({
               <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id })}>{set.p2.name} wins</Button>
               <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id, dq: true })}>DQ {set.p1.name}</Button>
               <Button size="sm" variant="outline" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id, dq: true })}>DQ {set.p2.name}</Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+      {station ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setStationId("")}>
+          <section className="grid max-h-[90vh] w-full max-w-xl gap-3 overflow-auto rounded-xl border border-border bg-surface p-4" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Station</p>
+                <p className="text-lg">{station.name}</p>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setStationId("")}>Close</Button>
+            </div>
+            <Input value={stationQuery} placeholder="Search a set" onChange={(event) => setStationQuery(event.target.value)} />
+            <div className="grid max-h-80 gap-1 overflow-auto">
+              {stationSets.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  disabled={busy.startsWith(item.id)}
+                  className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left text-sm hover:bg-surface-2"
+                  onClick={() => {
+                    setStationId("");
+                    void onAct(item, "call-station", { stationId: station.id });
+                  }}
+                >
+                  <span>{item.p1.name} vs {item.p2.name}</span>
+                  <span className="text-xs text-muted">{[item.identifier, item.round, item.station].filter(Boolean).join(" · ")}</span>
+                </button>
+              ))}
+              {stationSets.length === 0 ? <p className="text-sm text-muted">No open sets match.</p> : null}
             </div>
           </section>
         </div>

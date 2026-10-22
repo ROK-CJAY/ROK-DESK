@@ -42,7 +42,7 @@ export const Route = createFileRoute("/api/startgg")({
             if (!token) return Response.json({ error: "Connect the start.gg account first." }, { status: 401 });
             return Response.json(await loadToBoard(token, body.slug?.trim() || ""));
           }
-          if (body.action === "call" || body.action === "begin" || body.action === "assign-station" || body.action === "assign-stream" || body.action === "call-stream" || body.action === "report") {
+          if (body.action === "call" || body.action === "begin" || body.action === "assign-station" || body.action === "assign-stream" || body.action === "call-stream" || body.action === "call-station" || body.action === "report") {
             if (!token || !body.setId) return Response.json({ error: "Missing set." }, { status: 400 });
             if (body.action === "call") await callToSet(token, body.setId);
             if (body.action === "begin") await beginToSet(token, body.setId);
@@ -51,6 +51,10 @@ export const Route = createFileRoute("/api/startgg")({
             if (body.action === "call-stream" && body.streamId) {
               await streamToSet(token, body.setId, body.streamId);
               if (body.stationId) await stationToSet(token, body.setId, body.stationId);
+              await callToSet(token, body.setId);
+            }
+            if (body.action === "call-station" && body.stationId) {
+              await stationToSet(token, body.setId, body.stationId);
               await callToSet(token, body.setId);
             }
             if (body.action === "report" && body.winnerId) {
