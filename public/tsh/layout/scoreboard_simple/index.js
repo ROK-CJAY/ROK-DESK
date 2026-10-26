@@ -29,40 +29,7 @@ LoadEverything().then(() => {
     let oldData = event.oldData;
 
     let isTeams = Object.keys(data.score[window.scoreboardNumber].team["1"].player).length > 1;
-
-    if (
-      oldData.score == null ||
-      Object.keys(oldData.score[window.scoreboardNumber].team["1"].player).length !=
-        Object.keys(data.score[window.scoreboardNumber].team["1"].player).length
-    ) {
-      if (Object.keys(data.score[window.scoreboardNumber].team["1"].player).length == 1) {
-        gsap
-          .timeline()
-          .fromTo(
-            ["body > .doubles"],
-            { duration: 0.2, opacity: "1", ease: "power2.inOut" },
-            { duration: 0.2, opacity: "0", ease: "power2.inOut" }
-          )
-          .fromTo(
-            ["body > .singles"],
-            { duration: 0.2, opacity: "0", ease: "power2.inOut" },
-            { duration: 0.2, opacity: "1", ease: "power2.inOut" }
-          );
-      } else {
-        gsap
-          .timeline()
-          .fromTo(
-            ["body > .singles"],
-            { duration: 0.2, opacity: "1", ease: "power2.inOut" },
-            { duration: 0.2, opacity: "0", ease: "power2.inOut" }
-          )
-          .fromTo(
-            ["body > .doubles"],
-            { duration: 0.2, opacity: "0", ease: "power2.inOut" },
-            { duration: 0.2, opacity: "1", ease: "power2.inOut" }
-          );
-      }
-    }
+    document.body.classList.toggle("is-doubles", isTeams);
 
     for (const [t, team] of [
       data.score[window.scoreboardNumber].team["1"],

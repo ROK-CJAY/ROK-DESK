@@ -52,6 +52,14 @@ body {
   background: var(--p2-score-bg-color);
 }
 
+body:not(.is-doubles) > .doubles {
+  display: none;
+}
+
+body.is-doubles > .singles {
+  display: none;
+}
+
 .doubles .container {
   transform: scaleX(0.9);
 }
