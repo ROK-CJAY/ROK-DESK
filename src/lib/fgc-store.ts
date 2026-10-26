@@ -69,25 +69,36 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
   const next = [...existing];
   for (const player of incoming) {
     if (!player?.tag && !player?.profileId) continue;
-    const known = next.some((item) =>
+    const index = next.findIndex((item) =>
       player.profileId ? item.profileId === player.profileId : item.tag.toLowerCase() === player.tag.trim().toLowerCase(),
     );
-    if (known) continue;
-    next.unshift({
-      profileId: player.profileId,
-      tag: player.tag.trim(),
-      prefix: player.prefix,
-      realName: player.realName,
-      country: player.country,
-      flag: player.flag,
-      region: player.region,
-      twitter: player.twitter,
-      pronouns: player.pronouns,
-      character: player.character,
-      skin: player.skin,
-      character2: player.character2,
-      skin2: player.skin2,
-    });
+    if (index < 0) {
+      next.unshift({
+        profileId: player.profileId,
+        tag: player.tag.trim(),
+        prefix: player.prefix,
+        realName: player.realName,
+        country: player.country,
+        flag: player.flag,
+        region: player.region,
+        twitter: player.twitter,
+        pronouns: player.pronouns,
+        character: player.character,
+        skin: player.skin,
+        character2: player.character2,
+        skin2: player.skin2,
+      });
+      continue;
+    }
+    if (!player.character && !player.character2) continue;
+    const current = next[index];
+    next[index] = {
+      ...current,
+      character: player.character || current.character,
+      skin: player.character ? player.skin : current.skin,
+      character2: player.character2 || current.character2,
+      skin2: player.character2 ? player.skin2 : current.skin2,
+    };
   }
   return next;
 }
@@ -98,7 +109,11 @@ function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer |
     (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
     saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
   if (!match) return player;
-  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId };
+  const character = player.character || match.character;
+  const skin = player.character ? (player.character.toLowerCase() === (match.character || "").toLowerCase() ? match.skin : player.skin) : match.skin;
+  const character2 = player.character2 || match.character2;
+  const skin2 = player.character2 ? (player.character2.toLowerCase() === (match.character2 || "").toLowerCase() ? match.skin2 : player.skin2) : match.skin2;
+  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId, character, skin, character2, skin2 };
 }
 
 function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
@@ -221,18 +236,25 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       }
       if (!res.ok || !body.event || !body.sets) throw new Error(body.error || "Import failed");
       const live = body.sets.find((set) => set.state === "live");
-      const players = rememberPlayers(get().players, body.sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
+      const library = get().fgc.libraries.find((item) => item.game === body.event?.game) ?? get().fgc.libraries[0];
+      const align = (player: FgcPlayer | null) => {
+        if (!player?.character || !library) return player;
+        const found = library.characters.find((item) => item.name.toLowerCase() === player.character.toLowerCase());
+        return found ? { ...player, character: found.name } : player;
+      };
+      const sets = body.sets.map((set) => ({
+        ...set,
+        p1: applySaved(align(set.p1), get().players),
+        p2: applySaved(align(set.p2), get().players),
+        p1b: applySaved(align(set.p1b), get().players),
+        p2b: applySaved(align(set.p2b), get().players),
+      }));
+      const players = rememberPlayers(get().players, sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
       writeJson(PLAYERS_KEY, players);
       const fgc: FgcState = {
         ...get().fgc,
         event: body.event,
-        sets: body.sets.map((set) => ({
-          ...set,
-          p1: applySaved(set.p1, players),
-          p2: applySaved(set.p2, players),
-          p1b: applySaved(set.p1b, players),
-          p2b: applySaved(set.p2b, players),
-        })),
+        sets,
         streamSetId: live?.id ?? get().fgc.streamSetId,
         importedAt: new Date().toISOString(),
       };
@@ -270,16 +292,23 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     set({ fgc });
   },
   patchPlayer: (setId, side, partial) => {
+    let updated: FgcPlayer | null = null;
     const fgc = {
       ...get().fgc,
       sets: get().fgc.sets.map((set) => {
         if (set.id !== setId) return set;
         const current = set[side] ?? blankPlayer();
-        return { ...set, [side]: { ...current, ...partial } };
+        updated = { ...current, ...partial };
+        return { ...set, [side]: updated };
       }),
     };
+    const players =
+      updated && ("character" in partial || "skin" in partial || "character2" in partial || "skin2" in partial)
+        ? rememberPlayers(get().players, [updated])
+        : get().players;
+    if (players !== get().players) writeJson(PLAYERS_KEY, players);
     write(fgc);
-    set({ fgc });
+    set({ fgc, players });
   },
   newSet: () => {
     const created = blankSet();

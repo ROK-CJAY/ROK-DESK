@@ -94,6 +94,12 @@ const SETS_QUERY = `
           winnerId
           stream { streamName }
           station { number }
+          games {
+            selections {
+              entrant { id }
+              character { name }
+            }
+          }
           slots {
             standing { stats { score { value } } }
             entrant {
@@ -157,6 +163,12 @@ type RawSet = {
   winnerId?: number | string | null;
   stream?: { streamName?: string | null } | null;
   station?: { number?: number | string | null } | null;
+  games?: {
+    selections?: {
+      entrant?: { id?: string | number | null } | null;
+      character?: { name?: string | null } | null;
+    }[] | null;
+  }[] | null;
   slots?: {
     standing?: { stats?: { score?: { value?: number | null } | null } | null } | null;
     entrant?: {
@@ -185,7 +197,17 @@ function setState(value: number | null | undefined): FgcSetState {
   return "pending";
 }
 
-function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPlayer | null {
+function characterFor(raw: RawSet, entrantId: string | undefined): string {
+  if (!entrantId) return "";
+  const games = raw.games ?? [];
+  for (let index = games.length - 1; index >= 0; index -= 1) {
+    const pick = games[index].selections?.find((row) => String(row.entrant?.id ?? "") === entrantId && row.character?.name?.trim());
+    if (pick?.character?.name) return pick.character.name.trim();
+  }
+  return "";
+}
+
+function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined, character = ""): FgcPlayer | null {
   const entrant = slot?.entrant;
   if (!entrant) return null;
   const person = entrant.participants?.[0];
@@ -203,7 +225,7 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined): FgcPl
     region: user?.location?.state?.trim() || user?.location?.city?.trim() || "",
     twitter: twitter.replace(/^@/, ""),
     pronouns: user?.genderPronoun?.trim() || "",
-    character: "",
+    character,
     skin: 0,
     character2: "",
     skin2: 0,
@@ -228,8 +250,8 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     losers2: false,
     state: setState(raw.state),
     winnerId: raw.winnerId == null ? null : String(raw.winnerId),
-    p1: playerOf(slots[0]),
-    p2: playerOf(slots[1]),
+    p1: playerOf(slots[0], characterFor(raw, slots[0]?.entrant?.id)),
+    p2: playerOf(slots[1], characterFor(raw, slots[1]?.entrant?.id)),
     p1b: blankPlayer(),
     p2b: blankPlayer(),
     playersPerTeam: 1,
