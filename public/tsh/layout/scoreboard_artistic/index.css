@@ -116,7 +116,7 @@ body {
   flex-grow: 1;
   max-width: 1000px;
   padding: 0 16px;
-  height: 128px;
+  height: 92px;
   justify-content: space-evenly;
   box-sizing: border-box;
 }
@@ -410,36 +410,6 @@ body {
   font-size: 14px;
   text-align: center;
   -webkit-text-stroke: 0;
-}
-
-.meta {
-  font-size: 15px;
-  color: #ffffff;
-  -webkit-text-stroke: 0;
-  white-space: nowrap;
-}
-
-.stage {
-  font-size: 16px;
-  width: 100%;
-  color: #ffffff;
-  -webkit-text-stroke: 0;
-}
-
-.tournament_name {
-  width: 100%;
-  font-size: 14px;
-  color: #ffffff;
-  opacity: 0.9;
-  -webkit-text-stroke: 0;
-  overflow: hidden;
-}
-
-.tournament_name .text,
-.stage .text {
-  height: auto;
-  min-height: 1em;
-  justify-content: center;
 }
 
 .sponsor_icon > div > div {

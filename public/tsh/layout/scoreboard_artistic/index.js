@@ -28,26 +28,6 @@ LoadEverything().then(() => {
     startingAnimation.restart();
   };
 
-  function metaLine(player) {
-    if (!player) return "";
-    const bits = [];
-    if (player.twitter) bits.push("@" + String(player.twitter).replace(/^@/, ""));
-    const region = player.state && player.state.code ? String(player.state.code) : "";
-    const country = player.country && player.country.code ? String(player.country.code) : "";
-    if (region) bits.push(region);
-    else if (country && country.length <= 3) bits.push(country);
-    if (player.real_name) bits.push(player.real_name);
-    if (player.seed !== "" && player.seed != null) bits.push("Seed " + player.seed);
-    return bits.length ? `<div class="meta">${bits.join(" · ")}</div>` : "";
-  }
-
-  function nameLine(player, pronounFirst) {
-    const sponsorName = player.team ? player.team : "";
-    const pronounHtml = `<div class="pronoun">${player.pronoun ? player.pronoun : ""}</div>`;
-    const nameContent = `<span class="sponsor">${sponsorName}</span><div class="name">${player.name || ""}</div>`;
-    return (pronounFirst ? pronounHtml + nameContent : nameContent + pronounHtml) + metaLine(player);
-  }
-
   Update = async (event) => {
     let data = event.data;
     let oldData = event.oldData;
@@ -59,12 +39,14 @@ LoadEverything().then(() => {
       ].entries()) {
         for (const [p, player] of [team.player["1"]].entries()) {
           if (player) {
+            let sponsorName = player.team ? player.team : "";
             let playerName = await Transcript(player.name);
-            const shown = { ...player, name: playerName };
+            let pronounHtml = `<div class="pronoun">${player.pronoun ? player.pronoun : ""}</div>`;
+            let nameContent = `<span class="sponsor">${sponsorName}</span><div class="name">${playerName}</div>`;
 
             SetInnerHtml(
               $(`.p${t + 1}.container .name_twitter`),
-              nameLine(shown, t !== 0)
+              t === 0 ? `${nameContent}${pronounHtml}` : `${pronounHtml}${nameContent}`
             );
 
             SetInnerHtml(
@@ -203,11 +185,12 @@ LoadEverything().then(() => {
           event
         );
 
-        const lead = team.player["1"] || {};
         SetInnerHtml(
           $(`.p${t + 1}.container .name_twitter`),
-          nameLine({ ...lead, name: teamPresentation }, t !== 0) +
-            (team.teamName ? `<div class="team-members">${playerNames}</div>` : "")
+          `
+            <div class="name">${teamPresentation}</div>
+            ${team.teamName ? `<div class="team-members">${playerNames}</div>` : ""}
+          `
         );
 
         SetInnerHtml(
@@ -265,16 +248,16 @@ LoadEverything().then(() => {
       }
     }
 
+    SetInnerHtml(
+      $(".tournament_name"),
+      data.tournamentInfo.tournamentName + " - " + data.tournamentInfo.eventName
+    );
+
     SetInnerHtml($(".phase"), data.score[window.scoreboardNumber].phase);
     SetInnerHtml($(".match"), data.score[window.scoreboardNumber].match);
     SetInnerHtml(
       $(".best_of"),
       data.score[window.scoreboardNumber].best_of_text ? data.score[window.scoreboardNumber].best_of_text : ""
-    );
-    SetInnerHtml($(".stage"), data.score[window.scoreboardNumber].stage || "");
-    SetInnerHtml(
-      $(".tournament_name"),
-      [data.tournamentInfo.tournamentName, data.tournamentInfo.eventName].filter(Boolean).join(" — ")
     );
   };
 });
