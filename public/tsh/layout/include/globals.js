@@ -47,15 +47,18 @@ var Update = async (event) => {
 };
 
 var tshPainted = false;
+var paintedUpdate = null;
 
 // Wrapper for the update call
 async function UpdateWrapper(event) {
-  tshPainted = true;
+  const painting = Update;
   try {
     await Update(event);
+    paintedUpdate = painting;
   } catch (e) {
     console.log(e);
   }
+  tshPainted = true;
 
   // If initialization wasn't done yet, call Start()
   // We use gsap.globalTimeline.timeScale as 0 for animation to not play before this
@@ -103,7 +106,7 @@ async function UpdateData() {
     data = await getData();
     applyTournamentLogo(data);
 
-    if (tshPainted && data.timestamp === oldData.timestamp) {
+    if (tshPainted && paintedUpdate === Update && data.timestamp === oldData.timestamp) {
       return;
     }
 
@@ -272,11 +275,18 @@ async function InitAll() {
     await UpdateData();
   }, 500);
   await UpdateData();
-  // The layout file assigns Update only after LoadEverything finishes.
-  // Paint again once that function exists, or the first read is thrown away.
-  setTimeout(() => {
-    UpdateData();
-  }, 0);
+  // The layout assigns Update only after LoadEverything finishes.
+  // The first paint hits the empty placeholder, so paint again once the real one exists.
+  const unboundUpdate = Update;
+  let attempts = 0;
+  const waitForLayout = setInterval(() => {
+    attempts += 1;
+    if (Update === unboundUpdate && attempts < 40) return;
+    clearInterval(waitForLayout);
+    tshPainted = false;
+    paintedUpdate = null;
+    UpdateData().then(() => Start());
+  }, 25);
 
   try {
     await LoadKuroshiro();
