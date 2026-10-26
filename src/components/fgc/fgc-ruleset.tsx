@@ -32,9 +32,9 @@ export function FgcRulesetEditor() {
   const deleteRuleset = useFgcStore((s) => s.deleteRuleset);
   const selectRuleset = useFgcStore((s) => s.selectRuleset);
   const library = libraryFor(fgc);
-  const active = fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? blankRuleset();
-  const [draft, setDraft] = useState<FgcRuleset>(active);
-  const shown = { ...(draft.id === active.id ? draft : active), banMode: (draft.id === active.id ? draft : active).banMode || "fixed", bansByGames: (draft.id === active.id ? draft : active).bansByGames || "3:3,5:2" };
+  const saved = fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? null;
+  const [draft, setDraft] = useState<FgcRuleset>(saved ?? blankRuleset());
+  const shown = { ...draft, banMode: draft.banMode || "fixed", bansByGames: draft.bansByGames || "3:3,5:2" };
   const [selected, setSelected] = useState("");
   const [presetId, setPresetId] = useState("");
   const [filter, setFilter] = useState("All stages");
@@ -78,24 +78,27 @@ export function FgcRulesetEditor() {
 
   const applyPreset = (id: string) => {
     const preset = forThisGame.find((item) => String(item.id) === id);
-    if (!preset || !library) return;
+    if (!preset) return;
     const flags = preset.settings?.additionalFlags ?? {};
     const byGames = flags.banCountByMaxGames && typeof flags.banCountByMaxGames === "object" ? flags.banCountByMaxGames : null;
+    const next: FgcRuleset = {
+      ...blankRuleset(),
+      name: preset.name,
+      game: library?.game || "",
+      strikeOrder: preset.settings?.strikeOrder?.length ? preset.settings.strikeOrder : [1, 2, 1],
+      dsr: flags.useMDSR ? "mdsr" : flags.useDSR || flags.useGenesisDSR ? "dsr" : "none",
+      banMode: byGames ? "byGames" : "fixed",
+      banCount: Number(flags.banCount) || 0,
+      bansByGames: byGames ? Object.entries(byGames).map(([games, bans]) => `${games}:${bans}`).join(",") : "3:3,5:2",
+    };
+    setDraft(next);
+    setPresetId(id);
+    selectRuleset(null);
+    if (!library?.code) return;
+    const known = (name: string) => stages.find((stage) => stage.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0)?.name || name;
     void stageNames(library.code, preset.settings?.stages?.neutral).then(async (neutral) => {
       const counter = await stageNames(library.code, preset.settings?.stages?.counterpick);
-      setDraft({
-        ...blankRuleset(),
-        name: preset.name,
-        game: library.game,
-        neutralStages: neutral,
-        counterpickStages: counter,
-        strikeOrder: preset.settings?.strikeOrder?.length ? preset.settings.strikeOrder : [1, 2, 1],
-        dsr: flags.useMDSR ? "mdsr" : flags.useDSR || flags.useGenesisDSR ? "dsr" : "none",
-        banMode: byGames ? "byGames" : "fixed",
-        banCount: Number(flags.banCount) || 0,
-        bansByGames: byGames ? Object.entries(byGames).map(([games, bans]) => `${games}:${bans}`).join(",") : shown.bansByGames,
-      });
-      selectRuleset(null);
+      setDraft({ ...next, neutralStages: neutral.map(known), counterpickStages: counter.map(known) });
     });
   };
 
@@ -131,10 +134,7 @@ export function FgcRulesetEditor() {
           <select
             value={presetId}
             disabled={!forThisGame.length}
-            onChange={(e) => {
-              setPresetId("");
-              applyPreset(e.target.value);
-            }}
+            onChange={(e) => applyPreset(e.target.value)}
             className="h-10 w-full rounded-md border border-border bg-surface-2 px-3 text-sm"
           >
             <option value="">{forThisGame.length ? "start.gg presets for this game" : library ? "No presets for this game" : "Download the game library first"}</option>
