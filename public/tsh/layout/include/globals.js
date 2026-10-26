@@ -210,9 +210,7 @@ async function LoadEverything() {
     "socket.io.min.js",
   ];
 
-  if (tshPreviewMode()) {
-    scripts = scripts.filter((name) => !/kuroshiro|socket\.io/.test(name));
-  }
+  scripts = scripts.filter((name) => !/kuroshiro|socket\.io/.test(name));
   const urlParams = new URLSearchParams(window.location.search);
   window.scoreboardNumber = 1;
 
@@ -263,6 +261,13 @@ async function InitAll() {
     await UpdateData();
   }, 500);
   await UpdateData();
+  // The layout file assigns Update only after LoadEverything finishes.
+  // Paint again once that function exists, or the first read is thrown away.
+  setTimeout(() => {
+    tshPainted = false;
+    if (window.gsap) gsap.globalTimeline.timeScale(0);
+    UpdateData();
+  }, 0);
 
   try {
     await LoadKuroshiro();
