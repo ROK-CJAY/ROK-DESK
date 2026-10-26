@@ -45,8 +45,11 @@ var Update = async (event) => {
   console.log("Update(): Implement me");
 };
 
+var tshPainted = false;
+
 // Wrapper for the update call
 async function UpdateWrapper(event) {
+  tshPainted = true;
   try {
     await Update(event);
   } catch (e) {
@@ -89,7 +92,7 @@ async function UpdateData() {
     oldData = data;
     data = await getData();
 
-    if (data.timestamp === oldData.timestamp) {
+    if (tshPainted && data.timestamp === oldData.timestamp) {
       return;
     }
 
@@ -253,6 +256,9 @@ async function InitAll() {
     GetLogoColors();
   }
 
+  document.addEventListener("tsh_update", UpdateWrapper);
+  if (window.gsap) gsap.globalTimeline.timeScale(0);
+
   setInterval(async () => {
     await UpdateData();
   }, 500);
@@ -269,9 +275,6 @@ async function InitAll() {
   $(document).ready(() => {
     console.log("== Init complete ==");
     document.dispatchEvent(new CustomEvent("tsh_init"));
-
-    document.addEventListener("tsh_update", UpdateWrapper);
-    gsap.globalTimeline.timeScale(0);
 
     // Set up listener to regrab data and rerun intro animations on OBS scene switch
     initOnBrowserActive(
@@ -496,7 +499,7 @@ async function Transcript(text) {
     romajiSystem: "nippon",
   });
 
-  if (text == null || text.length == 0 || !settings.enabled) return text;
+  if (text == null || text.length == 0 || !settings.enabled || !window.Kuroshiro) return text;
 
   try {
     if (window.Kuroshiro.default.Util.hasJapanese(text)) {
