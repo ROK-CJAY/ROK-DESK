@@ -85,6 +85,18 @@ async function UpdateWrapper(event) {
   }
 }
 
+function applyTournamentLogo(program) {
+  var icon = program && program.tournamentInfo && program.tournamentInfo.logo;
+  if (!icon) return;
+  var image = 'url("' + String(icon).replace(/"/g, "%22") + '")';
+  var nodes = document.querySelectorAll(".logo, img.tournament_logo");
+  for (var i = 0; i < nodes.length; i += 1) {
+    var el = nodes[i];
+    if (el.tagName === "IMG") el.src = icon;
+    else el.style.backgroundImage = image;
+  }
+}
+
 // Gets current program state,
 // Dispatch "tsh_update" event if data has changed
 // This function is called in a high frequency
@@ -92,6 +104,7 @@ async function UpdateData() {
   try {
     oldData = data;
     data = await getData();
+    applyTournamentLogo(data);
 
     if (tshPainted && data.timestamp === oldData.timestamp) {
       return;
@@ -376,7 +389,7 @@ function deskProgram() {
     }
     if (!library && libraries.length) library = libraries[0];
     var body = {
-      tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "" },
+      tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "", logo: event.icon || "" },
       game: { name: event.game || "", codename: (library && library.code) || "" },
       score: {
         "1": {

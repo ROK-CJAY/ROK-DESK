@@ -117,6 +117,7 @@ export function programState(fgc: FgcState, preview = false) {
     tournamentInfo: {
       tournamentName: fgc.event?.tournamentName || "",
       eventName: fgc.event?.name || "",
+      logo: fgc.event?.icon || "",
     },
     game: {
       name: fgc.event?.game || library?.game || "",

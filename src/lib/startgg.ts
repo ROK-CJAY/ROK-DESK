@@ -63,7 +63,7 @@ const EVENT_QUERY = `
       id
       name
       slug
-      tournament { name slug venueAddress startAt endAt numAttendees streamQueue { stream { streamName } sets { id } } }
+      tournament { name slug venueAddress startAt endAt numAttendees images { url type } streamQueue { stream { streamName } sets { id } } }
       numEntrants
       startAt
       endAt
@@ -131,7 +131,7 @@ type RawEvent = {
     id: string;
     name: string;
     slug: string;
-    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null; streamQueue?: { stream?: { streamName?: string | null } | null; sets?: { id: string }[] | null }[] | null } | null;
+    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null; images?: { url?: string | null; type?: string | null }[] | null; streamQueue?: { stream?: { streamName?: string | null } | null; sets?: { id: string }[] | null }[] | null } | null;
     numEntrants?: number | null;
     startAt?: number | null;
     endAt?: number | null;
@@ -390,7 +390,7 @@ export async function importStartggEvent(url: string, token?: string): Promise<{
       url: `https://www.start.gg/${slug}`,
       venue: event.tournament?.venueAddress?.trim() || "",
       shortLink: event.tournament?.slug?.split("/").pop() || "",
-      icon: "",
+      icon: event.tournament?.images?.find((image) => image.type === "profile")?.url || event.tournament?.images?.find((image) => image.url)?.url || "",
       ruleset: "",
       entrants: event.numEntrants ?? event.tournament?.numAttendees ?? 0,
       startAt: when(event.startAt ?? event.tournament?.startAt),
