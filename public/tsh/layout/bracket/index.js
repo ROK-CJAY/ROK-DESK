@@ -3,8 +3,8 @@ LoadEverything().then(() => {
 
   let startingAnimation = gsap.timeline({ paused: true });
 
-  Start = async (event) => {
-    startingAnimation.restart();
+  Start = async () => {
+    document.body.style.opacity = "1";
   };
 
   var entryAnim = gsap.timeline();
@@ -112,13 +112,14 @@ LoadEverything().then(() => {
   }
 
   Update = async (event) => {
+    document.body.style.opacity = "1";
     let data = event.data;
-    let oldData = event.oldData;
+    if (!data || !data.bracket || !data.bracket.bracket) return;
+    let oldData = event.oldData || {};
 
     if (
-      !oldData.bracket || !oldData ||
-      JSON.stringify(data.bracket) !=
-        JSON.stringify(oldData.bracket)
+      !oldData.bracket ||
+      JSON.stringify(data.bracket) != JSON.stringify(oldData.bracket)
     ) {
       let bracket = data.bracket.bracket.rounds;
       let players = data.bracket.players.slot;
@@ -466,30 +467,14 @@ LoadEverything().then(() => {
 
             animations[roundKey][setIndex] = anim;
             anim.pause();
-
-            entryAnim.add(
-              AnimateElement(roundKey, setIndex, set, bracket, progressionsOut),
-              0
-            );
           });
         });
 
-        entryAnim.progress(1);
-        Object.values(animations).forEach((round) => {
-          Object.values(round).forEach((anim) => anim.progress(1));
-        });
+        if (window.gsap) gsap.set(".slot, .round_name, .player, .name, .score", { autoAlpha: 1, x: 0, opacity: 1, visibility: "visible" });
+        document.body.style.opacity = "1";
       }
 
-      // TRIGGER ANIMATIONS
-      if (entryAnim && entryAnim.progress() >= 1) {
-        Object.entries(bracket).forEach(function ([roundKey, round], r) {
-          Object.values(round.sets).forEach((set, setIndex) => {
-            AnimateElement(roundKey, setIndex, set, bracket, progressionsOut);
-          });
-        });
-      }
-
-      // UPDATE SCORES
+      // The replay used to hide every match and fade them back in one at a time.
       Object.entries(bracket).forEach(function ([roundKey, round], r) {
         if (parseInt(roundKey) < 0) {
           baseClass = "losers_container";
@@ -615,7 +600,7 @@ LoadEverything().then(() => {
                   : ""
               );
 
-              await CharacterDisplay(
+              CharacterDisplay(
                 $(element).find(`.character_container`),
                 {
                   source: `bracket.players.slot.${pid}`,
@@ -683,7 +668,7 @@ LoadEverything().then(() => {
               SetInnerHtml($(element).find(`.flagcountry`), "");
               SetInnerHtml($(element).find(`.flagstate`), "");
 
-              await CharacterDisplay(
+              CharacterDisplay(
                 $(element).find(`.character_container`),
                 {
                   slice_character: [0, 1],

@@ -79,6 +79,11 @@ export const Route = createFileRoute("/api/startgg")({
             const icons = await stockIcons(body.game ?? "", body.gameId, token);
             return Response.json({ icons });
           }
+          if (body.action === "standings") {
+            if (!body.eventId) return Response.json({ error: "Import the event first" }, { status: 400 });
+            const standings = await eventStandings(body.eventId, body.count ?? 8, token);
+            return Response.json({ standings });
+          }
           const url = body.url?.trim() ?? "";
           if (!url) return Response.json({ error: "Paste a start.gg event link" }, { status: 400 });
           if (body.action === "stream") {
@@ -88,11 +93,6 @@ export const Route = createFileRoute("/api/startgg")({
           if (body.action === "icon") {
             const icon = await tournamentIcon(url, token);
             return Response.json({ icon });
-          }
-          if (body.action === "standings") {
-            if (!body.eventId) return Response.json({ error: "Import the event first" }, { status: 400 });
-            const standings = await eventStandings(body.eventId, body.count ?? 8, token);
-            return Response.json({ standings });
           }
           const imported = await importStartggEvent(url, token);
           return Response.json(imported);
