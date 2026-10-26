@@ -1,6 +1,6 @@
 # ROK Desk
 
-**v1.4.8** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+**v1.5.0** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
 ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
@@ -345,7 +345,7 @@ Both default to `00:00`. Type the round length, then start. Add or remove time w
 
 For stores and stream PCs — **no terminal**.
 
-1. Download **v1.4.8** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.4.8) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). Installs already on v1.4.7 pick this up as an update. The Android APK from v1.3.1-beta is unchanged.
+1. Download **v1.5.0** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.5.0) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). Installs already on v1.4.8 pick this up as an update. The Android APK from v1.3.1-beta is unchanged.
 2. Pick **ROK-Desk** for your OS:
    - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
    - macOS: `.dmg` (unsigned — right-click → Open the first time)
@@ -414,6 +414,14 @@ This copy also appears on Home and behind **License** in the desk header. It is 
 
 
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
+
+### v1.5.0 — 26 Oct 2026 · FGC
+
+**Added**
+- Home opens into TCG/VGC or FGC. FGC Production is the stream desk. FGC Tournament is the start.gg organizer desk.
+- A TO signs in with their own start.gg account and runs the bracket: stations, streams, call clocks, scores, and DQs.
+- Production imports the event or a set can be typed in. Player list, bracket tree, ruleset presets, and stage strike follow the scoreboard match.
+- TSH scoreboards, versus, bracket, and top 8 are browser sources. A layout can also be built from layers or imported from a PSD.
 
 ### v1.4.8 — 21 Oct 2026 · Lorcana Play Hub
 
@@ -777,4 +785,4 @@ Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release form
 
 Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
 
-This build is **v1.4.8**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. Expect polish.
+This build is **v1.5.0**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. FGC is 1.5. Expect polish.

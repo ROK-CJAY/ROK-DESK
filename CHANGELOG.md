@@ -4,6 +4,21 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.0 — 2026-10-26
+
+### Added
+
+- **FGC desk** — Home opens into TCG/VGC or FGC. FGC Production is the stream desk. FGC Tournament is the start.gg organizer desk.
+- **start.gg login** — a TO signs in with their own account. The app secret stays on the server. Upcoming events they can run are listed by date.
+- **TO desk** — the bracket, stations under it, call a set to a station or a stream, call and start clocks, report the score, DQ, characters, and the stage. The bracket refreshes while the event is live.
+- **Production** — import a start.gg event or type a set in. Player list, bracket tree, and a scoreboard with team names, a losers mark, and characters. The last character and skin stay with that start.gg profile.
+- **Rulesets** — start.gg presets for the game that is loaded. Stage strike follows the match on the scoreboard: rock-paper-scissors, bans, report the game, counterpicks, then send a finished best-of to start.gg.
+- **Overlays** — TSH scoreboards, versus, bracket, and top 8, plus a layer editor that can import a PSD. Each layout has a browser-source link for OBS or vMix.
+
+### Fixed
+
+- The bracket graphic draws on the first load instead of staying blank.
+
 ## v1.4.8 — 2026-10-21
 
 ### Added
