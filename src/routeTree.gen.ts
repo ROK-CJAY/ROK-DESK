@@ -18,6 +18,7 @@ import { Route as PodRouteImport } from './routes/pod'
 import { Route as ProductionRouteImport } from './routes/production'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TabletRouteImport } from './routes/tablet'
+import { Route as TcgRouteImport } from './routes/tcg'
 import { Route as TournamentRouteImport } from './routes/tournament'
 import { Route as GameSignupRouteImport } from './routes/$game/signup'
 import { Route as GameTabletRouteImport } from './routes/$game/tablet'
@@ -125,6 +126,11 @@ const SignupRoute = SignupRouteImport.update({
 const TabletRoute = TabletRouteImport.update({
   id: '/tablet',
   path: '/tablet',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TcgRoute = TcgRouteImport.update({
+  id: '/tcg',
+  path: '/tcg',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TournamentRoute = TournamentRouteImport.update({
@@ -455,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/production': typeof ProductionRoute
   '/signup': typeof SignupRoute
   '/tablet': typeof TabletRoute
+  '/tcg': typeof TcgRoute
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/$game/tablet': typeof GameTabletRoute
@@ -527,6 +534,7 @@ export interface FileRoutesByTo {
   '/production': typeof ProductionRoute
   '/signup': typeof SignupRoute
   '/tablet': typeof TabletRoute
+  '/tcg': typeof TcgRoute
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/$game/tablet': typeof GameTabletRoute
@@ -602,6 +610,7 @@ export interface FileRoutesById {
   '/production': typeof ProductionRoute
   '/signup': typeof SignupRoute
   '/tablet': typeof TabletRoute
+  '/tcg': typeof TcgRoute
   '/tournament': typeof TournamentRoute
   '/$game/signup': typeof GameSignupRoute
   '/$game/tablet': typeof GameTabletRoute
@@ -678,6 +687,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/signup'
     | '/tablet'
+    | '/tcg'
     | '/tournament'
     | '/$game/signup'
     | '/$game/tablet'
@@ -750,6 +760,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/signup'
     | '/tablet'
+    | '/tcg'
     | '/tournament'
     | '/$game/signup'
     | '/$game/tablet'
@@ -824,6 +835,7 @@ export interface FileRouteTypes {
     | '/production'
     | '/signup'
     | '/tablet'
+    | '/tcg'
     | '/tournament'
     | '/$game/signup'
     | '/$game/tablet'
@@ -899,6 +911,7 @@ export interface RootRouteChildren {
   ProductionRoute: typeof ProductionRoute
   SignupRoute: typeof SignupRoute
   TabletRoute: typeof TabletRoute
+  TcgRoute: typeof TcgRoute
   TournamentRoute: typeof TournamentRoute
   GameSignupRoute: typeof GameSignupRoute
   GameTabletRoute: typeof GameTabletRoute
@@ -997,6 +1010,13 @@ declare module '@tanstack/react-router' {
       path: '/tablet'
       fullPath: '/tablet'
       preLoaderRoute: typeof TabletRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tcg': {
+      id: '/tcg'
+      path: '/tcg'
+      fullPath: '/tcg'
+      preLoaderRoute: typeof TcgRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/tournament': {
@@ -1551,6 +1571,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductionRoute: ProductionRoute,
   SignupRoute: SignupRoute,
   TabletRoute: TabletRoute,
+  TcgRoute: TcgRoute,
   TournamentRoute: TournamentRoute,
   GameSignupRoute: GameSignupRoute,
   GameTabletRoute: GameTabletRoute,
