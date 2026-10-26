@@ -212,7 +212,16 @@ body {
 }
 
 .score, .phase, .match, .best_of {
-  -webkit-text-stroke: 4px var(--bg-color);
+  -webkit-text-stroke: 0;
+  paint-order: stroke fill;
+}
+
+.phase .text,
+.match .text,
+.best_of .text,
+.score > .text {
+  height: auto;
+  min-height: 1.1em;
 }
 
 .flagname {
