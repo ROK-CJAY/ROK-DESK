@@ -25,6 +25,7 @@ function tshAsset(asset) {
 // Global variable containing previous data red from out/program_state.json
 // Used for comparing what changed since last update
 var oldData = {};
+var tshFitting = false;
 
 // Global variable that tracks the max delta index that has been applied.
 // Used as a failsafe to prevent stale state-changes from being processed.
