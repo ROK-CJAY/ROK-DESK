@@ -197,10 +197,18 @@ LoadEverything().then(() => {
         autoAlpha: 0,
       },
       0
-    )
+    );
+
+  startingAnimation.progress(1).pause();
 
   Start = async () => {
-    startingAnimation.restart();
+    if (!window.gsap) return;
+    gsap.killTweensOf(document.body);
+    gsap.fromTo(
+      document.body,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.45, ease: "power2.out", overwrite: true }
+    );
   };
 
   Update = async (event) => {

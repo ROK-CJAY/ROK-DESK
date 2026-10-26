@@ -65,10 +65,7 @@ async function UpdateWrapper(event) {
     const reveal = () => {
       if (revealed) return;
       revealed = true;
-      $("body").fadeTo(1, 1, () => {
-        console.log("Start()");
-        Start();
-      });
+      Start();
     };
     window.requestAnimationFrame(() => {
       const timer = setTimeout(reveal, 1200);
@@ -278,8 +275,6 @@ async function InitAll() {
   // The layout file assigns Update only after LoadEverything finishes.
   // Paint again once that function exists, or the first read is thrown away.
   setTimeout(() => {
-    tshPainted = false;
-    if (window.gsap) gsap.globalTimeline.timeScale(0);
     UpdateData();
   }, 0);
 

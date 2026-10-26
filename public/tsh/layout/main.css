@@ -224,13 +224,15 @@ img {
   --p2-score-color: #ffffff;
 } */
 
-/* ROK: these layouts start hidden and only fade in after TSH's scripts finish.
-   Show the HTML and CSS immediately for OBS. */
+/* Let the scoreboard fade in. Forcing opacity here made the intro jump. */
 html, body,
 .fade, .fade_left, .fade_right, .fade_down, .fade_up,
 .fade_right_stagger, .fade_right_stagger2,
 .anim_container_outer, .anim_container_inner,
 .player.container, .info, .plane, .stage {
-  opacity: 1 !important;
   visibility: visible !important;
+}
+
+body {
+  filter: none !important;
 }
