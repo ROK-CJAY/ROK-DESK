@@ -410,7 +410,7 @@ LoadEverything().then(() => {
       stage
         ? `
         <div>
-            <div class='' style="background-image: url('../../${stage.path}');">
+            <div class='' style="background-image: url('${tshAsset(stage.path)}');">
             </div>
         </div>`
         : ""

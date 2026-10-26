@@ -20,5 +20,6 @@ LoadEverything().then(() => {
       },
       event
     );
+    if (window.gsap) gsap.set(".tsh_character, .container img, .container", { autoAlpha: 1, opacity: 1 });
   };
 });

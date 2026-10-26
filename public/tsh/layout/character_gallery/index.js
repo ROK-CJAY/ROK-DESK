@@ -33,6 +33,7 @@ LoadEverything().then(() => {
       event
     ).then(() => {
       imgs = $.makeArray($(".tsh_character"));
+      if (!imgs.length) return;
 
       // Set all imgs opacity to 0
       for (let img of imgs) {

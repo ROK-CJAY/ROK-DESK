@@ -421,7 +421,7 @@ Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
 - Home opens into TCG/VGC or FGC. FGC Production is the stream desk. FGC Tournament is the start.gg organizer desk.
 - A TO signs in with their own start.gg account and runs the bracket: stations, streams, call clocks, scores, and DQs.
 - Production imports the event or a set can be typed in. Player list, bracket tree, ruleset presets, and stage strike follow the scoreboard match.
-- TSH scoreboards, versus, bracket, and top 8 are browser sources. A layout can also be built from layers or imported from a PSD.
+- TSH scoreboards, versus, bracket, and top 8 are browser sources. A layout can also be built from layers or imported from a PSD. The live set includes the ruleset, stage icons, commentary, and bracket rounds those layouts draw.
 
 ### v1.4.8 — 21 Oct 2026 · Lorcana Play Hub
 

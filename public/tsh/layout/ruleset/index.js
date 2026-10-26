@@ -14,7 +14,7 @@ LoadEverything().then(() => {
       data.score.ruleset.neutralStages.forEach((stage) => {
         html += `
             <div class="stage-container">
-                <div class="stage-icon" style="background-image: url('../../${stage.path}')">
+                <div class="stage-icon" style="background-image: url('${tshAsset(stage.path)}')">
                 </div>
                 <div class="stage-name">
                     <div class="text">
@@ -35,7 +35,7 @@ LoadEverything().then(() => {
       data.score.ruleset.counterpickStages.forEach((stage) => {
         html += `
             <div class="stage-container">
-                <div class="stage-icon" style="background-image: url('../../${stage.path}')">
+                <div class="stage-icon" style="background-image: url('${tshAsset(stage.path)}')">
                 </div>
                 <div class="stage-name">
                     <div class="text">

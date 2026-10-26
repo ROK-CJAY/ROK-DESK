@@ -18,6 +18,7 @@ The project follows [Semantic Versioning](https://semver.org/). Desktop installe
 ### Fixed
 
 - The bracket graphic draws on the first load instead of staying blank.
+- TSH overlays get the ruleset, stage icons, recent sets, commentary, and bracket rounds they were waiting on. Stage art uses the asset address instead of a relative path. The Ultimate bracket draws losers rounds instead of hiding them behind a broken class name.
 
 ## v1.4.8 — 2026-10-21
 

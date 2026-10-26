@@ -1,4 +1,10 @@
 LoadEverything().then(() => {
+  function roundClass(key) {
+    var n = parseInt(key, 10);
+    if (!(n < 0)) return String(n);
+    return "l" + Math.abs(n);
+  }
+
   var MIDDLE_SPACE = 100;
   if (!window.USE_ONLINE_PICTURE) {
     window.USE_ONLINE_PICTURE = false;
@@ -202,7 +208,7 @@ LoadEverything().then(() => {
         Object.entries(winnersRounds)
           .slice(0, -2)
           .forEach(([roundKey, round], r) => {
-            html += `<div class="round round_${roundKey}">`;
+            html += `<div class="round round_${roundClass(roundKey)}">`;
             html += `<div class="round_name"></div>`;
             Object.values(round.sets).forEach((slot, i) => {
               html += `<div class="slot_${
@@ -230,7 +236,7 @@ LoadEverything().then(() => {
         Object.entries(losersRounds)
           .reverse()
           .forEach(([roundKey, round], r) => {
-            html += `<div class="round round_${roundKey}">`;
+            html += `<div class="round round_${roundClass(roundKey)}">`;
             html += `<div class="round_name"></div>`;
             Object.values(round.sets).forEach((slot, i) => {
               if (r % 2 == 1) {
@@ -304,9 +310,9 @@ LoadEverything().then(() => {
         // Center area
         html = "";
 
-        html += `<div class="round round_${
+        html += `<div class="round round_${roundClass(
           Object.keys(winnersRounds).reverse()[1]
-        }">`;
+        )}">`;
         html += `<div class="round_name"></div>`;
         html += `<div class="slot_1" style="width: 32px; height: 32px; align-self: center;"></div>`;
         html += "</div>";
@@ -384,13 +390,13 @@ LoadEverything().then(() => {
                 )
               ) {
                 let slotElement = $(
-                  `.${this.baseClass} .round_${roundKey} .slot_${setIndex + 1}`
+                  `.${this.baseClass} .round_${roundClass(roundKey)} .slot_${setIndex + 1}`
                 );
 
                 if (!slotElement || !slotElement.offset()) return;
 
                 let winElement = $(
-                  `.${this.baseClass} .round_${set.nextWin[0]} .slot_${
+                  `.${this.baseClass} .round_${roundClass(set.nextWin[0])} .slot_${
                     set.nextWin[1] + 1
                   }`
                 );
@@ -427,7 +433,7 @@ LoadEverything().then(() => {
                     ];
 
                     slotLines += GetBracketLineHtml(
-                      `${this.baseClass} line_base_r_${roundKey} s_${
+                      `${this.baseClass} line_base_r_${roundClass(roundKey)} s_${
                         setIndex + 1
                       } p_${index}`,
                       points,
@@ -435,7 +441,7 @@ LoadEverything().then(() => {
                     );
 
                     slotLinesW += GetLineHtml(
-                      `${this.baseClass} line_base_r_${roundKey} s_${
+                      `${this.baseClass} line_base_r_${roundClass(roundKey)} s_${
                         setIndex + 1
                       } p_${index} base`,
                       [points[0], [points[1][0], points[0][1]]],
@@ -444,7 +450,7 @@ LoadEverything().then(() => {
                     );
 
                     slotLinesW += GetLineHtml(
-                      `${this.baseClass} line_base_r_${roundKey} s_${
+                      `${this.baseClass} line_base_r_${roundClass(roundKey)} s_${
                         setIndex + 1
                       } p_${index} win`,
                       [[points[1][0], points[0][1]], points[1]],
@@ -480,13 +486,13 @@ LoadEverything().then(() => {
                   }
 
                   slotLines += GetBracketLineHtml(
-                    `${this.baseClass} line_r_${roundKey} s_${setIndex + 1}`,
+                    `${this.baseClass} line_r_${roundClass(roundKey)} s_${setIndex + 1}`,
                     points,
                     "gray"
                   );
 
                   slotLinesW += GetBracketLineHtml(
-                    `${this.baseClass} line_r_${parseInt(roundKey) + 1} s_${
+                    `${this.baseClass} line_r_${roundClass(parseInt(roundKey) + 1)} s_${
                       setIndex + 1
                     } base`,
                     [points[0], [points[1][0], points[0][1]]],
@@ -495,7 +501,7 @@ LoadEverything().then(() => {
                   );
 
                   slotLinesW += GetBracketLineHtml(
-                    `${this.baseClass} line_r_${parseInt(roundKey) + 1} s_${
+                    `${this.baseClass} line_r_${roundClass(parseInt(roundKey) + 1)} s_${
                       setIndex + 1
                     } win`,
                     [[points[1][0], points[0][1]], points[1]],
@@ -513,7 +519,7 @@ LoadEverything().then(() => {
                       Object.keys(losersRounds).length % 2 == 1)
                   ) {
                     let hangingElement = $(
-                      `.${this.baseClass} .round_${roundKey} .slot_hanging_${
+                      `.${this.baseClass} .round_${roundClass(roundKey)} .slot_hanging_${
                         setIndex + 1
                       }`
                     );
@@ -540,7 +546,7 @@ LoadEverything().then(() => {
                       ];
 
                       slotLines += GetBracketLineHtml(
-                        `${this.baseClass} line_r_${roundKey} s_${
+                        `${this.baseClass} line_r_${roundClass(roundKey)} s_${
                           setIndex + 1
                         }`,
                         points,
@@ -548,7 +554,7 @@ LoadEverything().then(() => {
                       );
 
                       slotLinesW += GetBracketLineHtml(
-                        `${this.baseClass} line_r_${parseInt(roundKey) - 1} s_${
+                        `${this.baseClass} line_r_${roundClass(parseInt(roundKey) - 1)} s_${
                           setIndex + 1
                         } p_${0} base`,
                         [points[0], [points[1][0], points[0][1]]],
@@ -557,7 +563,7 @@ LoadEverything().then(() => {
                       );
 
                       slotLinesW += GetBracketLineHtml(
-                        `${this.baseClass} line_r_${parseInt(roundKey) - 1} s_${
+                        `${this.baseClass} line_r_${roundClass(parseInt(roundKey) - 1)} s_${
                           setIndex + 1
                         } p_${0} win`,
                         [[points[1][0], points[0][1]], points[1]],
@@ -589,7 +595,7 @@ LoadEverything().then(() => {
                     }
 
                     slotLines += GetBracketLineHtml(
-                      `${this.baseClass} line_r_${roundKey} s_${setIndex + 1}`,
+                      `${this.baseClass} line_r_${roundClass(roundKey)} s_${setIndex + 1}`,
                       points,
                       "gray"
                     );
@@ -626,18 +632,18 @@ LoadEverything().then(() => {
                     }
 
                     slotLinesW += GetBracketLineHtml(
-                      `${this.baseClass} line_r_${
+                      `${this.baseClass} line_r_${roundClass(
                         parseInt(roundKey) - 1
-                      } s_${s} p_${p} base`,
+                      )} s_${s} p_${p} base`,
                       [points[0], [points[1][0], points[0][1]]],
                       "yellow",
                       true
                     );
 
                     slotLinesW += GetBracketLineHtml(
-                      `${this.baseClass} line_r_${
+                      `${this.baseClass} line_r_${roundClass(
                         parseInt(roundKey) - 1
-                      } s_${s} p_${p} win`,
+                      )} s_${s} p_${p} win`,
                       [[points[1][0], points[0][1]], points[1]],
                       "yellow",
                       true
@@ -727,7 +733,7 @@ LoadEverything().then(() => {
                           icon_anim.add(
                             AnimateLine(
                               $(
-                                `.lines.win .winners_container.line_base_r_${roundKey}.s_${
+                                `.lines.win .winners_container.line_base_r_${roundClass(roundKey)}.s_${
                                   i + 1
                                 }.p_${slotIndex}.base`
                               )
@@ -736,12 +742,12 @@ LoadEverything().then(() => {
                           );
                         }
 
-                        let setElement = $(`.round_${roundKey} .slot_${i + 1}`);
+                        let setElement = $(`.round_${roundClass(roundKey)} .slot_${i + 1}`);
 
                         icon_anim.add(
                           AnimateLine(
                             $(
-                              `.lines.win .winners_container.line_r_${roundKey}.s_${
+                              `.lines.win .winners_container.line_r_${roundClass(roundKey)}.s_${
                                 2 * i + 1 + slotIndex
                               }.base`
                             )
@@ -763,14 +769,14 @@ LoadEverything().then(() => {
                             "<"
                           );
 
-                          icon_anim.addLabel(`round_${roundKey}`, "<+=0.4");
+                          icon_anim.addLabel(`round_${roundClass(roundKey)}`, "<+=0.4");
 
                           // Animation if won
                           if (roundKey == "1") {
                             icon_anim.add(
                               AnimateLine(
                                 $(
-                                  `.lines.win .winners_container.line_base_r_${roundKey}.s_${
+                                  `.lines.win .winners_container.line_base_r_${roundClass(roundKey)}.s_${
                                     i + 1
                                   }.p_${slotIndex}.win`
                                 )
@@ -781,7 +787,7 @@ LoadEverything().then(() => {
                             icon_anim.add(
                               AnimateLine(
                                 $(
-                                  `.lines.win .winners_container.line_r_${roundKey}.s_${
+                                  `.lines.win .winners_container.line_r_${roundClass(roundKey)}.s_${
                                     2 * i + 1 + slotIndex
                                   }.win`
                                 )
@@ -905,7 +911,7 @@ LoadEverything().then(() => {
                       icon_anim.add(
                         AnimateLine(
                           $(
-                            `.lines.win .losers_container.line_base_r_${roundKey}.s_${
+                            `.lines.win .losers_container.line_base_r_${roundClass(roundKey)}.s_${
                               i + 1
                             }.p_${slotIndex}.base`
                           )
@@ -913,10 +919,10 @@ LoadEverything().then(() => {
                         "<"
                       );
 
-                      // icon_anim.addLabel(`round_${roundKey}`);
+                      // icon_anim.addLabel(`round_${roundClass(roundKey)}`);
                     } else if (!found) {
                       let setElement = $(
-                        `.round_${parseInt(roundKey) + 1} .slot_hanging_${
+                        `.round_${roundClass(parseInt(roundKey) + 1)} .slot_hanging_${
                           i + 1
                         }`
                       );
@@ -947,23 +953,21 @@ LoadEverything().then(() => {
                       icon_anim.add(
                         AnimateLine(
                           $(
-                            `.lines.win .losers_container.line_r_${parseInt(
-                              roundKey
-                            )}.s_${i + 1}.p_${slotIndex}.base`
+                            `.lines.win .losers_container.line_r_${roundClass(roundKey)}.s_${i + 1}.p_${slotIndex}.base`
                           ),
                           "<"
                         )
                       );
 
-                      // icon_anim.addLabel(`round_${parseInt(roundKey)}`);
+                      // icon_anim.addLabel(`round_${roundClass(roundKey)}`);
                     }
 
-                    let setElement = $(`.round_${roundKey} .slot_${i + 1}`);
+                    let setElement = $(`.round_${roundClass(roundKey)} .slot_${i + 1}`);
 
                     icon_anim.add(
                       AnimateLine(
                         $(
-                          `.lines.win .losers_container.line_r_${roundKey}.s_${
+                          `.lines.win .losers_container.line_r_${roundClass(roundKey)}.s_${
                             i + 1
                           }.p_${slotIndex}.base`
                         )
@@ -981,14 +985,14 @@ LoadEverything().then(() => {
                         "<"
                       );
 
-                      icon_anim.addLabel(`round_${roundKey}`);
+                      icon_anim.addLabel(`round_${roundClass(roundKey)}`);
 
                       // Animation if won
                       if (roundKey == "-1") {
                         icon_anim.add(
                           AnimateLine(
                             $(
-                              `.lines.win .losers_container.line_base_r_${-1}.s_${
+                              `.lines.win .losers_container.line_base_r_${roundClass(-1)}.s_${
                                 i + 1
                               }.p_${slotIndex}.win`
                             )
@@ -999,7 +1003,7 @@ LoadEverything().then(() => {
                         icon_anim.add(
                           AnimateLine(
                             $(
-                              `.lines.win .losers_container.line_r_${roundKey}.s_${
+                              `.lines.win .losers_container.line_r_${roundClass(roundKey)}.s_${
                                 i + 1
                               }.p_${slotIndex}.win`
                             )
@@ -1040,15 +1044,15 @@ LoadEverything().then(() => {
             icon_anim.add(
               AnimateLine(
                 $(
-                  `.lines.win .losers_container.line_r_${
+                  `.lines.win .losers_container.line_r_${roundClass(
                     lastLosersRoundNum - index - 1
-                  }.s_${1}.base`
+                  )}.s_${1}.base`
                 )
               ),
               ">"
             );
 
-            let setElement = $(`.round_${roundNum} .slot_${1}`);
+            let setElement = $(`.round_${roundClass(roundNum)} .slot_${1}`);
 
             if (setElement.get(0)) {
               icon_anim.to(
@@ -1061,15 +1065,15 @@ LoadEverything().then(() => {
               );
             }
 
-            icon_anim.addLabel(`round_${lastLosersRoundNum - index - 1}`);
+            icon_anim.addLabel(`round_${roundClass(lastLosersRoundNum - index - 1)}`);
 
             // Animation if won
             icon_anim.add(
               AnimateLine(
                 $(
-                  `.lines.win .losers_container.line_r_${
+                  `.lines.win .losers_container.line_r_${roundClass(
                     lastLosersRoundNum - index - 1
-                  }.s_${1}.win`
+                  )}.s_${1}.win`
                 )
               ),
               ">"
@@ -1098,8 +1102,9 @@ LoadEverything().then(() => {
         Object.keys(bracket).map((r) => parseInt(r))
       );
 
-      let gf = bracket[GfResetRoundNum - 1].sets[0];
-      let isReset = gf.score[0] < gf.score[1];
+      let gfRound = bracket[GfResetRoundNum - 1];
+      let gf = gfRound && gfRound.sets && gfRound.sets[0];
+      let isReset = !!(gf && gf.score && gf.score[0] < gf.score[1]);
 
       // UPDATE ROUND NAMES
       Object.entries(bracket).forEach(function ([roundKey, round], r) {
@@ -1112,7 +1117,7 @@ LoadEverything().then(() => {
             .join("");
         }
 
-        SetInnerHtml($(`.round_${parseInt(roundKey)} .round_name`), roundName);
+        SetInnerHtml($(`.round_${roundClass(roundKey)} .round_name`), roundName);
       });
 
       // UPDATE PLAYER DATA
@@ -1136,7 +1141,7 @@ LoadEverything().then(() => {
                 ).get(0);
               } else {
                 element = $(
-                  `.round_${parseInt(roundKey) + 1} .slot_hanging_${
+                  `.round_${roundClass(parseInt(roundKey) + 1)} .slot_hanging_${
                     parseInt(setIndex) + 1
                   }.slot_p_${index}`
                 ).get(0);
@@ -1145,14 +1150,12 @@ LoadEverything().then(() => {
 
             if (!element) continue;
 
-            let player = null;
-
-            if (players[pid]) team = players[pid];
+            let team = players[pid];
+            if (!team || !team.player) continue;
+            let player = team.player["1"] || null;
 
             if (Object.values(team.player).length == 1) {
               // SINGLES
-              let player = team.player["1"];
-
               SetInnerHtml(
                 $(element).find(`.name`),
                 `
@@ -1212,7 +1215,7 @@ LoadEverything().then(() => {
               SetInnerHtml($(element).find(`.flagstate`), "");
             }
 
-            await CharacterDisplay(
+            CharacterDisplay(
               $(element).find(`.character_container`),
               {
                 source: `bracket.players.slot.${pid}`,
@@ -1297,7 +1300,7 @@ LoadEverything().then(() => {
 
         for (const [playerId, player] of Object.entries(team.player)) {
           if (!USE_ONLINE_PICTURE) {
-            await CharacterDisplay(
+            CharacterDisplay(
               $(element).find(`.icon_image`),
               {
                 load_settings_path: "icon",
@@ -1375,7 +1378,7 @@ LoadEverything().then(() => {
             else playerLoseAnimW[t].reverse();
 
             if (lastFoundRound >= 1) {
-              iconAnimationsW[t].tweenTo(`round_${lastFoundRound}`, {
+              iconAnimationsW[t].tweenTo(`round_${roundClass(lastFoundRound)}`, {
                 delay: firstUpdate ? 0.6 : 0,
               });
             } else {
@@ -1503,9 +1506,10 @@ LoadEverything().then(() => {
 
               // Get GF and GF Reset
               if (lastFoundRound == lastLosersRoundNum) {
-                let gfSet = bracket[GfResetRoundNum - 1].sets[0];
+                let gfHolder = bracket[GfResetRoundNum - 1];
+                let gfSet = gfHolder && gfHolder.sets && gfHolder.sets[0];
 
-                if (gfSet.playerId[1] == teamId) {
+                if (gfSet && gfSet.playerId[1] == teamId) {
                   lastFoundRound = lastLosersRoundNum - 1;
                 }
               }
@@ -1513,11 +1517,11 @@ LoadEverything().then(() => {
               if (playerLoseAnimL.length > losersIconId) {
                 if (
                   iconAnimationsL[losersIconId].labels.hasOwnProperty(
-                    `round_${lastFoundRound}`
+                    `round_${roundClass(lastFoundRound)}`
                   )
                 ) {
                   iconAnimationsL[losersIconId].tweenTo(
-                    `round_${lastFoundRound}`,
+                    `round_${roundClass(lastFoundRound)}`,
                     {
                       delay: firstUpdate ? 0.6 * -firstFoundRound : 0,
                     }
@@ -1547,7 +1551,7 @@ LoadEverything().then(() => {
                 let charactersHtml = "";
 
                 if (!USE_ONLINE_PICTURE) {
-                  await CharacterDisplay(
+                  CharacterDisplay(
                     $(element).find(`.icon_image`),
                     {
                       load_settings_path: "icon",

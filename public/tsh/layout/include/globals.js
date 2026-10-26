@@ -491,6 +491,81 @@ function deskProgram() {
       });
       rounds[String(key)] = { name: (list[0] && list[0].round) || ("Round " + key), sets: setsBody };
     });
+    function recentFor(player) {
+      var tag = player && player.tag;
+      if (!tag) return {};
+      var mine = sets.filter(function (item) {
+        return item && item.state === "done" && ((item.p1 && item.p1.tag === tag) || (item.p2 && item.p2.tag === tag));
+      }).slice(-3);
+      var out = {};
+      mine.forEach(function (item, index) {
+        var first = item.p1 && item.p1.tag === tag;
+        var me = first ? item.p1 : item.p2;
+        var opp = first ? item.p2 : item.p1;
+        out[String(index)] = {
+          phase_name: item.phase || "",
+          phase_id: "",
+          round_name: item.round || "",
+          player_team: (me && me.prefix) || "",
+          player_name: (me && me.tag) || "",
+          player_score: first ? item.score1 || 0 : item.score2 || 0,
+          oponent_team: (opp && opp.prefix) || "",
+          oponent_name: (opp && opp.tag) || "",
+          oponent_score: first ? item.score2 || 0 : item.score1 || 0,
+          player_char: { character: characterOf(me) },
+          oponent_char: { character: characterOf(opp) },
+        };
+      });
+      return out;
+    }
+    function historyFor(player) {
+      var place = -1;
+      var slots = (fgc.roster && fgc.roster.slots) || [];
+      for (var i = 0; i < slots.length; i += 1) {
+        var people = slots[i].players || [];
+        if (people.some(function (item) { return item && player && item.tag && item.tag === player.tag; })) place = i;
+      }
+      return {
+        "0": {
+          tournament_name: event.tournamentName || event.name || "Tournament",
+          event_name: event.name || "",
+          tournament_picture: event.icon || "",
+          placement: place >= 0 ? place + 1 : "",
+          entrants: event.entrants || sets.length || "",
+        },
+      };
+    }
+    function stageCard(name) {
+      var stages = (library && library.stages) || [];
+      var found = null;
+      for (var i = 0; i < stages.length; i += 1) {
+        if (stages[i] && String(stages[i].name).toLowerCase() === String(name).toLowerCase()) found = stages[i];
+      }
+      var code = (found && found.code) || String(name).toLowerCase().replace(/[^a-z0-9]+/g, "");
+      var root = fgc.assetBase ? String(fgc.assetBase).replace(/\/$/, "") : "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
+      return { name: name, codename: code, path: library ? root + "/games/" + library.code + "/stage_icon/stage_2_" + code + ".png" : "" };
+    }
+    function queued(item) {
+      return {
+        match: item.round || "",
+        phase: item.phase || "",
+        station: item.station || "",
+        isCurrentEvent: true,
+        team: { "1": sideOf(item, "1"), "2": sideOf(item, "2") },
+      };
+    }
+    function sideOf(item, which) {
+      var player = which === "1" ? item.p1 : item.p2;
+      var partner = which === "1" ? item.p1b : item.p2b;
+      var players = { "1": person(player) };
+      if (partner && partner.tag) players["2"] = person(partner);
+      return {
+        score: which === "1" ? item.score1 || 0 : item.score2 || 0,
+        losers: which === "1" ? !!item.losers1 : !!item.losers2,
+        name: which === "1" ? item.teamName1 || "" : item.teamName2 || "",
+        player: players,
+      };
+    }
     var event = fgc.event || {};
     var library = null;
     var libraries = fgc.libraries || [];
@@ -498,6 +573,53 @@ function deskProgram() {
       if (libraries[g] && libraries[g].game === event.game) library = libraries[g];
     }
     if (!library && libraries.length) library = libraries[0];
+    function normalizeRounds(source) {
+      var keys = Object.keys(source).map(Number).filter(function (n) { return !isNaN(n); });
+      var winners = keys.filter(function (key) { return key > 0; }).sort(function (a, b) { return a - b; });
+      var losers = keys.filter(function (key) { return key < 0; }).sort(function (a, b) { return b - a; });
+      var map = {};
+      winners.forEach(function (key, index) { map[key] = index + 1; });
+      losers.forEach(function (key, index) { map[key] = -(index + 1); });
+      var shifted = {};
+      winners.concat(losers).forEach(function (key) {
+        var round = source[String(key)];
+        var nextSets = {};
+        Object.keys(round.sets).forEach(function (index) {
+          var item = round.sets[index];
+          var next = item.nextWin;
+          nextSets[index] = {
+            playerId: item.playerId,
+            score: item.score,
+            completed: item.completed,
+            nextWin: next && map[next[0]] != null ? [map[next[0]], next[1]] : null,
+          };
+        });
+        shifted[String(map[key])] = { name: round.name, sets: nextSets };
+      });
+      return shifted;
+    }
+    rounds = normalizeRounds(rounds);
+    var ruleset = null;
+    var savedRules = fgc.rulesets || [];
+    for (var r = 0; r < savedRules.length; r += 1) {
+      if (!ruleset || savedRules[r].id === fgc.activeRulesetId) ruleset = savedRules[r];
+    }
+    var neutralNames = (ruleset && ruleset.neutralStages && ruleset.neutralStages.length) ? ruleset.neutralStages : ((library && library.stages) || []).slice(0, 9).map(function (stage) { return stage.name; });
+    var queue = sets.filter(function (item) { return item && item.state !== "done" && ((item.p1 && item.p1.tag) || (item.p2 && item.p2.tag)); }).slice(0, 8);
+    if (!queue.length) queue = sets.filter(function (item) { return item && ((item.p1 && item.p1.tag) || (item.p2 && item.p2.tag)); }).slice(0, 8);
+    var queuedRows = queue.map(queued);
+    var commentary = {};
+    (fgc.casters || []).forEach(function (caster, index) {
+      commentary[String(index + 1)] = {
+        name: (caster && caster.name) || "",
+        team: (caster && caster.prefix) || "",
+        pronoun: (caster && caster.pronouns) || "",
+        real_name: (caster && caster.realName) || "",
+        twitter: (caster && caster.twitter) || "",
+        country: { asset: "", code: (caster && caster.country) || "" },
+        state: { asset: "", code: (caster && caster.region) || "" },
+      };
+    });
     var body = {
       tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "", logo: event.icon || "", numEntrants: event.entrants || 0 },
       game: { name: event.game || "", codename: (library && library.code) || "" },
@@ -511,9 +633,24 @@ function deskProgram() {
           stage: set.stage || "",
           score_left: set.score1 || 0,
           score_right: set.score2 || 0,
+          station: "Main",
+          last_sets: { "1": recentFor(set.p1), "2": recentFor(set.p2) },
+          history_sets: { "1": historyFor(set.p1), "2": historyFor(set.p2) },
+          stage_strike: { currGame: 0, selectedStage: null, strikedStages: [[]], strikedBy: [[], []], stagesPicked: [], stagesWon: [[], []], lastWinner: -1 },
+          station_queue: queuedRows,
+        },
+        ruleset: {
+          name: (ruleset && ruleset.name) || "",
+          neutralStages: neutralNames.map(stageCard),
+          counterpickStages: ((ruleset && ruleset.counterpickStages) || []).map(stageCard),
+          useDSR: !!(ruleset && ruleset.dsr === "dsr"),
+          useMDSR: !!(ruleset && ruleset.dsr === "mdsr"),
+          strikeOrder: ruleset && ruleset.strikeOrder && ruleset.strikeOrder.length ? ruleset.strikeOrder : null,
+          banCount: ruleset && ruleset.banCount ? ruleset.banCount : null,
         },
       },
-      commentary: {},
+      streamQueue: { Main: queuedRows },
+      commentary: commentary,
       player_list: { slot: listSlots },
       bracket: {
         phase: view.phase || "",

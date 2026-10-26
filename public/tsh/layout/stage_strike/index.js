@@ -100,7 +100,7 @@ LoadEverything().then(() => {
         console.log(allStages);
 
         allStages.forEach((stage) => {
-          let path = stage.path;
+          let path = /^https?:|^data:|^\//.test(String(stage.path || "")) ? stage.path : `../../${stage.path || ""}`;
           html += `
               <div class="stage-container 
                 ${
@@ -120,7 +120,7 @@ LoadEverything().then(() => {
                     : ""
                 }
                 ">
-                  <div class="stage-icon" style="background-image: url('../../${path}')">
+                  <div class="stage-icon" style="background-image: url('${path}')">
                       ${
                         IsStageStriked(data.score[window.scoreboardNumber].stage_strike, stage.codename)
                           ? `<div class="stage-striked stamp"></div>`

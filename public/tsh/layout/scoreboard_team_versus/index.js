@@ -118,7 +118,7 @@ LoadEverything().then(() => {
     for (const [gameNum, stage] of Object.entries(stages).sort(([a], [b]) => Number(a) - Number(b))) {
       if (!stage) continue;
       const row = buildStageRow(gameNum);
-      const iconPath = stage.path ? `../../${stage.path.replace(/^\.\//, "")}` : null;
+      const iconPath = stage.path ? tshAsset(String(stage.path).replace(/^\.\//, "")) : null;
       row.querySelector(".stage_icon").style.backgroundImage = iconPath ? `url("${iconPath}")` : "";
       row.querySelector(".stage_name").textContent = stage.display_name || stage.name || stage.codename || "";
       row.classList.toggle("empty", !stage.codename);

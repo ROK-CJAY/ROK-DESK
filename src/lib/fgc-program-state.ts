@@ -1,4 +1,5 @@
 import { EMPTY_FGC, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { stageIconUrl } from "@/lib/fgc-assets";
 import { getSql } from "@/lib/db";
 
 function assetUrl(base: string, game: string, code: string, skin: number) {
@@ -106,6 +107,80 @@ function roundKey(set: FgcSet) {
   return losers ? -1 : 1;
 }
 
+function stageCard(fgc: FgcState, name: string) {
+  const library = libraryFor(fgc);
+  const stage = library?.stages.find((item) => item.name.toLowerCase() === name.toLowerCase());
+  const code = stage?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+  return { name, codename: code, path: library ? stageIconUrl(fgc.assetBase, library.code, code) : "" };
+}
+
+function recentSets(fgc: FgcState, player: FgcPlayer | null) {
+  if (!player?.tag) return {};
+  const mine = fgc.sets.filter((set) => set.state === "done" && (set.p1?.tag === player.tag || set.p2?.tag === player.tag)).slice(-3);
+  const out: Record<string, unknown> = {};
+  mine.forEach((set, index) => {
+    const mineIsFirst = set.p1?.tag === player.tag;
+    const me = mineIsFirst ? set.p1 : set.p2;
+    const opp = mineIsFirst ? set.p2 : set.p1;
+    out[String(index)] = {
+      phase_name: set.phase || "",
+      phase_id: "",
+      round_name: set.round || "",
+      player_team: me?.prefix || "",
+      player_name: me?.tag || "",
+      player_score: mineIsFirst ? set.score1 : set.score2,
+      oponent_team: opp?.prefix || "",
+      oponent_name: opp?.tag || "",
+      oponent_score: mineIsFirst ? set.score2 : set.score1,
+      player_char: { character: characterOf(fgc, me ?? null) },
+      oponent_char: { character: characterOf(fgc, opp ?? null) },
+    };
+  });
+  return out;
+}
+
+function historySets(fgc: FgcState, player: FgcPlayer | null) {
+  const event = fgc.event;
+  const place = fgc.roster?.slots.findIndex((slot) => slot.players.some((item) => item.tag && item.tag === player?.tag)) ?? -1;
+  return {
+    "0": {
+      tournament_name: event?.tournamentName || event?.name || "Tournament",
+      event_name: event?.name || "",
+      tournament_picture: event?.icon || "",
+      placement: place >= 0 ? place + 1 : "",
+      entrants: event?.entrants || fgc.sets.length || "",
+    },
+  };
+}
+
+function rulesetPayload(fgc: FgcState) {
+  const ruleset = fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? fgc.rulesets[0];
+  const library = libraryFor(fgc);
+  const fallback = (library?.stages ?? []).slice(0, 9).map((stage) => stage.name);
+  const neutral = ruleset && ruleset.neutralStages.length ? ruleset.neutralStages : fallback;
+  return {
+    neutralStages: neutral.map((name) => stageCard(fgc, name)),
+    counterpickStages: (ruleset?.counterpickStages ?? []).map((name) => stageCard(fgc, name)),
+    useDSR: ruleset?.dsr === "dsr",
+    useMDSR: ruleset?.dsr === "mdsr",
+    name: ruleset?.name || "",
+    strikeOrder: ruleset?.strikeOrder?.length ? ruleset.strikeOrder : null,
+    banCount: ruleset?.banCount || null,
+  };
+}
+
+function queuePayload(fgc: FgcState) {
+  const rows = fgc.sets.filter((set) => set.state !== "done" && (set.p1?.tag || set.p2?.tag)).slice(0, 8);
+  const list = rows.length ? rows : fgc.sets.filter((set) => set.p1?.tag || set.p2?.tag).slice(0, 8);
+  return list.map((set) => ({
+    match: set.round || "",
+    phase: set.phase || "",
+    station: set.station || "",
+    isCurrentEvent: true,
+    team: { "1": tshTeam(fgc, set, "p1"), "2": tshTeam(fgc, set, "p2") },
+  }));
+}
+
 function rosterPayload(fgc: FgcState) {
   const roster = fgc.roster;
   const count = Math.max(1, roster?.count || 8);
@@ -204,12 +279,40 @@ function bracketPayload(fgc: FgcState) {
     phaseGroup: options?.group || "",
     players: { slot: players },
     bracket: {
-      rounds,
+      rounds: normalizeRounds(rounds as Record<string, BracketRound>),
       progressionsIn: options?.progressionsIn || 0,
       progressionsOut: options?.progressionsOut || 0,
       winnersOnlyProgressions: !!options?.winnersOnly,
     },
   };
+}
+
+type BracketRound = {
+  name: string;
+  sets: Record<string, { playerId: number[]; score: number[]; completed: boolean; nextWin: [number, number] | null }>;
+};
+
+function normalizeRounds(rounds: Record<string, BracketRound>) {
+  const keys = Object.keys(rounds).map(Number).filter((key) => Number.isFinite(key));
+  const winners = keys.filter((key) => key > 0).sort((a, b) => a - b);
+  const losers = keys.filter((key) => key < 0).sort((a, b) => b - a);
+  const map = new Map<number, number>();
+  winners.forEach((key, index) => map.set(key, index + 1));
+  losers.forEach((key, index) => map.set(key, -(index + 1)));
+  const shifted: Record<string, BracketRound> = {};
+  for (const key of [...winners, ...losers]) {
+    const round = rounds[String(key)];
+    const sets: BracketRound["sets"] = {};
+    for (const [index, set] of Object.entries(round.sets)) {
+      const next = set.nextWin;
+      sets[index] = {
+        ...set,
+        nextWin: next && map.has(next[0]) ? [map.get(next[0]) as number, next[1]] : null,
+      };
+    }
+    shifted[String(map.get(key))] = { name: round.name, sets };
+  }
+  return shifted;
 }
 
 export function programState(fgc: FgcState, preview = false) {
@@ -251,8 +354,15 @@ export function programState(fgc: FgcState, preview = false) {
         stage: set?.stage || "",
         score_left: set?.score1 ?? 0,
         score_right: set?.score2 ?? 0,
+        station: "Main",
+        last_sets: { "1": recentSets(fgc, set?.p1 ?? null), "2": recentSets(fgc, set?.p2 ?? null) },
+        history_sets: { "1": historySets(fgc, set?.p1 ?? null), "2": historySets(fgc, set?.p2 ?? null) },
+        stage_strike: { currGame: 0, selectedStage: null, strikedStages: [[]], strikedBy: [[], []], stagesPicked: [], stagesWon: [[], []], lastWinner: -1 },
+        station_queue: queuePayload(fgc),
       },
+      ruleset: rulesetPayload(fgc),
     },
+    streamQueue: { Main: queuePayload(fgc) },
     commentary,
     player_list: rosterPayload(fgc),
     bracket: bracketPayload(fgc),
