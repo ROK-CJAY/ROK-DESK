@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { currentStreamSetId, eventStandings, importStartggEvent, searchStartggPlayers, stockIcons, tournamentIcon } from "@/lib/startgg";
+import { currentStreamSetId, eventStandings, importStartggEvent, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callToSet, loadToAccount, loadToBoard, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
 
 export const Route = createFileRoute("/api/startgg")({
@@ -36,6 +36,10 @@ export const Route = createFileRoute("/api/startgg")({
         }
         const token = body.token?.trim() || undefined;
         try {
+          if (body.action === "rulesets") {
+            const rulesets = await startggRulesets();
+            return Response.json({ rulesets });
+          }
           if (body.action === "account") {
             if (!token) return Response.json({ error: "Paste the API token from the start.gg account you run events with." }, { status: 401 });
             return Response.json(await loadToAccount(token));

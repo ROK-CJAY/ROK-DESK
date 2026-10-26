@@ -517,3 +517,32 @@ export async function currentStreamSetId(url: string, token?: string): Promise<s
   }>(STREAM_QUERY, { slug }, "FgcStream", token);
   return data.event?.tournament?.streamQueue?.sets?.[0]?.id ?? data.event?.sets?.nodes?.[0]?.id ?? null;
 }
+
+export type StartggRuleset = {
+  id: number;
+  videogameId: number;
+  name: string;
+  settings?: {
+    stages?: { neutral?: number[]; counterpick?: number[] };
+    strikeOrder?: number[];
+    additionalFlags?: {
+      useDSR?: boolean;
+      useMDSR?: boolean;
+      useGenesisDSR?: boolean;
+      banCount?: number;
+      banCountByMaxGames?: Record<string, number> | number;
+    };
+  };
+};
+
+let rulesetCache: { at: number; rulesets: StartggRuleset[] } | null = null;
+
+export async function startggRulesets(): Promise<StartggRuleset[]> {
+  if (rulesetCache && Date.now() - rulesetCache.at < 12 * 60 * 60 * 1000) return rulesetCache.rulesets;
+  const res = await fetch("https://www.start.gg/api/-/gg_api./rulesets");
+  if (!res.ok) throw new Error("start.gg rulesets did not load");
+  const data = (await res.json()) as { entities?: { ruleset?: StartggRuleset[] } };
+  const rulesets = data.entities?.ruleset ?? [];
+  rulesetCache = { at: Date.now(), rulesets };
+  return rulesets;
+}

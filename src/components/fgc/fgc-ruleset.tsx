@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,25 @@ import { Input } from "@/components/ui/input";
 import { resolveStage } from "@/lib/fgc-assets";
 import { blankRuleset, libraryFor, type FgcRuleset, type FgcStage } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import type { StartggRuleset } from "@/lib/startgg";
+
+const stageIds = new Map<string, Map<string, string>>();
+
+async function stageNames(code: string, ids: number[] | undefined): Promise<string[]> {
+  if (!code || !ids?.length) return [];
+  let map = stageIds.get(code);
+  if (!map) {
+    const res = await fetch(`https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${code}/base_files/config.json`);
+    const body = (await res.json()) as { smashgg_game_id?: string | number; stage_to_codename?: Record<string, { smashgg_id?: string | number }> };
+    map = new Map();
+    for (const [name, value] of Object.entries(body.stage_to_codename ?? {})) {
+      if (value?.smashgg_id != null) map.set(String(value.smashgg_id), name);
+    }
+    stageIds.set(code, map);
+    if (body.smashgg_game_id != null) stageIds.set(`${code}:game`, new Map([["id", String(body.smashgg_game_id)]]));
+  }
+  return ids.map((id) => map?.get(String(id)) || "").filter(Boolean);
+}
 
 export function FgcRulesetEditor() {
   const fgc = useFgcStore((s) => s.fgc);
@@ -17,13 +36,68 @@ export function FgcRulesetEditor() {
   const [draft, setDraft] = useState<FgcRuleset>(active);
   const shown = { ...(draft.id === active.id ? draft : active), banMode: (draft.id === active.id ? draft : active).banMode || "fixed", bansByGames: (draft.id === active.id ? draft : active).bansByGames || "3:3,5:2" };
   const [selected, setSelected] = useState("");
+  const [presetId, setPresetId] = useState("");
   const [filter, setFilter] = useState("All stages");
+  const [presets, setPresets] = useState<StartggRuleset[]>([]);
+  const [gameId, setGameId] = useState(library?.startggGameId || "");
   const stages = library?.stages ?? [];
   const filtered = useMemo(() => {
     if (filter === "All stages") return stages;
     return stages.filter((stage) => stage.name.toLowerCase().includes(filter.toLowerCase()));
   }, [stages, filter]);
   const strike = useMemo(() => shown.strikeOrder.join(","), [shown.strikeOrder]);
+  const forThisGame = presets
+    .filter((preset) => gameId && String(preset.videogameId) === gameId)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  useEffect(() => {
+    void fetch("/api/startgg", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "rulesets" }),
+    })
+      .then((res) => res.json())
+      .then((body: { rulesets?: StartggRuleset[] }) => setPresets(body.rulesets ?? []))
+      .catch(() => setPresets([]));
+  }, []);
+
+  useEffect(() => {
+    if (library?.startggGameId) {
+      setGameId(library.startggGameId);
+      return;
+    }
+    if (!library?.code) {
+      setGameId("");
+      return;
+    }
+    void fetch(`https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${library.code}/base_files/config.json`)
+      .then((res) => res.json())
+      .then((body: { smashgg_game_id?: string | number }) => setGameId(body.smashgg_game_id ? String(body.smashgg_game_id) : ""))
+      .catch(() => setGameId(""));
+  }, [library?.code, library?.startggGameId]);
+
+  const applyPreset = (id: string) => {
+    const preset = forThisGame.find((item) => String(item.id) === id);
+    if (!preset || !library) return;
+    const flags = preset.settings?.additionalFlags ?? {};
+    const byGames = flags.banCountByMaxGames && typeof flags.banCountByMaxGames === "object" ? flags.banCountByMaxGames : null;
+    void stageNames(library.code, preset.settings?.stages?.neutral).then(async (neutral) => {
+      const counter = await stageNames(library.code, preset.settings?.stages?.counterpick);
+      setDraft({
+        ...blankRuleset(),
+        name: preset.name,
+        game: library.game,
+        neutralStages: neutral,
+        counterpickStages: counter,
+        strikeOrder: preset.settings?.strikeOrder?.length ? preset.settings.strikeOrder : [1, 2, 1],
+        dsr: flags.useMDSR ? "mdsr" : flags.useDSR || flags.useGenesisDSR ? "dsr" : "none",
+        banMode: byGames ? "byGames" : "fixed",
+        banCount: Number(flags.banCount) || 0,
+        bansByGames: byGames ? Object.entries(byGames).map(([games, bans]) => `${games}:${bans}`).join(",") : shown.bansByGames,
+      });
+      selectRuleset(null);
+    });
+  };
 
   const move = (from: "all" | "neutral" | "counter", to: "neutral" | "counter" | "all") => {
     const name = selected;
@@ -52,7 +126,23 @@ export function FgcRulesetEditor() {
           <a href="/fgc/strike" target="_blank" rel="noreferrer" className="rounded-md border border-border bg-surface-2 px-3 py-2 text-sm">Open stage strike</a>
         </div>
       </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_16rem_auto]">
+      <div className="mt-3 grid gap-3 lg:grid-cols-[1.1fr_1fr_14rem_auto]">
+        <Field label={library ? `Presets · ${library.game}` : "Presets"}>
+          <select
+            value={presetId}
+            disabled={!forThisGame.length}
+            onChange={(e) => {
+              setPresetId("");
+              applyPreset(e.target.value);
+            }}
+            className="h-10 w-full rounded-md border border-border bg-surface-2 px-3 text-sm"
+          >
+            <option value="">{forThisGame.length ? "start.gg presets for this game" : library ? "No presets for this game" : "Download the game library first"}</option>
+            {forThisGame.map((preset) => (
+              <option key={preset.id} value={preset.id}>{preset.name}</option>
+            ))}
+          </select>
+        </Field>
         <Field label="Ruleset name">
           <Input value={shown.name} onChange={(e) => setDraft({ ...shown, name: e.target.value })} />
         </Field>
