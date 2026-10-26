@@ -308,6 +308,36 @@ function deskProgram() {
       if (sets[i] && sets[i].id === fgc.streamSetId) set = sets[i];
     }
     if (!set) set = sets[0] || {};
+    function characterOf(player) {
+      if (!player || !player.character) return {};
+      var libraries = fgc.libraries || [];
+      var gameName = (fgc.event && fgc.event.game) || "";
+      var library = null;
+      for (var i = 0; i < libraries.length; i += 1) {
+        if (libraries[i] && libraries[i].game === gameName) library = libraries[i];
+      }
+      if (!library && libraries.length) library = libraries[0];
+      var names = [player.character, player.character2].filter(Boolean);
+      var skins = [player.skin || 0, player.skin2 || 0];
+      var out = {};
+      for (var n = 0; n < names.length; n += 1) {
+        var known = null;
+        var chars = (library && library.characters) || [];
+        for (var c = 0; c < chars.length; c += 1) {
+          if (chars[c] && chars[c].name && chars[c].name.toLowerCase() === String(names[n]).toLowerCase()) known = chars[c];
+        }
+        var code = (known && known.code) || String(names[n]).toLowerCase().replace(/[^a-z0-9]+/g, "");
+        var game = (library && library.code) || "";
+        var root = fgc.assetBase ? String(fgc.assetBase).replace(/\/$/, "") : "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
+        var asset = game ? root + "/games/" + game + "/website/" + code + "_" + (skins[n] || 0) + ".png" : "";
+        out[String(n + 1)] = {
+          name: names[n],
+          codename: code,
+          assets: asset ? { "base_files/icon": { asset: asset, average_size: { x: 512, y: 512 } } } : {},
+        };
+      }
+      return out;
+    }
     function person(player) {
       player = player || {};
       var name = [player.prefix, player.tag].filter(Boolean).join(" | ") || player.realName || "";
@@ -323,21 +353,31 @@ function deskProgram() {
         online_avatar: "",
         country: { asset: "", code: player.country || "" },
         state: { asset: "", code: player.region || "" },
-        character: {},
+        character: characterOf(player),
       };
     }
     function side(which) {
       var player = which === "1" ? set.p1 : set.p2;
+      var partner = which === "1" ? set.p1b : set.p2b;
+      var players = { "1": person(player) };
+      if (partner && partner.tag) players["2"] = person(partner);
       return {
         score: which === "1" ? set.score1 || 0 : set.score2 || 0,
         losers: which === "1" ? !!set.losers1 : !!set.losers2,
         name: "",
-        player: { "1": person(player) },
+        player: players,
       };
     }
     var event = fgc.event || {};
+    var library = null;
+    var libraries = fgc.libraries || [];
+    for (var g = 0; g < libraries.length; g += 1) {
+      if (libraries[g] && libraries[g].game === event.game) library = libraries[g];
+    }
+    if (!library && libraries.length) library = libraries[0];
     var body = {
       tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "" },
+      game: { name: event.game || "", codename: (library && library.code) || "" },
       score: {
         "1": {
           team: { "1": side("1"), "2": side("2") },
