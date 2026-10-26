@@ -469,12 +469,15 @@ LoadEverything().then(() => {
 
             entryAnim.add(
               AnimateElement(roundKey, setIndex, set, bracket, progressionsOut),
-              Math.abs(parseInt(roundKey)) * 0.6
+              0
             );
           });
         });
 
-        entryAnim.play(0);
+        entryAnim.progress(1);
+        Object.values(animations).forEach((round) => {
+          Object.values(round).forEach((anim) => anim.progress(1));
+        });
       }
 
       // TRIGGER ANIMATIONS

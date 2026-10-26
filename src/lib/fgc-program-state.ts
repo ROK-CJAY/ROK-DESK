@@ -124,6 +124,25 @@ function rosterPayload(fgc: FgcState) {
   return { slot: slots };
 }
 
+function setRank(identifier: string) {
+  const text = identifier.trim();
+  const numeric = Number(text);
+  if (text && Number.isFinite(numeric)) return numeric;
+  let rank = 0;
+  for (const char of text.toUpperCase()) {
+    if (char < "A" || char > "Z") continue;
+    rank = rank * 26 + (char.charCodeAt(0) - 64);
+  }
+  return rank || 9999;
+}
+
+function nextIndex(from: number, fromCount: number, toCount: number) {
+  if (!toCount) return 0;
+  if (toCount * 2 === fromCount) return Math.floor(from / 2);
+  if (toCount === fromCount) return from;
+  return Math.min(toCount - 1, Math.floor((from * toCount) / fromCount));
+}
+
 function bracketPayload(fgc: FgcState) {
   const options = fgc.bracketView;
   let sets = fgc.sets.filter((set) => set.p1?.tag || set.p2?.tag);
@@ -136,15 +155,18 @@ function bracketPayload(fgc: FgcState) {
     const key = roundKey(set);
     byRound.set(key, [...(byRound.get(key) ?? []), set]);
   }
-  let keys = [...byRound.keys()].sort((a, b) => a - b);
+  let keys = [...byRound.keys()];
   if (options?.top > 0) {
-    const winners = keys.filter((key) => key > 0);
+    const winners = keys.filter((key) => key > 0).sort((a, b) => a - b);
     const keepFrom = winners.find((key) => (byRound.get(key)?.length ?? 0) <= options.top / 2);
     if (keepFrom) {
       const next = keys.filter((key) => (key < 0 ? Math.abs(key) >= Math.max(1, keepFrom - 1) : key >= keepFrom));
       if (next.length) keys = next;
     }
   }
+  const winnerKeys = keys.filter((key) => key > 0).sort((a, b) => a - b);
+  const loserKeys = keys.filter((key) => key < 0).sort((a, b) => b - a);
+  const ordered = [...winnerKeys, ...loserKeys];
   const players: Record<string, unknown> = {};
   const ids = new Map<string, number>();
   const pid = (player: FgcPlayer | null) => {
@@ -158,16 +180,21 @@ function bracketPayload(fgc: FgcState) {
     return next;
   };
   const rounds: Record<string, unknown> = {};
-  keys.forEach((key) => {
-    const list = byRound.get(key) ?? [];
-    const nextRound = keys.find((item) => item > key && Math.sign(item) === Math.sign(key));
+  ordered.forEach((key) => {
+    const list = [...(byRound.get(key) ?? [])].sort(
+      (a, b) => setRank(a.identifier) - setRank(b.identifier) || a.identifier.localeCompare(b.identifier),
+    );
+    const pool = key > 0 ? winnerKeys : loserKeys;
+    const at = pool.indexOf(key);
+    const nextRound = at >= 0 && at < pool.length - 1 ? pool[at + 1] : null;
+    const nextCount = nextRound == null ? 0 : byRound.get(nextRound)?.length ?? 0;
     const body: Record<string, unknown> = {};
     list.forEach((set, index) => {
       body[String(index)] = {
         playerId: [pid(set.p1), pid(set.p2)],
         score: [set.score1, set.score2],
         completed: set.state === "done",
-        nextWin: nextRound == null ? null : [nextRound, Math.floor(index / 2)],
+        nextWin: nextRound == null ? null : [nextRound, nextIndex(index, list.length, nextCount)],
       };
     });
     rounds[String(key)] = { name: list[0]?.round || `Round ${key}`, sets: body };

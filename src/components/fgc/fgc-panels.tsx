@@ -1,7 +1,7 @@
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { flagOf, playerLabel } from "@/lib/fgc-types";
+import { flagOf, playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { startggAuthBody } from "@/lib/startgg-link";
 import { useEffect, useState } from "react";
@@ -208,6 +208,64 @@ export function FgcTournamentInfo() {
   );
 }
 
+function setRank(identifier: string) {
+  const text = identifier.trim();
+  const numeric = Number(text);
+  if (text && Number.isFinite(numeric)) return numeric;
+  let rank = 0;
+  for (const char of text.toUpperCase()) {
+    if (char < "A" || char > "Z") continue;
+    rank = rank * 26 + (char.charCodeAt(0) - 64);
+  }
+  return rank || 9999;
+}
+
+function roundKeyOf(set: FgcSet) {
+  if (set.roundNum) return set.roundNum;
+  return /loser/i.test(set.round) ? -1 : 1;
+}
+
+function bracketRounds(sets: FgcSet[], side: "winners" | "losers") {
+  const grouped = new Map<number, FgcSet[]>();
+  for (const set of sets) {
+    const key = roundKeyOf(set);
+    if (side === "winners" ? key <= 0 : key >= 0) continue;
+    grouped.set(key, [...(grouped.get(key) ?? []), set]);
+  }
+  const keys = [...grouped.keys()].sort((a, b) => (side === "winners" ? a - b : b - a));
+  return keys.map((key) => ({
+    key,
+    name: grouped.get(key)?.[0]?.round || `Round ${key}`,
+    sets: [...(grouped.get(key) ?? [])].sort((a, b) => setRank(a.identifier) - setRank(b.identifier) || a.identifier.localeCompare(b.identifier)),
+  }));
+}
+
+function BracketTree({ title, rounds, onSelect }: { title: string; rounds: ReturnType<typeof bracketRounds>; onSelect: (id: string) => void }) {
+  if (!rounds.length) return null;
+  const tallest = Math.max(...rounds.map((round) => round.sets.length), 1);
+  return (
+    <div className="mt-4">
+      <p className="mb-2 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{title}</p>
+      <div className="flex items-stretch gap-6 overflow-x-auto pb-2" style={{ minHeight: tallest * 76 }}>
+        {rounds.map((round) => (
+          <div key={round.key} className="flex w-56 shrink-0 flex-col">
+            <p className="mb-2 text-center text-[0.65rem] tracking-wide text-muted uppercase">{round.name}</p>
+            <div className="flex flex-1 flex-col justify-around gap-2">
+              {round.sets.map((set) => (
+                <button key={set.id} type="button" className="rounded-md border border-border bg-surface-2 px-3 py-2 text-left hover:text-fg" onClick={() => onSelect(set.id)}>
+                  <span className="block truncate text-sm font-semibold uppercase">{playerLabel(set.p1) || "TBD"}</span>
+                  <span className="mt-0.5 block truncate text-sm font-semibold uppercase">{playerLabel(set.p2) || "TBD"}</span>
+                  <span className="mt-1 block font-mono text-xs tabular-nums">{set.score1}–{set.score2}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function FgcBracket() {
   const sets = useFgcStore((s) => s.fgc.sets);
   const view = useFgcStore((s) => s.fgc.bracketView);
@@ -223,11 +281,16 @@ export function FgcBracket() {
     if (view?.losersOnly && !losers) return false;
     return true;
   });
-  const columns = new Map<string, typeof shown>();
-  for (const set of shown) {
-    const key = set.round || "Set";
-    columns.set(key, [...(columns.get(key) ?? []), set]);
-  }
+  const top = view?.top ?? 8;
+  const visible = top > 0 ? shown.filter((set) => {
+    const key = roundKeyOf(set);
+    const winners = shown.filter((item) => roundKeyOf(item) > 0);
+    const counts = new Map<number, number>();
+    for (const item of winners) counts.set(roundKeyOf(item), (counts.get(roundKeyOf(item)) ?? 0) + 1);
+    const keepFrom = [...counts.keys()].sort((a, b) => a - b).find((round) => (counts.get(round) ?? 0) <= top / 2);
+    if (!keepFrom) return true;
+    return key < 0 ? Math.abs(key) >= Math.max(1, keepFrom - 1) : key >= keepFrom;
+  }) : shown;
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
@@ -266,27 +329,10 @@ export function FgcBracket() {
           Losers only
         </label>
       </div>
-      <p className="mt-2 text-xs text-muted">This is the bracket the overlay draws. Re-import the event if rounds are missing a side.</p>
-      {columns.size === 0 ? (
-        <p className="mt-4 text-sm text-muted">Import an event to fill the bracket.</p>
-      ) : (
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-          {[...columns.entries()].map(([name, rows]) => (
-            <div key={name} className="w-64 shrink-0">
-              <p className="mb-2 font-mono text-[0.65rem] tracking-wide text-muted uppercase">{name}</p>
-              <div className="grid gap-2">
-                {rows.map((set) => (
-                  <button key={set.id} type="button" className="rounded-md border border-border bg-surface-2 px-3 py-2 text-left hover:text-fg" onClick={() => selectSet(set.id)}>
-                    <span className="block truncate font-display font-semibold uppercase">{[set.losers1 ? "(L)" : "", playerLabel(set.p1)].filter(Boolean).join(" ")}</span>
-                    <span className="mt-0.5 block truncate font-display font-semibold uppercase">{[set.losers2 ? "(L)" : "", playerLabel(set.p2)].filter(Boolean).join(" ")}</span>
-                    <span className="mt-1 block font-mono text-xs tabular-nums">{set.score1}–{set.score2}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <p className="mt-2 text-xs text-muted">Winners sit on top and read left to right. Losers sit below, starting at round 1. Click a match to put it on the scoreboard.</p>
+      <BracketTree title="Winners" rounds={bracketRounds(visible, "winners")} onSelect={selectSet} />
+      <BracketTree title="Losers" rounds={bracketRounds(visible, "losers")} onSelect={selectSet} />
+      {visible.length === 0 ? <p className="mt-4 text-sm text-muted">Import an event to fill the bracket.</p> : null}
     </section>
   );
 }

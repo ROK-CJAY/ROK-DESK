@@ -337,7 +337,7 @@ function FgcDesk() {
             {error ? <p className="w-full text-sm text-live">{error}</p> : null}
           </section>
 
-        <nav className="flex w-fit rounded-lg border border-border bg-surface p-0.5">
+        <nav className="sticky top-0 z-20 flex flex-wrap gap-0.5 rounded-lg border border-border bg-surface p-0.5">
             {(
               [
                 ["scoreboard", "Scoreboard"],

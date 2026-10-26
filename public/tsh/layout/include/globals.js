@@ -420,9 +420,33 @@ function deskProgram() {
       if (!grouped[key]) grouped[key] = [];
       grouped[key].push(item);
     });
-    var roundKeys = Object.keys(grouped).map(Number).sort(function (a, b) { return a - b; });
+    function rank(id) {
+      var text = String(id || "").trim();
+      var numeric = Number(text);
+      if (text && !isNaN(numeric)) return numeric;
+      var value = 0;
+      var upper = text.toUpperCase();
+      for (var i = 0; i < upper.length; i += 1) {
+        var code = upper.charCodeAt(i);
+        if (code < 65 || code > 90) continue;
+        value = value * 26 + (code - 64);
+      }
+      return value || 9999;
+    }
+    function sortSets(list) {
+      return list.slice().sort(function (a, b) {
+        return rank(a.identifier) - rank(b.identifier);
+      });
+    }
+    function linkIndex(index, fromCount, toCount) {
+      if (!toCount) return 0;
+      if (toCount * 2 === fromCount) return Math.floor(index / 2);
+      if (toCount === fromCount) return index;
+      return Math.min(toCount - 1, Math.floor((index * toCount) / fromCount));
+    }
+    var roundKeys = Object.keys(grouped).map(Number);
     if (view.top > 0) {
-      var winners = roundKeys.filter(function (key) { return key > 0; });
+      var winners = roundKeys.filter(function (key) { return key > 0; }).sort(function (a, b) { return a - b; });
       var keepFrom = null;
       for (var w = 0; w < winners.length; w += 1) {
         if (grouped[String(winners[w])].length <= view.top / 2) { keepFrom = winners[w]; break; }
@@ -432,6 +456,9 @@ function deskProgram() {
         if (kept.length) roundKeys = kept;
       }
     }
+    var winnerKeys = roundKeys.filter(function (key) { return key > 0; }).sort(function (a, b) { return a - b; });
+    var loserKeys = roundKeys.filter(function (key) { return key < 0; }).sort(function (a, b) { return b - a; });
+    var ordered = winnerKeys.concat(loserKeys);
     var bracketPlayers = {};
     var bracketIds = {};
     var nextPid = 1;
@@ -445,19 +472,19 @@ function deskProgram() {
       return bracketIds[id];
     }
     var rounds = {};
-    roundKeys.forEach(function (key) {
-      var list = grouped[String(key)] || [];
-      var nextRound = null;
-      for (var r = 0; r < roundKeys.length; r += 1) {
-        if (roundKeys[r] > key && (roundKeys[r] < 0) === (key < 0)) { nextRound = roundKeys[r]; break; }
-      }
+    ordered.forEach(function (key) {
+      var list = sortSets(grouped[String(key)] || []);
+      var pool = key > 0 ? winnerKeys : loserKeys;
+      var at = pool.indexOf(key);
+      var nextRound = at >= 0 && at < pool.length - 1 ? pool[at + 1] : null;
+      var nextList = nextRound == null ? [] : sortSets(grouped[String(nextRound)] || []);
       var setsBody = {};
       list.forEach(function (item, index) {
         setsBody[String(index)] = {
           playerId: [pid(item.p1), pid(item.p2)],
           score: [item.score1 || 0, item.score2 || 0],
           completed: item.state === "done",
-          nextWin: nextRound == null ? null : [nextRound, Math.floor(index / 2)],
+          nextWin: nextRound == null ? null : [nextRound, linkIndex(index, list.length, nextList.length)],
         };
       });
       rounds[String(key)] = { name: (list[0] && list[0].round) || ("Round " + key), sets: setsBody };
