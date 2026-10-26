@@ -231,7 +231,7 @@ LoadEverything().then(() => {
                   ${player.team ? player.team : ""}
                 </span>
                 ${await Transcript(player.name)}
-                ${team.losers ? "<span class='losers'>L</span>" : ""}
+                ${team.losers ? "<span class='losers'>(L)</span>" : ""}
               `
             );
 
@@ -352,7 +352,7 @@ LoadEverything().then(() => {
           $(`.p${t + 1} .name`),
           `
             ${teamName}
-            ${team.losers ? "<span class='losers'>L</span>" : ""}
+            ${team.losers ? "<span class='losers'>(L)</span>" : ""}
           `
         );
 

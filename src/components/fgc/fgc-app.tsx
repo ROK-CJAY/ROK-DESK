@@ -6,6 +6,7 @@ import { AppChrome } from "@/components/app/app-chrome";
 import { Field } from "@/components/desk/field";
 import { FgcScoreboard } from "@/components/fgc/fgc-scoreboard";
 import { FgcCommentary, FgcTournamentInfo, FgcBracket } from "@/components/fgc/fgc-panels";
+import { FgcRoster } from "@/components/fgc/fgc-roster";
 import { FgcDesigner } from "@/components/fgc/fgc-designer";
 import { FgcOverlay } from "@/components/fgc/fgc-overlays";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
@@ -220,7 +221,7 @@ function FgcDesk() {
   const clearImport = useFgcStore((s) => s.clearImport);
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
-  const [tab, setTab] = useState<"scoreboard" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
+  const [tab, setTab] = useState<"scoreboard" | "roster" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [tshLayouts, setTshLayouts] = useState<{ path: string; name: string; group: string }[]>([]);
@@ -340,6 +341,7 @@ function FgcDesk() {
             {(
               [
                 ["scoreboard", "Scoreboard"],
+                ["roster", "Player list"],
                 ["commentary", "Commentary"],
                 ["info", "Tournament info"],
                 ["bracket", "Bracket"],
@@ -359,6 +361,7 @@ function FgcDesk() {
           </nav>
 
         {tab === "scoreboard" ? <FgcScoreboard set={live} /> : null}
+        {tab === "roster" ? <FgcRoster /> : null}
         {tab === "commentary" ? <FgcCommentary /> : null}
         {tab === "info" ? <FgcTournamentInfo /> : null}
         {tab === "bracket" ? <FgcBracket /> : null}

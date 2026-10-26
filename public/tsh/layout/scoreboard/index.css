@@ -392,10 +392,12 @@ body {
 /* Losers bracket indicator dot */
 .losers {
   display: inline-flex;
-  width: 22px;
+  width: auto;
+  min-width: 22px;
   height: 22px;
-  font-size: 18px;
-  border-radius: 100%;
+  padding: 0 6px;
+  font-size: 14px;
+  border-radius: 999px;
   text-align: center;
   align-items: center;
   justify-content: center;

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { blankPlayer, blankRuleset, blankSet, EMPTY_FGC, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { blankPlayer, blankRoster, blankRosterSlot, blankRuleset, blankSet, EMPTY_BRACKET_VIEW, EMPTY_FGC, type FgcBracketView, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRoster, type FgcRosterSlot, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
 import { startggAuthBody } from "@/lib/startgg-link";
 
 const KEY = "rok-fgc";
@@ -63,6 +63,11 @@ type FgcStore = {
   resetScore: (id: string) => void;
   clear: () => void;
   clearImport: () => void;
+  setRoster: (partial: Partial<FgcRoster>) => void;
+  setRosterSlot: (index: number, partial: Partial<FgcRosterSlot>) => void;
+  setRosterPlayer: (index: number, playerIndex: number, partial: Partial<FgcPlayer>) => void;
+  loadStandings: () => Promise<void>;
+  setBracketView: (partial: Partial<FgcBracketView>) => void;
 };
 
 function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]): SavedPlayer[] {
@@ -168,6 +173,8 @@ function read(): FgcState {
           typeof stage === "string" ? { name: stage, code: stage } : stage,
         ),
       })),
+      roster: parsed.roster?.slots?.length ? { ...blankRoster(), ...parsed.roster, slots: parsed.roster.slots.map((slot) => ({ ...blankRosterSlot(), ...slot, players: (slot.players?.length ? slot.players : [blankPlayer()]).map((player) => playerOf(player) ?? blankPlayer()) })) } : blankRoster(),
+      bracketView: { ...EMPTY_BRACKET_VIEW, ...parsed.bracketView },
     };
   } catch {
     return EMPTY_FGC;
@@ -485,5 +492,71 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     const fgc = { ...get().fgc, url: "", event: null, sets: [created], streamSetId: created.id, importedAt: null };
     write(fgc);
     set({ fgc, error: "" });
+  },
+  setRoster: (partial) => {
+    const current = get().fgc.roster ?? blankRoster();
+    const count = Math.max(1, Math.min(64, partial.count ?? current.count));
+    let slots = Array.from({ length: count }, (_, index) => current.slots[index] ?? blankRosterSlot());
+    if ((partial.playersPerSlot ?? current.playersPerSlot) > 1) {
+      slots = slots.map((slot) => (slot.players[1] ? slot : { ...slot, players: [...slot.players, blankPlayer()] }));
+    }
+    const fgc = { ...get().fgc, roster: { ...current, ...partial, count, slots } };
+    write(fgc);
+    set({ fgc });
+  },
+  setRosterSlot: (index, partial) => {
+    const roster = get().fgc.roster ?? blankRoster();
+    const slots = roster.slots.map((slot, slotIndex) => (slotIndex === index ? { ...slot, ...partial } : slot));
+    const fgc = { ...get().fgc, roster: { ...roster, slots } };
+    write(fgc);
+    set({ fgc });
+  },
+  setRosterPlayer: (index, playerIndex, partial) => {
+    const roster = get().fgc.roster ?? blankRoster();
+    const slots = roster.slots.map((slot, slotIndex) => {
+      if (slotIndex !== index) return slot;
+      const players = [...slot.players];
+      players[playerIndex] = { ...(players[playerIndex] ?? blankPlayer()), ...partial };
+      return { ...slot, players };
+    });
+    const fgc = { ...get().fgc, roster: { ...roster, slots } };
+    write(fgc);
+    set({ fgc });
+  },
+  loadStandings: async () => {
+    const eventId = get().fgc.event?.id;
+    if (!eventId) {
+      set({ error: "Import the event first" });
+      return;
+    }
+    set({ importing: true, error: "" });
+    try {
+      const res = await fetch("/api/startgg", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "standings", eventId, count: get().fgc.roster?.count || 8, ...startggAuthBody() }),
+      });
+      const body = (await res.json()) as { standings?: { placement: number; id: string; profileId: string; tag: string; prefix: string; realName: string; country: string; region: string; twitter: string; pronouns: string; seed: number | null }[]; error?: string };
+      if (!res.ok || !body.standings) throw new Error(body.error || "Standings failed");
+      const count = get().fgc.roster?.count || 8;
+      const slots = Array.from({ length: count }, (_, index) => {
+        const row = body.standings?.[index];
+        if (!row?.tag) return get().fgc.roster.slots[index] ?? blankRosterSlot();
+        const player = applySaved({ ...blankPlayer(), ...row, flag: "", character: "", skin: 0, character2: "", skin2: 0 }, get().players) ?? blankPlayer();
+        return { teamName: "", score: row.placement || index + 1, players: [player] };
+      });
+      const players = rememberPlayers(get().players, slots.flatMap((slot) => slot.players));
+      writeJson(PLAYERS_KEY, players);
+      const fgc = { ...get().fgc, roster: { ...(get().fgc.roster ?? blankRoster()), slots } };
+      write(fgc);
+      set({ fgc, players, importing: false });
+    } catch (err) {
+      set({ importing: false, error: err instanceof Error ? err.message : "Standings failed" });
+    }
+  },
+  setBracketView: (partial) => {
+    const fgc = { ...get().fgc, bracketView: { ...EMPTY_BRACKET_VIEW, ...get().fgc.bracketView, ...partial } };
+    write(fgc);
+    set({ fgc });
   },
 }));

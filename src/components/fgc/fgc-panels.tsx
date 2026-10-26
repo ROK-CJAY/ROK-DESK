@@ -1,7 +1,7 @@
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { flagOf, playerLabel, type FgcSet } from "@/lib/fgc-types";
+import { flagOf, playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { startggAuthBody } from "@/lib/startgg-link";
 import { useEffect, useState } from "react";
@@ -210,34 +210,75 @@ export function FgcTournamentInfo() {
 
 export function FgcBracket() {
   const sets = useFgcStore((s) => s.fgc.sets);
+  const view = useFgcStore((s) => s.fgc.bracketView);
+  const setBracketView = useFgcStore((s) => s.setBracketView);
   const selectSet = useFgcStore((s) => s.selectSet);
-  const groups = new Map<string, FgcSet[]>();
-  for (const set of sets) {
-    const key = [set.phase || "No phase", set.group].filter(Boolean).join(" · ");
-    groups.set(key, [...(groups.get(key) ?? []), set]);
+  const phases = [...new Set(sets.map((set) => set.phase).filter(Boolean))];
+  const groups = [...new Set(sets.filter((set) => !view?.phase || set.phase === view.phase).map((set) => set.group).filter(Boolean))];
+  const shown = sets.filter((set) => {
+    if (view?.phase && set.phase !== view.phase) return false;
+    if (view?.group && set.group !== view.group) return false;
+    const losers = set.roundNum < 0 || /loser/i.test(set.round);
+    if (view?.winnersOnly && losers) return false;
+    if (view?.losersOnly && !losers) return false;
+    return true;
+  });
+  const columns = new Map<string, typeof shown>();
+  for (const set of shown) {
+    const key = set.round || "Set";
+    columns.set(key, [...(columns.get(key) ?? []), set]);
   }
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
-      <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Bracket</p>
-      {groups.size === 0 ? (
-        <p className="mt-4 text-sm text-muted">Import an event to see the bracket. Pools and phases show up as columns.</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <Field label="Phase">
+          <select className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm" value={view?.phase || ""} onChange={(e) => setBracketView({ phase: e.target.value })}>
+            <option value="">All phases</option>
+            {phases.map((phase) => <option key={phase} value={phase}>{phase}</option>)}
+          </select>
+        </Field>
+        <Field label="Phase group">
+          <select className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm" value={view?.group || ""} onChange={(e) => setBracketView({ group: e.target.value })}>
+            <option value="">All groups</option>
+            {groups.map((group) => <option key={group} value={group}>{group}</option>)}
+          </select>
+        </Field>
+        <Field label="Progressions in">
+          <Input className="w-24" type="number" min={0} value={view?.progressionsIn || 0} onChange={(e) => setBracketView({ progressionsIn: Number(e.target.value) || 0 })} />
+        </Field>
+        <Field label="Progressions out">
+          <Input className="w-24" type="number" min={0} value={view?.progressionsOut || 0} onChange={(e) => setBracketView({ progressionsOut: Number(e.target.value) || 0 })} />
+        </Field>
+        <Field label="Top players">
+          <select className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm" value={view?.top ?? 8} onChange={(e) => setBracketView({ top: Number(e.target.value) })}>
+            <option value={0}>All</option>
+            <option value={8}>Top 8</option>
+            <option value={4}>Top 4</option>
+          </select>
+        </Field>
+        <label className="mb-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={!!view?.winnersOnly} onChange={(e) => setBracketView({ winnersOnly: e.target.checked, losersOnly: e.target.checked ? false : view?.losersOnly })} />
+          Winners only
+        </label>
+        <label className="mb-2 flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={!!view?.losersOnly} onChange={(e) => setBracketView({ losersOnly: e.target.checked, winnersOnly: e.target.checked ? false : view?.winnersOnly })} />
+          Losers only
+        </label>
+      </div>
+      <p className="mt-2 text-xs text-muted">This is the bracket the overlay draws. Re-import the event if rounds are missing a side.</p>
+      {columns.size === 0 ? (
+        <p className="mt-4 text-sm text-muted">Import an event to fill the bracket.</p>
       ) : (
         <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-          {[...groups.entries()].map(([name, rows]) => (
+          {[...columns.entries()].map(([name, rows]) => (
             <div key={name} className="w-64 shrink-0">
               <p className="mb-2 font-mono text-[0.65rem] tracking-wide text-muted uppercase">{name}</p>
               <div className="grid gap-2">
                 {rows.map((set) => (
-                  <button
-                    key={set.id}
-                    type="button"
-                    className="rounded-md border border-border bg-surface-2 px-3 py-2 text-left hover:text-fg"
-                    onClick={() => selectSet(set.id)}
-                  >
-                    <span className="block text-[0.65rem] tracking-wide text-muted uppercase">{set.round || "Set"}</span>
-                    <span className="mt-1 block truncate font-display font-semibold uppercase">{playerLabel(set.p1)}</span>
-                    <span className="mt-0.5 block truncate font-display font-semibold uppercase">{playerLabel(set.p2)}</span>
+                  <button key={set.id} type="button" className="rounded-md border border-border bg-surface-2 px-3 py-2 text-left hover:text-fg" onClick={() => selectSet(set.id)}>
+                    <span className="block truncate font-display font-semibold uppercase">{[set.losers1 ? "(L)" : "", playerLabel(set.p1)].filter(Boolean).join(" ")}</span>
+                    <span className="mt-0.5 block truncate font-display font-semibold uppercase">{[set.losers2 ? "(L)" : "", playerLabel(set.p2)].filter(Boolean).join(" ")}</span>
                     <span className="mt-1 block font-mono text-xs tabular-nums">{set.score1}–{set.score2}</span>
                   </button>
                 ))}

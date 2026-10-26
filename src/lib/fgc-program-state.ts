@@ -84,7 +84,7 @@ function tshTeam(fgc: FgcState, set: FgcSet | null, side: "p1" | "p2") {
   return {
     score: side === "p1" ? set?.score1 ?? 0 : set?.score2 ?? 0,
     losers: side === "p1" ? !!set?.losers1 : !!set?.losers2,
-    name: "",
+    name: side === "p1" ? set?.teamName1 || "" : set?.teamName2 || "",
     player: {
       "1": tshPlayer(fgc, main ?? null),
       ...(partner?.tag ? { "2": tshPlayer(fgc, partner) } : {}),
@@ -92,8 +92,97 @@ function tshTeam(fgc: FgcState, set: FgcSet | null, side: "p1" | "p2") {
   };
 }
 
-function slotFrom(fgc: FgcState, player: FgcPlayer | null) {
-  return { name: "", player: { "1": tshPlayer(fgc, player) } };
+function roundKey(set: FgcSet) {
+  if (set.roundNum) return set.roundNum;
+  const text = set.round.toLowerCase();
+  const losers = text.includes("loser");
+  const sign = losers ? -1 : 1;
+  if (text.includes("reset")) return 100;
+  if (text.includes("grand")) return sign * 90;
+  if (text.includes("semi")) return sign * 80;
+  if (text.includes("quarter")) return sign * 70;
+  const match = text.match(/round\s+(\d+)/);
+  if (match) return sign * Number(match[1]);
+  return losers ? -1 : 1;
+}
+
+function rosterPayload(fgc: FgcState) {
+  const roster = fgc.roster;
+  const count = Math.max(1, roster?.count || 8);
+  const slots: Record<string, unknown> = {};
+  for (let index = 1; index <= count; index += 1) {
+    const entry = roster?.slots[index - 1];
+    const players = entry?.players ?? [];
+    const body: Record<string, unknown> = { "1": tshPlayer(fgc, players[0] ?? null) };
+    if ((roster?.playersPerSlot || 1) > 1 && players[1]?.tag) body["2"] = tshPlayer(fgc, players[1]);
+    slots[String(index)] = {
+      name: entry?.teamName || "",
+      score: roster?.showScores ? entry?.score ?? 0 : "",
+      player: body,
+    };
+  }
+  return { slot: slots };
+}
+
+function bracketPayload(fgc: FgcState) {
+  const options = fgc.bracketView;
+  let sets = fgc.sets.filter((set) => set.p1?.tag || set.p2?.tag);
+  if (options?.phase) sets = sets.filter((set) => set.phase === options.phase);
+  if (options?.group) sets = sets.filter((set) => set.group === options.group);
+  if (options?.winnersOnly) sets = sets.filter((set) => roundKey(set) > 0);
+  if (options?.losersOnly) sets = sets.filter((set) => roundKey(set) < 0);
+  const byRound = new Map<number, FgcSet[]>();
+  for (const set of sets) {
+    const key = roundKey(set);
+    byRound.set(key, [...(byRound.get(key) ?? []), set]);
+  }
+  let keys = [...byRound.keys()].sort((a, b) => a - b);
+  if (options?.top > 0) {
+    const winners = keys.filter((key) => key > 0);
+    const keepFrom = winners.find((key) => (byRound.get(key)?.length ?? 0) <= options.top / 2);
+    if (keepFrom) {
+      const next = keys.filter((key) => (key < 0 ? Math.abs(key) >= Math.max(1, keepFrom - 1) : key >= keepFrom));
+      if (next.length) keys = next;
+    }
+  }
+  const players: Record<string, unknown> = {};
+  const ids = new Map<string, number>();
+  const pid = (player: FgcPlayer | null) => {
+    if (!player?.tag) return -1;
+    const key = player.id || player.tag;
+    const known = ids.get(key);
+    if (known) return known;
+    const next = ids.size + 1;
+    ids.set(key, next);
+    players[String(next)] = { name: "", score: 0, player: { "1": tshPlayer(fgc, player) } };
+    return next;
+  };
+  const rounds: Record<string, unknown> = {};
+  keys.forEach((key) => {
+    const list = byRound.get(key) ?? [];
+    const nextRound = keys.find((item) => item > key && Math.sign(item) === Math.sign(key));
+    const body: Record<string, unknown> = {};
+    list.forEach((set, index) => {
+      body[String(index)] = {
+        playerId: [pid(set.p1), pid(set.p2)],
+        score: [set.score1, set.score2],
+        completed: set.state === "done",
+        nextWin: nextRound == null ? null : [nextRound, Math.floor(index / 2)],
+      };
+    });
+    rounds[String(key)] = { name: list[0]?.round || `Round ${key}`, sets: body };
+  });
+  return {
+    phase: options?.phase || "",
+    phaseGroup: options?.group || "",
+    players: { slot: players },
+    bracket: {
+      rounds,
+      progressionsIn: options?.progressionsIn || 0,
+      progressionsOut: options?.progressionsOut || 0,
+      winnersOnlyProgressions: !!options?.winnersOnly,
+    },
+  };
 }
 
 export function programState(fgc: FgcState, preview = false) {
@@ -111,8 +200,6 @@ export function programState(fgc: FgcState, preview = false) {
       state: { asset: "", code: caster.region || "" },
     };
   });
-  const slots: Record<string, unknown> = {};
-  for (let index = 1; index <= 8; index += 1) slots[String(index)] = slotFrom(fgc, null);
   const body = {
     tournamentInfo: {
       tournamentName: fgc.event?.tournamentName || "",
@@ -139,7 +226,8 @@ export function programState(fgc: FgcState, preview = false) {
       },
     },
     commentary,
-    player_list: { slot: slots },
+    player_list: rosterPayload(fgc),
+    bracket: bracketPayload(fgc),
   };
   if (preview) fillPreview(body);
   const json = JSON.stringify(body);

@@ -122,6 +122,57 @@ export type FgcSet = {
   p2b: FgcPlayer | null;
   score1: number;
   score2: number;
+  teamName1: string;
+  teamName2: string;
+  roundNum: number;
+};
+
+export type FgcRosterSlot = {
+  teamName: string;
+  score: number;
+  players: FgcPlayer[];
+};
+
+export type FgcRoster = {
+  count: number;
+  playersPerSlot: number;
+  charactersPerPlayer: number;
+  showScores: boolean;
+  slots: FgcRosterSlot[];
+};
+
+export type FgcBracketView = {
+  phase: string;
+  group: string;
+  progressionsIn: number;
+  progressionsOut: number;
+  winnersOnly: boolean;
+  losersOnly: boolean;
+  top: number;
+};
+
+export function blankRosterSlot(): FgcRosterSlot {
+  return { teamName: "", score: 0, players: [blankPlayer()] };
+}
+
+export function blankRoster(count = 8): FgcRoster {
+  return {
+    count,
+    playersPerSlot: 1,
+    charactersPerPlayer: 1,
+    showScores: false,
+    slots: Array.from({ length: count }, () => blankRosterSlot()),
+  };
+}
+
+export const EMPTY_BRACKET_VIEW: FgcBracketView = {
+  phase: "",
+  group: "",
+  progressionsIn: 0,
+  progressionsOut: 0,
+  winnersOnly: false,
+  losersOnly: false,
+  top: 8,
 };
 
 export type FgcEvent = {
@@ -155,6 +206,8 @@ export type FgcState = {
   titles: FgcTitle[];
   activeTitleId: string | null;
   tshLayout: string | null;
+  roster: FgcRoster;
+  bracketView: FgcBracketView;
 };
 
 export const EMPTY_FGC: FgcState = {
@@ -175,6 +228,8 @@ export const EMPTY_FGC: FgcState = {
   titles: [],
   activeTitleId: null,
   tshLayout: null,
+  roster: blankRoster(),
+  bracketView: EMPTY_BRACKET_VIEW,
 };
 
 export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
@@ -222,6 +277,9 @@ export function blankSet(): FgcSet {
     p2b: blankPlayer(),
     score1: 0,
     score2: 0,
+    teamName1: "",
+    teamName2: "",
+    roundNum: 0,
   };
 }
 export type FgcCharacter = {

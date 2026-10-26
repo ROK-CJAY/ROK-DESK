@@ -382,10 +382,86 @@ function deskProgram() {
       return {
         score: which === "1" ? set.score1 || 0 : set.score2 || 0,
         losers: which === "1" ? !!set.losers1 : !!set.losers2,
-        name: "",
+        name: which === "1" ? set.teamName1 || "" : set.teamName2 || "",
         player: players,
       };
     }
+    function roundKey(item) {
+      if (item.roundNum) return item.roundNum;
+      var text = String(item.round || "").toLowerCase();
+      var losers = text.indexOf("loser") >= 0;
+      var sign = losers ? -1 : 1;
+      if (text.indexOf("reset") >= 0) return 100;
+      if (text.indexOf("grand") >= 0) return sign * 90;
+      if (text.indexOf("semi") >= 0) return sign * 80;
+      if (text.indexOf("quarter") >= 0) return sign * 70;
+      var match = text.match(/round\s+(\d+)/);
+      if (match) return sign * Number(match[1]);
+      return losers ? -1 : 1;
+    }
+    var roster = fgc.roster || { count: 8, slots: [], showScores: false, playersPerSlot: 1 };
+    var listSlots = {};
+    var listCount = Math.max(1, roster.count || 8);
+    for (var s = 1; s <= listCount; s += 1) {
+      var entry = (roster.slots || [])[s - 1] || { players: [] };
+      var slotPlayers = { "1": person(entry.players && entry.players[0]) };
+      if ((roster.playersPerSlot || 1) > 1 && entry.players && entry.players[1] && entry.players[1].tag) slotPlayers["2"] = person(entry.players[1]);
+      listSlots[String(s)] = { name: entry.teamName || "", score: roster.showScores ? entry.score || 0 : "", player: slotPlayers };
+    }
+    var view = fgc.bracketView || {};
+    var bracketSets = (fgc.sets || []).filter(function (item) { return (item.p1 && item.p1.tag) || (item.p2 && item.p2.tag); });
+    if (view.phase) bracketSets = bracketSets.filter(function (item) { return item.phase === view.phase; });
+    if (view.group) bracketSets = bracketSets.filter(function (item) { return item.group === view.group; });
+    if (view.winnersOnly) bracketSets = bracketSets.filter(function (item) { return roundKey(item) > 0; });
+    if (view.losersOnly) bracketSets = bracketSets.filter(function (item) { return roundKey(item) < 0; });
+    var grouped = {};
+    bracketSets.forEach(function (item) {
+      var key = String(roundKey(item));
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+    var roundKeys = Object.keys(grouped).map(Number).sort(function (a, b) { return a - b; });
+    if (view.top > 0) {
+      var winners = roundKeys.filter(function (key) { return key > 0; });
+      var keepFrom = null;
+      for (var w = 0; w < winners.length; w += 1) {
+        if (grouped[String(winners[w])].length <= view.top / 2) { keepFrom = winners[w]; break; }
+      }
+      if (keepFrom != null) {
+        var kept = roundKeys.filter(function (key) { return key < 0 ? Math.abs(key) >= Math.max(1, keepFrom - 1) : key >= keepFrom; });
+        if (kept.length) roundKeys = kept;
+      }
+    }
+    var bracketPlayers = {};
+    var bracketIds = {};
+    var nextPid = 1;
+    function pid(player) {
+      if (!player || !player.tag) return -1;
+      var id = player.id || player.tag;
+      if (bracketIds[id]) return bracketIds[id];
+      bracketIds[id] = nextPid;
+      bracketPlayers[String(nextPid)] = { name: "", score: 0, player: { "1": person(player) } };
+      nextPid += 1;
+      return bracketIds[id];
+    }
+    var rounds = {};
+    roundKeys.forEach(function (key) {
+      var list = grouped[String(key)] || [];
+      var nextRound = null;
+      for (var r = 0; r < roundKeys.length; r += 1) {
+        if (roundKeys[r] > key && (roundKeys[r] < 0) === (key < 0)) { nextRound = roundKeys[r]; break; }
+      }
+      var setsBody = {};
+      list.forEach(function (item, index) {
+        setsBody[String(index)] = {
+          playerId: [pid(item.p1), pid(item.p2)],
+          score: [item.score1 || 0, item.score2 || 0],
+          completed: item.state === "done",
+          nextWin: nextRound == null ? null : [nextRound, Math.floor(index / 2)],
+        };
+      });
+      rounds[String(key)] = { name: (list[0] && list[0].round) || ("Round " + key), sets: setsBody };
+    });
     var event = fgc.event || {};
     var library = null;
     var libraries = fgc.libraries || [];
@@ -409,6 +485,18 @@ function deskProgram() {
         },
       },
       commentary: {},
+      player_list: { slot: listSlots },
+      bracket: {
+        phase: view.phase || "",
+        phaseGroup: view.group || "",
+        players: { slot: bracketPlayers },
+        bracket: {
+          rounds: rounds,
+          progressionsIn: view.progressionsIn || 0,
+          progressionsOut: view.progressionsOut || 0,
+          winnersOnlyProgressions: !!view.winnersOnly,
+        },
+      },
     };
     var stamp = 2166136261;
     var key = JSON.stringify(body);
@@ -417,7 +505,9 @@ function deskProgram() {
       stamp = Math.imul(stamp, 16777619);
     }
     body.timestamp = (stamp >>> 0) || 1;
-    return body.score["1"].team["1"].player["1"].name || body.score["1"].team["2"].player["1"].name ? body : null;
+    var named = body.score["1"].team["1"].player["1"].name || body.score["1"].team["2"].player["1"].name;
+    var listed = (roster.slots || []).some(function (slot) { return slot.players && slot.players[0] && slot.players[0].tag; });
+    return named || listed || bracketSets.length ? body : null;
   } catch (e) {
     return null;
   }

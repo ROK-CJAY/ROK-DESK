@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { currentStreamSetId, importStartggEvent, searchStartggPlayers, stockIcons, tournamentIcon } from "@/lib/startgg";
+import { currentStreamSetId, eventStandings, importStartggEvent, searchStartggPlayers, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callToSet, loadToAccount, loadToBoard, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
 
 export const Route = createFileRoute("/api/startgg")({
@@ -18,6 +18,8 @@ export const Route = createFileRoute("/api/startgg")({
           stationId?: string;
           streamId?: string;
           winnerId?: string;
+          eventId?: string;
+          count?: number;
           score1?: number;
           score2?: number;
           stageId?: string;
@@ -86,6 +88,11 @@ export const Route = createFileRoute("/api/startgg")({
           if (body.action === "icon") {
             const icon = await tournamentIcon(url, token);
             return Response.json({ icon });
+          }
+          if (body.action === "standings") {
+            if (!body.eventId) return Response.json({ error: "Import the event first" }, { status: 400 });
+            const standings = await eventStandings(body.eventId, body.count ?? 8, token);
+            return Response.json({ standings });
           }
           const imported = await importStartggEvent(url, token);
           return Response.json(imported);

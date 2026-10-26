@@ -89,6 +89,7 @@ const SETS_QUERY = `
         nodes {
           id
           fullRoundText
+          round
           identifier
           state
           winnerId
@@ -158,6 +159,7 @@ type RawSets = {
 type RawSet = {
   id: string;
   fullRoundText?: string | null;
+  round?: number | null;
   identifier?: string | null;
   state?: number | null;
   winnerId?: number | string | null;
@@ -235,19 +237,23 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined, charac
 
 function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
   const slots = raw.slots ?? [];
+  const round = raw.fullRoundText?.trim() || "Set";
+  const lower = round.toLowerCase();
+  const grand = lower.includes("grand final");
+  const reset = lower.includes("reset");
   return {
     id: raw.id,
     phase,
     group,
-    round: raw.fullRoundText?.trim() || "Set",
+    round,
     identifier: raw.identifier?.trim() || "",
     streamName: raw.stream?.streamName?.trim() || "",
     station: raw.station?.number == null ? "" : String(raw.station.number),
     queued: false,
     bestOf: 3,
     stage: "",
-    losers1: false,
-    losers2: false,
+    losers1: grand && reset,
+    losers2: grand,
     state: setState(raw.state),
     winnerId: raw.winnerId == null ? null : String(raw.winnerId),
     p1: playerOf(slots[0], characterFor(raw, slots[0]?.entrant?.id)),
@@ -258,6 +264,9 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     charactersPerPlayer: 1,
     score1: slots[0]?.standing?.stats?.score?.value ?? 0,
     score2: slots[1]?.standing?.stats?.score?.value ?? 0,
+    teamName1: "",
+    teamName2: "",
+    roundNum: typeof raw.round === "number" ? raw.round : 0,
   };
 }
 
@@ -424,6 +433,77 @@ export async function tournamentIcon(url: string, token?: string): Promise<strin
   );
   const images = data.event?.tournament?.images ?? [];
   return images.find((image) => image.type === "profile")?.url || images[0]?.url || "";
+}
+
+export async function eventStandings(eventId: string, count: number, token?: string) {
+  const perPage = Math.max(1, Math.min(64, count || 8));
+  const data = await startggQuery<{
+    event?: {
+      standings?: {
+        nodes?: {
+          placement?: number | null;
+          entrant?: {
+            id?: string | number | null;
+            name?: string | null;
+            seeds?: { seedNum?: number | null }[] | null;
+            participants?: {
+              gamerTag?: string | null;
+              prefix?: string | null;
+              user?: {
+                id?: string | number | null;
+                name?: string | null;
+                genderPronoun?: string | null;
+                location?: { country?: string | null; state?: string | null } | null;
+                authorizations?: { externalUsername?: string | null }[] | null;
+              } | null;
+            }[] | null;
+          } | null;
+        }[] | null;
+      } | null;
+    } | null;
+  }>(
+    `query FgcStandings($id: ID!, $perPage: Int!) {
+      event(id: $id) {
+        standings(query: { page: 1, perPage: $perPage }) {
+          nodes {
+            placement
+            entrant {
+              id
+              name
+              seeds { seedNum }
+              participants {
+                gamerTag
+                prefix
+                user { id name genderPronoun location { country state } authorizations(types: [TWITTER]) { externalUsername } }
+              }
+            }
+          }
+        }
+      }
+    }`,
+    { id: eventId, perPage },
+    "FgcStandings",
+    token,
+  );
+  return (data.event?.standings?.nodes ?? []).map((row) => {
+    const entrant = row.entrant;
+    const person = entrant?.participants?.[0];
+    const user = person?.user;
+    const country = user?.location?.country?.trim() || "";
+    return {
+      placement: row.placement ?? 0,
+      id: entrant?.id == null ? "" : String(entrant.id),
+      profileId: user?.id == null ? "" : String(user.id),
+      tag: person?.gamerTag?.trim() || entrant?.name?.trim() || "",
+      prefix: person?.prefix?.trim() || "",
+      realName: user?.name?.trim() || "",
+      country,
+      region: user?.location?.state?.trim() || "",
+      twitter: (user?.authorizations?.find((item) => item.externalUsername)?.externalUsername ?? "").replace(/^@/, ""),
+      pronouns: user?.genderPronoun?.trim() || "",
+      seed: entrant?.seeds?.[0]?.seedNum ?? null,
+    };
+  });
 }
 
 export async function currentStreamSetId(url: string, token?: string): Promise<string | null> {
