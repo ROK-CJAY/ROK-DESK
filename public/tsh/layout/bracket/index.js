@@ -121,7 +121,9 @@ LoadEverything().then(() => {
     if (!data || !data.bracket || !data.bracket.bracket) return;
     let oldData = event.oldData || {};
 
+    const unpainted = $(".winners_container .round").length === 0 && $(".losers_container .round").length === 0;
     if (
+      unpainted ||
       !oldData.bracket ||
       JSON.stringify(data.bracket) != JSON.stringify(oldData.bracket)
     ) {
@@ -164,6 +166,7 @@ LoadEverything().then(() => {
       $(":root").css("--flag-height", size - size * 0.4);
 
       if (
+        unpainted ||
         !oldData.bracket ||
         Object.keys(oldData.bracket.players).length !=
           Object.keys(data.bracket.players).length ||

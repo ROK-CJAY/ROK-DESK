@@ -285,6 +285,7 @@ async function InitAll() {
     clearInterval(waitForLayout);
     tshPainted = false;
     paintedUpdate = null;
+    oldData = {};
     UpdateData().then(() => Start());
   }, 25);
 
