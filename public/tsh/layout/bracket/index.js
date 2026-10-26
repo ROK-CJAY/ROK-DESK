@@ -113,6 +113,10 @@ LoadEverything().then(() => {
 
   Update = async (event) => {
     document.body.style.opacity = "1";
+    const roundToken = (key) => {
+      const n = parseInt(key, 10);
+      return (n < 0 ? "l" : "w") + Math.abs(n);
+    };
     let data = event.data;
     if (!data || !data.bracket || !data.bracket.bracket) return;
     let oldData = event.oldData || {};
@@ -179,7 +183,7 @@ LoadEverything().then(() => {
         );
 
         Object.entries(winnersRounds).forEach(([roundKey, round], r) => {
-          html += `<div class="round round_${roundKey}">`;
+          html += `<div class="round round_${roundToken(roundKey)}">`;
           html += `<div class="round_name"></div>`;
           Object.values(round.sets).forEach((slot, i) => {
             html += `<div class="slot slot_${i + 1}">`;
@@ -217,7 +221,7 @@ LoadEverything().then(() => {
           html = "";
 
           Object.entries(losersRounds).forEach(([roundKey, round], r) => {
-            html += `<div class="round round_${roundKey}">`;
+            html += `<div class="round round_${roundToken(roundKey)}">`;
             html += `<div class="round_name"></div>`;
             Object.values(round.sets).forEach((slot, i) => {
               html += `<div class="slot slot_${i + 1}">`;
@@ -282,20 +286,20 @@ LoadEverything().then(() => {
                 if (window.LOSERS_ONLY && parseInt(roundKey) > 0) return;
 
                 let slotElement = $(
-                  `.${this.baseClass} .round_${roundKey} .slot_${i + 1}`
+                  `.${this.baseClass} .round_${roundToken(roundKey)} .slot_${i + 1}`
                 );
 
                 if (!slotElement || !slotElement.offset()) return;
 
                 let winElement = $(
-                  `.${this.baseClass} .round_${slot.nextWin[0]} .slot_${
+                  `.${this.baseClass} .round_${roundToken(slot.nextWin[0])} .slot_${
                     slot.nextWin[1] + 1
                   }`
                 );
 
                 if (winElement && winElement.offset()) {
                   slotLines += `<path class="line ${
-                    this.baseClass
+                    baseClass
                   } line_r_${roundKey} s_${i + 1}" d="
                   M${[
                     slotElement.offset().left + slotElement.outerWidth(),
@@ -339,7 +343,7 @@ LoadEverything().then(() => {
                       Math.abs(parseInt(roundKey)) == 1 &&
                       !winnersOnlyProgressions))
                 ) {
-                  slotLines += `<path class="line ${this.baseClass} line_in_r_${
+                  slotLines += `<path class="line ${baseClass} line_in_r_${
                     Math.sign(parseInt(roundKey)) * Math.abs(parseInt(roundKey))
                   } s_${i + 1}" d="
                   M${[
@@ -368,7 +372,7 @@ LoadEverything().then(() => {
                         Object.keys(losersRounds).length))
                 ) {
                   slotLines += `<path class="line ${
-                    this.baseClass
+                    baseClass
                   } line_out_r_${roundKey} s_${i + 1}" d="
                   M${[
                     slotElement.offset().left + slotElement.outerWidth(),
@@ -408,7 +412,7 @@ LoadEverything().then(() => {
                 }
               }
             },
-            { baseClass: baseClass }
+            { baseClass }
           );
         });
 
@@ -439,18 +443,8 @@ LoadEverything().then(() => {
             );
 
             if (isGfR && progressionsOut == 0) {
-              anim.from(
-                $(`.round_${roundKey} .round_name`),
-                { autoAlpha: 0, duration: 0.4 },
-                0.5
-              );
+              anim.addLabel("displayed");
             }
-
-            anim.from(
-              $(`.round_${roundKey} .slot_${setIndex + 1}`),
-              { x: -50, autoAlpha: 0, duration: 0.4 },
-              0.5
-            );
 
             anim.addLabel("displayed");
 
@@ -483,7 +477,7 @@ LoadEverything().then(() => {
         }
 
         SetInnerHtml(
-          $(`.${baseClass} .round_${parseInt(roundKey)} .round_name`),
+          $(`.${baseClass} .round_${roundToken(roundKey)} .round_name`),
           round.name
         );
 
@@ -492,7 +486,7 @@ LoadEverything().then(() => {
             function (score, p) {
               SetInnerHtml(
                 $(
-                  `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+                  `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                     i + 1
                   } .slot_p_${p}.container .score`
                 ),
@@ -501,38 +495,38 @@ LoadEverything().then(() => {
                 `
               );
             },
-            { baseClass: baseClass }
+            { baseClass }
           );
           if (slot.score[0] > slot.score[1] && slot.completed) {
             $(
-              `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+              `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                 i + 1
               } .slot_p_${0}.container`
             ).css("filter", "brightness(1)");
             $(
-              `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+              `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                 i + 1
               } .slot_p_${1}.container`
             ).css("filter", "brightness(0.6)");
           } else if (slot.score[1] > slot.score[0] && slot.completed) {
             $(
-              `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+              `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                 i + 1
               } .slot_p_${0}.container`
             ).css("filter", "brightness(0.6)");
             $(
-              `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+              `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                 i + 1
               } .slot_p_${1}.container`
             ).css("filter", "brightness(1)");
           } else {
             $(
-              `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+              `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                 i + 1
               } .slot_p_${0}.container`
             ).css("filter", "brightness(1)");
             $(
-              `.${this.baseClass} .round_${parseInt(roundKey)} .slot_${
+              `.${baseClass} .round_${roundToken(roundKey)} .slot_${
                 i + 1
               } .slot_p_${1}.container`
             ).css("filter", "brightness(1)");
@@ -545,7 +539,7 @@ LoadEverything().then(() => {
         for (const [setIndex, set] of Object.entries(round.sets)) {
           for (const [index, pid] of set.playerId.entries()) {
             let element = $(
-              `.round_${roundKey} .slot_${
+              `.round_${roundToken(roundKey)} .slot_${
                 parseInt(setIndex) + 1
               } .slot_p_${index}`
             ).get(0);
