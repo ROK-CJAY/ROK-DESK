@@ -737,6 +737,43 @@ var divResizeObserver = new ResizeObserver((entries) => {
 
 // Prepare element for character image display
 // Call function to center image
+var tshFrameCache = {};
+
+function tshFrame(assetData) {
+  try {
+    if (!assetData || assetData.eyesight || !assetData.asset) return Promise.resolve(assetData);
+    var match = String(assetData.asset).match(/\/games\/([^/]+)\/([^/]+)\/(.+)_(\d+)\.(?:png|webp|jpe?g)/i);
+    if (!match) return Promise.resolve(assetData);
+    var game = match[1];
+    var folder = match[2];
+    var code = match[3];
+    var skin = String(Number(match[4]));
+    var key = game + "/" + folder;
+    if (!tshFrameCache[key]) {
+      var root = String(assetData.asset).slice(0, String(assetData.asset).indexOf("/games/"));
+      tshFrameCache[key] = fetch(root + "/games/" + game + "/" + folder + "/config.json")
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .catch(function () { return null; });
+    }
+    return tshFrameCache[key].then(function (config) {
+      var eyes = config && config.eyesights && config.eyesights[code] && (config.eyesights[code][skin] || config.eyesights[code]["0"]);
+      if (!eyes) return assetData;
+      var scale = 1;
+      if (config.rescaling_factor && config.rescaling_factor[code]) {
+        scale = config.rescaling_factor[code][skin] || config.rescaling_factor[code]["0"] || 1;
+      }
+      return Object.assign({}, assetData, {
+        eyesight: eyes,
+        average_size: config.average_size || assetData.average_size,
+        uncropped_edge: config.uncropped_edge || assetData.uncropped_edge,
+        rescaling_factor: scale,
+      });
+    });
+  } catch (e) {
+    return Promise.resolve(assetData);
+  }
+}
+
 async function CenterImage(element, assetData, options = {}) {
   try {
     options = _.defaultsDeep(options, {
@@ -751,7 +788,7 @@ async function CenterImage(element, assetData, options = {}) {
       reject();
     }
 
-    options.asset_data = assetData;
+    options.asset_data = await tshFrame(assetData);
 
     $(element).data(options);
 
@@ -841,7 +878,7 @@ async function CenterImageDo(element) {
             if (!eyesight) {
               eyesight = {
                 x: img.naturalWidth / 2,
-                y: img.naturalHeight / 2,
+                y: 0,
               };
             }
 
