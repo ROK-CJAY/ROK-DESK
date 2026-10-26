@@ -232,6 +232,7 @@ export function programState(fgc: FgcState, preview = false) {
       tournamentName: fgc.event?.tournamentName || "",
       eventName: fgc.event?.name || "",
       logo: fgc.event?.icon || "",
+      numEntrants: fgc.event?.entrants || 0,
     },
     game: {
       name: fgc.event?.game || library?.game || "",

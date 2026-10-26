@@ -285,6 +285,7 @@ async function InitAll() {
     clearInterval(waitForLayout);
     tshPainted = false;
     paintedUpdate = null;
+    data = {};
     oldData = {};
     UpdateData().then(() => Start());
   }, 25);
@@ -498,7 +499,7 @@ function deskProgram() {
     }
     if (!library && libraries.length) library = libraries[0];
     var body = {
-      tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "", logo: event.icon || "" },
+      tournamentInfo: { tournamentName: event.tournamentName || "", eventName: event.name || "", logo: event.icon || "", numEntrants: event.entrants || 0 },
       game: { name: event.game || "", codename: (library && library.code) || "" },
       score: {
         "1": {

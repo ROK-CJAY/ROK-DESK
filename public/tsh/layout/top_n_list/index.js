@@ -10,17 +10,21 @@ LoadEverything().then(() => {
   };
 
   Update = async (event) => {
+    document.body.style.opacity = "1";
     let data = event.data;
-    let oldData = event.oldData;
+    let oldData = event.oldData || {};
+    const unpainted = $(".players_container .slot").length === 0;
 
     if (
+      unpainted ||
       !oldData.player_list ||
       JSON.stringify(data.player_list) != JSON.stringify(oldData.player_list)
     ) {
 	let htmls = [];
 	let firstpass = new Array();
 	let nbtimes = 2;
-	for(let e=0;e<data.tournamentInfo.numEntrants/2;e++){
+	const entrants = Number(data.tournamentInfo && data.tournamentInfo.numEntrants) || Object.keys(data.player_list.slot || {}).length || 8;
+	for(let e=0;e<entrants/2 && firstpass.length < 64;e++){
 		for(let j=0;j<nbtimes;j++){
 			firstpass.push(e)
 		}

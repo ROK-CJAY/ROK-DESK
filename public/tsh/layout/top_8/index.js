@@ -10,10 +10,13 @@ LoadEverything().then(() => {
   };
 
   Update = async (event) => {
+    document.body.style.opacity = "1";
     let data = event.data;
-    let oldData = event.oldData;
+    let oldData = event.oldData || {};
+    const unpainted = $(".top1_container .slot, .top4_container .slot, .top8_container .slot").length === 0;
 
     if (
+      unpainted ||
       !oldData.player_list ||
       JSON.stringify(data.player_list) != JSON.stringify(oldData.player_list)
     ) {
