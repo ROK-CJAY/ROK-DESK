@@ -1,9 +1,10 @@
-import { useEffect, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
+import { fontFamilyCss } from "@/lib/fgc-fonts";
 import { activeTitle, liveSet, titleImage, titleStack, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
 
 function useLiveFgc() {
@@ -66,6 +67,35 @@ function Winner() {
   );
 }
 
+function TitleMotion({ token, anim, children }: { token: string; anim: string; children: ReactNode }) {
+  const incoming = useRef(children);
+  incoming.current = children;
+  const shown = useRef({ token, node: children });
+  const [display, setDisplay] = useState(children);
+  const [phase, setPhase] = useState("");
+  useEffect(() => {
+    if (anim !== "fade" || token === shown.current.token) {
+      shown.current = { token, node: incoming.current };
+      setDisplay(incoming.current);
+      return;
+    }
+    setDisplay(shown.current.node);
+    setPhase("out");
+    const timer = window.setTimeout(() => {
+      shown.current = { token, node: incoming.current };
+      setDisplay(incoming.current);
+      setPhase("in");
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [anim, token]);
+  if (anim !== "fade") return <div className="h-full w-full">{children}</div>;
+  return (
+    <div className="h-full w-full" style={{ animation: phase === "out" ? "rok-title-out 220ms ease forwards" : phase === "in" ? "rok-title-in 280ms ease" : undefined }}>
+      {display}
+    </div>
+  );
+}
+
 export function CustomLayout({ editing = false, titleId = "" }: { editing?: boolean; titleId?: string }) {
   useTitleImages();
   const fgc = useLiveFgc();
@@ -73,7 +103,11 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
   const title = activeTitle(fgc, titleId);
   return (
     <div className="relative h-full w-full">
-      {titleStack(title).map((element) => (
+      {titleStack(title).map((element) => {
+        const words = element.kind === "text" || element.kind === "ticker";
+        const picture = element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle";
+        const value = picture ? titleImage(fgc, set, element) : titleText(fgc, set, element.bind, element.text);
+        return (
         <div
           key={element.id}
           className="absolute overflow-hidden"
@@ -83,24 +117,30 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
             width: element.w,
             height: element.h,
             color: element.color,
-            background: element.kind === "image" ? "transparent" : element.bg,
+            background: picture && value ? "transparent" : element.bg,
             fontSize: element.size,
-            fontFamily: element.font || undefined,
-            fontWeight: element.weight || 650,
+            fontFamily: fontFamilyCss(element.font),
+            fontWeight: element.weight || (element.font ? 400 : 650),
+            fontStyle: element.fontStyle === "italic" ? "italic" : "normal",
             textAlign: element.align,
             lineHeight: 1.05,
             opacity: element.opacity,
+            borderRadius: element.kind === "circle" ? "50%" : undefined,
+            clipPath: element.kind === "triangle" ? "polygon(50% 0, 100% 100%, 0 100%)" : undefined,
             mixBlendMode: (element.blend || undefined) as CSSProperties["mixBlendMode"],
             outline: editing ? "1px dashed rgba(255,255,255,0.35)" : undefined,
           }}
         >
-          {element.kind === "image" ? (
-            titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="h-full w-full object-cover" /> : null
-          ) : element.kind === "text" ? (
-            <span className="block h-full overflow-hidden whitespace-pre-wrap break-words">{titleText(fgc, set, element.bind, element.text)}</span>
-          ) : null}
+          <TitleMotion token={value} anim={element.anim || ""}>
+            {picture ? (
+              value ? <img src={value} alt="" className={`h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : null
+            ) : words ? (
+              <span className={element.kind === "ticker" ? "inline-block whitespace-nowrap" : "block h-full overflow-hidden whitespace-pre-wrap break-words"} style={element.kind === "ticker" ? { animation: "rok-ticker 14s linear infinite" } : undefined}>{titleText(fgc, set, element.bind, element.text)}</span>
+            ) : null}
+          </TitleMotion>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -170,9 +170,12 @@ function rulesetPayload(fgc: FgcState) {
 }
 
 function queuePayload(fgc: FgcState) {
-  const rows = fgc.sets.filter((set) => set.state !== "done" && (set.p1?.tag || set.p2?.tag)).slice(0, 8);
+  const queued = fgc.sets
+    .filter((set) => set.queued)
+    .sort((a, b) => (a.streamName || "").localeCompare(b.streamName || "") || (a.queueOrder || 0) - (b.queueOrder || 0));
+  const rows = queued.length ? queued : fgc.sets.filter((set) => set.state !== "done" && (set.p1?.tag || set.p2?.tag)).slice(0, 8);
   const list = rows.length ? rows : fgc.sets.filter((set) => set.p1?.tag || set.p2?.tag).slice(0, 8);
-  return list.map((set) => ({
+  return list.slice(0, 8).map((set) => ({
     match: set.round || "",
     phase: set.phase || "",
     station: set.station || "",

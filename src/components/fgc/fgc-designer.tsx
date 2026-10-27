@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, Eye, EyeOff, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useTitleImages } from "@/lib/fgc-assets";
+import { fontChoices, saveFontFile, useTitleImages } from "@/lib/fgc-assets";
+import { deskFonts, fontFamilyCss } from "@/lib/fgc-fonts";
 import { useFgcStore } from "@/lib/fgc-store";
 import { titleFromPsd } from "@/lib/psd-title";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
 import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
-type Tool = "select" | "text" | "image" | "rect";
+type Tool = "select" | "text" | "ticker" | "image" | "rect" | "circle" | "triangle";
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 const HANDLES: { id: Handle; className: string }[] = [
@@ -62,6 +63,121 @@ function resizedBox(origin: FgcTitleElement, dx: number, dy: number, handle: Han
   return { x: Math.round(x), y: Math.round(y), w: Math.max(8, Math.round(w)), h: Math.max(8, Math.round(h)) };
 }
 
+type Box = { x: number; y: number; w: number; h: number };
+type Guides = { x: number[]; y: number[] };
+
+function snapMove(box: Box, peers: Box[]): { box: Box; guides: Guides } {
+  const xs = [0, 960, 1920];
+  const ys = [0, 540, 1080];
+  for (const peer of peers) {
+    xs.push(peer.x, peer.x + peer.w / 2, peer.x + peer.w);
+    ys.push(peer.y, peer.y + peer.h / 2, peer.y + peer.h);
+  }
+  const nearest = (value: number, targets: number[]) => {
+    let best: { dist: number; target: number } | null = null;
+    for (const target of targets) {
+      const dist = Math.abs(value - target);
+      if (dist <= 8 && (!best || dist < best.dist)) best = { dist, target };
+    }
+    return best;
+  };
+  const pick = (edges: [number, (target: number) => number][], targets: number[]) => {
+    let best: { dist: number; next: number; guide: number } | null = null;
+    for (const [value, apply] of edges) {
+      const hit = nearest(value, targets);
+      if (hit && (!best || hit.dist < best.dist)) best = { dist: hit.dist, next: apply(hit.target), guide: hit.target };
+    }
+    return best;
+  };
+  const hitX = pick([
+    [box.x, (target) => target],
+    [box.x + box.w / 2, (target) => target - box.w / 2],
+    [box.x + box.w, (target) => target - box.w],
+  ], xs);
+  const hitY = pick([
+    [box.y, (target) => target],
+    [box.y + box.h / 2, (target) => target - box.h / 2],
+    [box.y + box.h, (target) => target - box.h],
+  ], ys);
+  return {
+    box: { ...box, x: Math.round(hitX ? hitX.next : box.x), y: Math.round(hitY ? hitY.next : box.y) },
+    guides: { x: hitX ? [hitX.guide] : [], y: hitY ? [hitY.guide] : [] },
+  };
+}
+
+function snapResize(box: Box, peers: Box[], handle: Handle, origin: Box): { box: Box; guides: Guides } {
+  const xs = [0, 960, 1920];
+  const ys = [0, 540, 1080];
+  for (const peer of peers) {
+    xs.push(peer.x, peer.x + peer.w / 2, peer.x + peer.w);
+    ys.push(peer.y, peer.y + peer.h / 2, peer.y + peer.h);
+  }
+  const nearest = (value: number, targets: number[]) => {
+    let best: { dist: number; target: number } | null = null;
+    for (const target of targets) {
+      const dist = Math.abs(value - target);
+      if (dist <= 8 && (!best || dist < best.dist)) best = { dist, target };
+    }
+    return best;
+  };
+  const east = handle.includes("e");
+  const west = handle.includes("w");
+  const south = handle.includes("s");
+  const north = handle.includes("n");
+  const same = (a: number, b: number) => Math.abs(a - b) <= 1;
+  const flippedX = (east && !same(box.x, origin.x)) || (west && !same(box.x + box.w, origin.x + origin.w));
+  const flippedY = (south && !same(box.y, origin.y)) || (north && !same(box.y + box.h, origin.y + origin.h));
+  const moveX = east || west ? (east === flippedX ? "w" : "e") : "";
+  const moveY = south || north ? (south === flippedY ? "n" : "s") : "";
+  let { x, y, w, h } = box;
+  const guides: Guides = { x: [], y: [] };
+  if (moveX === "e") {
+    const hit = nearest(x + w, xs);
+    if (hit) {
+      w = Math.max(8, hit.target - x);
+      guides.x.push(hit.target);
+    }
+  }
+  if (moveX === "w") {
+    const hit = nearest(x, xs);
+    if (hit) {
+      const right = x + w;
+      const next = Math.min(hit.target, right - 8);
+      x = next;
+      w = right - next;
+      guides.x.push(hit.target);
+    }
+  }
+  if (moveY === "s") {
+    const hit = nearest(y + h, ys);
+    if (hit) {
+      h = Math.max(8, hit.target - y);
+      guides.y.push(hit.target);
+    }
+  }
+  if (moveY === "n") {
+    const hit = nearest(y, ys);
+    if (hit) {
+      const bottom = y + h;
+      const next = Math.min(hit.target, bottom - 8);
+      y = next;
+      h = bottom - next;
+      guides.y.push(hit.target);
+    }
+  }
+  return { box: { x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) }, guides };
+}
+
+const TOOLS: { id: Tool; label: string }[] = [
+  { id: "select", label: "Select" },
+  { id: "text", label: "Text" },
+  { id: "ticker", label: "Ticker" },
+  { id: "image", label: "Image" },
+  { id: "rect", label: "Rectangle" },
+  { id: "circle", label: "Circle" },
+  { id: "triangle", label: "Triangle" },
+];
+
 export function FgcDesigner() {
   useTitleImages();
   const fgc = useFgcStore((s) => s.fgc);
@@ -79,18 +195,70 @@ export function FgcDesigner() {
   const [importError, setImportError] = useState("");
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const [draft, setDraft] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const [guides, setGuides] = useState<Guides>({ x: [], y: [] });
+  const [snap, setSnap] = useState(true);
+  const [canvasGuides, setCanvasGuides] = useState(true);
+  const past = useRef<FgcTitle[]>([]);
+  const future = useRef<FgcTitle[]>([]);
+  const clip = useRef<FgcTitleElement | null>(null);
+  const [stack, setStack] = useState({ back: 0, forward: 0 });
   const title = normalizeTitle(activeTitle(fgc));
   const set = liveSet(fgc);
   const layer = title.layers.find((item) => item.id === layerId) ?? title.layers[0];
   const objects = title.elements.filter((item) => item.layer === layer.id);
   const current = title.elements.find((item) => item.id === selected) ?? null;
 
-  const commit = (next: FgcTitle) => {
+  const write = (next: FgcTitle) => {
     const state = useFgcStore.getState().fgc;
     const titles = state.titles.some((item) => item.id === next.id)
       ? state.titles.map((item) => (item.id === next.id ? next : item))
       : [...state.titles, next];
     useFgcStore.getState().patch({ titles, activeTitleId: next.id });
+  };
+
+  const remember = () => {
+    past.current.push(title);
+    if (past.current.length > 50) past.current.shift();
+    future.current = [];
+    setStack({ back: past.current.length, forward: 0 });
+  };
+
+  const commit = (next: FgcTitle) => {
+    remember();
+    write(next);
+  };
+
+  const undo = () => {
+    const prev = past.current.pop();
+    if (!prev) return;
+    future.current.push(title);
+    setStack({ back: past.current.length, forward: future.current.length });
+    write(prev);
+  };
+
+  const redo = () => {
+    const next = future.current.pop();
+    if (!next) return;
+    past.current.push(title);
+    setStack({ back: past.current.length, forward: future.current.length });
+    write(next);
+  };
+
+  const copyObject = () => {
+    if (current) clip.current = current;
+  };
+
+  const pasteObject = () => {
+    const source = clip.current;
+    if (!source) return;
+    const createdLayer = { ...blankLayer(), id: `layer-${Date.now()}`, name: `${source.name} copy` };
+    const element = { ...source, id: `el-${Date.now()}`, layer: createdLayer.id, name: `${source.name} copy`, x: source.x + 24, y: source.y + 24 };
+    const index = title.layers.findIndex((item) => item.id === layer.id);
+    const layers = [...title.layers];
+    layers.splice(Math.max(0, index) + 1, 0, createdLayer);
+    commit({ ...title, layers, elements: [...title.elements, element] });
+    setLayerId(createdLayer.id);
+    setSelected(element.id);
   };
 
   const point = (event: { clientX: number; clientY: number }) => {
@@ -121,6 +289,27 @@ export function FgcDesigner() {
     const onKey = (event: KeyboardEvent) => {
       const typing = event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement;
       if (typing) return;
+      const command = event.metaKey || event.ctrlKey;
+      if (command && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (command && event.key.toLowerCase() === "y") {
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if (command && event.key.toLowerCase() === "c") {
+        copyObject();
+        return;
+      }
+      if (command && event.key.toLowerCase() === "v") {
+        event.preventDefault();
+        pasteObject();
+        return;
+      }
       if ((event.key === "Delete" || event.key === "Backspace") && selected) {
         event.preventDefault();
         const element = title.elements.find((item) => item.id === selected);
@@ -162,14 +351,29 @@ export function FgcDesigner() {
     const start = point(event);
     const origin = { ...element };
     const snapshot = title;
+    const peers = snapshot.elements.filter((item) => item.id !== element.id && item.visible);
+    let saved = false;
     const move = (ev: PointerEvent) => {
+      if (!saved) {
+        past.current.push(snapshot);
+        if (past.current.length > 50) past.current.shift();
+        future.current = [];
+        setStack({ back: past.current.length, forward: 0 });
+        saved = true;
+      }
       const now = point(ev);
       const dx = now.x - start.x;
       const dy = now.y - start.y;
-      const box = handle ? resizedBox(origin, dx, dy, handle, ev.shiftKey) : { x: origin.x + dx, y: origin.y + dy, w: origin.w, h: origin.h };
-      commit({ ...snapshot, elements: snapshot.elements.map((item) => item.id === element.id ? { ...origin, ...box } : item) });
+      let box = handle ? resizedBox(origin, dx, dy, handle, ev.shiftKey) : { x: origin.x + dx, y: origin.y + dy, w: origin.w, h: origin.h };
+      if (snap && !ev.altKey) {
+        const snapped = handle ? snapResize(box, peers, handle, origin) : snapMove(box, peers);
+        box = snapped.box;
+        setGuides(snapped.guides);
+      } else setGuides({ x: [], y: [] });
+      write({ ...snapshot, elements: snapshot.elements.map((item) => item.id === element.id ? { ...origin, ...box } : item) });
     };
     const up = () => {
+      setGuides({ x: [], y: [] });
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
     };
@@ -190,15 +394,15 @@ export function FgcDesigner() {
       window.removeEventListener("pointerup", up);
       let box = drawnBox(start, point(ev), ev.shiftKey, ev.altKey);
       if (box.w < 8 && box.h < 8) {
-        box = { x: start.x, y: start.y, w: tool === "text" ? 420 : tool === "image" ? 360 : 240, h: tool === "text" ? 72 : tool === "image" ? 200 : 80 };
+        box = { x: start.x, y: start.y, w: tool === "text" || tool === "ticker" ? 420 : tool === "image" ? 360 : 240, h: tool === "text" || tool === "ticker" ? 72 : tool === "image" ? 200 : 160 };
       }
-      const kind = tool === "rect" ? "rect" : tool;
-      const createdLayer = { ...blankLayer(), id: `layer-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: kind === "text" ? "Text" : kind === "image" ? "Image" : "Rectangle" };
+      const kind = tool;
+      const createdLayer = { ...blankLayer(), id: `layer-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`, name: kind === "text" ? "Text" : kind === "ticker" ? "Ticker" : kind === "image" ? "Image" : kind === "circle" ? "Circle" : kind === "triangle" ? "Triangle" : "Rectangle" };
       const element = {
         ...blankElement(kind, createdLayer.id),
         ...box,
-        bind: "",
-        text: kind === "text" ? "Text" : "",
+        bind: kind === "text" || kind === "ticker" ? "" : "",
+        text: kind === "text" || kind === "ticker" ? "Text" : "",
         size: Math.max(16, Math.round(box.h * 0.62)),
       };
       const index = title.layers.findIndex((item) => item.id === layer.id);
@@ -220,11 +424,21 @@ export function FgcDesigner() {
 
   return (
     <div className="grid gap-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {([["select", "Select"], ["text", "Text"], ["image", "Image"], ["rect", "Rectangle"]] as const).map(([id, label]) => (
-          <Button key={id} size="sm" variant={tool === id ? "default" : "secondary"} onClick={() => setTool(id)}>{label}</Button>
+      <div className="flex flex-wrap items-center gap-1 rounded-md border border-border bg-surface px-2 py-1.5">
+        {TOOLS.map((item) => (
+          <Button key={item.id} size="sm" variant={tool === item.id ? "default" : "secondary"} title={item.label} onClick={() => setTool(item.id)}>{item.label}</Button>
         ))}
-        <span className="ml-auto font-mono text-xs text-muted">1920 × 1080 · {cursor.x}, {cursor.y}</span>
+        <span className="mx-1 h-6 w-px bg-border" />
+        <Button size="sm" variant="outline" title="Copy" disabled={!current} onClick={copyObject}>Copy</Button>
+        <Button size="sm" variant="outline" title="Paste" onClick={pasteObject}>Paste</Button>
+        <Button size="sm" variant="outline" title="Undo" disabled={!stack.back} onClick={undo}>Undo</Button>
+        <Button size="sm" variant="outline" title="Redo" disabled={!stack.forward} onClick={redo}>Redo</Button>
+        <label className="ml-2 flex items-center gap-1 text-xs text-muted"><input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} />Snap</label>
+        <label className="flex items-center gap-1 text-xs text-muted"><input type="checkbox" checked={canvasGuides} onChange={(e) => setCanvasGuides(e.target.checked)} />Canvas guides</label>
+        <span className="ml-auto font-mono text-xs text-muted">
+          {current ? `Object ${current.x}, ${current.y} · ${current.w} × ${current.h} · ` : ""}
+          Pointer {cursor.x}, {cursor.y} · 1920 × 1080
+        </span>
       </div>
       <div className="grid gap-3 xl:grid-cols-[1fr_20rem]">
         <div
@@ -253,22 +467,25 @@ export function FgcDesigner() {
                   className="h-full w-full overflow-hidden text-left"
                   style={{
                     color: element.color,
-                    background: element.kind === "image" ? "transparent" : element.bg,
+                    background: (element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle") && titleImage(fgc, set, element) ? "transparent" : element.bg,
                     fontSize: `${(element.size / 1920) * 100}cqw`,
-                    fontFamily: element.font || undefined,
-                    fontWeight: element.weight || 500,
+                    fontFamily: fontFamilyCss(element.font),
+                    fontWeight: element.weight || (element.font ? 400 : 500),
+                    fontStyle: element.fontStyle === "italic" ? "italic" : "normal",
                     textAlign: element.align,
                     lineHeight: 1,
                     opacity: element.opacity,
+                    borderRadius: element.kind === "circle" ? "50%" : undefined,
+                    clipPath: element.kind === "triangle" ? "polygon(50% 0, 100% 100%, 0 100%)" : undefined,
                     mixBlendMode: (element.blend || undefined) as CSSProperties["mixBlendMode"],
                     outline: active ? "1px solid #e11d2e" : undefined,
                     outlineOffset: "-1px",
                   }}
                 >
-                  {element.kind === "image" ? (
-                    titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className="pointer-events-none h-full w-full object-cover" /> : <span className="text-xs text-white/60">Image</span>
-                  ) : element.kind === "text" ? (
-                    <span className="pointer-events-none block h-full overflow-hidden whitespace-pre-wrap break-words">{titleText(fgc, set, element.bind, element.text) || element.name}</span>
+                  {element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle" ? (
+                    titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className={`pointer-events-none h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : element.kind === "image" ? <span className="text-xs text-white/60">Image</span> : null
+                  ) : element.kind === "text" || element.kind === "ticker" ? (
+                    <span className={element.kind === "ticker" ? "pointer-events-none inline-block whitespace-nowrap" : "pointer-events-none block h-full overflow-hidden whitespace-pre-wrap break-words"} style={element.kind === "ticker" ? { animation: "rok-ticker 14s linear infinite" } : undefined}>{titleText(fgc, set, element.bind, element.text) || element.name}</span>
                   ) : null}
                 </div>
                 {active && tool === "select" ? HANDLES.map((handle) => (
@@ -281,6 +498,14 @@ export function FgcDesigner() {
               </div>
             );
           })}
+          {canvasGuides ? (
+            <>
+              <div className="pointer-events-none absolute top-0 h-full w-px bg-cyan-400/40" style={{ left: "50%" }} />
+              <div className="pointer-events-none absolute left-0 h-px w-full bg-cyan-400/40" style={{ top: "50%" }} />
+            </>
+          ) : null}
+          {guides.x.map((x) => <div key={`x-${x}`} className="pointer-events-none absolute top-0 z-20 h-full w-px bg-cyan-300" style={{ left: `${(x / 1920) * 100}%` }} />)}
+          {guides.y.map((y) => <div key={`y-${y}`} className="pointer-events-none absolute left-0 z-20 h-px w-full bg-cyan-300" style={{ top: `${(y / 1080) * 100}%` }} />)}
           {draft ? (
             <div
               className="pointer-events-none absolute border border-[#e11d2e] bg-[#e11d2e]/15"
@@ -298,7 +523,7 @@ export function FgcDesigner() {
                 setLayerId(created.id);
               }}><Plus className="size-4" /></Button>
             </div>
-            <div className="grid">
+            <div className="grid max-h-80 overflow-y-auto overscroll-contain">
               {[...title.layers].reverse().map((item) => (
                 <div key={item.id} className={item.id === layer.id ? "bg-surface-2" : ""}>
                   <div className="flex items-center gap-1 px-2 py-1">
@@ -324,7 +549,14 @@ export function FgcDesigner() {
               ))}
             </div>
           </div>
-          {current ? <ObjectFields current={current} update={update} onDelete={() => { commit({ ...title, elements: title.elements.filter((item) => item.id !== current.id) }); setSelected(null); }} /> : <p className="text-sm text-muted">Drag with Text, Image, or Rectangle. Shift keeps the box square. The object stays inside the box you draw.</p>}
+          {current ? <ObjectFields current={current} update={update} onAlign={(edge) => {
+            if (edge === "left") update({ x: 0 });
+            if (edge === "center") update({ x: Math.round((1920 - current.w) / 2) });
+            if (edge === "right") update({ x: 1920 - current.w });
+            if (edge === "top") update({ y: 0 });
+            if (edge === "middle") update({ y: Math.round((1080 - current.h) / 2) });
+            if (edge === "bottom") update({ y: 1080 - current.h });
+          }} onDelete={() => { commit({ ...title, elements: title.elements.filter((item) => item.id !== current.id) }); setSelected(null); }} /> : <p className="text-sm text-muted">Select moves an object. The other tools draw it. Hold Alt while dragging to ignore snap. Shift keeps a new box square.</p>}
         </div>
       </div>
       <input
@@ -424,50 +656,125 @@ export function FgcDesigner() {
   );
 }
 
-function ObjectFields({ current, update, onDelete }: { current: FgcTitleElement; update: (partial: Partial<FgcTitleElement>) => void; onDelete: () => void }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid gap-2">
-      <Input value={current.name} onChange={(e) => update({ name: e.target.value })} />
-      <label className="grid gap-1 text-xs text-muted">
-        Data
-        <select className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={current.bind} onChange={(e) => update({ bind: e.target.value })}>
-          {TITLE_BINDS.map((item) => <option key={item.id || "static"} value={item.id}>{item.label}</option>)}
+    <label className="grid gap-1 text-[0.7rem] font-medium uppercase tracking-wide text-muted">
+      {label}
+      {children}
+    </label>
+  );
+}
+
+function ObjectFields({ current, update, onAlign, onDelete }: { current: FgcTitleElement; update: (partial: Partial<FgcTitleElement>) => void; onAlign: (edge: "left" | "center" | "right" | "top" | "middle" | "bottom") => void; onDelete: () => void }) {
+  const words = current.kind === "text" || current.kind === "ticker";
+  const picture = current.kind === "image" || current.kind === "rect" || current.kind === "circle" || current.kind === "triangle";
+  const pictureBind = (id: string) => id.endsWith(".icon") || id.includes(".skin");
+  const binds = TITLE_BINDS.filter((item) => picture ? !item.id || pictureBind(item.id) : !pictureBind(item.id));
+  return (
+    <div className="grid max-h-[70vh] content-start gap-3 overflow-auto pr-1">
+      <Field label="Name"><Input value={current.name} onChange={(e) => update({ name: e.target.value })} /></Field>
+      <Field label="Data">
+        <select className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm normal-case tracking-normal text-fg" value={binds.some((item) => item.id === current.bind) ? current.bind : ""} onChange={(e) => update({ bind: e.target.value })}>
+          {binds.map((item) => <option key={item.id || "static"} value={item.id}>{item.label}</option>)}
         </select>
-      </label>
-      {current.kind === "text" && !current.bind ? <Input value={current.text} onChange={(e) => update({ text: e.target.value })} /> : null}
-      {current.kind === "image" ? <ImageSource current={current} update={update} /> : null}
+      </Field>
+      {words && !current.bind ? <Field label="Text"><Input value={current.text} onChange={(e) => update({ text: e.target.value })} /></Field> : null}
+      {picture ? <ImageSource current={current} update={update} /> : null}
       <div className="grid grid-cols-2 gap-2">
-        <Input type="number" value={current.x} onChange={(e) => update({ x: Number(e.target.value) || 0 })} />
-        <Input type="number" value={current.y} onChange={(e) => update({ y: Number(e.target.value) || 0 })} />
-        <Input type="number" value={current.w} onChange={(e) => update({ w: Number(e.target.value) || 24 })} />
-        <Input type="number" value={current.h} onChange={(e) => update({ h: Number(e.target.value) || 24 })} />
+        <Field label="X"><Input type="number" value={current.x} onChange={(e) => update({ x: Number(e.target.value) || 0 })} /></Field>
+        <Field label="Y"><Input type="number" value={current.y} onChange={(e) => update({ y: Number(e.target.value) || 0 })} /></Field>
+        <Field label="Width"><Input type="number" value={current.w} onChange={(e) => update({ w: Number(e.target.value) || 24 })} /></Field>
+        <Field label="Height"><Input type="number" value={current.h} onChange={(e) => update({ h: Number(e.target.value) || 24 })} /></Field>
       </div>
-      {current.kind === "text" ? (
-        <div className="grid grid-cols-3 gap-2">
-          {(["left", "center", "right"] as const).map((align) => (
-            <Button key={align} size="sm" variant={current.align === align ? "default" : "outline"} onClick={() => update({ align })}>{align}</Button>
+      <Field label="Align to canvas">
+        <div className="grid grid-cols-3 gap-1">
+          {([["left", "Left"], ["center", "Center"], ["right", "Right"], ["top", "Top"], ["middle", "Middle"], ["bottom", "Bottom"]] as const).map(([edge, label]) => (
+            <Button key={edge} size="sm" variant="outline" onClick={() => onAlign(edge)}>{label}</Button>
           ))}
         </div>
+      </Field>
+      {words ? (
+        <Field label="Align text">
+          <div className="grid grid-cols-3 gap-1">
+            {(["left", "center", "right"] as const).map((align) => (
+              <Button key={align} size="sm" variant={current.align === align ? "default" : "outline"} onClick={() => update({ align })}>{align}</Button>
+            ))}
+          </div>
+        </Field>
       ) : null}
-      {current.kind === "text" ? <Input value={current.font} placeholder="Font" onChange={(e) => update({ font: e.target.value })} /> : null}
-      {current.kind === "text" ? <Input type="number" value={current.size} onChange={(e) => update({ size: Number(e.target.value) || 16 })} /> : null}
+      {words ? <FontField current={current} update={update} /> : null}
+      {words ? <Field label="Font size"><Input type="number" value={current.size} onChange={(e) => update({ size: Number(e.target.value) || 16 })} /></Field> : null}
       <div className="grid grid-cols-2 gap-2">
-        <Input type="color" value={current.color} onChange={(e) => update({ color: e.target.value })} />
-        <Input type="color" value={current.bg === "transparent" ? "#000000" : current.bg} onChange={(e) => update({ bg: e.target.value })} />
+        <Field label="Text color"><Input type="color" value={current.color} onChange={(e) => update({ color: e.target.value })} /></Field>
+        <Field label="Fill"><Input type="color" value={current.bg === "transparent" ? "#000000" : current.bg} onChange={(e) => update({ bg: e.target.value })} /></Field>
       </div>
-      <label className="grid gap-1 text-xs text-muted">
-        Opacity
+      <Button size="sm" variant="outline" onClick={() => update({ bg: "transparent" })}>No fill</Button>
+      <Field label="When data changes">
+        <select className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm normal-case tracking-normal text-fg" value={current.anim || ""} onChange={(e) => update({ anim: e.target.value })}>
+          <option value="">None</option>
+          <option value="fade">Fade out, then fade in</option>
+        </select>
+      </Field>
+      <Field label="Opacity">
         <input type="range" min={0} max={1} step={0.05} value={current.opacity} onChange={(e) => update({ opacity: Number(e.target.value) })} />
-      </label>
+      </Field>
       <Button size="sm" variant="outline" onClick={onDelete}>Delete object</Button>
     </div>
+  );
+}
+
+function FontField({ current, update }: { current: FgcTitleElement; update: (partial: Partial<FgcTitleElement>) => void }) {
+  const uploaded = fontChoices();
+  const fonts = [
+    ...deskFonts,
+    ...uploaded
+      .filter((font) => !deskFonts.some((item) => item.family === font.family))
+      .map((font) => ({ family: font.family, label: font.label })),
+  ].sort((a, b) => a.label.localeCompare(b.label));
+  const seen = new Set<string>();
+  const families = fonts.filter((font) => (seen.has(font.family) ? false : seen.add(font.family)));
+  const bold = current.weight >= 600;
+  const italic = current.fontStyle === "italic";
+  return (
+    <Field label="Font">
+      <div className="flex gap-1">
+        <select
+          className="h-10 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm normal-case tracking-normal text-fg"
+          style={{ fontFamily: fontFamilyCss(current.font), fontWeight: bold ? 700 : 400, fontStyle: italic ? "italic" : "normal" }}
+          value={current.font}
+          onChange={(event) => update({ font: event.target.value })}
+        >
+          <option value="">System font</option>
+          {current.font && !families.some((font) => font.family === current.font) ? <option value={current.font}>{current.font}</option> : null}
+          {families.map((font) => <option key={font.family} value={font.family} style={{ fontFamily: fontFamilyCss(font.family) }}>{font.label}</option>)}
+        </select>
+        <Button size="sm" className="w-9 font-bold" variant={bold ? "default" : "outline"} onClick={() => update({ weight: bold ? 400 : 700 })}>B</Button>
+        <Button size="sm" className="w-9 italic" variant={italic ? "default" : "outline"} onClick={() => update({ fontStyle: italic ? "" : "italic" })}>I</Button>
+      </div>
+      <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md border border-border text-sm normal-case tracking-normal text-fg">
+        Upload font
+        <input
+          type="file"
+          accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            event.target.value = "";
+            if (!file) return;
+            void saveFontFile(file).then((font) => {
+              if (font) update({ font: font.family, weight: font.weight >= 600 ? 700 : 400, fontStyle: "" });
+            });
+          }}
+        />
+      </label>
+    </Field>
   );
 }
 
 function ImageSource({ current, update }: { current: FgcTitleElement; update: (partial: Partial<FgcTitleElement>) => void }) {
   return (
     <>
-      {!current.bind ? <Input value={current.src.startsWith("data:") ? "" : current.src} onChange={(e) => update({ src: e.target.value })} placeholder="Image URL" /> : null}
+      {!current.bind ? <Field label="Image URL"><Input value={current.src.startsWith("data:") ? "" : current.src} onChange={(e) => update({ src: e.target.value })} placeholder="https://" /></Field> : null}
       <label className="inline-flex h-9 cursor-pointer items-center justify-center rounded-md border border-border text-sm">
         Upload image
         <input type="file" accept="image/*" className="hidden" onChange={(e) => {

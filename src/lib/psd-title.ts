@@ -245,70 +245,79 @@ export async function titleFromPsd(psd: Psd, name: string): Promise<FgcTitle> {
   const scaleY = docH ? 1080 / docH : 1;
   const buckets: { layer: FgcTitleLayer; elements: FgcTitleElement[] }[] = [];
 
-  const placeLeaves = async (leaves: Layer[], group: FgcTitleLayer, parentOpacity: number, clips: Clip[], clipBase: Clip | null) => {
-    const elements: FgcTitleElement[] = [];
-    for (const leaf of leaves) {
-      const raw = leaf.canvas && leaf.canvas.width > 0 && leaf.canvas.height > 0 ? leaf.canvas : null;
-      const own = masksOf(leaf, docW, docH);
-      const leafClips = leaf.clipping && clipBase ? [...clips, ...own, clipBase] : [...clips, ...own];
-      const placed = raw ? clipCanvas(raw, leaf.left ?? 0, leaf.top ?? 0, leafClips) : null;
-      const made = await objectsFrom(leaf, group.id, scaleX, scaleY, parentOpacity, placed?.canvas ?? null, { x: placed?.x ?? leaf.left ?? 0, y: placed?.y ?? leaf.top ?? 0 });
-      elements.push(...made);
-      if (!leaf.clipping && placed) clipBase = { canvas: placed.canvas, x: placed.x, y: placed.y };
-      else if (!leaf.clipping) clipBase = null;
-    }
-    if (elements.length) buckets.push({ layer: group, elements });
-    return clipBase;
-  };
-
-  const append = async (layer: Layer, parentOpacity: number, clips: Clip[]) => {
-    const opacity = (layer.opacity ?? 1) * parentOpacity;
-    const nextClips = [...clips, ...masksOf(layer, docW, docH)];
-    if (layer.children?.length) {
-      let pending: Layer[] = [];
-      let clipBase: Clip | null = null;
-      const flush = async () => {
-        if (!pending.length) return;
-        const group: FgcTitleLayer = {
-          id: uid("layer"),
-          name: layer.name || "Group",
+  // ag-psd builds children bottom to top: the first child is the back layer.
+  // The desk paints in that same order, and the layer panel shows it reversed.
+  const walk = async (nodes: Layer[], parentId: string, parentOpacity: number, clips: Clip[]) => {
+    let clipBase: Clip | null = null;
+    for (const layer of nodes) {
+      const opacity = (layer.opacity ?? 1) * parentOpacity;
+      if (layer.children?.length) {
+        const id = uid("layer");
+        buckets.push({
+          layer: {
+            id,
+            name: layer.name || "Group",
+            visible: !layer.hidden,
+            locked: !!layer.protected?.position,
+            parent: parentId,
+            kind: "group",
+            open: true,
+          },
+          elements: [],
+        });
+        const groupClips = [...clips, ...masksOf(layer, docW, docH)];
+        await walk(layer.children, id, opacity, layer.clipping && clipBase ? [...groupClips, clipBase] : groupClips);
+        if (!layer.clipping) clipBase = null;
+        continue;
+      }
+      const id = uid("layer");
+      const raw = layer.canvas && layer.canvas.width > 0 && layer.canvas.height > 0 ? layer.canvas : null;
+      const own = masksOf(layer, docW, docH);
+      const leafClips = layer.clipping && clipBase ? [...clips, ...own, clipBase] : [...clips, ...own];
+      const placed = raw ? clipCanvas(raw, layer.left ?? 0, layer.top ?? 0, leafClips) : null;
+      const made = await objectsFrom(layer, id, scaleX, scaleY, opacity, placed?.canvas ?? null, { x: placed?.x ?? layer.left ?? 0, y: placed?.y ?? layer.top ?? 0 });
+      if (!made.length) continue;
+      if (layer.hidden) made.forEach((item) => { item.visible = false; });
+      buckets.push({
+        layer: {
+          id,
+          name: layer.name || made[0]?.name || "Layer",
           visible: !layer.hidden,
           locked: !!layer.protected?.position,
-        };
-        const leaves = pending;
-        pending = [];
-        const before = buckets.length;
-        clipBase = await placeLeaves(leaves, group, opacity, nextClips, clipBase);
-        const last = buckets[buckets.length - 1];
-        if (last && buckets.length > before && layer.hidden) last.elements.forEach((item) => { item.visible = false; });
-      };
-      for (const child of layer.children) {
-        if (child.children?.length) {
-          await flush();
-          await append(child, opacity, child.clipping && clipBase ? [...nextClips, clipBase] : nextClips);
-          if (!child.clipping) clipBase = null;
-        } else pending.push(child);
-      }
-      await flush();
-      return;
+          parent: parentId,
+          kind: "layer",
+          open: true,
+        },
+        elements: made,
+      });
+      if (!layer.clipping && placed) clipBase = { canvas: placed.canvas, x: placed.x, y: placed.y };
+      else if (!layer.clipping) clipBase = null;
     }
-    const group: FgcTitleLayer = {
-      id: uid("layer"),
-      name: layer.name || "Layer",
-      visible: !layer.hidden,
-      locked: !!layer.protected?.position,
-    };
-    await placeLeaves([layer], group, parentOpacity, clips, null);
   };
 
-  for (const layer of psd.children ?? []) await append(layer, 1, []);
-
-  if (!buckets.some((bucket) => bucket.elements.length)) throw new Error("That PSD has no visible layers to import.");
+  await walk(psd.children ?? [], "", 1, []);
+  const used = new Set(buckets.flatMap((bucket) => bucket.elements.map((item) => item.layer)));
+  const keep = new Set<string>();
+  for (const bucket of buckets) {
+    if (used.has(bucket.layer.id)) keep.add(bucket.layer.id);
+  }
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const bucket of buckets) {
+      if (keep.has(bucket.layer.id) && bucket.layer.parent && !keep.has(bucket.layer.parent)) {
+        keep.add(bucket.layer.parent);
+        grew = true;
+      }
+    }
+  }
+  const kept = buckets.filter((bucket) => keep.has(bucket.layer.id));
+  if (!kept.some((bucket) => bucket.elements.length)) throw new Error("That PSD has no visible layers to import.");
   return {
     id: uid("title"),
     name: name || "Imported layout",
     group: "",
-    layers: buckets.map((bucket) => bucket.layer),
-    elements: buckets.flatMap((bucket) => bucket.elements),
+    layers: kept.map((bucket) => bucket.layer),
+    elements: kept.flatMap((bucket) => bucket.elements),
   };
 }

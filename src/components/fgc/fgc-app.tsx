@@ -28,23 +28,42 @@ function stateLabel(state: FgcSet["state"]) {
 function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
   const fgc = useFgcStore((s) => s.fgc);
   const selectSet = useFgcStore((s) => s.selectSet);
+  const pullStreamQueue = useFgcStore((s) => s.pullStreamQueue);
   const [filter, setFilter] = useState("");
   const [completed, setCompleted] = useState(false);
   const [pairs, setPairs] = useState(false);
+  const [queueOnly, setQueueOnly] = useState(false);
+  const [pulling, setPulling] = useState(false);
+  const [pullError, setPullError] = useState("");
   const [picked, setPicked] = useState(fgc.streamSetId ?? "");
 
   const sets = useMemo(() => {
     const needle = filter.trim().toLowerCase();
     return fgc.sets
       .filter((set) => {
-        if (!completed && set.state === "done") return false;
+        if (queueOnly && !set.queued) return false;
+        if (!queueOnly && !completed && set.state === "done") return false;
         if (pairs && (!set.p1?.tag || !set.p2?.tag)) return false;
         if (!needle) return true;
         const text = [set.phase, set.group, set.round, set.identifier, set.streamName, set.station, playerLabel(set.p1), playerLabel(set.p2)].join(" ").toLowerCase();
         return text.includes(needle);
       })
-      .sort((a, b) => Number(b.queued) - Number(a.queued));
-  }, [completed, fgc.sets, filter, pairs]);
+      .sort((a, b) => {
+        if (a.queued !== b.queued) return Number(b.queued) - Number(a.queued);
+        const stream = (a.streamName || "").localeCompare(b.streamName || "");
+        if (a.queued && b.queued && stream) return stream;
+        return (a.queueOrder || 0) - (b.queueOrder || 0);
+      });
+  }, [completed, fgc.sets, filter, pairs, queueOnly]);
+
+  const pull = () => {
+    setPulling(true);
+    setPullError("");
+    void pullStreamQueue()
+      .then(() => setQueueOnly(true))
+      .catch((error: unknown) => setPullError(error instanceof Error ? error.message : "Could not pull the stream queue"))
+      .finally(() => setPulling(false));
+  };
 
   if (!open) return null;
 
@@ -57,10 +76,13 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
         <div className="grid gap-2 border-b border-border px-4 py-3">
           <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter..." autoFocus />
-          <div className="flex flex-wrap gap-6 text-sm">
+          <div className="flex flex-wrap items-center gap-6 text-sm">
+            <label className="flex items-center gap-2"><input type="checkbox" checked={queueOnly} onChange={(e) => setQueueOnly(e.target.checked)} /> Stream queue</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={completed} onChange={(e) => setCompleted(e.target.checked)} /> Show completed sets</label>
             <label className="flex items-center gap-2"><input type="checkbox" checked={pairs} onChange={(e) => setPairs(e.target.checked)} /> Show complete pairs</label>
+            <Button size="sm" variant="outline" disabled={pulling} onClick={pull}>{pulling ? "Pulling queue" : "Pull stream queue"}</Button>
           </div>
+          {pullError ? <p className="text-sm text-live">{pullError}</p> : null}
         </div>
         <div className="min-h-0 flex-1 overflow-auto">
           <table className="w-full min-w-[760px] border-collapse text-left text-sm">
@@ -78,7 +100,7 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
             <tbody>
               {sets.map((set) => (
                 <tr key={set.id} className={cn("cursor-pointer border-b border-border hover:bg-surface-2", picked === set.id && "bg-surface-2")} onClick={() => setPicked(set.id)} onDoubleClick={() => { selectSet(set.id); onClose(); }}>
-                  <td className="px-3 py-2">{set.queued ? "Queued" : ""}</td>
+                  <td className="px-3 py-2">{set.queued ? set.queueOrder || "Queued" : ""}</td>
                   <td className="px-3 py-2">{set.streamName || "—"}</td>
                   <td className="px-3 py-2 text-muted">{set.station || set.identifier || "—"}</td>
                   <td className="px-3 py-2">{set.phase || "—"}</td>
@@ -89,6 +111,7 @@ function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
               ))}
             </tbody>
           </table>
+          {sets.length === 0 ? <p className="px-4 py-6 text-sm text-muted">{queueOnly ? "Nothing is in the start.gg stream queue for this event. Pull the queue if you just queued sets." : "No sets match that filter."}</p> : null}
         </div>
         <div className="border-t border-border p-3">
           <Button className="w-full" onClick={() => { if (picked) selectSet(picked); onClose(); }}>OK</Button>
@@ -116,7 +139,7 @@ function TshFrame({ path }: { path: string }) {
     return () => observer.disconnect();
   }, []);
   return (
-    <div ref={frame} className="relative h-full w-full overflow-hidden bg-black">
+    <div ref={frame} className="relative h-full w-full overflow-hidden">
       <iframe
         title={path}
         src={`${tshLayoutHref(path)}?preview=1`}
@@ -222,6 +245,7 @@ function FgcDesk() {
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
   const [tab, setTab] = useState<"scoreboard" | "roster" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
+  const [overlayPane, setOverlayPane] = useState<"preview" | "editor">("preview");
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [tshLayouts, setTshLayouts] = useState<{ path: string; name: string; group: string }[]>([]);
@@ -368,11 +392,25 @@ function FgcDesk() {
         {tab === "ruleset" ? <FgcRulesetEditor /> : null}
         {tab === "overlays" ? (
           <section className="grid gap-4 rounded-xl border border-border bg-surface p-4">
+            <nav className="flex w-fit gap-0.5 rounded-lg border border-border bg-surface-2 p-0.5">
+              {(["preview", "editor"] as const).map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={cn("rounded-md px-3 py-1.5 text-xs font-medium", overlayPane === id ? "bg-surface text-fg" : "text-muted")}
+                  onClick={() => setOverlayPane(id)}
+                >
+                  {id === "preview" ? "Preview" : "Editor"}
+                </button>
+              ))}
+            </nav>
+            {overlayPane === "editor" ? <FgcDesigner /> : (
+              <>
             <div>
               <p className="font-medium">{shown.name}</p>
               <p className="text-sm text-muted">{shown.note} {fgc.event?.game ? `Live data is the ${fgc.event.game} set.` : "Import a game or enter a set by hand."}</p>
             </div>
-            <div className="aspect-video overflow-hidden rounded-lg border border-border bg-black">
+            <div className="checker aspect-video overflow-hidden border border-border">
               {fgc.tshLayout ? (
                 <TshFrame path={fgc.tshLayout} />
               ) : (
@@ -400,7 +438,8 @@ function FgcDesk() {
                 ))}
               </ul>
             </details>
-            {overlay.id === "custom" && !fgc.tshLayout ? <FgcDesigner /> : null}
+              </>
+            )}
           </section>
         ) : null}
       </main>

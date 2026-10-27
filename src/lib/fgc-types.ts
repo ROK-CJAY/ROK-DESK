@@ -33,11 +33,14 @@ export type FgcTitleLayer = {
   name: string;
   visible: boolean;
   locked: boolean;
+  parent?: string;
+  kind?: "group" | "layer";
+  open?: boolean;
 };
 
 export type FgcTitleElement = {
   id: string;
-  kind: "text" | "rect" | "image";
+  kind: "text" | "rect" | "image" | "circle" | "triangle" | "ticker";
   name: string;
   layer: string;
   visible: boolean;
@@ -55,9 +58,11 @@ export type FgcTitleElement = {
   align: "left" | "center" | "right";
   font: string;
   weight: number;
+  fontStyle: string;
   src: string;
   imageKey: string;
   blend: string;
+  anim: string;
 };
 
 export type FgcTitle = {
@@ -108,6 +113,7 @@ export type FgcSet = {
   streamName: string;
   station: string;
   queued: boolean;
+  queueOrder?: number;
   bestOf: number;
   stage: string;
   playersPerTeam: number;
@@ -263,6 +269,7 @@ export function blankSet(): FgcSet {
     streamName: "",
     station: "",
     queued: false,
+    queueOrder: 0,
     bestOf: 3,
     stage: "",
     playersPerTeam: 1,

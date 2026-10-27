@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resolveStage } from "@/lib/fgc-assets";
-import { libraryFor, playerLabel, type FgcRuleset } from "@/lib/fgc-types";
+import type { StationView } from "@/lib/fgc-station";
+import { blankPlayer, blankSet, libraryFor, playerLabel, type FgcRuleset, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { startggAuthBody } from "@/lib/startgg-link";
 
@@ -14,6 +15,7 @@ type Snap = {
   scores: [number, number];
   won: [string[], string[]];
   played: string[];
+  games: { winner: number; stage: string }[];
   selected: string | null;
   gentleman: boolean;
   lastWinner: number;
@@ -30,6 +32,7 @@ function fresh(): Snap {
     scores: [0, 0],
     won: [[], []],
     played: [],
+    games: [],
     selected: null,
     gentleman: false,
     lastWinner: -1,
@@ -44,6 +47,7 @@ function clone(snap: Snap): Snap {
     scores: [...snap.scores] as [number, number],
     won: [[...snap.won[0]], [...snap.won[1]]],
     played: [...snap.played],
+    games: snap.games.map((game) => ({ ...game })),
   };
 }
 
@@ -56,22 +60,79 @@ function banTarget(ruleset: FgcRuleset, bestOf: number, game: number, step: numb
   return ruleset.banCount || 0;
 }
 
+function readStation() {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("station")?.trim() || "";
+}
+
+function stationSet(view: StationView | null): FgcSet | null {
+  const set = view?.set;
+  if (!set) return null;
+  return {
+    ...blankSet(),
+    id: set.id,
+    phase: set.phase,
+    round: set.round,
+    bestOf: set.bestOf || 3,
+    p1: blankPlayer({ id: set.p1.id, tag: set.p1.name }),
+    p2: blankPlayer({ id: set.p2.id, tag: set.p2.name }),
+  };
+}
+
 export function FgcStrike() {
+  const stationId = useState(readStation)[0];
   const hydrate = useFgcStore((s) => s.hydrate);
   const reload = useFgcStore((s) => s.reload);
   const fgc = useFgcStore((s) => s.fgc);
   const patchSet = useFgcStore((s) => s.patchSet);
+  const [station, setStation] = useState<StationView | null>(null);
+  const [stationError, setStationError] = useState("");
   const [history, setHistory] = useState<Snap[]>([fresh()]);
   const [cursor, setCursor] = useState(0);
   const [note, setNote] = useState("");
+  const heldSet = useRef("");
   useEffect(() => {
+    if (stationId) return;
     hydrate();
     const timer = window.setInterval(reload, 1000);
     return () => window.clearInterval(timer);
-  }, [hydrate, reload]);
+  }, [hydrate, reload, stationId]);
+  useEffect(() => {
+    if (!stationId) return;
+    let stop = false;
+    const pull = async () => {
+      try {
+        const res = await fetch("/api/startgg", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "station", stationId }),
+        });
+        const body = (await res.json()) as StationView & { error?: string };
+        if (stop) return;
+        if (!res.ok) {
+          setStationError(body.error || "Could not load this station.");
+          return;
+        }
+        setStationError("");
+        setStation((current) => {
+          if (!body.set && current?.set && heldSet.current === current.set.id) return { ...body, set: current.set };
+          if (body.set && body.set.id !== heldSet.current) heldSet.current = "";
+          return body;
+        });
+      } catch {
+        if (!stop) setStationError("Could not load this station.");
+      }
+    };
+    void pull();
+    const timer = window.setInterval(() => void pull(), 4000);
+    return () => {
+      stop = true;
+      window.clearInterval(timer);
+    };
+  }, [stationId]);
 
-  const ruleset = fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? fgc.rulesets[0] ?? null;
-  const set = fgc.sets.find((item) => item.id === fgc.streamSetId) ?? null;
+  const ruleset = stationId ? station?.ruleset ?? null : fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? fgc.rulesets[0] ?? null;
+  const set = stationId ? stationSet(station) : fgc.sets.find((item) => item.id === fgc.streamSetId) ?? null;
   const library = libraryFor(fgc);
   const names = [playerLabel(set?.p1 ?? null) || "Player 1", playerLabel(set?.p2 ?? null) || "Player 2"];
   const bestOf = set?.bestOf || 3;
@@ -99,6 +160,7 @@ export function FgcStrike() {
   const phase = won ? "done" : !snap.rps && snap.game === 0 ? "rps" : snap.selected ? "report" : snap.gentleman || (snap.game > 0 && (snap.step > 0 || target === 0)) ? "pick" : "ban";
 
   const art = (name: string) => {
+    if (stationId) return station?.art[name] || "";
     const stage = library?.stages.find((item) => item.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0);
     return stage && library ? resolveStage(fgc.assetBase, library.code, stage.code) : "";
   };
@@ -153,14 +215,38 @@ export function FgcStrike() {
     next.scores[winner] += 1;
     next.won[winner].push(snap.selected);
     next.played.push(snap.selected);
+    next.games.push({ winner, stage: snap.selected });
     next.lastWinner = winner;
     const finished = next.scores[winner] >= needed;
-    patchSet(set.id, { score1: next.scores[0], score2: next.scores[1], stage: snap.selected, state: finished ? "done" : "live" });
+    if (!stationId) patchSet(set.id, { score1: next.scores[0], score2: next.scores[1], stage: snap.selected, state: finished ? "done" : "live" });
+    const games = next.games.map((game) => ({
+      winnerId: game.winner === 0 ? set.p1?.id : set.p2?.id,
+      stage: game.stage,
+    }));
     if (finished) {
       next.selected = snap.selected;
       commit(next);
       const winnerId = winner === 0 ? set.p1?.id : set.p2?.id;
-      if (winnerId) {
+      if (stationId && winnerId) {
+        heldSet.current = set.id;
+        void fetch("/api/startgg", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            action: "station-report",
+            stationId,
+            setId: set.id,
+            winnerId,
+            score1: next.scores[0],
+            score2: next.scores[1],
+            stage: snap.selected,
+            games,
+          }),
+        }).then(async (res) => {
+          const body = (await res.json()) as { error?: string };
+          setNote(res.ok ? "Games, stages, and characters sent to start.gg." : body.error || "start.gg was not updated.");
+        }).catch(() => setNote("start.gg was not updated."));
+      } else if (winnerId) {
         void fetch("/api/startgg", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -170,11 +256,17 @@ export function FgcStrike() {
             winnerId,
             score1: next.scores[0],
             score2: next.scores[1],
+            stage: snap.selected,
+            games,
+            entrant1: set.p1?.id,
+            entrant2: set.p2?.id,
+            character1: set.p1?.character,
+            character2: set.p2?.character,
             ...startggAuthBody(),
           }),
         }).then(async (res) => {
           const body = (await res.json()) as { error?: string };
-          setNote(res.ok ? "Score sent to start.gg." : body.error || "Score is on the scoreboard. start.gg was not updated.");
+          setNote(res.ok ? "Games, stages, and characters sent to start.gg." : body.error || "Score is on the scoreboard. start.gg was not updated.");
         }).catch(() => setNote("Score is on the scoreboard. start.gg was not updated."));
       }
       return;
@@ -203,17 +295,32 @@ export function FgcStrike() {
   };
 
   const restartAll = () => {
-    if (set) patchSet(set.id, { score1: 0, score2: 0, stage: "", state: "pending" });
+    if (set && !stationId) patchSet(set.id, { score1: 0, score2: 0, stage: "", state: "pending" });
+    heldSet.current = "";
     commit(fresh());
     setNote("");
   };
 
-  const title = [set?.phase, set?.round].filter(Boolean).join(" / ") || "No match on the scoreboard";
+  const title = stationId
+    ? [station?.station?.name, set?.phase, set?.round].filter(Boolean).join(" · ") || "Station"
+    : [set?.phase, set?.round].filter(Boolean).join(" / ") || "No match on the scoreboard";
   const prompt = phase === "ban"
     ? `${names[snap.player]}, ban ${target} stage${target === 1 ? "" : "s"}`
     : phase === "pick"
       ? `${names[snap.player]}, pick the stage`
       : "";
+
+  if (stationId && !set) {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-black px-6 text-center text-white">
+        <div>
+          <p className="text-sm uppercase tracking-[0.2em] text-white/50">Stage strike</p>
+          <h1 className="mt-3 text-4xl font-semibold">{station?.station?.name || "Station"}</h1>
+          <p className="mt-4 text-xl text-white/80">{stationError || "Waiting for a set on this station."}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-black px-6 py-8 text-white">
@@ -221,6 +328,7 @@ export function FgcStrike() {
         <h1 className="text-3xl font-semibold">{title} / Game {snap.game + 1}</h1>
         <p className="mt-3 text-3xl font-semibold tabular-nums">{snap.scores[0]} - {snap.scores[1]}</p>
         {set ? <p className="mt-1 text-sm text-white/50">{names[0]} vs {names[1]} · Best of {bestOf}{ruleset ? ` · ${ruleset.name}` : ""}</p> : <p className="mt-2 text-sm text-rose-300">Pull a set onto the scoreboard first.</p>}
+        {station?.fallback ? <p className="mt-2 text-sm text-amber-200">Using the event stage list. Save a ruleset in Production to use its bans and counterpicks.</p> : null}
         {prompt ? <p className="mt-4 text-2xl font-semibold text-rose-400">{prompt}</p> : null}
         {phase === "report" ? <p className="mt-4 text-2xl font-semibold">Report results</p> : null}
       </header>
@@ -281,7 +389,7 @@ export function FgcStrike() {
           </div>
         </div>
       ) : null}
-      {!ruleset ? <p className="mt-4 text-center text-sm text-rose-300">Pick a ruleset in FGC Control first.</p> : null}
+      {!ruleset ? <p className="mt-4 text-center text-sm text-rose-300">{stationId ? "Save a ruleset in Production, or add stages on the event." : "Pick a ruleset in FGC Control first."}</p> : null}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import QRCode from "qrcode";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +94,12 @@ export function FgcTournamentDesk() {
     try {
       const next = (await toApi({ action: "board", token: auth, slug })) as ToBoard;
       setBoard(next);
+      const session = readToRefresh();
+      void fetch("/api/startgg", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "bind-live", slug, token: auth, refreshToken: session.refreshToken, expiresAt: session.expiresAt }),
+      }).catch(() => undefined);
       if (!quiet) setPicked((current) => next.sets.some((set) => set.id === current) ? current : "");
       setScores((current) => {
         const incoming = Object.fromEntries(next.sets.map((set) => [set.id, {
@@ -225,6 +232,7 @@ export function FgcTournamentDesk() {
   const logout = () => {
     clearToSession();
     void fetch("/api/startgg-oauth?op=logout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "unbind-live" }) }).catch(() => undefined);
     setToken("");
     setUser(null);
     setTournaments([]);
@@ -313,6 +321,28 @@ function liveSet(sets: ToSet[]) {
   return sets.find((set) => set.state === 6 && open(set)) ?? sets.find((set) => set.state === 2 && open(set)) ?? null;
 }
 
+function useTabletOrigin() {
+  const [origin, setOrigin] = useState("");
+  useEffect(() => {
+    const here = window.location.origin;
+    setOrigin(here);
+    void fetch("/api/host-info")
+      .then((res) => res.json())
+      .then((info: { local?: string; lan?: string[] }) => {
+        const local = here.includes("127.0.0.1") || here.includes("localhost");
+        const lan = (info.lan ?? []).find((url) => url && url !== info.local);
+        if (local && lan) setOrigin(lan);
+      })
+      .catch(() => undefined);
+  }, []);
+  return origin;
+}
+
+function strikeHref(origin: string, id: string) {
+  const base = origin || (typeof window !== "undefined" ? window.location.origin : "");
+  return `${base}/fgc/strike?station=${encodeURIComponent(id)}`;
+}
+
 function StationFloor({
   board,
   now,
@@ -339,6 +369,8 @@ function StationFloor({
   const [queuedSet, setQueuedSet] = useState("");
   const [sendStation, setSendStation] = useState("");
   const [sendStream, setSendStream] = useState("");
+  const [qr, setQr] = useState("");
+  const origin = useTabletOrigin();
   const set = board.sets.find((item) => item.id === picked) ?? null;
   const draft = set
     ? scores[set.id] ?? { score1: set.score1, score2: set.score2, character1: set.p1.characterId, character2: set.p2.characterId, stageId: set.stageId }
@@ -369,6 +401,21 @@ function StationFloor({
     return () => window.removeEventListener("keydown", onKey);
   }, [set, station, onPick]);
 
+  const strikeUrl = station ? strikeHref(origin, station.id) : "";
+  useEffect(() => {
+    if (!strikeUrl) {
+      setQr("");
+      return;
+    }
+    let cancel = false;
+    void QRCode.toDataURL(strikeUrl, { margin: 1, width: 280, color: { dark: "#111111", light: "#ffffff" } }).then((url) => {
+      if (!cancel) setQr(url);
+    });
+    return () => {
+      cancel = true;
+    };
+  }, [strikeUrl]);
+
   return (
     <>
       <section className="rounded-xl border border-border bg-surface p-4">
@@ -379,7 +426,8 @@ function StationFloor({
         <BracketBoard sets={board.sets} now={now} clocks={clocks} selected={picked} onSelect={onPick} />
       </section>
       <section className="rounded-xl border border-border bg-surface p-4">
-        <p className="mb-3 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
+        <p className="mb-1 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
+        <p className="mb-3 text-xs text-muted">Each station has its own stage-strike tablet. It follows the set on that station and sends the finished score to start.gg.</p>
         {board.stations.length ? (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {board.stations.map((station) => {
@@ -387,14 +435,17 @@ function StationFloor({
               const clock = here ? clocks[here.id] : null;
               const open = !here;
               return (
-                <button key={station.id} type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(station.id); }} className={cn("rounded-lg border p-3 text-left", open ? "border-border" : "border-accent")}>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{station.name}</p>
-                    <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
-                  </div>
-                  <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
-                  <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
-                </button>
+                <div key={station.id} className={cn("rounded-lg border p-3", open ? "border-border" : "border-accent")}>
+                  <button type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(station.id); }} className="w-full text-left">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium">{station.name}</p>
+                      <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
+                    </div>
+                    <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
+                    <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
+                  </button>
+                  <a href={strikeHref(origin, station.id)} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">Strike tablet</a>
+                </div>
               );
             })}
           </div>
@@ -515,6 +566,14 @@ function StationFloor({
                 <p className="text-lg">{station.name}</p>
               </div>
               <Button size="sm" variant="ghost" onClick={() => setStationId("")}>Close</Button>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg border border-border p-3">
+              {qr ? <img src={qr} alt="" className="h-28 w-28 shrink-0 rounded bg-white" /> : <div className="h-28 w-28 shrink-0 rounded bg-surface-2" />}
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Stage strike tablet</p>
+                <p className="mt-1 text-xs text-muted">Scan this onto the tablet at {station.name}. It stays on that station.</p>
+                <a href={strikeUrl} target="_blank" rel="noreferrer" className="mt-2 block truncate text-xs underline">{strikeUrl}</a>
+              </div>
             </div>
             <Input value={stationQuery} placeholder="Search a set" onChange={(event) => setStationQuery(event.target.value)} />
             <div className="grid max-h-80 gap-1 overflow-auto">

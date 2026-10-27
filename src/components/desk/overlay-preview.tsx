@@ -232,7 +232,7 @@ export function OverlayPreview() {
 
       <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,52rem)_minmax(18rem,1fr)]">
       <div>
-      <div className="checker relative aspect-video overflow-hidden rounded-lg border border-border contain-paint">
+      <div className="checker relative aspect-video overflow-hidden border border-border contain-paint">
         <PreviewBackdrop kind={previewBg} />
         <div className="absolute inset-0">
         <ScaleFrame>
@@ -437,7 +437,7 @@ export function OverlayPreview() {
                   </Button>
                 </div>
               </div>
-              <div className="relative min-h-0 overflow-hidden rounded-xl border border-border bg-black contain-paint">
+              <div className="checker relative min-h-0 overflow-hidden border border-border contain-paint">
                 <ScaleFrame>
                   <PreviewBackdrop kind={previewBg} dim />
                   <OverlayLookRoot book={desk.overlayLook} source={source}>

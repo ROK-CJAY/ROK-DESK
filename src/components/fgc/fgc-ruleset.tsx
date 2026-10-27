@@ -123,6 +123,7 @@ export function FgcRulesetEditor() {
         <div>
           <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Ruleset</p>
           <p className="font-display mt-1 text-2xl font-semibold uppercase">Stage striking</p>
+          <p className="mt-1 max-w-xl text-xs text-muted">This ruleset is used by the scoreboard tablet and by each station tablet on the tournament desk.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { const created = blankRuleset(); setDraft(created); selectRuleset(null); }}>New ruleset</Button>

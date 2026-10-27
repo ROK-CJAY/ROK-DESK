@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { currentStreamSetId, eventStandings, importStartggEvent, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
-import { beginToSet, callToSet, loadToAccount, loadToBoard, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
+import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggEvent, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
+import { beginToSet, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
+import { bindLive, clearLive, reportStation, stationView } from "@/lib/fgc-station";
 
 export const Route = createFileRoute("/api/startgg")({
   server: {
@@ -22,12 +23,16 @@ export const Route = createFileRoute("/api/startgg")({
           count?: number;
           score1?: number;
           score2?: number;
+          stage?: string;
+          refreshToken?: string;
+          expiresAt?: number;
           stageId?: string;
           entrant1?: string;
           entrant2?: string;
           character1?: string;
           character2?: string;
           dq?: boolean;
+          games?: { winnerId?: string; stage?: string; stageId?: string }[];
         };
         try {
           body = (await request.json()) as typeof body;
@@ -36,6 +41,31 @@ export const Route = createFileRoute("/api/startgg")({
         }
         const token = body.token?.trim() || undefined;
         try {
+          if (body.action === "bind-live") {
+            await bindLive(body.slug?.trim() || "", token || "", body.refreshToken || "", Number(body.expiresAt) || 0);
+            return Response.json({ ok: true });
+          }
+          if (body.action === "unbind-live") {
+            await clearLive();
+            return Response.json({ ok: true });
+          }
+          if (body.action === "station") {
+            if (!body.stationId) return Response.json({ error: "Missing station." }, { status: 400 });
+            return Response.json(await stationView(body.stationId, request.url));
+          }
+          if (body.action === "station-report") {
+            if (!body.stationId || !body.setId || !body.winnerId) return Response.json({ error: "Missing set." }, { status: 400 });
+            await reportStation(request.url, {
+              stationId: body.stationId,
+              setId: body.setId,
+              winnerId: body.winnerId,
+              score1: Number(body.score1) || 0,
+              score2: Number(body.score2) || 0,
+              stage: body.stage || "",
+              games: body.games,
+            });
+            return Response.json({ ok: true });
+          }
           if (body.action === "rulesets") {
             const rulesets = await startggRulesets();
             return Response.json({ rulesets });
@@ -64,13 +94,34 @@ export const Route = createFileRoute("/api/startgg")({
               await callToSet(token, body.setId);
             }
             if (body.action === "report" && body.winnerId) {
+              const named = body.games ?? [];
+              let stages: { id: string; name: string }[] = [];
+              let characters: { id: string; name: string }[] = [];
+              if (named.length || body.stage || body.character1 || body.character2) {
+                try {
+                  const catalog = await reportCatalog(token, body.setId);
+                  stages = catalog.stages;
+                  characters = catalog.characters;
+                } catch {
+                  stages = [];
+                }
+              }
+              const characterId = (value?: string) => {
+                if (!value) return "";
+                if (/^\d+$/.test(value)) return value;
+                return matchStageId(characters, value);
+              };
               await reportToSet(token, body.setId, body.winnerId, Number(body.score1) || 0, Number(body.score2) || 0, {
-                stageId: body.stageId,
+                stageId: body.stageId || matchStageId(stages, body.stage || ""),
                 entrant1: body.entrant1,
                 entrant2: body.entrant2,
-                character1: body.character1,
-                character2: body.character2,
+                character1: characterId(body.character1),
+                character2: characterId(body.character2),
                 dq: body.dq,
+                games: named.map((game) => ({
+                  winnerId: game.winnerId || body.winnerId || "",
+                  stageId: game.stageId || matchStageId(stages, game.stage || ""),
+                })),
               });
             }
             return Response.json({ ok: true });
@@ -93,6 +144,10 @@ export const Route = createFileRoute("/api/startgg")({
           if (body.action === "stream") {
             const setId = await currentStreamSetId(url, token);
             return Response.json({ setId });
+          }
+          if (body.action === "queue") {
+            const queue = await eventStreamQueue(url, token);
+            return Response.json({ queue });
           }
           if (body.action === "icon") {
             const icon = await tournamentIcon(url, token);

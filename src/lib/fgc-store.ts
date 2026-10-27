@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { blankPlayer, blankRoster, blankRosterSlot, blankRuleset, blankSet, EMPTY_BRACKET_VIEW, EMPTY_FGC, type FgcBracketView, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRoster, type FgcRosterSlot, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { type StreamQueueRow } from "@/lib/startgg";
 import { startggAuthBody } from "@/lib/startgg-link";
 
 const KEY = "rok-fgc";
@@ -44,6 +45,7 @@ type FgcStore = {
   reload: () => void;
   patch: (partial: Partial<FgcState>) => void;
   importEvent: () => Promise<void>;
+  pullStreamQueue: () => Promise<void>;
   selectSet: (id: string | null) => void;
   patchSet: (id: string, partial: Partial<FgcSet>) => void;
   patchPlayer: (setId: string, side: "p1" | "p2" | "p1b" | "p2b", partial: Partial<FgcPlayer>) => void;
@@ -270,6 +272,50 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     } catch (err) {
       set({ importing: false, error: err instanceof Error ? err.message : "Import failed" });
     }
+  },
+  pullStreamQueue: async () => {
+    const url = get().fgc.url.trim();
+    if (!url) throw new Error("Import the event first");
+    const res = await fetch("/api/startgg", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url, action: "queue", ...startggAuthBody() }),
+    });
+    const text = await res.text();
+    let body: { queue?: StreamQueueRow[]; error?: string };
+    try {
+      body = JSON.parse(text) as typeof body;
+    } catch {
+      throw new Error("start.gg did not return a stream queue");
+    }
+    if (!res.ok || !body.queue) throw new Error(body.error || "Could not read the stream queue");
+    const byId = new Map(body.queue.map((row) => [row.id, row]));
+    const known = new Set(get().fgc.sets.map((set) => set.id));
+    const sets = get().fgc.sets.map((set) => {
+      const hit = byId.get(set.id);
+      if (!hit) return { ...set, queued: false, queueOrder: 0 };
+      return { ...set, queued: true, queueOrder: hit.order, streamName: hit.streamName || set.streamName };
+    });
+    for (const row of body.queue) {
+      if (known.has(row.id)) continue;
+      sets.push({
+        ...blankSet(),
+        id: row.id,
+        phase: row.phase,
+        group: row.group,
+        round: row.round,
+        identifier: row.identifier,
+        streamName: row.streamName,
+        queued: true,
+        queueOrder: row.order,
+        state: row.state,
+        p1: row.p1 ? { ...blankPlayer(), id: `${row.id}-p1`, tag: row.p1 } : null,
+        p2: row.p2 ? { ...blankPlayer(), id: `${row.id}-p2`, tag: row.p2 } : null,
+      });
+    }
+    const fgc = { ...get().fgc, sets };
+    write(fgc);
+    set({ fgc });
   },
   selectSet: (id) => {
     const players = get().players;

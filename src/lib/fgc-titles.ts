@@ -1,4 +1,4 @@
-import { titleImageObjectUrl } from "@/lib/fgc-assets";
+import { resolvePreview, titleImageObjectUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
 export function tshLayoutHref(file: string) {
@@ -35,7 +35,7 @@ export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group
   { id: "world", group: "Desk", name: "World", note: "Players grouped by country." },
   { id: "lower", group: "Desk", name: "Lower third", note: "Event, players, and round in one bar." },
   { id: "winner", group: "Desk", name: "Winner", note: "The player who is ahead." },
-  { id: "custom", group: "Custom", name: "Custom layout", note: "The layout you built in the designer." },
+  { id: "custom", group: "Custom", name: "Custom overlay", note: "The layout you built in the editor." },
 ];
 
 export const TITLE_BINDS = [
@@ -71,50 +71,97 @@ export const TITLE_BINDS = [
   { id: "event.icon", label: "Event icon" },
   { id: "p1.icon", label: "P1 character icon" },
   { id: "p2.icon", label: "P2 character icon" },
+  { id: "p1.skin", label: "P1 character skin" },
+  { id: "p2.skin", label: "P2 character skin" },
+  { id: "p1.skin2", label: "P1 second skin" },
+  { id: "p2.skin2", label: "P2 second skin" },
 ];
 
 export function blankLayer(): FgcTitleLayer {
-  return { id: `layer-${Date.now()}`, name: "Layer", visible: true, locked: false };
+  return { id: `layer-${Date.now()}`, name: "Layer", visible: true, locked: false, parent: "", kind: "layer", open: true };
+}
+
+export function layerVisible(layers: FgcTitleLayer[], id: string) {
+  const seen = new Set<string>();
+  let current = layers.find((layer) => layer.id === id);
+  while (current && !seen.has(current.id)) {
+    if (current.visible === false) return false;
+    seen.add(current.id);
+    current = current.parent ? layers.find((layer) => layer.id === current?.parent) : undefined;
+  }
+  return true;
+}
+
+export function layerLocked(layers: FgcTitleLayer[], id: string) {
+  const seen = new Set<string>();
+  let current = layers.find((layer) => layer.id === id);
+  while (current && !seen.has(current.id)) {
+    if (current.locked) return true;
+    seen.add(current.id);
+    current = current.parent ? layers.find((layer) => layer.id === current?.parent) : undefined;
+  }
+  return false;
+}
+
+export function kindLabel(kind: FgcTitleElement["kind"]) {
+  if (kind === "text") return "Text";
+  if (kind === "image") return "Image";
+  if (kind === "circle") return "Circle";
+  if (kind === "triangle") return "Triangle";
+  if (kind === "ticker") return "Ticker";
+  return "Rectangle";
 }
 
 export function blankElement(kind: FgcTitleElement["kind"], layer = "layer-1"): FgcTitleElement {
+  const shape = kind === "rect" || kind === "circle" || kind === "triangle";
   return {
     id: `el-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     kind,
-    name: kind === "text" ? "Text" : kind === "image" ? "Image" : "Rectangle",
+    name: kindLabel(kind),
     layer,
     visible: true,
     locked: false,
     opacity: 1,
     x: 120,
     y: 120,
-    w: kind === "text" ? 480 : 240,
-    h: kind === "text" ? 80 : 140,
-    bind: kind === "text" ? "p1.name" : kind === "image" ? "" : "",
-    text: kind === "text" ? "Text" : "",
+    w: kind === "text" || kind === "ticker" ? 480 : 240,
+    h: kind === "text" || kind === "ticker" ? 80 : 140,
+    bind: kind === "text" || kind === "ticker" ? "p1.name" : "",
+    text: kind === "text" || kind === "ticker" ? "Text" : "",
     color: "#ffffff",
-    bg: kind === "rect" ? "#111111" : "transparent",
+    bg: shape ? "#111111" : "transparent",
     size: 42,
     align: "left",
     font: "",
     weight: 0,
+    fontStyle: "",
     src: "",
     imageKey: "",
     blend: "",
+    anim: "",
   };
 }
 
 export function normalizeTitle(title: FgcTitle): FgcTitle {
   const rawLayers = title.layers?.length ? title.layers : [{ id: "layer-1", name: "Layer 1", visible: true, locked: false }];
+  const layers = rawLayers.map((layer) => ({
+    id: layer.id,
+    name: layer.name || "Layer",
+    visible: layer.visible !== false,
+    locked: !!layer.locked,
+    parent: layer.parent || "",
+    kind: layer.kind === "group" ? "group" as const : "layer" as const,
+    open: layer.open !== false,
+  }));
   return {
     ...title,
     group: title.group || "",
-    layers: rawLayers,
+    layers,
     elements: (title.elements ?? []).map((element) => ({
-      ...blankElement(element.kind || "text", rawLayers[0].id),
+      ...blankElement(element.kind || "text", layers[0].id),
       ...element,
-      name: element.name || (element.kind === "text" ? "Text" : element.kind === "image" ? "Image" : "Rectangle"),
-      layer: element.layer || rawLayers[0].id,
+      name: element.name || kindLabel(element.kind),
+      layer: element.layer || layers[0].id,
       visible: element.visible !== false,
       locked: !!element.locked,
       opacity: typeof element.opacity === "number" ? element.opacity : 1,
@@ -122,15 +169,18 @@ export function normalizeTitle(title: FgcTitle): FgcTitle {
       blend: element.blend || "",
       font: element.font || "",
       weight: element.weight || 0,
+      fontStyle: element.fontStyle === "italic" ? "italic" : "",
+      anim: element.anim === "fade" ? "fade" : "",
     })),
   };
 }
 
 export function titleStack(title: FgcTitle): FgcTitleElement[] {
   const normalized = normalizeTitle(title);
-  return normalized.layers.flatMap((layer) =>
-    layer.visible ? normalized.elements.filter((element) => element.layer === layer.id && element.visible) : [],
-  );
+  return normalized.layers.flatMap((layer) => {
+    if (layer.kind === "group" || !layerVisible(normalized.layers, layer.id)) return [];
+    return normalized.elements.filter((element) => element.layer === layer.id && element.visible);
+  });
 }
 
 export function starterTitle(): FgcTitle {
@@ -194,6 +244,14 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
 export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleElement): string {
   if (element.bind === "event.icon") return fgc.event?.icon || "";
   const library = libraryFor(fgc);
+  const skinBind = element.bind.match(/^p([12])\.skin(2)?$/);
+  if (skinBind && library) {
+    const player = skinBind[1] === "1" ? set?.p1 : set?.p2;
+    const name = skinBind[2] ? player?.character2 : player?.character;
+    const skin = skinBind[2] ? player?.skin2 : player?.skin;
+    const found = library.characters.find((item) => item.name === name);
+    return found ? resolvePreview(fgc.assetBase, library.code, found.code, skin || 0) : "";
+  }
   const name = element.bind === "p1.icon" ? set?.p1?.character : element.bind === "p2.icon" ? set?.p2?.character : "";
   if (name && library) return library.characters.find((item) => item.name === name)?.icon || "";
   if (element.imageKey) return titleImageObjectUrl(element.imageKey) || element.src;

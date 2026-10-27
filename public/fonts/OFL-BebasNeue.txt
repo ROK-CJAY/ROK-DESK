@@ -1,0 +1,3 @@
+Bebas Neue by Dharma Type is licensed under the SIL Open Font License 1.1.
+The license is at https://openfontlicense.org
+This file may be redistributed with ROK Desk. The Windows fonts in the editor list are not included; those are used from the computer they are installed on.

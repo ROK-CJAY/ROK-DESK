@@ -306,7 +306,9 @@ function StageStrike() {
 
 function Queue() {
   const fgc = useLiveFgc();
-  const rows = fgc.sets.filter((set) => set.queued);
+  const rows = fgc.sets
+    .filter((set) => set.queued)
+    .sort((a, b) => (a.streamName || "").localeCompare(b.streamName || "") || (a.queueOrder || 0) - (b.queueOrder || 0));
   const shown = rows.length ? rows : fgc.sets.filter((set) => set.state !== "done").slice(0, 8);
   return (
     <div className="grid content-start gap-2 p-8">

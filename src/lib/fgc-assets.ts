@@ -89,6 +89,114 @@ export async function saveTitleImage(key: string, blob: Blob) {
   bumpTitleImages();
 }
 
+export type InstalledFont = { id: string; family: string; label: string; weight: number };
+
+let installedFonts: InstalledFont[] = [];
+
+export function fontChoices() {
+  return installedFonts;
+}
+
+function tableRange(buffer: ArrayBuffer, tag: string) {
+  if (buffer.byteLength < 12) return null;
+  const view = new DataView(buffer);
+  const count = view.getUint16(4);
+  for (let index = 0; index < count; index += 1) {
+    const record = 12 + index * 16;
+    if (record + 16 > buffer.byteLength) return null;
+    const name = String.fromCharCode(view.getUint8(record), view.getUint8(record + 1), view.getUint8(record + 2), view.getUint8(record + 3));
+    if (name !== tag) continue;
+    return { offset: view.getUint32(record + 8), length: view.getUint32(record + 12) };
+  }
+  return null;
+}
+
+function readName(view: DataView, start: number, length: number, platform: number) {
+  let text = "";
+  if (platform === 0 || platform === 3) {
+    for (let index = 0; index + 1 < length; index += 2) text += String.fromCharCode(view.getUint16(start + index));
+  } else {
+    for (let index = 0; index < length; index += 1) text += String.fromCharCode(view.getUint8(start + index));
+  }
+  return text.replace(/\0/g, "").trim();
+}
+
+function fontInfo(buffer: ArrayBuffer, fallback: string) {
+  const names = new Map<number, string>();
+  try {
+    const table = tableRange(buffer, "name");
+    const view = new DataView(buffer);
+    if (table && table.offset + 6 < buffer.byteLength) {
+      const count = view.getUint16(table.offset + 2);
+      const stringOffset = view.getUint16(table.offset + 4);
+      for (let index = 0; index < count; index += 1) {
+        const record = table.offset + 6 + index * 12;
+        if (record + 12 > buffer.byteLength) break;
+        const nameId = view.getUint16(record + 6);
+        if (names.has(nameId) || ![1, 4, 6, 16].includes(nameId)) continue;
+        const length = view.getUint16(record + 8);
+        const offset = view.getUint16(record + 10);
+        const start = table.offset + stringOffset + offset;
+        if (start + length > buffer.byteLength) continue;
+        const text = readName(view, start, length, view.getUint16(record));
+        if (text) names.set(nameId, text);
+      }
+    }
+  } catch {
+    // A font the browser can still load keeps the file name.
+  }
+  const family = names.get(16) || names.get(1) || fallback;
+  const label = names.get(4) || family;
+  const postscript = names.get(6) || "";
+  let weight = 400;
+  const hint = `${label} ${postscript}`;
+  if (/black|heavy/i.test(hint)) weight = 900;
+  else if (/semibold|semi-bold|demibold/i.test(hint)) weight = 600;
+  else if (/bold/i.test(hint)) weight = 700;
+  else if (/medium/i.test(hint)) weight = 500;
+  else if (/light/i.test(hint)) weight = 300;
+  else if (/thin/i.test(hint)) weight = 200;
+  try {
+    const os2 = tableRange(buffer, "OS/2");
+    if (os2 && os2.offset + 6 < buffer.byteLength) {
+      const value = new DataView(buffer).getUint16(os2.offset + 4);
+      if (value >= 1 && value <= 1000) weight = value;
+    }
+  } catch {
+    // The name is enough when the weight table is missing.
+  }
+  return { family, label, postscript, weight };
+}
+
+async function activateFont(id: string, blob: Blob) {
+  if (typeof document === "undefined" || typeof FontFace === "undefined") return null;
+  const buffer = await blob.arrayBuffer();
+  const fallback = id.replace(/^font:/, "").replace(/-/g, " ");
+  const info = fontInfo(buffer, fallback);
+  const families = [...new Set([info.family, info.postscript].filter(Boolean))];
+  for (const family of families) {
+    const face = new FontFace(family, buffer, { weight: String(info.weight) });
+    await face.load();
+    document.fonts.add(face);
+  }
+  return { id, family: info.family, label: info.label, weight: info.weight };
+}
+
+export async function saveFontFile(file: File) {
+  const buffer = await file.arrayBuffer();
+  const fallback = file.name.replace(/\.[^.]+$/, "").trim() || "Font";
+  const info = fontInfo(buffer, fallback);
+  const id = `font:${info.label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "font"}`;
+  const db = await assetDb();
+  await putFile(db, id, new Blob([buffer]));
+  const face = await activateFont(id, new Blob([buffer]));
+  if (face) {
+    installedFonts = [...installedFonts.filter((item) => item.id !== face.id), face].sort((a, b) => a.label.localeCompare(b.label));
+    bumpTitleImages();
+  }
+  return face;
+}
+
 function assetDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open("rok-fgc-assets", 1);
@@ -141,11 +249,23 @@ export async function hydrateLocalAssets() {
       cursor.continue();
     };
   });
+  const loaded: InstalledFont[] = [];
   for (const row of rows) {
-    const url = URL.createObjectURL(row.blob);
-    if (row.key.startsWith("skin:")) localSkins.set(row.key, url);
-    if (row.key.startsWith("stage:")) localStages.set(row.key, url);
-    if (row.key.startsWith("title:") && !titleImages.has(row.key)) titleImages.set(row.key, url);
+    if (row.key.startsWith("skin:")) localSkins.set(row.key, URL.createObjectURL(row.blob));
+    if (row.key.startsWith("stage:")) localStages.set(row.key, URL.createObjectURL(row.blob));
+    if (row.key.startsWith("title:") && !titleImages.has(row.key)) titleImages.set(row.key, URL.createObjectURL(row.blob));
+    if (row.key.startsWith("font:")) {
+      try {
+        const face = await activateFont(row.key, row.blob);
+        if (face) loaded.push(face);
+      } catch {
+        // Skip a file the browser cannot use as a font.
+      }
+    }
+  }
+  if (loaded.length) {
+    const ids = new Set(loaded.map((face) => face.id));
+    installedFonts = [...installedFonts.filter((item) => !ids.has(item.id)), ...loaded].sort((a, b) => a.label.localeCompare(b.label));
   }
   bumpTitleImages();
 }

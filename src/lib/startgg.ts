@@ -250,6 +250,7 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     streamName: raw.stream?.streamName?.trim() || "",
     station: raw.station?.number == null ? "" : String(raw.station.number),
     queued: false,
+    queueOrder: 0,
     bestOf: 3,
     stage: "",
     losers1: grand && reset,
@@ -385,10 +386,16 @@ export async function importStartggEvent(url: string, token?: string): Promise<{
   }
 
   const queue = event.tournament?.streamQueue;
-  const queued = (Array.isArray(queue) ? queue : queue ? [queue] : []).flatMap((item) =>
-    (item.sets ?? []).map((set) => ({ id: String(set.id), channel: item.stream?.streamName?.trim() || "" })),
-  );
-  const byId = new Map(queued.map((item) => [item.id, item.channel]));
+  const rows = Array.isArray(queue) ? queue : queue ? [queue] : [];
+  const marks: { id: string; channel: string; order: number }[] = [];
+  for (const item of rows) {
+    (item.sets ?? []).forEach((set, index) => {
+      const id = String(set.id);
+      if (marks.some((mark) => mark.id === id)) return;
+      marks.push({ id, channel: item.stream?.streamName?.trim() || "", order: index + 1 });
+    });
+  }
+  const byId = new Map(marks.map((mark) => [mark.id, mark]));
   return {
     event: {
       id: event.id,
@@ -405,8 +412,99 @@ export async function importStartggEvent(url: string, token?: string): Promise<{
       startAt: when(event.startAt ?? event.tournament?.startAt),
       endAt: when(event.endAt ?? event.tournament?.endAt),
     },
-    sets: sets.map((set) => ({ ...set, queued: byId.has(set.id), streamName: byId.get(set.id) || set.streamName })),
+    sets: sets.map((set) => {
+      const hit = byId.get(set.id);
+      return { ...set, queued: !!hit, queueOrder: hit?.order ?? 0, streamName: hit?.channel || set.streamName };
+    }),
   };
+}
+
+export type StreamQueueRow = {
+  id: string;
+  streamName: string;
+  order: number;
+  round: string;
+  identifier: string;
+  phase: string;
+  group: string;
+  state: FgcSetState;
+  p1: string;
+  p2: string;
+};
+
+const QUEUE_QUERY = `
+  query FgcQueue($slug: String!) {
+    event(slug: $slug) {
+      id
+      tournament {
+        streamQueue {
+          stream { streamName }
+          sets {
+            id
+            fullRoundText
+            identifier
+            state
+            event { id }
+            phaseGroup { displayIdentifier phase { name } }
+            slots { entrant { name participants { gamerTag } } }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export async function eventStreamQueue(url: string, token?: string): Promise<StreamQueueRow[]> {
+  const slug = startggSlug(url);
+  if (!slug) throw new Error("Import the event first");
+  const data = await startggQuery<{
+    event?: {
+      id?: string;
+      tournament?: {
+        streamQueue?: {
+          stream?: { streamName?: string | null } | null;
+          sets?: {
+            id?: string | number | null;
+            fullRoundText?: string | null;
+            identifier?: string | null;
+            state?: number | null;
+            event?: { id?: string | null } | null;
+            phaseGroup?: { displayIdentifier?: string | null; phase?: { name?: string | null } | null } | null;
+            slots?: { entrant?: { name?: string | null; participants?: { gamerTag?: string | null }[] | null } | null }[] | null;
+          }[] | null;
+        }[] | null;
+      } | null;
+    } | null;
+  }>(QUEUE_QUERY, { slug }, "FgcQueue", token);
+  const eventId = data.event?.id ? String(data.event.id) : "";
+  const queues = data.event?.tournament?.streamQueue ?? [];
+  const rows: StreamQueueRow[] = [];
+  for (const queue of queues) {
+    const streamName = queue.stream?.streamName?.trim() || "Stream";
+    let order = 0;
+    for (const set of queue.sets ?? []) {
+      if (set.id == null) continue;
+      if (eventId && set.event?.id && String(set.event.id) !== eventId) continue;
+      order += 1;
+      const nameOf = (index: number) => {
+        const entrant = set.slots?.[index]?.entrant;
+        return entrant?.participants?.[0]?.gamerTag?.trim() || entrant?.name?.trim() || "";
+      };
+      rows.push({
+        id: String(set.id),
+        streamName,
+        order,
+        round: set.fullRoundText?.trim() || "",
+        identifier: set.identifier?.trim() || "",
+        phase: set.phaseGroup?.phase?.name?.trim() || "",
+        group: set.phaseGroup?.displayIdentifier?.trim() || "",
+        state: setState(set.state),
+        p1: nameOf(0),
+        p2: nameOf(1),
+      });
+    }
+  }
+  return rows;
 }
 
 const STREAM_QUERY = `

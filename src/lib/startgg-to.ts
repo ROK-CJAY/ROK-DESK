@@ -26,6 +26,7 @@ export type ToSet = {
   p2: { id: string; name: string; characterId: string; character: string; characterIcon: string };
   score1: number;
   score2: number;
+  bestOf: number;
   stageId: string;
   stage: string;
 };
@@ -161,6 +162,7 @@ const SETS_QUERY = `
           identifier
           state
           winnerId
+          bestOf
           updatedAt
           startedAt
           station { id number prefix }
@@ -211,6 +213,7 @@ type SetPage = {
         identifier?: string | null;
         state?: number | null;
         winnerId?: number | string | null;
+        bestOf?: number | null;
         updatedAt?: number | null;
         startedAt?: number | null;
         station?: { id?: string | number | null; number?: number | string | null; prefix?: string | null } | null;
@@ -291,6 +294,7 @@ export async function loadToBoard(token: string, slug: string): Promise<ToBoard>
           p2,
           score1: slots[0]?.standing?.stats?.score?.value ?? 0,
           score2: slots[1]?.standing?.stats?.score?.value ?? 0,
+          bestOf: node.bestOf && node.bestOf > 0 ? node.bestOf : 3,
           stageId: game?.stage?.id == null ? "" : String(game.stage.id),
           stage: game?.stage?.name?.trim() || "",
         });
@@ -416,26 +420,49 @@ export async function streamToSet(token: string, setId: string, streamId: string
   await mutate(token, `mutation StreamSet($setId: ID!, $streamId: ID!) { assignStream(setId: $setId, streamId: $streamId) { id } }`, { setId, streamId }, "StreamSet");
 }
 
+export type ReportedGame = {
+  winnerId: string;
+  stageId?: string;
+  character1?: string;
+  character2?: string;
+};
+
+function gameSelections(entrant1?: string, character1?: string, entrant2?: string, character2?: string) {
+  return [
+    entrant1 && character1 ? { entrantId: entrant1, characterId: character1 } : null,
+    entrant2 && character2 ? { entrantId: entrant2, characterId: character2 } : null,
+  ].filter(Boolean);
+}
+
 export async function reportToSet(
   token: string,
   setId: string,
   winnerId: string,
   score1: number,
   score2: number,
-  detail?: { stageId?: string; entrant1?: string; character1?: string; entrant2?: string; character2?: string; dq?: boolean },
+  detail?: { stageId?: string; entrant1?: string; character1?: string; entrant2?: string; character2?: string; dq?: boolean; games?: ReportedGame[] },
 ) {
-  const selections = [
-    detail?.entrant1 && detail.character1 ? { entrantId: detail.entrant1, characterId: detail.character1 } : null,
-    detail?.entrant2 && detail.character2 ? { entrantId: detail.entrant2, characterId: detail.character2 } : null,
-  ].filter(Boolean);
-  const gameData = [{
-    gameNum: 1,
-    entrant1Score: score1,
-    entrant2Score: score2,
-    winnerId,
-    ...(detail?.stageId ? { stageId: detail.stageId } : {}),
-    ...(selections.length ? { selections } : {}),
-  }];
+  const played = detail?.games?.filter((game) => game.winnerId) ?? [];
+  const gameData = played.length
+    ? played.map((game, index) => {
+        const selections = gameSelections(detail?.entrant1, game.character1 || detail?.character1, detail?.entrant2, game.character2 || detail?.character2);
+        return {
+          gameNum: index + 1,
+          winnerId: game.winnerId,
+          ...(game.stageId ? { stageId: game.stageId } : {}),
+          ...(selections.length ? { selections } : {}),
+        };
+      })
+    : [{
+        gameNum: 1,
+        entrant1Score: score1,
+        entrant2Score: score2,
+        winnerId,
+        ...(detail?.stageId ? { stageId: detail.stageId } : {}),
+        ...(gameSelections(detail?.entrant1, detail?.character1, detail?.entrant2, detail?.character2).length
+          ? { selections: gameSelections(detail?.entrant1, detail?.character1, detail?.entrant2, detail?.character2) }
+          : {}),
+      }];
   const isDQ = Boolean(detail?.dq);
   try {
     await mutate(
@@ -452,4 +479,43 @@ export async function reportToSet(
       "ReportSet",
     );
   }
+}
+
+function stageKey(name: string) {
+  return name.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "");
+}
+
+export async function stagesForSet(token: string, setId: string): Promise<{ id: string; name: string }[]> {
+  const data = await startggQuery<{ set?: { event?: { videogame?: { stages?: { id?: string | number | null; name?: string | null }[] | null } | null } | null } | null }>(
+    `query SetStages($id: ID!) { set(id: $id) { event { videogame { stages { id name } } } } }`,
+    { id: setId },
+    "SetStages",
+    token,
+  );
+  return (data.set?.event?.videogame?.stages ?? [])
+    .filter((stage) => stage.id != null && stage.name?.trim())
+    .map((stage) => ({ id: String(stage.id), name: stage.name!.trim() }));
+}
+
+export function matchStageId(stages: { id: string; name: string }[], name: string) {
+  const key = stageKey(name);
+  if (!key) return "";
+  return stages.find((stage) => stageKey(stage.name) === key)?.id || "";
+}
+
+export async function reportCatalog(token: string, setId: string): Promise<{ stages: { id: string; name: string }[]; characters: { id: string; name: string }[] }> {
+  const data = await startggQuery<{
+    set?: { event?: { videogame?: { stages?: { id?: string | number | null; name?: string | null }[] | null; characters?: { id?: string | number | null; name?: string | null }[] | null } | null } | null } | null;
+  }>(
+    `query SetReportCatalog($id: ID!) { set(id: $id) { event { videogame { stages { id name } characters { id name } } } } }`,
+    { id: setId },
+    "SetReportCatalog",
+    token,
+  );
+  const rows = (list: { id?: string | number | null; name?: string | null }[] | null | undefined) =>
+    (list ?? []).filter((row) => row.id != null && row.name?.trim()).map((row) => ({ id: String(row.id), name: row.name!.trim() }));
+  return {
+    stages: rows(data.set?.event?.videogame?.stages),
+    characters: rows(data.set?.event?.videogame?.characters),
+  };
 }

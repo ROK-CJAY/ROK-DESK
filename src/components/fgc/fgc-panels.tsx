@@ -276,7 +276,7 @@ function treeLayout(rounds: ReturnType<typeof bracketRounds>) {
   return columns;
 }
 
-function BracketTree({ title, rounds, onSelect }: { title: string; rounds: ReturnType<typeof bracketRounds>; onSelect: (id: string) => void }) {
+function BracketTree({ title, rounds, streamId, onSelect }: { title: string; rounds: ReturnType<typeof bracketRounds>; streamId: string | null; onSelect: (id: string) => void }) {
   if (!rounds.length) return null;
   const columns = treeLayout(rounds);
   const height = Math.max(...columns.flat().map((slot) => slot.y), 0) + 64;
@@ -313,8 +313,9 @@ function BracketTree({ title, rounds, onSelect }: { title: string; rounds: Retur
           {columns.flat().map((slot) => {
             const oneWins = slot.set.score1 > slot.set.score2;
             const twoWins = slot.set.score2 > slot.set.score1;
+            const live = slot.set.id === streamId;
             return (
-              <button key={slot.set.id} type="button" className="absolute text-left" style={{ left: slot.x, top: slot.y + 28, width: COL_W }} onClick={() => onSelect(slot.set.id)}>
+              <button key={slot.set.id} type="button" className={`absolute text-left ${live ? "rounded-sm ring-1 ring-accent" : ""}`} style={{ left: slot.x, top: slot.y + 28, width: COL_W }} onClick={() => onSelect(slot.set.id)}>
                 <span className="flex h-6 items-center gap-1">
                   <span className="min-w-0 flex-1 truncate rounded-sm bg-surface-2 px-1.5 text-xs font-semibold uppercase">{playerLabel(slot.set.p1) || "TBD"}</span>
                   <span className={`grid h-6 w-7 place-items-center rounded-sm font-mono text-xs ${oneWins ? "bg-emerald-700 text-white" : "bg-black/50"}`}>{slot.set.score1}</span>
@@ -323,7 +324,7 @@ function BracketTree({ title, rounds, onSelect }: { title: string; rounds: Retur
                   <span className="min-w-0 flex-1 truncate rounded-sm bg-surface-2 px-1.5 text-xs font-semibold uppercase">{playerLabel(slot.set.p2) || "TBD"}</span>
                   <span className={`grid h-6 w-7 place-items-center rounded-sm font-mono text-xs ${twoWins ? "bg-emerald-700 text-white" : "bg-black/50"}`}>{slot.set.score2}</span>
                 </span>
-                {slot.set.state === "done" ? <span className="mt-0.5 block text-[0.6rem] text-emerald-500">Finished</span> : null}
+                {live ? <span className="mt-0.5 block text-[0.6rem] text-accent">On stream</span> : slot.set.state === "done" ? <span className="mt-0.5 block text-[0.6rem] text-emerald-500">Finished</span> : null}
               </button>
             );
           })}
@@ -336,8 +337,10 @@ function BracketTree({ title, rounds, onSelect }: { title: string; rounds: Retur
 export function FgcBracket() {
   const sets = useFgcStore((s) => s.fgc.sets);
   const view = useFgcStore((s) => s.fgc.bracketView);
+  const streamId = useFgcStore((s) => s.fgc.streamSetId);
   const setBracketView = useFgcStore((s) => s.setBracketView);
   const selectSet = useFgcStore((s) => s.selectSet);
+  const [picked, setPicked] = useState("");
   const phases = [...new Set(sets.map((set) => set.phase).filter(Boolean))];
   const groups = [...new Set(sets.filter((set) => !view?.phase || set.phase === view.phase).map((set) => set.group).filter(Boolean))];
   const shown = sets.filter((set) => {
@@ -358,6 +361,17 @@ export function FgcBracket() {
     if (!keepFrom) return true;
     return key < 0 ? Math.abs(key) >= Math.max(1, keepFrom - 1) : key >= keepFrom;
   }) : shown;
+  const card = sets.find((set) => set.id === picked) ?? null;
+  const onStream = sets.find((set) => set.id === streamId) ?? null;
+
+  useEffect(() => {
+    if (!card) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPicked("");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [card]);
 
   return (
     <section className="rounded-xl border border-border bg-surface p-4">
@@ -396,10 +410,32 @@ export function FgcBracket() {
           Losers only
         </label>
       </div>
-      <p className="mt-2 text-xs text-muted">Winners on top, losers underneath. Each match sits between the two that feed it. Click a match to put it on the scoreboard.</p>
-      <BracketTree title="Winners" rounds={bracketRounds(visible, "winners")} onSelect={selectSet} />
-      <BracketTree title="Losers" rounds={bracketRounds(visible, "losers")} onSelect={selectSet} />
+      <p className="mt-2 text-xs text-muted">Winners on top, losers underneath. Each match sits between the two that feed it. Click a match to open it. Nothing goes to stream until you send it.</p>
+      <BracketTree title="Winners" rounds={bracketRounds(visible, "winners")} streamId={streamId} onSelect={setPicked} />
+      <BracketTree title="Losers" rounds={bracketRounds(visible, "losers")} streamId={streamId} onSelect={setPicked} />
       {visible.length === 0 ? <p className="mt-4 text-sm text-muted">Import an event to fill the bracket.</p> : null}
+      {card ? (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setPicked("")}>
+          <section className="grid w-full max-w-md gap-3 rounded-xl border border-border bg-surface p-4" onClick={(event) => event.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{[card.identifier, card.phase, card.round].filter(Boolean).join(" · ") || "Match"}</p>
+                <p className="text-lg">{playerLabel(card.p1)} vs {playerLabel(card.p2)}</p>
+                <p className="text-xs text-muted">{card.score1} – {card.score2}{card.station ? ` · ${card.station}` : ""}{card.state === "done" ? " · Finished" : ""}</p>
+              </div>
+              <Button size="sm" variant="ghost" onClick={() => setPicked("")}>Close</Button>
+            </div>
+            {onStream && onStream.id !== card.id ? (
+              <p className="text-sm text-muted">On stream now: {playerLabel(onStream.p1)} vs {playerLabel(onStream.p2)}. Sending this match replaces it.</p>
+            ) : null}
+            {card.id === streamId ? <p className="text-sm text-accent">This match is already on the scoreboard.</p> : null}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setPicked("")}>Cancel</Button>
+              <Button disabled={card.id === streamId} onClick={() => { selectSet(card.id); setPicked(""); }}>Send to scoreboard</Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </section>
   );
 }

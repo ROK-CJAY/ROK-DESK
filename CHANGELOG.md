@@ -20,6 +20,13 @@ The project follows [Semantic Versioning](https://semver.org/). Desktop installe
 - The bracket graphic draws on the first load instead of staying blank.
 - TSH overlays get the ruleset, stage icons, recent sets, commentary, and bracket rounds they were waiting on. Stage art uses the asset address instead of a relative path. The Ultimate bracket draws losers rounds instead of hiding them behind a broken class name.
 
+### Changed
+
+- The overlay editor is its own tab under Overlays. Custom overlay stays in the dropdown under Custom.
+- Fonts are one name per family, with Bold and Italic buttons. The list includes the usual Windows, Mac, and Linux families. Bebas Neue ships with the app.
+- A rectangle, circle, or triangle can show a picture, a character icon, or the selected skin.
+- Dragging a side or corner snaps to other objects. The layers list scrolls on its own. The preview is square, on a checkerboard.
+
 ## v1.4.8 — 2026-10-21
 
 ### Added
