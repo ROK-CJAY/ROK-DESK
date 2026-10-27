@@ -1,9 +1,14 @@
 import { useEffect, type ReactNode } from "react";
 import { stageIconUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { cleanSpeech } from "@/lib/fgc-settings";
 import { useFgcStore } from "@/lib/fgc-store";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { liveSet, type FgcOverlayId } from "@/lib/fgc-titles";
+
+function tag(fgc: FgcState, player: FgcPlayer | null) {
+  return cleanSpeech(playerLabel(player), fgc.settings.profanity);
+}
 
 function useLiveFgc() {
   const hydrate = useFgcStore((s) => s.hydrate);
@@ -76,9 +81,9 @@ function PlayerSide({ fgc, player, align }: { fgc: FgcState; player: FgcPlayer |
   return (
     <div className={right ? "text-right" : "text-left"}>
       {icon ? <img src={icon} alt="" className={`mb-4 h-40 w-40 object-contain ${right ? "ml-auto" : ""}`} /> : null}
-      <p className="font-mono text-lg tracking-wide text-white/70 uppercase">{[player?.flag, player?.prefix].filter(Boolean).join(" ")}</p>
-      <p className="font-display text-6xl leading-none font-semibold uppercase">{playerLabel(player)}</p>
-      <p className="mt-3 font-mono text-xl tracking-wide text-white/80 uppercase">{player?.character || "Player"}</p>
+      <p className="font-mono text-lg tracking-wide text-white/70 uppercase">{cleanSpeech([player?.flag, player?.prefix].filter(Boolean).join(" "), fgc.settings.profanity)}</p>
+      <p className="font-display text-6xl leading-none font-semibold uppercase">{tag(fgc, player)}</p>
+      <p className="mt-3 font-mono text-xl tracking-wide text-white/80 uppercase">{cleanSpeech(player?.character || "Player", fgc.settings.profanity)}</p>
     </div>
   );
 }
@@ -123,7 +128,7 @@ function Scoreboard({ style }: { style: "simple" | "topleft" | "4by3" }) {
   const set = liveSet(fgc);
   const row = (player: FgcPlayer | null, score: number) => (
     <div className="flex items-center justify-between gap-6">
-      <span className="truncate font-display text-3xl font-semibold uppercase">{playerLabel(player)}</span>
+      <span className="truncate font-display text-3xl font-semibold uppercase">{tag(fgc, player)}</span>
       <span className="font-display text-4xl font-semibold tabular-nums">{score}</span>
     </div>
   );
@@ -172,8 +177,8 @@ function Bracket({ ultimate }: { ultimate: boolean }) {
                 <div className="grid gap-2">
                   {rows.slice(0, 8).map((set) => (
                     <Plate key={set.id} className="px-2 py-1.5 text-sm">
-                      <p className="truncate uppercase">{playerLabel(set.p1)} <span className="text-white/40">{set.score1}</span></p>
-                      <p className="truncate uppercase">{playerLabel(set.p2)} <span className="text-white/40">{set.score2}</span></p>
+                      <p className="truncate uppercase">{tag(fgc, set.p1)} <span className="text-white/40">{set.score1}</span></p>
+                      <p className="truncate uppercase">{tag(fgc, set.p2)} <span className="text-white/40">{set.score2}</span></p>
                     </Plate>
                   ))}
                 </div>
@@ -198,7 +203,7 @@ function TopList({ count }: { count: number }) {
             <span className="font-display text-3xl font-semibold text-white/50">{index + 1}</span>
             {characterIcon(fgc, row.player.character) ? <img src={characterIcon(fgc, row.player.character)} alt="" className="h-12 w-12 object-contain" /> : null}
             <span className="min-w-0">
-              <span className="block truncate font-display text-2xl font-semibold uppercase">{[row.player.flag, playerLabel(row.player)].filter(Boolean).join(" ")}</span>
+              <span className="block truncate font-display text-2xl font-semibold uppercase">{[row.player.flag, tag(fgc, row.player)].filter(Boolean).join(" ")}</span>
               <span className="font-mono text-xs text-white/60">{row.wins}-{row.losses} {row.player.character}</span>
             </span>
           </Plate>
@@ -217,7 +222,7 @@ function SetList({ count, title }: { count: number; title: string }) {
       {rows.map((set) => (
         <Plate key={set.id} className="flex items-center justify-between px-4 py-2">
           <span className="font-mono text-xs tracking-wide text-white/50 uppercase">{[set.phase, set.round].filter(Boolean).join(" · ")}</span>
-          <span className="font-display text-2xl font-semibold uppercase">{playerLabel(set.p1)} {set.score1} – {set.score2} {playerLabel(set.p2)}</span>
+          <span className="font-display text-2xl font-semibold uppercase">{tag(fgc, set.p1)} {set.score1} – {set.score2} {tag(fgc, set.p2)}</span>
         </Plate>
       ))}
     </div>
@@ -232,7 +237,7 @@ function People() {
       <p className="font-display text-4xl font-semibold uppercase">Players · {players.length}</p>
       <div className="mt-4 grid grid-cols-4 gap-2">
         {players.slice(0, 32).map((player) => (
-          <Plate key={player.id} className="truncate px-3 py-2 font-display text-xl font-semibold uppercase">{[player.flag, playerLabel(player)].filter(Boolean).join(" ")}</Plate>
+          <Plate key={player.id} className="truncate px-3 py-2 font-display text-xl font-semibold uppercase">{[player.flag, tag(fgc, player)].filter(Boolean).join(" ")}</Plate>
         ))}
       </div>
     </div>
@@ -316,7 +321,7 @@ function Queue() {
       {shown.map((set, index) => (
         <Plate key={set.id} className="flex items-center gap-4 px-4 py-2">
           <span className="font-display text-2xl text-white/40">{index + 1}</span>
-          <span className="font-display text-2xl font-semibold uppercase">{playerLabel(set.p1)} vs {playerLabel(set.p2)}</span>
+          <span className="font-display text-2xl font-semibold uppercase">{tag(fgc, set.p1)} vs {tag(fgc, set.p2)}</span>
           <span className="ml-auto font-mono text-xs text-white/50 uppercase">{[set.phase, set.round].filter(Boolean).join(" · ")}</span>
         </Plate>
       ))}
@@ -387,15 +392,15 @@ function UltimateBoard() {
     <div className="relative h-full w-full overflow-hidden text-white">
       <div className="absolute top-3 right-5 left-5 grid grid-cols-[auto_minmax(0,1fr)_4.5rem_minmax(0,1fr)] items-start gap-3">
         <div className="grid gap-1">
-          <div className="bg-black px-3 py-1 font-display text-xl leading-none font-semibold uppercase">{set?.round || "Round"}</div>
+          <div className="bg-black px-3 py-1 font-display text-xl leading-none font-semibold uppercase" style={{ color: fgc.settings.team1 }}>{set?.round || "Round"}</div>
           {set?.phase ? <div className="bg-black px-3 py-1 text-[11px] tracking-[0.16em] uppercase">{set.phase}</div> : null}
         </div>
         <UltimateSide fgc={fgc} player={set?.p1 ?? null} score={set?.score1 ?? 0} losers={!!set?.losers1} side="left" />
         <img src={logo} alt="" className="mt-6 h-14 w-full object-contain" />
         <UltimateSide fgc={fgc} player={set?.p2 ?? null} score={set?.score2 ?? 0} losers={!!set?.losers2} side="right" />
       </div>
-      <div className="absolute bottom-5 left-5 h-40 w-72 border-[3px] border-[#e10600] bg-transparent" />
-      <div className="absolute right-5 bottom-5 h-40 w-72 border-[3px] border-[#2f6bff] bg-transparent" />
+      <div className="absolute bottom-5 left-5 h-40 w-72 border-[3px] bg-transparent" style={{ borderColor: fgc.settings.team1 }} />
+      <div className="absolute right-5 bottom-5 h-40 w-72 border-[3px] bg-transparent" style={{ borderColor: fgc.settings.team2 }} />
       <UltimateFeet fgc={fgc} player={set?.p1 ?? null} side="left" />
       <UltimateFeet fgc={fgc} player={set?.p2 ?? null} side="right" />
       <img src={fgc.event?.icon || "/overlays/rok-wordmark.png"} alt="" className="absolute bottom-6 left-1/2 h-24 max-w-xs -translate-x-1/2 object-contain" />
@@ -404,25 +409,26 @@ function UltimateBoard() {
 }
 
 function UltimateSide({ fgc, player, score, losers, side }: { fgc: FgcState; player: FgcPlayer | null; score: number; losers: boolean; side: "left" | "right" }) {
-  const icon = characterIcon(fgc, player?.character || "");
+  const show = fgc.settings.show;
+  const icon = show.characters ? characterIcon(fgc, player?.character || "") : "";
   const chips = [
-    player?.flag,
-    player?.region,
-    player?.pronouns,
-    player?.twitter ? `X ${player.twitter.replace(/^@/, "")}` : "",
-    player?.seed ? `Seed ${player.seed}` : "",
-  ].filter(Boolean) as string[];
+    show.location ? player?.flag : "",
+    show.location ? player?.region : "",
+    show.pronouns ? player?.pronouns : "",
+    show.social && player?.twitter ? `X ${player.twitter.replace(/^@/, "")}` : "",
+    show.seed && player?.seed ? `Seed ${player.seed}` : "",
+  ].filter((chip): chip is string => Boolean(chip)).map((chip) => cleanSpeech(chip, fgc.settings.profanity));
   const ordered = side === "right" ? [...chips].reverse() : chips;
-  const tone = side === "left" ? "bg-[#e10600]" : "bg-[#2f6bff]";
+  const tone = side === "left" ? fgc.settings.team1 : fgc.settings.team2;
   return (
     <div className={`grid gap-1 ${side === "left" ? "justify-items-end" : "justify-items-start"}`}>
       <div className="flex flex-wrap gap-1">
-        {ordered.map((chip) => <span key={chip} className={`${tone} px-2 py-0.5 text-[13px] font-semibold tracking-wide uppercase`}>{chip}</span>)}
+        {ordered.map((chip) => <span key={chip} className="px-2 py-0.5 text-[13px] font-semibold tracking-wide uppercase" style={{ background: tone }}>{chip}</span>)}
       </div>
       <div className={`flex h-12 w-full max-w-[34rem] items-stretch bg-black ${side === "right" ? "flex-row-reverse" : ""}`}>
         {icon ? <img src={icon} alt="" className="h-12 w-12 object-cover" /> : <span className="w-2" />}
-        <span className="flex flex-1 items-center justify-center px-3 font-display text-2xl font-semibold uppercase">{playerLabel(player)}{losers ? " (L)" : ""}</span>
-        <span className={`flex w-12 items-center justify-center font-display text-3xl font-semibold ${tone}`}>{score}</span>
+        <span className="flex flex-1 items-center justify-center px-3 font-display text-2xl font-semibold uppercase">{tag(fgc, player)}{losers ? " (L)" : ""}</span>
+        <span className="flex w-12 items-center justify-center font-display text-3xl font-semibold" style={{ background: tone }}>{score}</span>
       </div>
     </div>
   );
@@ -433,7 +439,7 @@ function UltimateFeet({ fgc, player, side }: { fgc: FgcState; player: FgcPlayer 
   return (
     <div className={`absolute bottom-6 flex items-end gap-2 ${side === "left" ? "left-[19.5rem]" : "right-[19.5rem] flex-row-reverse"}`}>
       {icon ? <img src={icon} alt="" className="h-20 w-20 object-contain" /> : null}
-      <div className="bg-black px-3 py-1 font-display text-lg font-semibold uppercase">{playerLabel(player)}</div>
+      <div className="bg-black px-3 py-1 font-display text-lg font-semibold uppercase">{tag(fgc, player)}</div>
     </div>
   );
 }

@@ -218,7 +218,11 @@ export function FgcStrike() {
     next.games.push({ winner, stage: snap.selected });
     next.lastWinner = winner;
     const finished = next.scores[winner] >= needed;
-    if (!stationId) patchSet(set.id, { score1: next.scores[0], score2: next.scores[1], stage: snap.selected, state: finished ? "done" : "live" });
+    if (!stationId) {
+      patchSet(set.id, useFgcStore.getState().fgc.settings.strikeScores
+        ? { score1: next.scores[0], score2: next.scores[1], stage: snap.selected, state: finished ? "done" : "live" }
+        : { stage: snap.selected, state: finished ? "done" : "live" });
+    }
     const games = next.games.map((game) => ({
       winnerId: game.winner === 0 ? set.p1?.id : set.p2?.id,
       stage: game.stage,
@@ -295,7 +299,7 @@ export function FgcStrike() {
   };
 
   const restartAll = () => {
-    if (set && !stationId) patchSet(set.id, { score1: 0, score2: 0, stage: "", state: "pending" });
+    if (set && !stationId && useFgcStore.getState().fgc.settings.strikeScores) patchSet(set.id, { score1: 0, score2: 0, stage: "", state: "pending" });
     heldSet.current = "";
     commit(fresh());
     setNote("");

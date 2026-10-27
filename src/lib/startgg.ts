@@ -20,6 +20,23 @@ export function startggSlug(input: string): string | null {
   return null;
 }
 
+export function startggTarget(input: string): { kind: "event"; slug: string } | { kind: "tournament"; slug: string } | null {
+  const event = startggSlug(input);
+  if (event) return { kind: "event", slug: event };
+  const raw = input.trim();
+  if (!raw) return null;
+  try {
+    const url = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    const parts = url.pathname.split("/").filter(Boolean);
+    if (parts[0] === "tournament" && parts[1]) return { kind: "tournament", slug: parts[1] };
+    if (parts.length === 1) return { kind: "tournament", slug: parts[0] };
+  } catch {
+    /* not a url */
+  }
+  if (/^tournament\/[^/]+$/.test(raw)) return { kind: "tournament", slug: raw.split("/")[1] || "" };
+  return null;
+}
+
 type GqlResponse<T> = { data?: T; errors?: { message: string }[] };
 
 export async function startggQuery<T>(query: string, variables: Record<string, unknown>, operationName: string, token?: string): Promise<T> {
@@ -63,7 +80,7 @@ const EVENT_QUERY = `
       id
       name
       slug
-      tournament { name slug venueAddress startAt endAt numAttendees images { url type } streamQueue { stream { streamName } sets { id } } }
+      tournament { name slug venueAddress startAt endAt numAttendees images { url type } streams { id streamName } streamQueue { stream { streamName } sets { id } } }
       numEntrants
       startAt
       endAt
@@ -132,7 +149,7 @@ type RawEvent = {
     id: string;
     name: string;
     slug: string;
-    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null; images?: { url?: string | null; type?: string | null }[] | null; streamQueue?: { stream?: { streamName?: string | null } | null; sets?: { id: string }[] | null }[] | null } | null;
+    tournament?: { name?: string; slug?: string; venueAddress?: string | null; startAt?: number | null; endAt?: number | null; numAttendees?: number | null; images?: { url?: string | null; type?: string | null }[] | null; streams?: { id?: string | number | null; streamName?: string | null }[] | null; streamQueue?: { stream?: { streamName?: string | null } | null; sets?: { id: string }[] | null }[] | null } | null;
     numEntrants?: number | null;
     startAt?: number | null;
     endAt?: number | null;
@@ -358,7 +375,27 @@ export async function searchStartggPlayers(name: string, token?: string): Promis
     });
 }
 
-export async function importStartggEvent(url: string, token?: string): Promise<{ event: FgcEvent; sets: FgcSet[] }> {
+export async function importStartggLink(url: string, token?: string): Promise<{ event: FgcEvent; sets: FgcSet[]; streams: string[]; events: { event: FgcEvent; sets: FgcSet[]; streams: string[] }[] }> {
+  const target = startggTarget(url);
+  if (!target) throw new Error("Paste a start.gg tournament or event link");
+  if (target.kind === "event") {
+    const one = await importStartggEvent(url, token);
+    return { ...one, events: [one] };
+  }
+  const data = await startggQuery<{ tournament?: { name?: string | null; events?: { id?: string | number | null; name?: string | null; slug?: string | null }[] | null } | null }>(
+    `query TournamentGames($slug: String!) { tournament(slug: $slug) { name events { id name slug } } }`,
+    { slug: target.slug },
+    "TournamentGames",
+    token,
+  );
+  const listed = (data.tournament?.events ?? []).filter((event) => event.slug);
+  if (!listed.length) throw new Error("That tournament has no games yet");
+  const events = [];
+  for (const event of listed) events.push(await importStartggEvent(`https://www.start.gg/${event.slug}`, token));
+  return { event: events[0].event, sets: events[0].sets, streams: events[0].streams, events };
+}
+
+export async function importStartggEvent(url: string, token?: string): Promise<{ event: FgcEvent; sets: FgcSet[]; streams: string[] }> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Paste a start.gg event link, like start.gg/tournament/name/event/singles");
   const eventData = await startggQuery<RawEvent>(EVENT_QUERY, { slug }, "FgcEvent", token);
@@ -416,6 +453,7 @@ export async function importStartggEvent(url: string, token?: string): Promise<{
       const hit = byId.get(set.id);
       return { ...set, queued: !!hit, queueOrder: hit?.order ?? 0, streamName: hit?.channel || set.streamName };
     }),
+    streams: [...new Set((event.tournament?.streams ?? []).map((stream) => stream.streamName?.trim() || "").filter(Boolean))],
   };
 }
 

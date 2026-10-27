@@ -1,3 +1,5 @@
+import { DEFAULT_FGC_SETTINGS, type FgcSettings } from "@/lib/fgc-settings";
+
 export type FgcSetState = "pending" | "live" | "done";
 
 export type FgcOverlayId =
@@ -197,6 +199,31 @@ export type FgcEvent = {
   endAt: string;
 };
 
+export type FgcBoard = {
+  id: string;
+  name: string;
+  setId: string | null;
+  streamId?: string;
+  streamName?: string;
+};
+
+export type FgcLane = {
+  id: string;
+  url: string;
+  event: FgcEvent | null;
+  sets: FgcSet[];
+  casters: FgcCaster[];
+  rulesets: FgcRuleset[];
+  activeRulesetId: string | null;
+  importedAt: string | null;
+  roster: FgcRoster;
+  bracketView: FgcBracketView;
+  boards: FgcBoard[];
+  activeBoardId: string;
+  streamSetId: string | null;
+  updatedAt: number;
+};
+
 export type FgcState = {
   url: string;
   event: FgcEvent | null;
@@ -214,6 +241,11 @@ export type FgcState = {
   tshLayout: string | null;
   roster: FgcRoster;
   bracketView: FgcBracketView;
+  settings: FgcSettings;
+  laneId: string;
+  lanes: Record<string, FgcLane>;
+  boards: FgcBoard[];
+  activeBoardId: string;
 };
 
 export const EMPTY_FGC: FgcState = {
@@ -236,6 +268,15 @@ export const EMPTY_FGC: FgcState = {
   tshLayout: null,
   roster: blankRoster(),
   bracketView: EMPTY_BRACKET_VIEW,
+  settings: DEFAULT_FGC_SETTINGS,
+  laneId: "local",
+  lanes: {},
+  boards: [
+    { id: "main", name: "Scoreboard 1", setId: null, streamId: "main" },
+    { id: "stream-2", name: "Scoreboard 1", setId: null, streamId: "stream-2" },
+    { id: "stream-3", name: "Scoreboard 1", setId: null, streamId: "stream-3" },
+  ],
+  activeBoardId: "main",
 };
 
 export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {

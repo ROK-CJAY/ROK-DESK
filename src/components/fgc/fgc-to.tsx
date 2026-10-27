@@ -9,6 +9,8 @@ import { rokDesktop } from "@/lib/rok-desktop";
 import { PUBLIC_SIGNUP_ORIGIN } from "@/lib/remote-signup-code";
 import type { ToBoard, ToOption, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
 import { BracketBoard } from "@/components/fgc/fgc-bracket";
+import { blankPlayer, blankSet } from "@/lib/fgc-types";
+import { useFgcStore } from "@/lib/fgc-store";
 import { cn } from "@/lib/cn";
 
 type SetDraft = { score1: number; score2: number; character1: string; character2: string; stageId: string };
@@ -618,6 +620,28 @@ function StationFloor({
                   const next = board.sets.find((item) => item.id === queuedSet);
                   const stream = board.streams.find((item) => item.id === sendStream);
                   if (!next || !stream) return;
+                  useFgcStore.getState().assignStream({
+                    eventId: board.event.id,
+                    eventName: board.event.name,
+                    game: board.event.game,
+                    slug: board.event.slug,
+                    streamName: stream.name,
+                    set: {
+                      ...blankSet(),
+                      id: next.id,
+                      phase: next.phase,
+                      round: next.round,
+                      group: next.group,
+                      identifier: next.identifier,
+                      bestOf: next.bestOf || 3,
+                      score1: next.score1,
+                      score2: next.score2,
+                      stage: next.stage,
+                      streamName: stream.name,
+                      p1: { ...blankPlayer(), id: next.p1.id, tag: next.p1.name, character: next.p1.character },
+                      p2: { ...blankPlayer(), id: next.p2.id, tag: next.p2.name, character: next.p2.character },
+                    },
+                  });
                   setStationId("");
                   void onAct(next, "call-stream", { streamId: stream.id, stationId: stream.stationId });
                 }}

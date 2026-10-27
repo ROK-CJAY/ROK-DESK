@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { blankPlayer, blankRoster, blankRosterSlot, blankRuleset, blankSet, EMPTY_BRACKET_VIEW, EMPTY_FGC, type FgcBracketView, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRoster, type FgcRosterSlot, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { normalizeSettings } from "@/lib/fgc-settings";
+import { applyLane, applyStartggStreamNames, boardForStreamName, boardsForStreams, defaultBoard, emptyLane, isPermanentBoard, laneIdOf, mergeRemoteLanes, stampLanes, touchLane, withPermanentBoards } from "@/lib/fgc-lanes";
 import { type StreamQueueRow } from "@/lib/startgg";
 import { startggAuthBody } from "@/lib/startgg-link";
 
@@ -70,9 +72,18 @@ type FgcStore = {
   setRosterPlayer: (index: number, playerIndex: number, partial: Partial<FgcPlayer>) => void;
   loadStandings: () => Promise<void>;
   setBracketView: (partial: Partial<FgcBracketView>) => void;
+  selectLane: (id: string) => void;
+  selectBoard: (id: string) => void;
+  selectStream: (id: string) => void;
+  addBoard: (name?: string) => void;
+  addScoreboard: () => void;
+  renameBoard: (id: string, name: string) => void;
+  removeBoard: (id: string) => void;
+  assignStream: (input: { eventId: string; eventName: string; game: string; slug: string; streamName: string; set: FgcSet }) => void;
+  pullLanes: () => Promise<void>;
 };
 
-function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]): SavedPlayer[] {
+function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[], keep: boolean): SavedPlayer[] {
   const next = [...existing];
   for (const player of incoming) {
     if (!player?.tag && !player?.profileId) continue;
@@ -97,7 +108,7 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
       });
       continue;
     }
-    if (!player.character && !player.character2) continue;
+    if (keep || (!player.character && !player.character2)) continue;
     const current = next[index];
     next[index] = {
       ...current,
@@ -110,16 +121,24 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
   return next;
 }
 
-function applySaved(player: FgcPlayer | null, saved: SavedPlayer[]): FgcPlayer | null {
+function applySaved(player: FgcPlayer | null, saved: SavedPlayer[], keepCharacters: boolean): FgcPlayer | null {
   if (!player) return player;
   const match =
     (player.profileId && saved.find((item) => item.profileId === player.profileId)) ||
     saved.find((item) => item.tag.toLowerCase() === player.tag.trim().toLowerCase());
   if (!match) return player;
-  const character = player.character || match.character;
-  const skin = player.character ? (player.character.toLowerCase() === (match.character || "").toLowerCase() ? match.skin : player.skin) : match.skin;
-  const character2 = player.character2 || match.character2;
-  const skin2 = player.character2 ? (player.character2.toLowerCase() === (match.character2 || "").toLowerCase() ? match.skin2 : player.skin2) : match.skin2;
+  const character = keepCharacters ? player.character : player.character || match.character;
+  const skin = keepCharacters
+    ? player.skin
+    : player.character
+      ? (player.character.toLowerCase() === (match.character || "").toLowerCase() ? match.skin : player.skin)
+      : match.skin;
+  const character2 = keepCharacters ? player.character2 : player.character2 || match.character2;
+  const skin2 = keepCharacters
+    ? player.skin2
+    : player.character2
+      ? (player.character2.toLowerCase() === (match.character2 || "").toLowerCase() ? match.skin2 : player.skin2)
+      : match.skin2;
   return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId, character, skin, character2, skin2 };
 }
 
@@ -177,6 +196,11 @@ function read(): FgcState {
       })),
       roster: parsed.roster?.slots?.length ? { ...blankRoster(), ...parsed.roster, slots: parsed.roster.slots.map((slot) => ({ ...blankRosterSlot(), ...slot, players: (slot.players?.length ? slot.players : [blankPlayer()]).map((player) => playerOf(player) ?? blankPlayer()) })) } : blankRoster(),
       bracketView: { ...EMPTY_BRACKET_VIEW, ...parsed.bracketView },
+      settings: normalizeSettings(parsed.settings),
+      laneId: parsed.laneId || laneIdOf(event),
+      lanes: parsed.lanes || {},
+      boards: withPermanentBoards(parsed.boards?.length ? parsed.boards : [defaultBoard(parsed.streamSetId ?? null)], parsed.streamSetId ?? null),
+      activeBoardId: parsed.activeBoardId || "main",
     };
   } catch {
     return EMPTY_FGC;
@@ -185,8 +209,34 @@ function read(): FgcState {
 
 let publishTimer = 0;
 
-function write(fgc: FgcState) {
+function withBoardSet(fgc: FgcState, boardId: string, activate = true): FgcState {
+  const boards = withPermanentBoards(fgc.boards?.length ? fgc.boards.map((board) => ({ ...board })) : [defaultBoard(null)], fgc.streamSetId);
+  const board = boards.find((item) => item.id === boardId) ?? boards[0];
+  const existing = board.setId ? fgc.sets.find((set) => set.id === board.setId) : null;
+  if (existing) {
+    return activate ? { ...fgc, boards, activeBoardId: board.id, streamSetId: existing.id } : { ...fgc, boards };
+  }
+  const created = blankSet();
+  return {
+    ...fgc,
+    sets: [created, ...fgc.sets],
+    boards: boards.map((item) => item.id === board.id ? { ...item, setId: created.id } : item),
+    activeBoardId: activate ? board.id : fgc.activeBoardId,
+    streamSetId: activate ? created.id : fgc.streamSetId,
+  };
+}
+
+function ensureStreams(fgc: FgcState): FgcState {
+  let next = { ...fgc, boards: withPermanentBoards(fgc.boards || [], fgc.streamSetId) };
+  for (const board of [...next.boards]) next = withBoardSet(next, board.id, false);
+  const active = next.boards.find((board) => board.id === (fgc.activeBoardId || "main")) ?? next.boards[0];
+  return { ...next, activeBoardId: active.id, streamSetId: active.setId };
+}
+
+function write(fgc: FgcState, bump = true) {
   if (typeof window === "undefined") return;
+  const stamped = bump ? touchLane(fgc) : stampLanes(fgc);
+  Object.assign(fgc, stamped);
   window.localStorage.setItem(KEY, JSON.stringify(fgc));
   writeLibraries(fgc.libraries);
   window.clearTimeout(publishTimer);
@@ -209,15 +259,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   hydrate: () => {
     if (get().ready) return;
     const loaded = read();
-    if (loaded.sets.length === 0) {
-      const created = blankSet();
-      const fgc = { ...loaded, sets: [created], streamSetId: created.id };
-      write(fgc);
-      set({ fgc, players: readJson<SavedPlayer[]>(PLAYERS_KEY, []), casters: readJson<SavedCaster[]>(CASTERS_KEY, []), ready: true });
-      return;
-    }
-    const streamSetId = loaded.sets.some((set) => set.id === loaded.streamSetId) ? loaded.streamSetId : loaded.sets[0]?.id ?? null;
-    const fgc = { ...loaded, streamSetId };
+    const fgc = ensureStreams(loaded);
     write(fgc);
     set({ fgc, players: readJson<SavedPlayer[]>(PLAYERS_KEY, []), casters: readJson<SavedCaster[]>(CASTERS_KEY, []), ready: true });
   },
@@ -237,36 +279,70 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         body: JSON.stringify({ url, ...startggAuthBody() }),
       });
       const text = await res.text();
-      let body: { event?: FgcState["event"]; sets?: FgcState["sets"]; error?: string };
+      let body: { event?: FgcState["event"]; sets?: FgcState["sets"]; streams?: string[]; events?: { event: FgcState["event"]; sets: FgcState["sets"]; streams?: string[] }[]; error?: string };
       try {
         body = JSON.parse(text) as typeof body;
       } catch {
         throw new Error("Import failed before start.gg answered. Refresh and try the event link again.");
       }
-      if (!res.ok || !body.event || !body.sets) throw new Error(body.error || "Import failed");
-      const live = body.sets.find((set) => set.state === "live");
-      const library = get().fgc.libraries.find((item) => item.game === body.event?.game) ?? get().fgc.libraries[0];
-      const align = (player: FgcPlayer | null) => {
+      if (!res.ok) throw new Error(body.error || "Import failed");
+      const packs = (body.events?.length ? body.events : body.event && body.sets ? [{ event: body.event, sets: body.sets, streams: body.streams }] : []).filter((pack) => pack.event && pack.sets);
+      if (!packs.length) throw new Error(body.error || "Import failed");
+      const settings = get().fgc.settings;
+      const libraryFor = (game: string) => get().fgc.libraries.find((item) => item.game === game) ?? get().fgc.libraries[0];
+      const align = (player: FgcPlayer | null, game: string) => {
+        const library = libraryFor(game);
         if (!player?.character || !library) return player;
         const found = library.characters.find((item) => item.name.toLowerCase() === player.character.toLowerCase());
         return found ? { ...player, character: found.name } : player;
       };
-      const sets = body.sets.map((set) => ({
-        ...set,
-        p1: applySaved(align(set.p1), get().players),
-        p2: applySaved(align(set.p2), get().players),
-        p1b: applySaved(align(set.p1b), get().players),
-        p2b: applySaved(align(set.p2b), get().players),
-      }));
-      const players = rememberPlayers(get().players, sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
+      let fgc = stampLanes(get().fgc);
+      const playersIn: (FgcPlayer | null)[] = [];
+      for (const pack of packs) {
+        const event = pack.event!;
+        const id = laneIdOf(event);
+        const previous = fgc.lanes[id];
+        const priorSets = previous?.sets ?? (fgc.laneId === id ? fgc.sets : []);
+        const sets = pack.sets!.map((set) => {
+          const previousSet = priorSets.find((item) => item.id === set.id);
+          const next = {
+            ...set,
+            p1: applySaved(align(set.p1, event.game), get().players, settings.keepCharacters),
+            p2: applySaved(align(set.p2, event.game), get().players, settings.keepCharacters),
+            p1b: applySaved(align(set.p1b, event.game), get().players, settings.keepCharacters),
+            p2b: applySaved(align(set.p2b, event.game), get().players, settings.keepCharacters),
+          };
+          return settings.autoScore || !previousSet ? next : { ...next, score1: previousSet.score1, score2: previousSet.score2 };
+        });
+        playersIn.push(...sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
+        const live = sets.find((set) => set.state === "live");
+        const named = applyStartggStreamNames(previous?.boards ?? [], pack.streams ?? []);
+        const boards = boardsForStreams(named, [...new Set(sets.map((set) => set.streamName).filter(Boolean))], previous?.streamSetId ?? null);
+        const activeBoardId = boards.some((board) => board.id === previous?.activeBoardId) ? previous?.activeBoardId || "main" : boards[0].id;
+        let streamSetId = boards.find((board) => board.id === activeBoardId)?.setId ?? null;
+        if (settings.autoSet && live && (activeBoardId === "main" || !streamSetId)) {
+          streamSetId = live.id;
+          const index = boards.findIndex((board) => board.id === activeBoardId);
+          if (index >= 0) boards[index] = { ...boards[index], setId: live.id };
+        }
+        const lane = {
+          ...(previous ?? emptyLane(id, event, fgc.casters)),
+          id,
+          url: event.url || fgc.url,
+          event,
+          sets,
+          importedAt: new Date().toISOString(),
+          boards,
+          activeBoardId,
+          streamSetId,
+          updatedAt: Date.now(),
+        };
+        fgc = { ...fgc, lanes: { ...fgc.lanes, [id]: lane } };
+      }
+      const preferred = fgc.lanes[fgc.laneId]?.event ? fgc.laneId : laneIdOf(packs[0].event);
+      fgc = ensureStreams(applyLane(fgc, fgc.lanes[preferred]));
+      const players = rememberPlayers(get().players, playersIn, settings.keepPlayerDb);
       writeJson(PLAYERS_KEY, players);
-      const fgc: FgcState = {
-        ...get().fgc,
-        event: body.event,
-        sets,
-        streamSetId: live?.id ?? get().fgc.streamSetId,
-        importedAt: new Date().toISOString(),
-      };
       write(fgc);
       set({ fgc, players, importing: false });
     } catch (err) {
@@ -319,17 +395,20 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   },
   selectSet: (id) => {
     const players = get().players;
+    const keepCharacters = get().fgc.settings.keepCharacters;
+    const boards = (get().fgc.boards?.length ? get().fgc.boards : [defaultBoard(id)]).map((board) => board.id === (get().fgc.activeBoardId || "main") ? { ...board, setId: id } : board);
     const fgc = {
       ...get().fgc,
       streamSetId: id,
+      boards,
       sets: get().fgc.sets.map((set) => {
         if (set.id !== id) return set;
         return {
           ...set,
-          p1: applySaved(set.p1, players),
-          p2: applySaved(set.p2, players),
-          p1b: applySaved(set.p1b, players),
-          p2b: applySaved(set.p2b, players),
+          p1: applySaved(set.p1, players, keepCharacters),
+          p2: applySaved(set.p2, players, keepCharacters),
+          p1b: applySaved(set.p1b, players, keepCharacters),
+          p2b: applySaved(set.p2b, players, keepCharacters),
         };
       }),
     };
@@ -357,7 +436,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     };
     const players =
       updated && ("character" in partial || "skin" in partial || "character2" in partial || "skin2" in partial)
-        ? rememberPlayers(get().players, [updated])
+        ? rememberPlayers(get().players, [updated], get().fgc.settings.keepPlayerDb)
         : get().players;
     if (players !== get().players) writeJson(PLAYERS_KEY, players);
     write(fgc);
@@ -365,7 +444,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   },
   newSet: () => {
     const created = blankSet();
-    const fgc = { ...get().fgc, sets: [created, ...get().fgc.sets], streamSetId: created.id };
+    const boards = (get().fgc.boards?.length ? get().fgc.boards : [defaultBoard(created.id)]).map((board) => board.id === (get().fgc.activeBoardId || "main") ? { ...board, setId: created.id } : board);
+    const fgc = { ...get().fgc, sets: [created, ...get().fgc.sets], streamSetId: created.id, boards };
     write(fgc);
     set({ fgc });
   },
@@ -383,7 +463,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       if (!body.setId) throw new Error("No set is marked on stream");
       const match = sets.find((set) => set.id === body.setId);
       if (!match) throw new Error("Stream set is not in the imported list. Import again.");
-      const fgc = { ...get().fgc, streamSetId: match.id };
+      const boards = (get().fgc.boards?.length ? get().fgc.boards : [defaultBoard(match.id)]).map((board) => board.id === (get().fgc.activeBoardId || "main") ? { ...board, setId: match.id } : board);
+      const fgc = { ...get().fgc, streamSetId: match.id, boards };
       write(fgc);
       set({ fgc });
     } catch (err) {
@@ -588,10 +669,10 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       const slots = Array.from({ length: count }, (_, index) => {
         const row = body.standings?.[index];
         if (!row?.tag) return get().fgc.roster.slots[index] ?? blankRosterSlot();
-        const player = applySaved({ ...blankPlayer(), ...row, flag: "", character: "", skin: 0, character2: "", skin2: 0 }, get().players) ?? blankPlayer();
+        const player = applySaved({ ...blankPlayer(), ...row, flag: "", character: "", skin: 0, character2: "", skin2: 0 }, get().players, get().fgc.settings.keepCharacters) ?? blankPlayer();
         return { teamName: "", score: row.placement || index + 1, players: [player] };
       });
-      const players = rememberPlayers(get().players, slots.flatMap((slot) => slot.players));
+      const players = rememberPlayers(get().players, slots.flatMap((slot) => slot.players), get().fgc.settings.keepPlayerDb);
       writeJson(PLAYERS_KEY, players);
       const fgc = { ...get().fgc, roster: { ...(get().fgc.roster ?? blankRoster()), slots } };
       write(fgc);
@@ -604,5 +685,121 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     const fgc = { ...get().fgc, bracketView: { ...EMPTY_BRACKET_VIEW, ...get().fgc.bracketView, ...partial } };
     write(fgc);
     set({ fgc });
+  },
+  selectLane: (id) => {
+    const current = stampLanes(get().fgc);
+    const lane = current.lanes[id];
+    if (!lane) return;
+    const fgc = ensureStreams(applyLane(current, lane));
+    write(fgc, false);
+    set({ fgc });
+  },
+  selectBoard: (id) => {
+    const board = get().fgc.boards.find((item) => item.id === id);
+    if (!board) return;
+    const fgc = withBoardSet(get().fgc, id);
+    write(fgc);
+    set({ fgc });
+  },
+  selectStream: (id) => {
+    const boards = withPermanentBoards(get().fgc.boards || [], get().fgc.streamSetId).filter((board) => (board.streamId || board.id) === id);
+    const current = boards.find((board) => board.id === get().fgc.activeBoardId) ?? boards[0];
+    if (!current) return;
+    const fgc = withBoardSet({ ...get().fgc, boards: withPermanentBoards(get().fgc.boards || [], get().fgc.streamSetId) }, current.id);
+    write(fgc);
+    set({ fgc });
+  },
+  addBoard: (name) => {
+    const boards = withPermanentBoards(get().fgc.boards?.length ? [...get().fgc.boards] : [], get().fgc.streamSetId);
+    const id = `stream-${Date.now()}`;
+    const label = name?.trim() || `Stream ${new Set(boards.map((board) => board.streamId || board.id)).size + 1}`;
+    const created = blankSet();
+    const fgc = {
+      ...get().fgc,
+      sets: [created, ...get().fgc.sets],
+      boards: [...boards, { id, name: "Scoreboard 1", setId: created.id, streamId: id, streamName: label }],
+      activeBoardId: id,
+      streamSetId: created.id,
+    };
+    write(fgc);
+    set({ fgc });
+  },
+  addScoreboard: () => {
+    const boards = withPermanentBoards(get().fgc.boards?.length ? [...get().fgc.boards] : [], get().fgc.streamSetId);
+    const active = boards.find((board) => board.id === get().fgc.activeBoardId) ?? boards[0];
+    const streamId = active ? (active.streamId || active.id) : "main";
+    const count = boards.filter((board) => (board.streamId || board.id) === streamId).length + 1;
+    const id = `board-${Date.now()}`;
+    const created = blankSet();
+    const streamName = boards.find((board) => (board.streamId || board.id) === streamId)?.streamName;
+    const fgc = {
+      ...get().fgc,
+      sets: [created, ...get().fgc.sets],
+      boards: [...boards, { id, name: `Scoreboard ${count}`, setId: created.id, streamId, streamName }],
+      activeBoardId: id,
+      streamSetId: created.id,
+    };
+    write(fgc);
+    set({ fgc });
+  },
+  renameBoard: (id, name) => {
+    const label = name.trim();
+    if (!label) return;
+    const fgc = { ...get().fgc, boards: get().fgc.boards.map((board) => board.id === id ? { ...board, name: label } : board) };
+    write(fgc);
+    set({ fgc });
+  },
+  removeBoard: (id) => {
+    if (isPermanentBoard(id)) return;
+    const boards = withPermanentBoards(get().fgc.boards.filter((board) => board.id !== id), get().fgc.streamSetId);
+    if (boards.length === get().fgc.boards.length) return;
+    const active = boards.some((board) => board.id === get().fgc.activeBoardId) ? get().fgc.activeBoardId : boards[0].id;
+    const fgc = { ...get().fgc, boards, activeBoardId: active, streamSetId: boards.find((board) => board.id === active)?.setId ?? null };
+    write(fgc);
+    set({ fgc });
+  },
+  assignStream: ({ eventId, eventName, game, slug, streamName, set: match }) => {
+    const current = stampLanes(get().fgc);
+    const id = String(eventId || slug || "local");
+    const existing = current.lanes[id] ?? emptyLane(id, {
+      id,
+      name: eventName,
+      slug,
+      tournamentName: current.event?.tournamentName || eventName,
+      game,
+      url: slug ? `https://www.start.gg/${slug}` : "",
+      venue: "",
+      shortLink: "",
+      icon: "",
+      ruleset: "",
+      entrants: 0,
+      startAt: "",
+      endAt: "",
+    }, current.casters);
+    const sets = existing.sets.some((item) => item.id === match.id)
+      ? existing.sets.map((item) => item.id === match.id ? { ...item, ...match, p1: match.p1 ?? item.p1, p2: match.p2 ?? item.p2 } : item)
+      : [...existing.sets, match];
+    const boards = boardsForStreams(existing.boards, [streamName], existing.streamSetId);
+    const board = boardForStreamName(boards, streamName) ?? boards[0];
+    if (!board) return;
+    const nextBoards = boards.map((item) => item.id === board.id ? { ...item, setId: match.id } : item);
+    const lane = { ...existing, sets, boards: nextBoards, streamSetId: nextBoards.find((item) => item.id === existing.activeBoardId)?.setId ?? match.id, updatedAt: Date.now() };
+    const lanes = { ...current.lanes, [id]: lane };
+    const fgc = current.laneId === id || !current.event ? applyLane({ ...current, lanes }, lane) : { ...current, lanes };
+    write(fgc);
+    set({ fgc });
+  },
+  pullLanes: async () => {
+    try {
+      const res = await fetch("/api/fgc/program-state?raw=1");
+      if (!res.ok) return;
+      const remote = (await res.json()) as FgcState;
+      const fgc = mergeRemoteLanes(get().fgc, remote);
+      if (JSON.stringify(fgc.lanes) === JSON.stringify(get().fgc.lanes)) return;
+      write(fgc, false);
+      set({ fgc });
+    } catch {
+      /* the desk still works from this browser */
+    }
   },
 }));

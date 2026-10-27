@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { cleanSpeech } from "@/lib/fgc-settings";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
@@ -31,8 +32,8 @@ function Casters() {
       {shown.map((caster, index) => (
         <Plate key={caster.id} className="min-w-64">
           <p className="font-mono text-[0.65rem] tracking-[0.2em] text-white/60 uppercase">Commentator {index + 1}</p>
-          <p className="font-display mt-1 text-3xl font-semibold uppercase">{[caster.prefix, caster.name].filter(Boolean).join(" | ")}</p>
-          <p className="mt-1 text-sm text-white/70">{[caster.pronouns, caster.twitter ? `@${caster.twitter}` : ""].filter(Boolean).join(" · ")}</p>
+          <p className="font-display mt-1 text-3xl font-semibold uppercase">{cleanSpeech([caster.prefix, caster.name].filter(Boolean).join(" | "), fgc.settings.profanity)}</p>
+          <p className="mt-1 text-sm text-white/70">{cleanSpeech([caster.pronouns, caster.twitter ? `@${caster.twitter}` : ""].filter(Boolean).join(" · "), fgc.settings.profanity)}</p>
         </Plate>
       ))}
     </div>
@@ -46,7 +47,7 @@ function Lower() {
     <div className="flex h-full items-end px-10 pb-8">
       <Plate className="flex w-full items-center justify-between gap-6">
         <p className="font-display text-3xl font-semibold uppercase">{fgc.event?.name || fgc.event?.game || "FGC"}</p>
-        <p className="font-display text-3xl font-semibold uppercase">{playerLabel(set?.p1 ?? null)} <span className="text-white/50">vs</span> {playerLabel(set?.p2 ?? null)}</p>
+        <p className="font-display text-3xl font-semibold uppercase">{cleanSpeech(playerLabel(set?.p1 ?? null), fgc.settings.profanity)} <span className="text-white/50">vs</span> {cleanSpeech(playerLabel(set?.p2 ?? null), fgc.settings.profanity)}</p>
         <p className="font-mono text-sm tracking-[0.18em] text-white/70 uppercase">{[set?.phase, set?.round].filter(Boolean).join(" · ")}</p>
       </Plate>
     </div>
@@ -61,7 +62,7 @@ function Winner() {
     <div className="grid h-full place-items-center">
       <Plate className="text-center">
         <p className="font-mono text-sm tracking-[0.28em] text-white/70 uppercase">Winner</p>
-        <p className="font-display mt-2 text-7xl font-semibold uppercase">{ahead ? playerLabel(ahead) : "No winner yet"}</p>
+        <p className="font-display mt-2 text-7xl font-semibold uppercase">{ahead ? cleanSpeech(playerLabel(ahead), fgc.settings.profanity) : "No winner yet"}</p>
       </Plate>
     </div>
   );

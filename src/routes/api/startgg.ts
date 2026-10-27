@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggEvent, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
+import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
 import { bindLive, clearLive, reportStation, stationView } from "@/lib/fgc-station";
 
@@ -140,7 +140,7 @@ export const Route = createFileRoute("/api/startgg")({
             return Response.json({ standings });
           }
           const url = body.url?.trim() ?? "";
-          if (!url) return Response.json({ error: "Paste a start.gg event link" }, { status: 400 });
+          if (!url) return Response.json({ error: "Paste a start.gg tournament or event link" }, { status: 400 });
           if (body.action === "stream") {
             const setId = await currentStreamSetId(url, token);
             return Response.json({ setId });
@@ -153,7 +153,7 @@ export const Route = createFileRoute("/api/startgg")({
             const icon = await tournamentIcon(url, token);
             return Response.json({ icon });
           }
-          const imported = await importStartggEvent(url, token);
+          const imported = await importStartggLink(url, token);
           return Response.json(imported);
         } catch (err) {
           return Response.json(

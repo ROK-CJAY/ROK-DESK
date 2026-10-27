@@ -13,10 +13,12 @@ import { ScaleFrame } from "@/components/overlays/scale-frame";
 import { FgcRulesetEditor } from "@/components/fgc/fgc-ruleset";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { blankSet, playerLabel, streamSetOf, type FgcSet } from "@/lib/fgc-types";
+import { playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { FGC_OVERLAYS, overlayHref, tshLayoutHref } from "@/lib/fgc-titles";
-import { readStartggLink, writeStartggLink } from "@/lib/startgg-link";
+import { isPermanentBoard, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
+import { hotkeyEvent } from "@/lib/fgc-settings";
+import { FgcSettingsButton } from "@/components/fgc/fgc-settings";
 import { cn } from "@/lib/cn";
 
 function stateLabel(state: FgcSet["state"]) {
@@ -142,7 +144,7 @@ function TshFrame({ path }: { path: string }) {
     <div ref={frame} className="relative h-full w-full overflow-hidden">
       <iframe
         title={path}
-        src={`${tshLayoutHref(path)}?preview=1`}
+        src={`${withPin(`${tshLayoutHref(path)}?preview=1`, useFgcStore.getState().fgc.laneId, useFgcStore.getState().fgc.activeBoardId || "main")}`}
         className="absolute top-0 left-0 border-0 bg-transparent"
         style={{ width: 1920, height: 1080, transform: `scale(${scale})`, transformOrigin: "top left" }}
       />
@@ -150,38 +152,82 @@ function TshFrame({ path }: { path: string }) {
   );
 }
 
-function StartggApiOption() {
-  const [enabled, setEnabled] = useState(false);
-  const [token, setToken] = useState("");
-  useEffect(() => {
-    const saved = readStartggLink();
-    setEnabled(saved.enabled);
-    setToken(saved.token);
-  }, []);
-  const save = (nextEnabled: boolean, nextToken: string) => {
-    setEnabled(nextEnabled);
-    setToken(nextToken);
-    writeStartggLink(nextEnabled, nextToken);
-  };
+function GameStreams() {
+  const fgc = useFgcStore((s) => s.fgc);
+  const selectLane = useFgcStore((s) => s.selectLane);
+  const selectBoard = useFgcStore((s) => s.selectBoard);
+  const selectStream = useFgcStore((s) => s.selectStream);
+  const addBoard = useFgcStore((s) => s.addBoard);
+  const addScoreboard = useFgcStore((s) => s.addScoreboard);
+  const renameBoard = useFgcStore((s) => s.renameBoard);
+  const removeBoard = useFgcStore((s) => s.removeBoard);
+  const [confirmId, setConfirmId] = useState("");
+  const lanes = Object.values(fgc.lanes || {}).filter((lane) => lane.event);
+  const streams = streamTabs(fgc.boards);
+  const board = fgc.boards.find((item) => item.id === fgc.activeBoardId) ?? fgc.boards[0];
+  const streamId = board ? streamIdOf(board) : "main";
+  const scoreboards = fgc.boards.filter((item) => streamIdOf(item) === streamId);
+  const locked = board ? isPermanentBoard(board.id) : false;
+  const confirming = confirmId === board?.id;
   return (
-    <div className="grid gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={enabled} onChange={(e) => save(e.target.checked, token)} />
-        Use the start.gg API
-      </label>
-      <p className="text-[0.7rem] leading-relaxed text-subtle">
-        Off by default. The event link above is the TSH-style pull. Turn this on only if you want those pulls to go through your start.gg API token instead.
-      </p>
-      {enabled ? (
-        <Input
-          type="password"
-          value={token}
-          placeholder="start.gg API token"
-          autoComplete="off"
-          onChange={(e) => save(true, e.target.value)}
-        />
-      ) : null}
-    </div>
+    <section className="grid gap-3 rounded-xl border border-border bg-surface p-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Games</p>
+        {lanes.length ? lanes.map((lane) => (
+          <button
+            key={lane.id}
+            type="button"
+            className={cn("rounded-md px-3 py-1.5 text-xs font-medium", lane.id === fgc.laneId ? "bg-surface-2 text-fg" : "text-muted")}
+            onClick={() => selectLane(lane.id)}
+          >
+            {lane.event?.game || lane.event?.name}
+          </button>
+        )) : <span className="text-xs text-muted">Import a tournament to split the games.</span>}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Streams</p>
+        {streams.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={cn("rounded-md px-3 py-1.5 text-xs font-medium", item.id === streamId ? "bg-surface-2 text-fg" : "text-muted")}
+            onClick={() => selectStream(item.id)}
+          >
+            {item.name}
+          </button>
+        ))}
+        <Button size="sm" variant="outline" onClick={() => addBoard()}>Add stream</Button>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Scoreboards</p>
+        {scoreboards.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={cn("rounded-md px-3 py-1.5 text-xs font-medium", item.id === fgc.activeBoardId ? "bg-surface-2 text-fg" : "text-muted")}
+            onClick={() => selectBoard(item.id)}
+          >
+            {item.name}
+          </button>
+        ))}
+        <Button size="sm" variant="outline" onClick={() => addScoreboard()}>Add scoreboard</Button>
+        {board ? (
+          <>
+            <Input className="h-8 w-40" value={board.name} onChange={(event) => renameBoard(board.id, event.target.value)} />
+            {!locked && (confirming ? (
+              <>
+                <span className="text-xs text-muted">Remove {board.name}?</span>
+                <Button size="sm" variant="outline" onClick={() => { removeBoard(board.id); setConfirmId(""); }}>Remove</Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmId("")}>Cancel</Button>
+              </>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => setConfirmId(board.id)}>Remove</Button>
+            ))}
+          </>
+        ) : null}
+      </div>
+      <p className="text-xs text-muted">Main, Stream 2, and Stream 3 stay. Each one can have more scoreboards. Copy the overlay link while that scoreboard is selected.</p>
+    </section>
   );
 }
 
@@ -257,7 +303,8 @@ function FgcDesk() {
     : fgc.overlay === "custom" && savedTitle
       ? { ...overlay, name: savedTitle.name, note: `Saved in ${savedTitle.group || "Custom"}.` }
       : overlay;
-  const href = fgc.tshLayout ? tshLayoutHref(fgc.tshLayout) : overlayHref(fgc.overlay, fgc.overlay === "custom" ? fgc.activeTitleId : null);
+  const pin = (path: string) => withPin(path, fgc.laneId, fgc.activeBoardId || "main");
+  const href = pin(fgc.tshLayout ? tshLayoutHref(fgc.tshLayout) : overlayHref(fgc.overlay, fgc.overlay === "custom" ? fgc.activeTitleId : null));
   const overlayValue = fgc.tshLayout ? `tsh:${fgc.tshLayout}` : fgc.overlay === "custom" && savedTitle ? `title:${savedTitle.id}` : fgc.overlay;
   const pageUrl = `${origin}${href}`;
   const copyLink = (path: string) => {
@@ -266,20 +313,71 @@ function FgcDesk() {
     window.setTimeout(() => setCopied(null), 1200);
   };
   const browserSources = [
-    ...FGC_OVERLAYS.map((item) => ({ key: item.id, name: item.name, group: item.group, path: overlayHref(item.id) })),
-    ...fgc.titles.filter((item) => item.group).map((item) => ({ key: item.id, name: item.name, group: item.group, path: overlayHref("custom", item.id) })),
-    ...tshLayouts.map((item) => ({ key: item.path, name: item.name, group: item.group, path: tshLayoutHref(item.path) })),
+    ...FGC_OVERLAYS.map((item) => ({ key: item.id, name: item.name, group: item.group, path: pin(overlayHref(item.id)) })),
+    ...fgc.titles.filter((item) => item.group).map((item) => ({ key: item.id, name: item.name, group: item.group, path: pin(overlayHref("custom", item.id)) })),
+    ...tshLayouts.map((item) => ({ key: item.path, name: item.name, group: item.group, path: pin(tshLayoutHref(item.path)) })),
   ];
 
   useEffect(() => {
     hydrate();
+    void useFgcStore.getState().pullLanes();
+    const timer = window.setInterval(() => void useFgcStore.getState().pullLanes(), 4000);
     setOrigin(window.location.origin);
     void fetch("/tsh/manifest.json").then((res) => res.json()).then((rows) => {
       if (Array.isArray(rows)) setTshLayouts(rows);
     }).catch(() => undefined);
+    return () => window.clearInterval(timer);
   }, [hydrate]);
 
-  const live = streamSetOf(fgc) ?? fgc.sets[0] ?? blankSet();
+  const loadStandings = useFgcStore((s) => s.loadStandings);
+  const patchSet = useFgcStore((s) => s.patchSet);
+  const swapTeams = useFgcStore((s) => s.swapTeams);
+  const resetScore = useFgcStore((s) => s.resetScore);
+  const live = setForBoard(fgc);
+
+  useEffect(() => {
+    if (live) return;
+    useFgcStore.getState().selectBoard(fgc.activeBoardId || fgc.boards[0]?.id || "main");
+  }, [fgc, live]);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const state = useFgcStore.getState();
+      const settings = state.fgc.settings;
+      if (!settings?.hotkeys || document.querySelector("[data-fgc-settings]")) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) return;
+      const set = setForBoard(state.fgc);
+      const hit = (id: keyof typeof settings.keys) => hotkeyEvent(settings.keys[id], event);
+      if (hit("loadSet")) {
+        event.preventDefault();
+        setPicker(true);
+      } else if (set && hit("p1Up")) {
+        event.preventDefault();
+        patchSet(set.id, { score1: set.score1 + 1 });
+      } else if (set && hit("p1Down")) {
+        event.preventDefault();
+        patchSet(set.id, { score1: Math.max(0, set.score1 - 1) });
+      } else if (set && hit("p2Up")) {
+        event.preventDefault();
+        patchSet(set.id, { score2: set.score2 + 1 });
+      } else if (set && hit("p2Down")) {
+        event.preventDefault();
+        patchSet(set.id, { score2: Math.max(0, set.score2 - 1) });
+      } else if (set && hit("reset")) {
+        event.preventDefault();
+        resetScore(set.id);
+      } else if (set && hit("swap")) {
+        event.preventDefault();
+        swapTeams(set.id);
+      } else if (hit("refresh")) {
+        event.preventDefault();
+        void loadStandings();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [loadStandings, patchSet, resetScore, swapTeams]);
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -293,7 +391,7 @@ function FgcDesk() {
                 <Input
                   value={fgc.url}
                   onChange={(e) => patch({ url: e.target.value })}
-                  placeholder="https://www.start.gg/tournament/…/event/…"
+                  placeholder="https://www.start.gg/tournament/… or an event link"
                 />
               </Field>
               <Button onClick={() => void importEvent()} disabled={importing || !fgc.url}>
@@ -305,6 +403,7 @@ function FgcDesk() {
                 Select set
               </Button>
               <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
+              <FgcSettingsButton />
               <Button variant="outline" onClick={() => clearImport()}>Clear import</Button>
               <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
                 Stream set
@@ -315,14 +414,14 @@ function FgcDesk() {
                 </a>
               ) : null}
             </div>
-            <StartggApiOption />
             {error ? <p className="text-sm text-live">{error}</p> : null}
           </section>
+          <GameStreams />
           <section className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">
             <div className="min-w-[12rem] flex-1">
-              <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">On stream</p>
-              <p className="text-sm">{playerLabel(live.p1) || "Player 1"} vs {playerLabel(live.p2) || "Player 2"}</p>
-              <p className="text-xs text-muted">{[live.round, live.phase, fgc.event?.name].filter(Boolean).join(" · ") || "No set selected"}</p>
+              <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{fgc.boards.find((board) => board.id === fgc.activeBoardId)?.name || "Scoreboard"}</p>
+              <p className="text-sm">{live ? `${playerLabel(live.p1) || "TBD"} vs ${playerLabel(live.p2) || "TBD"}` : "TBD vs TBD"}</p>
+              <p className="text-xs text-muted">{live ? [live.round, live.phase, fgc.event?.name].filter(Boolean).join(" · ") || "Open scoreboard" : "Open scoreboard"}</p>
             </div>
             <Button variant="secondary" onClick={() => setPicker(true)}>
               <ListFilter className="size-4" />
@@ -384,7 +483,7 @@ function FgcDesk() {
             ))}
           </nav>
 
-        {tab === "scoreboard" ? <FgcScoreboard set={live} /> : null}
+        {tab === "scoreboard" && live ? <FgcScoreboard set={live} /> : null}
         {tab === "roster" ? <FgcRoster /> : null}
         {tab === "commentary" ? <FgcCommentary /> : null}
         {tab === "info" ? <FgcTournamentInfo /> : null}

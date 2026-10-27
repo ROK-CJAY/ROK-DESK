@@ -8,8 +8,11 @@ export const Route = createFileRoute("/api/fgc/program-state")({
     handlers: {
       GET: async ({ request }) => {
         const { loadFgcState, programState } = await import("@/lib/fgc-program-state");
-        const preview = new URL(request.url).searchParams.get("preview") === "1";
-        return Response.json(programState(await loadFgcState(), preview), { headers: noStore });
+        const url = new URL(request.url);
+        const saved = await loadFgcState();
+        if (url.searchParams.get("raw") === "1") return Response.json(saved, { headers: noStore });
+        const preview = url.searchParams.get("preview") === "1";
+        return Response.json(programState(saved, preview, url.searchParams.get("lane"), url.searchParams.get("board")), { headers: noStore });
       },
       PUT: async ({ request }) => {
         const { saveFgcState } = await import("@/lib/fgc-program-state");

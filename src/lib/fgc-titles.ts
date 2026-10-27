@@ -1,4 +1,6 @@
 import { resolvePreview, titleImageObjectUrl } from "@/lib/fgc-assets";
+import { overlayPin, resolveLane, setForBoard, withPin } from "@/lib/fgc-lanes";
+import { cleanSpeech } from "@/lib/fgc-settings";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
 export function tshLayoutHref(file: string) {
@@ -207,24 +209,29 @@ function casterName(fgc: FgcState, index: number): string {
 export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallback: string): string {
   const p1 = set?.p1;
   const p2 = set?.p2;
+  const show = fgc.settings.show;
   const value: Record<string, string> = {
     "p1.name": playerLabel(p1 ?? null),
     "p2.name": playerLabel(p2 ?? null),
     "p1.score": String(set?.score1 ?? 0),
     "p2.score": String(set?.score2 ?? 0),
     score: set ? `${set.score1} – ${set.score2}` : "VS",
-    "p1.character": p1?.character || "",
-    "p2.character": p2?.character || "",
+    "p1.character": show.characters ? p1?.character || "" : "",
+    "p2.character": show.characters ? p2?.character || "" : "",
     "p1.sponsor": p1?.prefix || "",
     "p2.sponsor": p2?.prefix || "",
-    "p1.realName": p1?.realName || "",
-    "p2.realName": p2?.realName || "",
-    "p1.flag": p1?.flag || "",
-    "p2.flag": p2?.flag || "",
-    "p1.region": p1?.region || "",
-    "p2.region": p2?.region || "",
-    "p1.twitter": p1?.twitter ? `@${p1.twitter}` : "",
-    "p2.twitter": p2?.twitter ? `@${p2.twitter}` : "",
+    "p1.realName": show.realName ? p1?.realName || "" : "",
+    "p2.realName": show.realName ? p2?.realName || "" : "",
+    "p1.flag": show.location ? p1?.flag || "" : "",
+    "p2.flag": show.location ? p2?.flag || "" : "",
+    "p1.region": show.location ? p1?.region || "" : "",
+    "p2.region": show.location ? p2?.region || "" : "",
+    "p1.twitter": show.social && p1?.twitter ? `@${p1.twitter}` : "",
+    "p2.twitter": show.social && p2?.twitter ? `@${p2.twitter}` : "",
+    "p1.pronouns": show.pronouns ? p1?.pronouns || "" : "",
+    "p2.pronouns": show.pronouns ? p2?.pronouns || "" : "",
+    "p1.seed": show.seed && p1?.seed ? String(p1.seed) : "",
+    "p2.seed": show.seed && p2?.seed ? String(p2.seed) : "",
     round: set?.round || "",
     phase: set?.phase || "",
     stage: set?.stage || "",
@@ -237,14 +244,15 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
     caster3: casterName(fgc, 2),
     caster4: casterName(fgc, 3),
   };
-  if (!bind) return fallback;
-  return value[bind] ?? fallback;
+  if (!bind) return cleanSpeech(fallback, fgc.settings.profanity);
+  return cleanSpeech(value[bind] ?? fallback, fgc.settings.profanity);
 }
 
 export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleElement): string {
   if (element.bind === "event.icon") return fgc.event?.icon || "";
   const library = libraryFor(fgc);
   const skinBind = element.bind.match(/^p([12])\.skin(2)?$/);
+  if (!fgc.settings.show.characters && (element.bind.endsWith(".icon") || skinBind) && element.bind !== "event.icon") return "";
   if (skinBind && library) {
     const player = skinBind[1] === "1" ? set?.p1 : set?.p2;
     const name = skinBind[2] ? player?.character2 : player?.character;
@@ -264,10 +272,11 @@ export function activeTitle(fgc: FgcState, id?: string | null): FgcTitle {
 }
 
 export function liveSet(fgc: FgcState): FgcSet | null {
-  return streamSetOf(fgc) ?? fgc.sets[0] ?? null;
+  const pin = overlayPin();
+  return setForBoard(resolveLane(fgc, pin.lane), pin.board || null);
 }
 
-export function overlayHref(id: string, titleId?: string | null): string {
-  if (id === "custom" && titleId) return `/fgc/overlay/hud?source=custom&title=${encodeURIComponent(titleId)}`;
-  return id === "hud" ? "/fgc/overlay/hud" : `/fgc/overlay/hud?source=${id}`;
+export function overlayHref(id: string, titleId?: string | null, laneId = "", boardId = ""): string {
+  const path = id === "custom" && titleId ? `/fgc/overlay/hud?source=custom&title=${encodeURIComponent(titleId)}` : id === "hud" ? "/fgc/overlay/hud" : `/fgc/overlay/hud?source=${id}`;
+  return withPin(path, laneId, boardId);
 }

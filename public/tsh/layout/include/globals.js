@@ -322,12 +322,29 @@ function deskProgram() {
     var raw = localStorage.getItem("rok-fgc");
     if (!raw) return null;
     var fgc = JSON.parse(raw);
-    var sets = fgc.sets || [];
-    var set = null;
-    for (var i = 0; i < sets.length; i += 1) {
-      if (sets[i] && sets[i].id === fgc.streamSetId) set = sets[i];
+    var params = new URLSearchParams(window.location.search);
+    var laneId = params.get("lane");
+    if (laneId && fgc.lanes && fgc.lanes[laneId]) {
+      var lane = fgc.lanes[laneId];
+      fgc = Object.assign({}, fgc, lane);
     }
-    if (!set) set = sets[0] || {};
+    var sets = fgc.sets || [];
+    var boardId = params.get("board");
+    var boards = fgc.boards || [];
+    var chosen = null;
+    for (var b = 0; b < boards.length; b += 1) {
+      if (boardId && boards[b].id === boardId) chosen = boards[b];
+      if (!boardId && boards[b].id === (fgc.activeBoardId || "main")) chosen = boards[b];
+    }
+    var setId = chosen ? chosen.setId : boardId ? "" : fgc.streamSetId;
+    var set = null;
+    if (setId) {
+      for (var i = 0; i < sets.length; i += 1) {
+        if (sets[i] && sets[i].id === setId) set = sets[i];
+      }
+    }
+    if (!set && !boardId) set = sets[0] || {};
+    if (!set) set = {};
     function characterOf(player) {
       if (!player || !player.character) return {};
       var libraries = fgc.libraries || [];
@@ -685,7 +702,15 @@ function getData() {
   if (local) return Promise.resolve(local);
   return $.ajax({
     dataType: "json",
-    url: tshPreviewMode() ? "/api/fgc/program-state?preview=1" : "/api/fgc/program-state",
+    url: (function () {
+      var params = new URLSearchParams(window.location.search);
+      var query = new URLSearchParams();
+      if (tshPreviewMode()) query.set("preview", "1");
+      if (params.get("lane")) query.set("lane", params.get("lane"));
+      if (params.get("board")) query.set("board", params.get("board"));
+      var text = query.toString();
+      return text ? "/api/fgc/program-state?" + text : "/api/fgc/program-state";
+    })(),
     cache: false,
   });
 }

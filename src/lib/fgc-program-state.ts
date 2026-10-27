@@ -1,5 +1,7 @@
 import { EMPTY_FGC, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
 import { stageIconUrl } from "@/lib/fgc-assets";
+import { resolveLane, setForBoard } from "@/lib/fgc-lanes";
+import { cleanSpeech } from "@/lib/fgc-settings";
 import { getSql } from "@/lib/db";
 
 function assetUrl(base: string, game: string, code: string, skin: number) {
@@ -8,8 +10,8 @@ function assetUrl(base: string, game: string, code: string, skin: number) {
   return `${host}/games/${game}/website/${code}_${skin}.png`;
 }
 
-function liveSet(fgc: FgcState) {
-  return fgc.sets.find((set) => set.id === fgc.streamSetId) ?? fgc.sets.find((set) => set.state === "live") ?? fgc.sets[0] ?? null;
+function liveSet(fgc: FgcState, boardId?: string | null) {
+  return setForBoard(fgc, boardId);
 }
 
 function libraryFor(fgc: FgcState) {
@@ -63,19 +65,21 @@ function tshPlayer(fgc: FgcState, player: FgcPlayer | null) {
   if (!player) return emptyPlayer();
   const country = player.country.trim();
   const code = country.length === 2 ? country.toLowerCase() : "";
+  const show = fgc.settings.show;
+  const say = (value: string) => cleanSpeech(value, fgc.settings.profanity);
   return {
-    name: playerLabel(player),
-    team: player.prefix || "",
-    twitter: player.twitter || "",
-    pronoun: player.pronouns || "",
-    real_name: player.realName || "",
-    seed: player.seed ?? "",
+    name: say(playerLabel(player)),
+    team: say(player.prefix || ""),
+    twitter: show.social ? say(player.twitter || "") : "",
+    pronoun: show.pronouns ? say(player.pronouns || "") : "",
+    real_name: show.realName ? say(player.realName || "") : "",
+    seed: show.seed ? player.seed ?? "" : "",
     sponsor_logo: "",
     avatar: "",
     online_avatar: "",
     country: { asset: code ? `assets/country_flag/${code}.png` : "", code: country },
-    state: { asset: "", code: player.region || "" },
-    character: characterOf(fgc, player),
+    state: show.location ? { asset: "", code: player.region || "" } : { asset: "", code: "" },
+    character: show.characters ? characterOf(fgc, player) : characterOf(fgc, null),
   };
 }
 
@@ -318,17 +322,19 @@ function normalizeRounds(rounds: Record<string, BracketRound>) {
   return shifted;
 }
 
-export function programState(fgc: FgcState, preview = false) {
-  const set = liveSet(fgc);
+export function programState(source: FgcState, preview = false, laneId?: string | null, boardId?: string | null) {
+  const fgc = resolveLane({ ...EMPTY_FGC, ...source, lanes: source.lanes || {}, boards: source.boards || [], activeBoardId: source.activeBoardId || "main", laneId: source.laneId || "local" }, laneId);
+  const set = liveSet(fgc, boardId);
   const library = libraryFor(fgc);
   const commentary: Record<string, unknown> = {};
+  const say = (value: string) => cleanSpeech(value, fgc.settings.profanity);
   fgc.casters.forEach((caster, index) => {
     commentary[String(index + 1)] = {
-      name: caster.name || "",
-      team: caster.prefix || "",
-      pronoun: caster.pronouns || "",
-      real_name: caster.realName || "",
-      twitter: caster.twitter || "",
+      name: say(caster.name || ""),
+      team: say(caster.prefix || ""),
+      pronoun: say(caster.pronouns || ""),
+      real_name: say(caster.realName || ""),
+      twitter: say(caster.twitter || ""),
       country: { asset: "", code: caster.country || "" },
       state: { asset: "", code: caster.region || "" },
     };
@@ -357,7 +363,7 @@ export function programState(fgc: FgcState, preview = false) {
         stage: set?.stage || "",
         score_left: set?.score1 ?? 0,
         score_right: set?.score2 ?? 0,
-        station: "Main",
+        station: fgc.boards.find((board) => board.id === (boardId || fgc.activeBoardId))?.name || "Main",
         last_sets: { "1": recentSets(fgc, set?.p1 ?? null), "2": recentSets(fgc, set?.p2 ?? null) },
         history_sets: { "1": historySets(fgc, set?.p1 ?? null), "2": historySets(fgc, set?.p2 ?? null) },
         stage_strike: { currGame: 0, selectedStage: null, strikedStages: [[]], strikedBy: [[], []], stagesPicked: [], stagesWon: [[], []], lastWinner: -1 },
@@ -423,9 +429,17 @@ export async function loadFgcState(): Promise<FgcState> {
   }
 }
 
-export async function saveFgcState(fgc: FgcState) {
+export async function saveFgcState(incoming: FgcState) {
   const sql = await stateTable();
-  const payload = JSON.stringify(fgc);
+  const saved = await loadFgcState();
+  const lanes = { ...(saved.lanes || {}) };
+  const incomingLanes = incoming.lanes || {};
+  for (const [id, lane] of Object.entries(incomingLanes)) {
+    const previous = lanes[id];
+    if (!previous || (lane.updatedAt || 0) > (previous.updatedAt || 0)) lanes[id] = lane;
+  }
+  const active = incoming.laneId || saved.laneId || "local";
+  const payload = JSON.stringify({ ...incoming, laneId: incoming.laneId || active, lanes });
   await sql`
     insert into fgc_state (id, payload, updated_at)
     values (${STATE_ID}, ${payload}, CURRENT_TIMESTAMP)
