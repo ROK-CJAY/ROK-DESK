@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { Input } from "@/components/ui/input";
 import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type CatalogGame } from "@/lib/fgc-assets";
 import { type FgcLibrary } from "@/lib/fgc-types";
@@ -43,7 +44,10 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
             <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">Download assets</p>
             <p className="font-display text-xl font-semibold uppercase">Game libraries</p>
           </div>
-          <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close"><X className="size-4" /></Button>
+          <div className="flex items-center gap-2">
+            <FgcGuideButton kind="assets" autoOpen={false} />
+            <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close"><X className="size-4" /></Button>
+          </div>
         </div>
         <div className="grid gap-3 border-b border-border px-4 py-3 sm:grid-cols-[1fr_16rem]">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a game" />

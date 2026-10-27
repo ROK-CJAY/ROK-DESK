@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { resolveStage } from "@/lib/fgc-assets";
 import type { StationView } from "@/lib/fgc-station";
+import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { blankPlayer, blankSet, libraryFor, playerLabel, type FgcRuleset, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { startggAuthBody } from "@/lib/startgg-link";
@@ -317,6 +318,7 @@ export function FgcStrike() {
   if (stationId && !set) {
     return (
       <div className="grid min-h-dvh place-items-center bg-black px-6 text-center text-white">
+        <FgcGuideButton kind="strike" className="fixed top-3 right-3 text-white hover:bg-white/10" />
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-white/50">Stage strike</p>
           <h1 className="mt-3 text-4xl font-semibold">{station?.station?.name || "Station"}</h1>
@@ -328,6 +330,7 @@ export function FgcStrike() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-black px-6 py-8 text-white">
+      <FgcGuideButton kind="strike" className="fixed top-3 right-3 text-white hover:bg-white/10" />
       <header className="text-center">
         <h1 className="text-3xl font-semibold">{title} / Game {snap.game + 1}</h1>
         <p className="mt-3 text-3xl font-semibold tabular-nums">{snap.scores[0]} - {snap.scores[1]}</p>

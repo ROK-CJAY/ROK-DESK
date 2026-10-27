@@ -18,6 +18,7 @@ import { useFgcStore } from "@/lib/fgc-store";
 import { FGC_OVERLAYS, overlayHref, tshLayoutHref } from "@/lib/fgc-titles";
 import { isPermanentBoard, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
 import { hotkeyEvent } from "@/lib/fgc-settings";
+import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { FgcSettingsButton } from "@/components/fgc/fgc-settings";
 import { cn } from "@/lib/cn";
 
@@ -256,6 +257,9 @@ export function FgcHome() {
         <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">FGC</p>
         <h1 className="font-display mt-2 text-4xl font-semibold uppercase">FGC Control</h1>
         <p className="mt-3 max-w-xl text-sm text-muted">Tournament control runs the floor. Production control is the TSH stream desk.</p>
+        <div className="mt-4">
+          <FgcGuideButton kind="home" />
+        </div>
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <Link to="/fgc/tournament" className="group rounded-xl border border-border bg-surface p-5 transition-colors hover:border-accent/40">
             <Trophy className="size-5 text-muted group-hover:text-fg" />
@@ -481,6 +485,7 @@ function FgcDesk() {
                 {label}
               </button>
             ))}
+            <FgcGuideButton key={tab === "overlays" && overlayPane === "editor" ? "editor" : tab} kind={tab === "overlays" && overlayPane === "editor" ? "editor" : tab} className="ml-auto" />
           </nav>
 
         {tab === "scoreboard" && live ? <FgcScoreboard set={live} /> : null}

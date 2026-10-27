@@ -122,8 +122,8 @@ async function boardOf(live: ToLive): Promise<ToBoard> {
   return board;
 }
 
-function setOnStation(sets: ToSet[], stationId: string) {
-  const rows = sets.filter((set) => set.stationId === stationId && set.state !== 3 && !set.winnerId);
+function setOnStation(sets: ToSet[], stationId: string, streamId = "") {
+  const rows = sets.filter((set) => set.state !== 3 && !set.winnerId && (set.stationId === stationId || (streamId && set.streamId === streamId)));
   return rows.find((set) => set.state === 6) ?? rows.find((set) => set.state === 2) ?? rows[0] ?? null;
 }
 
@@ -152,14 +152,16 @@ export async function stationView(stationId: string, requestUrl: string): Promis
   const live = await session(requestUrl);
   const board = await boardOf(live);
   const station = board.stations.find((item) => item.id === stationId) ?? null;
-  if (!station) throw new Error("That station is not on the open event.");
+  const stream = board.streams.find((item) => item.id === stationId || item.stationId === stationId) ?? null;
+  const spot = station ?? (stream ? { id: stream.stationId || stream.id, name: stream.name } : null);
+  if (!spot) throw new Error("That station is not on the open event.");
   const fgc = await loadFgcState();
   const names = board.stages.map((stage) => stage.name);
   const { ruleset, fallback } = strikeRuleset(fgc, names);
   const listed = [...(ruleset?.neutralStages ?? []), ...(ruleset?.counterpickStages ?? [])];
-  const set = setOnStation(board.sets, stationId);
+  const set = setOnStation(board.sets, station?.id || spot.id, stream?.id || station?.streamId || "");
   return {
-    station: { id: station.id, name: station.name },
+    station: { id: spot.id, name: spot.name },
     set: set
       ? {
           id: set.id,
@@ -183,7 +185,9 @@ export async function reportStation(
   const live = await session(requestUrl);
   const board = await boardOf(live);
   const set = board.sets.find((item) => item.id === input.setId);
-  if (!set || set.stationId !== input.stationId) throw new Error("That set is no longer on this station.");
+  const stream = board.streams.find((item) => item.id === input.stationId || item.stationId === input.stationId);
+  const onSpot = !!set && (set.stationId === input.stationId || (!!stream && (set.streamId === stream.id || set.stationId === stream.stationId)));
+  if (!set || !onSpot) throw new Error("That set is no longer on this station.");
   if (!input.winnerId) throw new Error("This set has no start.gg player to report.");
   const played = input.games?.length ? input.games : [{ winnerId: input.winnerId, stage: input.stage }];
   let stages: { id: string; name: string }[] = board.stages;

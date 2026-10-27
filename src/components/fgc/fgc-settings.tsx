@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { DEFAULT_FGC_SETTINGS, comboFromEvent, type FgcHotkey, type FgcSettings } from "@/lib/fgc-settings";
 import { readStartggLink, writeStartggLink } from "@/lib/startgg-link";
 import { useFgcStore } from "@/lib/fgc-store";
@@ -50,7 +51,8 @@ function FgcSettingsDialog({ onClose }: { onClose: () => void }) {
           ))}
         </div>
         <div className="grid grid-rows-[auto_minmax(0,1fr)]">
-          <div className="flex items-center justify-end border-b border-white/10 px-3 py-2">
+          <div className="flex items-center justify-end gap-2 border-b border-white/10 px-3 py-2">
+            <FgcGuideButton kind="settings" autoOpen={false} className="text-white hover:bg-white/10" />
             <button type="button" aria-label="Close settings" onClick={onClose}><X className="size-4" /></button>
           </div>
           <div className="overflow-y-auto px-4 py-3">

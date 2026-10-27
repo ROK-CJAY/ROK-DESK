@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import QRCode from "qrcode";
+import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -249,6 +250,7 @@ export function FgcTournamentDesk() {
           <Link to="/fgc/tournament" className="rounded-md bg-surface px-3 py-1.5 text-xs font-medium text-fg">Tournament</Link>
           <Link to="/fgc/production" className="rounded-md px-3 py-1.5 text-xs font-medium text-muted hover:text-fg">Production</Link>
         </nav>
+        <FgcGuideButton kind="tournament" />
       </AppChrome>
       <main className="mx-auto grid max-w-[1600px] gap-4 px-4 py-4">
         {!user ? (
@@ -385,6 +387,12 @@ function StationFloor({
   const place = called ? [set.station, set.stream].filter((item) => item && item !== "Station").join(" · ") : "";
 
   const station = board.stations.find((item) => item.id === stationId) ?? null;
+  const streamSpot = board.streams.find((item) => item.id === stationId || item.stationId === stationId) ?? null;
+  const spot = station
+    ? { id: station.id, name: station.name, stationId: station.id, streamId: station.streamId }
+    : streamSpot
+      ? { id: streamSpot.stationId || streamSpot.id, name: streamSpot.name, stationId: streamSpot.stationId, streamId: streamSpot.id }
+      : null;
   const stationSets = board.sets.filter((item) => {
     if (item.state === 3 || item.p1.name === "TBD" || item.p2.name === "TBD") return false;
     const needle = stationQuery.trim().toLowerCase();
@@ -393,7 +401,7 @@ function StationFloor({
   });
 
   useEffect(() => {
-    if (!set && !station) return;
+    if (!set && !spot) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       onPick("");
@@ -401,9 +409,9 @@ function StationFloor({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [set, station, onPick]);
+  }, [set, spot, onPick]);
 
-  const strikeUrl = station ? strikeHref(origin, station.id) : "";
+  const strikeUrl = spot ? strikeHref(origin, spot.stationId || spot.id) : "";
   useEffect(() => {
     if (!strikeUrl) {
       setQr("");
@@ -429,47 +437,59 @@ function StationFloor({
       </section>
       <section className="rounded-xl border border-border bg-surface p-4">
         <p className="mb-1 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stations</p>
-        <p className="mb-3 text-xs text-muted">Each station has its own stage-strike tablet. It follows the set on that station and sends the finished score to start.gg.</p>
-        {board.stations.length ? (
+        <p className="mb-3 text-xs text-muted">Numbered stations are the floor. Stream stations are the ones start.gg tied to a stream. Each one opens the same way and has its own stage-strike tablet.</p>
+        {board.stations.some((item) => !item.streamId) ? (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {board.stations.map((station) => {
-              const here = liveSet(board.sets.filter((row) => row.stationId === station.id && row.state !== 3));
+            {board.stations.filter((item) => !item.streamId).map((item) => {
+              const here = liveSet(board.sets.filter((row) => row.stationId === item.id && row.state !== 3));
               const clock = here ? clocks[here.id] : null;
               const open = !here;
               return (
-                <div key={station.id} className={cn("rounded-lg border p-3", open ? "border-border" : "border-accent")}>
-                  <button type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(station.id); }} className="w-full text-left">
+                <div key={item.id} className={cn("rounded-lg border p-3", open ? "border-border" : "border-accent")}>
+                  <button type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(item.id); }} className="w-full text-left">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium">{station.name}</p>
+                      <p className="font-medium">{item.name}</p>
                       <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
                     </div>
                     <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
                     <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
                   </button>
-                  <a href={strikeHref(origin, station.id)} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">Strike tablet</a>
+                  <a href={strikeHref(origin, item.id)} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">Strike tablet</a>
                 </div>
               );
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted">This event has no stations on start.gg yet.</p>
+          <p className="text-sm text-muted">This event has no numbered stations on start.gg yet.</p>
         )}
-        {board.streams.length ? (
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {board.streams.map((stream) => {
-              const here = liveSet(board.sets.filter((row) => row.streamId === stream.id && row.state !== 3));
-              const clock = here ? clocks[here.id] : null;
-              return (
-                <button key={stream.id} type="button" onClick={() => here && onPick(here.id)} className="rounded-lg border border-border p-3 text-left">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium">{stream.name}</p>
-                    <span className="font-mono text-[0.65rem] uppercase text-muted">{here ? "Stream" : "Open"}</span>
+        {board.streams.length || board.stations.some((item) => item.streamId) ? (
+          <div className="mt-4">
+            <p className="mb-2 font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Stream stations</p>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                ...board.stations.filter((item) => item.streamId).map((item) => ({ key: item.id, openId: item.id, name: item.name, stationId: item.id, streamId: item.streamId })),
+                ...board.streams
+                  .filter((stream) => !board.stations.some((item) => item.streamId === stream.id || item.id === stream.stationId))
+                  .map((stream) => ({ key: stream.id, openId: stream.stationId || stream.id, name: stream.name, stationId: stream.stationId, streamId: stream.id })),
+              ].map((item) => {
+                const here = liveSet(board.sets.filter((row) => row.state !== 3 && (row.stationId === item.stationId || row.streamId === item.streamId)));
+                const clock = here ? clocks[here.id] : null;
+                const open = !here;
+                return (
+                  <div key={item.key} className={cn("rounded-lg border p-3", open ? "border-border" : "border-accent")}>
+                    <button type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(item.streamId); setStationId(item.openId); }} className="w-full text-left">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium">{item.name}</p>
+                        <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
+                      </div>
+                      <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
+                      <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
+                    </button>
+                    <a href={strikeHref(origin, item.stationId || item.openId)} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs underline">Strike tablet</a>
                   </div>
-                  <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "No set on stream"}</p>
-                  <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
-                </button>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         ) : null}
       </section>
@@ -559,13 +579,13 @@ function StationFloor({
           </section>
         </div>
       ) : null}
-      {station ? (
+      {spot ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" onClick={() => setStationId("")}>
           <section className="grid max-h-[90vh] w-full max-w-xl gap-3 overflow-auto rounded-xl border border-border bg-surface p-4" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Station</p>
-                <p className="text-lg">{station.name}</p>
+                <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">{spot.streamId ? "Stream station" : "Station"}</p>
+                <p className="text-lg">{spot.name}</p>
               </div>
               <Button size="sm" variant="ghost" onClick={() => setStationId("")}>Close</Button>
             </div>
@@ -573,7 +593,7 @@ function StationFloor({
               {qr ? <img src={qr} alt="" className="h-28 w-28 shrink-0 rounded bg-white" /> : <div className="h-28 w-28 shrink-0 rounded bg-surface-2" />}
               <div className="min-w-0">
                 <p className="text-sm font-medium">Stage strike tablet</p>
-                <p className="mt-1 text-xs text-muted">Scan this onto the tablet at {station.name}. It stays on that station.</p>
+                <p className="mt-1 text-xs text-muted">Scan this onto the tablet at {spot.name}. It stays on that station.</p>
                 <a href={strikeUrl} target="_blank" rel="noreferrer" className="mt-2 block truncate text-xs underline">{strikeUrl}</a>
               </div>
             </div>
@@ -607,10 +627,11 @@ function StationFloor({
                   const next = board.sets.find((item) => item.id === queuedSet);
                   if (!next) return;
                   setStationId("");
-                  void onAct(next, "call-station", { stationId: station.id });
+                  if (spot.streamId) void onAct(next, "call-stream", { streamId: spot.streamId, stationId: spot.stationId });
+                  else void onAct(next, "call-station", { stationId: spot.stationId });
                 }}
               >
-                Send to {station.name}
+                Send to {spot.name}
               </Button>
               <Button
                 size="sm"
