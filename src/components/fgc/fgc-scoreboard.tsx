@@ -197,6 +197,15 @@ function PlayerCard({
             <Input
               value={player.tag}
               onChange={(e) => set({ tag: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                const needle = player.tag.trim().toLowerCase();
+                const matches = saved.filter((item) => item.tag.toLowerCase().includes(needle));
+                const match = matches.find((item) => item.tag.toLowerCase() === needle) ?? matches[0];
+                if (match) set(match);
+                setOpen(false);
+              }}
               onBlur={() => {
                 window.setTimeout(() => setOpen(false), 150);
                 const match =

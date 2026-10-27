@@ -86,6 +86,7 @@ export type FgcPlayer = {
   region: string;
   twitter: string;
   pronouns: string;
+  avatar: string;
   character: string;
   skin: number;
   character2: string;
@@ -291,6 +292,7 @@ export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
     region: "",
     twitter: "",
     pronouns: "",
+    avatar: "",
     character: "",
     skin: 0,
     character2: "",

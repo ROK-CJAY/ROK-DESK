@@ -133,6 +133,7 @@ const SETS_QUERY = `
                   name
                   genderPronoun
                   location { country state city }
+                  images(type: "profile") { url }
                   authorizations(types: [TWITTER]) { externalUsername type }
                 }
               }
@@ -203,6 +204,7 @@ type RawSet = {
           name?: string | null;
           genderPronoun?: string | null;
           location?: { country?: string | null; state?: string | null; city?: string | null } | null;
+          images?: { url?: string | null }[] | null;
           authorizations?: { externalUsername?: string | null; type?: string | null }[] | null;
         } | null;
       }[] | null;
@@ -244,6 +246,7 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined, charac
     region: user?.location?.state?.trim() || user?.location?.city?.trim() || "",
     twitter: twitter.replace(/^@/, ""),
     pronouns: user?.genderPronoun?.trim() || "",
+    avatar: user?.images?.find((image) => image.url)?.url || "",
     character,
     skin: 0,
     character2: "",
@@ -590,6 +593,7 @@ export async function eventStandings(eventId: string, count: number, token?: str
                 name?: string | null;
                 genderPronoun?: string | null;
                 location?: { country?: string | null; state?: string | null } | null;
+                images?: { url?: string | null }[] | null;
                 authorizations?: { externalUsername?: string | null }[] | null;
               } | null;
             }[] | null;
@@ -610,7 +614,7 @@ export async function eventStandings(eventId: string, count: number, token?: str
               participants {
                 gamerTag
                 prefix
-                user { id name genderPronoun location { country state } authorizations(types: [TWITTER]) { externalUsername } }
+                user { id name genderPronoun location { country state } images(type: "profile") { url } authorizations(types: [TWITTER]) { externalUsername } }
               }
             }
           }
@@ -637,6 +641,7 @@ export async function eventStandings(eventId: string, count: number, token?: str
       region: user?.location?.state?.trim() || "",
       twitter: (user?.authorizations?.find((item) => item.externalUsername)?.externalUsername ?? "").replace(/^@/, ""),
       pronouns: user?.genderPronoun?.trim() || "",
+      avatar: user?.images?.find((image) => image.url)?.url || "",
       seed: entrant?.seeds?.[0]?.seedNum ?? null,
     };
   });

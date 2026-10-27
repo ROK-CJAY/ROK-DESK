@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Clapperboard, FolderOpen, Gamepad2, Layers, Trophy } from "lucide-react";
+import { AppChrome } from "@/components/app/app-chrome";
 import { FloorLinks } from "@/components/app/floor-links";
 import { TabletQr } from "@/components/app/tablet-qr";
 import { SupportButtons, DONATE_URL } from "@/components/app/support-links";
@@ -101,15 +102,7 @@ export function Landing() {
 export function TcgHome() {
   return (
     <div className="min-h-dvh bg-bg text-fg">
-      <header className="border-b border-border bg-surface/80 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/brand/rok-mark.png" alt="" className="size-9 object-contain" />
-            <p className="font-display text-xl leading-none font-semibold tracking-wide uppercase">ROK Desk</p>
-          </Link>
-          <Link to="/" className="text-sm text-muted hover:text-fg">Back</Link>
-        </div>
-      </header>
+      <AppChrome view="tcg" eyebrow="TCG control" />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:py-12">
         <p className="font-mono text-[0.65rem] tracking-[0.22em] text-muted uppercase">TCG / VGC</p>
         <h1 className="font-display mt-2 text-4xl font-semibold uppercase">TCG / VGC Control</h1>

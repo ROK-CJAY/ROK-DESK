@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Clapperboard, Gamepad2, House, Trophy } from "lucide-react";
+import { Gamepad2, Layers } from "lucide-react";
 import { SupportButtons } from "@/components/app/support-links";
 import { UpdateBadge } from "@/components/app/update-badge";
 import { cn } from "@/lib/cn";
@@ -12,11 +12,12 @@ export function AppChrome({
   children,
   trailing,
 }: {
-  view: "production" | "tournament" | "home" | "browser" | "fgc";
+  view: "production" | "tournament" | "home" | "browser" | "fgc" | "tcg";
   eyebrow?: string;
   children?: React.ReactNode;
   trailing?: React.ReactNode;
 }) {
+  const tcg = view === "production" || view === "tournament" || view === "tcg";
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-4 py-3">
@@ -37,44 +38,26 @@ export function AppChrome({
                       ? "Production control"
                       : view === "tournament"
                         ? "Tournament organizer"
-                        : view === "fgc"
-                          ? "FGC control"
-                        : view === "browser"
-                          ? "Browser"
-                          : "Home")}
+                        : view === "tcg"
+                          ? "TCG control"
+                          : view === "fgc"
+                            ? "FGC control"
+                            : view === "browser"
+                              ? "Browser"
+                              : "Home")}
                 </p>
               </div>
             </Link>
             <nav className="ml-1 flex rounded-lg border border-border bg-surface-2 p-0.5">
               <Link
-                to="/"
+                to="/tcg"
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium tracking-wide",
-                  view === "home" ? "bg-surface text-fg" : "text-muted hover:text-fg",
+                  tcg ? "bg-surface text-fg" : "text-muted hover:text-fg",
                 )}
               >
-                <House className="size-3.5" />
-                Home
-              </Link>
-              <Link
-                to="/production"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium tracking-wide",
-                  view === "production" ? "bg-surface text-fg" : "text-muted hover:text-fg",
-                )}
-              >
-                <Clapperboard className="size-3.5" />
-                Production
-              </Link>
-              <Link
-                to="/tournament"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium tracking-wide",
-                  view === "tournament" ? "bg-surface text-fg" : "text-muted hover:text-fg",
-                )}
-              >
-                <Trophy className="size-3.5" />
-                Tournament
+                <Layers className="size-3.5" />
+                TCG Control
               </Link>
               <Link
                 to="/fgc"
@@ -84,7 +67,7 @@ export function AppChrome({
                 )}
               >
                 <Gamepad2 className="size-3.5" />
-                FGC
+                FGC Control
               </Link>
             </nav>
             {view === "production" ? <LiveBadge /> : null}
@@ -94,9 +77,27 @@ export function AppChrome({
             <SupportButtons />
           </div>
         </div>
+        {tcg ? <TcgSectionNav current={view === "production" ? "production" : view === "tournament" ? "tournament" : null} /> : null}
         {children}
       </div>
     </header>
+  );
+}
+
+function TcgSectionNav({ current }: { current: "tournament" | "production" | null }) {
+  const item = (id: "tournament" | "production", label: string) => (
+    <Link
+      to={id === "tournament" ? "/tournament" : "/production"}
+      className={cn("rounded-md px-3 py-1.5 text-xs font-medium", current === id ? "bg-surface text-fg" : "text-muted hover:text-fg")}
+    >
+      {label}
+    </Link>
+  );
+  return (
+    <nav className="flex w-fit rounded-lg border border-border bg-surface-2 p-0.5">
+      {item("tournament", "Tournament")}
+      {item("production", "Production")}
+    </nav>
   );
 }
 

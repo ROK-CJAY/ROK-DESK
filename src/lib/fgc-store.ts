@@ -101,6 +101,7 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
         region: player.region,
         twitter: player.twitter,
         pronouns: player.pronouns,
+        avatar: player.avatar,
         character: player.character,
         skin: player.skin,
         character2: player.character2,
@@ -108,6 +109,7 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
       });
       continue;
     }
+    if (index >= 0 && player.avatar) next[index] = { ...next[index], avatar: player.avatar };
     if (keep || (!player.character && !player.character2)) continue;
     const current = next[index];
     next[index] = {
@@ -521,6 +523,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       region: player.region,
       twitter: player.twitter,
       pronouns: player.pronouns,
+      avatar: player.avatar,
       character: player.character,
       skin: player.skin,
       character2: player.character2,

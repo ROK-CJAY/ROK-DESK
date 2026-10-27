@@ -76,7 +76,7 @@ function tshPlayer(fgc: FgcState, player: FgcPlayer | null) {
     seed: show.seed ? player.seed ?? "" : "",
     sponsor_logo: "",
     avatar: "",
-    online_avatar: "",
+    online_avatar: player.avatar || "",
     country: { asset: code ? `assets/country_flag/${code}.png` : "", code: country },
     state: show.location ? { asset: "", code: player.region || "" } : { asset: "", code: "" },
     character: show.characters ? characterOf(fgc, player) : characterOf(fgc, null),
