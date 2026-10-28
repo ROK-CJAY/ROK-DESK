@@ -15,6 +15,55 @@ import { dirname, join } from "node:path";
 import pg from "pg";
 
 const databaseUrl = process.env.DATABASE_URL;
+const signupUrl = process.env.SIGNUP_DATABASE_URL?.trim();
+const publicHost = process.env.ROK_PUBLIC_HOST === "1";
+
+if (publicHost) {
+  if (!signupUrl) {
+    console.log("[migrate] public host — SIGNUP_DATABASE_URL not set, sign-up tables will be created on first use.");
+    process.exit(0);
+  }
+  const pool = new pg.Pool({ connectionString: signupUrl, max: 1 });
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      create table if not exists remote_signup_events (
+        code text primary key,
+        game_id text not null,
+        title text not null,
+        format_name text not null,
+        require_decklist boolean not null,
+        best_of integer not null,
+        bracket_type text not null,
+        is_open boolean not null,
+        venue_id text not null default '',
+        created_at timestamptz default current_timestamp not null
+      )
+    `);
+    await client.query(`alter table remote_signup_events add column if not exists venue_id text not null default ''`);
+    await client.query(`
+      create table if not exists remote_signups (
+        id text primary key,
+        code text not null,
+        payload text not null,
+        created_at timestamptz default current_timestamp not null
+      )
+    `);
+    await client.query(`
+      create table if not exists remote_signup_venues (
+        id text primary key,
+        key_hash text not null unique,
+        created_at timestamptz default current_timestamp not null
+      )
+    `);
+    console.log("[migrate] public host — sign-up tables ready.");
+  } finally {
+    client.release();
+    await pool.end();
+  }
+  process.exit(0);
+}
+
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
