@@ -321,12 +321,23 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  width: auto;
-  text-align: justify;
-  align-items: center;
+  width: 100%;
+  max-width: 460px;
+  min-width: 0;
+  text-align: center;
+  align-items: stretch;
   overflow: hidden;
   margin: 0 16px;
   gap: 2px;
+}
+
+.info.material_container.middle .tournament_name,
+.info.material_container.middle .phase,
+.info.material_container.middle .match {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-align: center;
 }
 
 .info.material_container.middle .tournament_name {

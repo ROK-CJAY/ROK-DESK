@@ -398,71 +398,107 @@ body {
   top: 0;
   left: 0;
   width: 100vw;
-  display: flex;
-  flex-direction: row;
-  padding: 16px 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  padding: 12px 32px;
   border-radius: 0;
+  box-sizing: border-box;
 }
 
 .tournament_container {
   display: flex;
-  max-width: 25%;
-  width: 25%;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
   gap: 16px;
-  flex-shrink: 0;
 }
 
 .tournament_container .col {
-  gap: 0;
+  gap: 2px;
   justify-content: center;
   align-items: flex-start;
   overflow: hidden;
+  min-width: 0;
+  flex: 1;
 }
 
 .match_info_container {
   display: flex;
-  max-width: 25%;
-  width: 25%;
-  gap: 16px;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
   justify-content: flex-end;
-  flex-shrink: 0;
 }
 
 .match_info_container > .col {
+  width: 100%;
+  min-width: 0;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.tournament,
+.event,
+.match,
+.phase,
+.best_of {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.tournament .text,
+.event .text,
+.match .text,
+.phase .text,
+.best_of .text {
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
+}
+
+.tournament .text,
+.event .text {
+  justify-content: flex-start;
+}
+
+.match .text {
+  justify-content: center;
+  margin-inline: auto;
+}
+
+.phase .text,
+.best_of .text {
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 .tournament {
-  font-size: 40px;
-  place-content: center;
-  max-width: 100%;
+  font-size: 32px;
+  line-height: 1.05;
 }
 
 .event {
-  font-size: 24px;
-  place-content: center;
-  max-width: 100%;
+  font-size: 18px;
+  line-height: 1.1;
 }
 
 .match {
-  font-size: 64px;
+  font-size: 42px;
   letter-spacing: 2px;
-  place-content: center;
   text-transform: uppercase;
-  max-width: 100%;
-  flex-grow: 1;
-  overflow: hidden;
-  padding: 0 64px;
+  text-align: center;
+  line-height: 1;
 }
 
-.best_of {
-  font-size: 24px;
-  align-self: flex-end;
-}
-
+.best_of,
 .phase {
-  font-size: 24px;
-  align-self: flex-end;
+  font-size: 20px;
+  line-height: 1.1;
+  text-align: right;
 }
 
 .flag {

@@ -119,7 +119,7 @@ const COPY: Record<FgcGuideKind, { kicker: string; title: string; lead: string; 
     title: "Build the layout here",
     lead: "This is the title designer. Layers, text, and pictures stay on a 1920 × 1080 canvas with a checkerboard behind them so you can see what is transparent.",
     steps: [
-      { title: "Add type, then bind it", body: "Text, rectangle, circle, and triangle are layers. Rectangles and the other shapes can take a character or a skin, the same as a picture." },
+      { title: "Add type, then bind it", body: "Text, rectangle, circle, and triangle are layers. A picture can take a character, a skin, or the start.gg profile photo." },
       { title: "Snap while you move and resize", body: "Drag a layer and it snaps to the canvas and to other layers. Width and height snap the same way. The readout is the pixel position." },
       { title: "Fonts", body: "Pick the family. Bold and italic are buttons, not extra names in the list. What you save is what the overlay draws." },
       { title: "Save it into a group", body: "Save asks where it lives: in game, versus, bracket, people, or custom. It then shows in the overlay list with its own browser-source link." },

@@ -77,6 +77,10 @@ export const TITLE_BINDS = [
   { id: "p2.skin", label: "P2 character skin" },
   { id: "p1.skin2", label: "P1 second skin" },
   { id: "p2.skin2", label: "P2 second skin" },
+  { id: "p1.avatar", label: "P1 start.gg photo" },
+  { id: "p2.avatar", label: "P2 start.gg photo" },
+  { id: "p1b.avatar", label: "P1 partner photo" },
+  { id: "p2b.avatar", label: "P2 partner photo" },
 ];
 
 export function blankLayer(): FgcTitleLayer {
@@ -250,6 +254,11 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
 
 export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleElement): string {
   if (element.bind === "event.icon") return fgc.event?.icon || "";
+  const photo = element.bind.match(/^p(1b|2b|1|2)\.avatar$/);
+  if (photo) {
+    const player = photo[1] === "1" ? set?.p1 : photo[1] === "2" ? set?.p2 : photo[1] === "1b" ? set?.p1b : set?.p2b;
+    return player?.avatar || "";
+  }
   const library = libraryFor(fgc);
   const skinBind = element.bind.match(/^p([12])\.skin(2)?$/);
   if (!fgc.settings.show.characters && (element.bind.endsWith(".icon") || skinBind) && element.bind !== "event.icon") return "";

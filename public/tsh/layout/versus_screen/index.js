@@ -1,3 +1,11 @@
+function portrait(player) {
+  if (!player) return "./person.svg";
+  if (player.online_avatar) return player.online_avatar;
+  if (player.avatar && /^https?:/i.test(player.avatar)) return player.avatar;
+  if (player.avatar) return (window.tshAsset ? tshAsset(player.avatar) : "../../" + player.avatar);
+  return "./person.svg";
+}
+
 function makeVariantHTML(variant){
   let variantName = variant.display_name;
   let variantIconPath = variant.icon_path;
@@ -152,14 +160,12 @@ LoadEverything().then(() => {
               },
               event
             );
-          } else if (window.ONLINE_AVATAR) {
+          } else if (window.ONLINE_AVATAR || window.PLAYER_AVATAR) {
             SetInnerHtml(
               $(`.p${t + 1}.character`),
               `
                 <div class="player_avatar">
-                  <img src='${
-                    player.online_avatar ? player.online_avatar : "./person.svg"
-                  }' />
+                  <img src='${portrait(player)}' />
                 </div>
               `,
               {
@@ -184,7 +190,7 @@ LoadEverything().then(() => {
               `
                 <div class="player_avatar">
                   <img src='${
-                    player.avatar ? '../../'+player.avatar : "./person.svg"
+                    tshPortrait(player) || "./person.svg"
                   }' />
                 </div>
               `,
@@ -317,13 +323,11 @@ LoadEverything().then(() => {
             },
             event
           );
-        } else if (window.ONLINE_AVATAR) {
+        } else if (window.ONLINE_AVATAR || window.PLAYER_AVATAR) {
           let avatars_html = "";
           for (const [p, player] of Object.values(team.player).entries()) {
             if (player)
-              avatars_html += `<img src='${
-                player.online_avatar ? player.online_avatar : "./person.svg"
-              }' />`;
+              avatars_html += `<img src='${portrait(player)}' />`;
           }
           SetInnerHtml(
             $(`.p${t + 1}.character`),
@@ -353,7 +357,7 @@ LoadEverything().then(() => {
           for (const [p, player] of Object.values(team.player).entries()) {
             if (player)
               avatars_html += `<img src='${
-                player.avatar ? '../../'+player.avatar : "./person.svg"
+                tshPortrait(player) || "./person.svg"
               }' />`;
           }
           SetInnerHtml(
@@ -390,6 +394,7 @@ LoadEverything().then(() => {
     SetInnerHtml($(`.p1 .score`), String(data.score[window.scoreboardNumber].team["1"].score));
     SetInnerHtml($(`.p2 .score`), String(data.score[window.scoreboardNumber].team["2"].score));
 
+    $(".tournament, .event, .match, .phase, .best_of").addClass("font-scale-fit");
     SetInnerHtml($(".tournament"), data.tournamentInfo.tournamentName);
     SetInnerHtml($(".event"), data.tournamentInfo.eventName);
     SetInnerHtml($(".match"), data.score[window.scoreboardNumber].match);

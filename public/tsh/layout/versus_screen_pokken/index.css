@@ -357,11 +357,26 @@ body {
   top: 680px;
   left: 50%;
   transform: translateX(-50%);
-  width: 800px;
+  width: 1200px;
+  max-width: 92vw;
   display: flex;
   flex-direction: column;
   z-index: 9;
   gap: 8px;
+}
+
+.tournament,
+.event {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.tournament .text,
+.event .text {
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
 }
 
 .info div {
@@ -372,7 +387,7 @@ body {
 
 .tournament {
   top: 20px;
-  width: 800px;
+  width: 100%;
   font-size: 38px;
   place-content: center;
   max-width: 100%;

@@ -15,6 +15,16 @@ function fitTshStage() {
   root.style.transformOrigin = "top left";
   root.style.transform = scale > 0 && Math.abs(scale - 1) > 0.01 ? "scale(" + scale + ")" : "";
 }
+function tshPortrait(player) {
+  if (!player) return "";
+  const online = player.online_avatar || "";
+  if (online) return online;
+  const local = player.avatar || "";
+  if (!local) return "";
+  if (/^(https?:|data:|\/)/.test(local)) return local;
+  return "../../" + local;
+}
+
 function tshAsset(asset) {
   if (!asset) return "";
   if (/^(https?:|data:|\/)/.test(asset)) return asset;
@@ -387,7 +397,7 @@ function deskProgram() {
         seed: player.seed || "",
         sponsor_logo: "",
         avatar: "",
-        online_avatar: "",
+        online_avatar: player.avatar || "",
         country: { asset: "", code: player.country || "" },
         state: { asset: "", code: player.region || "" },
         character: characterOf(player),
@@ -767,58 +777,90 @@ function tshPreviewMode() {
   }
 }
 
+function tshInfoLine(target) {
+  const node = target && target[0];
+  if (!node) return false;
+  if (target.hasClass("font-scale-fit")) return true;
+  return node.matches(".tournament, .event, .tournament_name, .event_name, .phase, .match, .best_of, .phase_best_of");
+}
+
+function tshInfoLimit(node) {
+  let limit = 0;
+  let current = node;
+  while (current && current !== document.documentElement) {
+    const style = window.getComputedStyle(current);
+    const clips = current !== node && (style.overflowX === "hidden" || style.overflowX === "clip" || style.overflow === "hidden");
+    const width = current.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
+    if (width > 8 && (clips || current === node)) limit = limit > 0 ? Math.min(limit, width) : width;
+    current = current.parentElement;
+  }
+  return limit;
+}
+
+function tshPaintedWidth(text, size, style) {
+  const canvas = tshPaintedWidth.canvas || (tshPaintedWidth.canvas = document.createElement("canvas"));
+  const ctx = canvas.getContext("2d");
+  const spacing = parseFloat(style.letterSpacing) || 0;
+  ctx.font = `${style.fontStyle} ${style.fontWeight} ${size}px ${style.fontFamily}`;
+  return ctx.measureText(text).width + spacing * Math.max(text.length - 1, 0);
+}
+
+function fitInfoNow(target) {
+  const box = target[0];
+  const textElement = target.find(".text");
+  const node = textElement[0];
+  if (!box || !node || !box.isConnected) return false;
+  const raw = (node.innerText || node.textContent || "").replace(/\s+/g, " ").trim();
+  if (!raw || raw.toLowerCase() === "undefined") return true;
+  const limit = tshInfoLimit(box);
+  if (!limit) return false;
+  box.style.width = "100%";
+  box.style.maxWidth = limit + "px";
+  box.style.minWidth = "0px";
+  box.style.overflow = "hidden";
+  node.style.width = "100%";
+  node.style.minWidth = "0px";
+  node.style.maxWidth = "100%";
+  node.style.transform = "none";
+  const style = window.getComputedStyle(node);
+  if (!box.dataset.tshFont) box.dataset.tshFont = String(parseFloat(style.fontSize) || 26);
+  const max = parseFloat(box.dataset.tshFont) || 26;
+  const sample = style.textTransform === "uppercase" ? raw.toUpperCase() : style.textTransform === "lowercase" ? raw.toLowerCase() : raw;
+  let size = Math.round(max);
+  while (size > 11 && tshPaintedWidth(sample, size, style) > limit - 8) size -= 1;
+  node.style.fontSize = size + "px";
+  return true;
+}
+
 // Scale content to fit div
 function FitText(target) {
-  if (tshFitting || target == null) return;
-  document.fonts.ready.then(() => {
-    if (tshFitting || target == null) return;
-    if (target.css("font-size") == null) return;
-    const targetWidth = target.width();
-    if (!targetWidth) return;
-
-    let textElement = target.find(".text");
-    if (!textElement.length || !textElement[0]) return;
-    RegisterFit(target);
-
-    if (textElement.text().trim().toLowerCase() == "undefined") {
-      textElement.html("");
-    }
-
-    if (target.data("tshFitWidth") === targetWidth && textElement.data("tshFit")) return;
-
-    tshFitting = true;
-    textElement.css("transform", "");
-    textElement.css("font-size", "");
-
-    if (target.hasClass("font-scale-fit")) {
-      const originalFontSize = parseFloat(
-        window.getComputedStyle(textElement[0]).fontSize
-      );
-
-      let fontSize = originalFontSize;
-      let steps = 0;
-
-      while (
-        textElement[0].scrollWidth > targetWidth &&
-        fontSize > 1 &&
-        steps < 40
-      ) {
-        fontSize -= 1;
-        steps += 1;
-        textElement.css("font-size", fontSize + "px");
+  if (target == null || !target.length) return;
+  const attempt = (tries) => {
+    document.fonts.ready.then(() => {
+      if (!target[0] || !target[0].isConnected) return;
+      if (!tshInfoLine(target)) {
+        fitPlainText(target);
+        return;
       }
-    } else {
-      let scaleX = 1;
+      if (!fitInfoNow(target) && tries < 20) requestAnimationFrame(() => attempt(tries + 1));
+    });
+  };
+  attempt(0);
+}
 
-      if (textElement[0].scrollWidth * scaleX > targetWidth) {
-        scaleX = targetWidth / textElement[0].scrollWidth;
-        textElement.css("transform", "scaleX(" + scaleX + ")");
-      }
-    }
-    target.data("tshFitWidth", targetWidth);
-    textElement.data("tshFit", 1);
-    requestAnimationFrame(() => { tshFitting = false; });
-  });
+function fitPlainText(target) {
+  const targetWidth = target.width();
+  const textElement = target.find(".text");
+  if (!targetWidth || !textElement.length || !textElement[0]) return;
+  RegisterFit(target);
+  const node = textElement[0];
+  node.style.transform = "";
+  node.style.fontSize = "";
+  const previous = node.style.width;
+  node.style.width = "max-content";
+  const natural = node.scrollWidth;
+  node.style.width = previous;
+  if (natural > targetWidth) node.style.transform = "scaleX(" + (targetWidth / natural) + ")";
 }
 
 // Load Kuroshiro, the Japanese transcription library

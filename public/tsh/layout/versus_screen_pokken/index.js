@@ -162,7 +162,7 @@ LoadEverything().then(() => {
               `
                 <div class="player_avatar">
                   <img src='${
-                    player.online_avatar ? player.online_avatar : "./person.svg"
+                    player.online_avatar || tshPortrait(player) || "./person.svg"
                   }' />
                 </div>
               `,
@@ -186,7 +186,7 @@ LoadEverything().then(() => {
               `
                 <div class="player_avatar">
                   <img src='${
-                    player.avatar ? '../../'+player.avatar : "./person.svg"
+                    tshPortrait(player) || "./person.svg"
                   }' />
                 </div>
               `,
@@ -322,7 +322,7 @@ LoadEverything().then(() => {
           for (const [p, player] of Object.values(team.player).entries()) {
             if (player)
               avatars_html += `<img src='${
-                player.online_avatar ? player.online_avatar : "./person.svg"
+                player.online_avatar || tshPortrait(player) || "./person.svg"
               }' />`;
           }
           SetInnerHtml(
@@ -351,7 +351,7 @@ LoadEverything().then(() => {
           for (const [p, player] of Object.values(team.player).entries()) {
             if (player)
               avatars_html += `<img src='${
-                player.avatar ? '../../'+player.avatar : "./person.svg"
+                tshPortrait(player) || "./person.svg"
               }' />`;
           }
           SetInnerHtml(
@@ -386,6 +386,7 @@ LoadEverything().then(() => {
     SetInnerHtml($(`.p1 .score`), String(data.score[window.scoreboardNumber].team["1"].score));
     SetInnerHtml($(`.p2 .score`), String(data.score[window.scoreboardNumber].team["2"].score));
 
+    $(".tournament, .event").addClass("font-scale-fit");
     SetInnerHtml($(".tournament"), data.tournamentInfo.tournamentName);
     SetInnerHtml($(".match"), data.score[window.scoreboardNumber].match);
 

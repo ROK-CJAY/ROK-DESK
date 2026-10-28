@@ -272,12 +272,28 @@ body {
   top: 32px;
   left: 50%;
   transform: translateX(-50%);
-  width: 1000px;
+  width: 1400px;
+  max-width: 92vw;
   display: flex;
   flex-direction: column;
   padding: 20px 40px;
   z-index: 9;
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+.tournament,
+.event {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.tournament .text,
+.event .text {
+  width: max-content;
+  min-width: max-content;
+  max-width: none;
 }
 
 .tournament {

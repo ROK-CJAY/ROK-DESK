@@ -668,7 +668,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function ObjectFields({ current, update, onAlign, onDelete }: { current: FgcTitleElement; update: (partial: Partial<FgcTitleElement>) => void; onAlign: (edge: "left" | "center" | "right" | "top" | "middle" | "bottom") => void; onDelete: () => void }) {
   const words = current.kind === "text" || current.kind === "ticker";
   const picture = current.kind === "image" || current.kind === "rect" || current.kind === "circle" || current.kind === "triangle";
-  const pictureBind = (id: string) => id.endsWith(".icon") || id.includes(".skin");
+  const pictureBind = (id: string) => id.endsWith(".icon") || id.includes(".skin") || id.endsWith(".avatar");
   const binds = TITLE_BINDS.filter((item) => picture ? !item.id || pictureBind(item.id) : !pictureBind(item.id));
   return (
     <div className="grid max-h-[70vh] content-start gap-3 overflow-auto pr-1">

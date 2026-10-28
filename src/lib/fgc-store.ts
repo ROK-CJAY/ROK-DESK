@@ -141,7 +141,7 @@ function applySaved(player: FgcPlayer | null, saved: SavedPlayer[], keepCharacte
     : player.character2
       ? (player.character2.toLowerCase() === (match.character2 || "").toLowerCase() ? match.skin2 : player.skin2)
       : match.skin2;
-  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId, character, skin, character2, skin2 };
+  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId, avatar: player.avatar || match.avatar || "", character, skin, character2, skin2 };
 }
 
 function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
