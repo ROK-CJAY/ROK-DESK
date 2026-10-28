@@ -1,6 +1,6 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { dbSource, getSql } from "@/lib/db";
+import { dbSource, getSignupSql, signupDbSeparate } from "@/lib/db";
 import { gameIdFromSlug, isGameId, isVgcTitle, playAgeDivisionOf, slugOf, type GameId } from "@/lib/games";
 import { mergeDecklist } from "@/lib/decklist";
 import { countFilledMons, mergeTeam } from "@/lib/pokemon-vgc";
@@ -40,7 +40,7 @@ export async function venueFromSecret(header: string | null): Promise<SignupVenu
   const expected = pullSecret();
   if (expected && sameSecret(expected, got)) return { id: HOST_VENUE };
   await ensureTables();
-  const sql = await getSql();
+  const sql = await getSignupSql();
   const rows = await sql<{ id: string }>`select id from remote_signup_venues where key_hash = ${hashKey(got)}`;
   const id = rows[0]?.id;
   return id ? { id } : null;
@@ -52,7 +52,7 @@ export async function mintVenueKey(): Promise<{ key: string } | { error: string 
   await ensureTables();
   const id = `v-${crypto.randomUUID()}`;
   const key = `rk_${randomBytes(18).toString("base64url")}`;
-  const sql = await getSql();
+  const sql = await getSignupSql();
   await sql`insert into remote_signup_venues (id, key_hash) values (${id}, ${hashKey(key)})`;
   return { key };
 }
@@ -111,7 +111,7 @@ let tablesReady: Promise<void> | null = null;
 
 function ensureTables(): Promise<void> {
   tablesReady ??= (async () => {
-    const sql = await getSql();
+    const sql = await getSignupSql();
     await sql.query(`
       create table if not exists remote_signup_events (
         code text primary key,
@@ -149,10 +149,9 @@ function ensureTables(): Promise<void> {
 }
 
 function durableDb(): string | null {
-  if (publicSignupHost() && dbSource !== "neon") {
-    return "This public host has no database. Set DATABASE_URL on Vercel.";
-  }
-  return null;
+  if (!publicSignupHost()) return null;
+  if (signupDbSeparate || dbSource === "neon") return null;
+  return "This public host has no sign-up database. Set SIGNUP_DATABASE_URL on Vercel.";
 }
 
 function asBestOf(value: number): 1 | 3 | 5 | 7 {
@@ -164,14 +163,14 @@ function asBracket(value: string): "single" | "double" | "swiss" {
 }
 
 async function eventRow(code: string): Promise<EventRow | null> {
-  const sql = await getSql();
+  const sql = await getSignupSql();
   const rows = await sql<EventRow>`select code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id from remote_signup_events where code = ${code}`;
   return rows[0] ?? null;
 }
 
 async function toEvent(row: EventRow): Promise<RemoteEvent | null> {
   if (!isGameId(row.game_id)) return null;
-  const sql = await getSql();
+  const sql = await getSignupSql();
   const counts = await sql<{ n: number }>`select count(*)::int as n from remote_signups where code = ${row.code}`;
   return {
     code: row.code,
@@ -217,7 +216,7 @@ export async function openRemoteEvent(input: {
   if (existing && ownerOf(existing) !== input.venueId) {
     return { error: "That code belongs to another venue. Use a new code." };
   }
-  const sql = await getSql();
+  const sql = await getSignupSql();
   await sql`
     insert into remote_signup_events (code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id)
     values (${code}, ${gameId}, ${title}, ${formatName}, ${input.requireDecklist}, ${asBestOf(input.bestOf)}, ${asBracket(input.bracketType)}, ${true}, ${input.venueId})
@@ -247,7 +246,7 @@ export async function closeRemoteEvent(codeRaw: string, venueId: string): Promis
   await ensureTables();
   const row = await eventRow(code);
   if (!row || ownerOf(row) !== venueId) return { error: "No sign-up with that code." };
-  const sql = await getSql();
+  const sql = await getSignupSql();
   await sql`update remote_signup_events set is_open = ${false} where code = ${code}`;
   return { ok: true };
 }
@@ -284,7 +283,7 @@ export async function submitRemoteSignup(
   if (isVgcTitle(gameId) && countFilledMons(team) < 4) {
     return { error: "Enter at least 4 Pokémon to complete sign-up.", status: 400 };
   }
-  const sql = await getSql();
+  const sql = await getSignupSql();
   const counts = await sql<{ n: number }>`select count(*)::int as n from remote_signups where code = ${code}`;
   const count = Number(counts[0]?.n ?? 0);
   if (count >= 256) return { error: "This event is full.", status: 409 };
@@ -318,7 +317,7 @@ export async function listRemoteSignups(
   if (!row || ownerOf(row) !== venueId) return { error: "No sign-up with that code." };
   const event = await toEvent(row);
   if (!event) return { error: "No sign-up with that code." };
-  const sql = await getSql();
+  const sql = await getSignupSql();
   const rows = await sql<{ id: string; payload: string }>`
     select id, payload from remote_signups where code = ${code} order by created_at asc
   `;

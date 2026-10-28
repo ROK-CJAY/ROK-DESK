@@ -44,6 +44,7 @@ export interface Sql {
  */
 const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
+  __pgSignupSqlPromise__?: Promise<Sql>;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
 };
@@ -83,20 +84,24 @@ function toSql(run: Run): Sql {
   return sql;
 }
 
-function createNeonSql(): Promise<Sql> {
-  globalRef.__pgSqlPromise__ ??= (async () => {
+function neonPool(connectionString: string): Promise<Sql> {
+  return (async () => {
     // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
     // pooled endpoint. One pool per process; warm serverless instances reuse it.
     const { Pool, types } = await import("pg");
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = new Pool({ connectionString });
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
     });
-  })().catch((err) => {
+  })();
+}
+
+function createNeonSql(): Promise<Sql> {
+  globalRef.__pgSqlPromise__ ??= neonPool(databaseUrl as string).catch((err) => {
     globalRef.__pgSqlPromise__ = undefined;
     throw err;
   });
@@ -199,6 +204,25 @@ export function getSql(): Promise<Sql> {
     throw err;
   });
   return sqlPromise;
+}
+
+const signupDatabaseUrl =
+  typeof process !== "undefined" ? process.env.SIGNUP_DATABASE_URL?.trim() : undefined;
+
+/** True when the public sign-up sheet has its own database, separate from the desk. */
+export const signupDbSeparate = Boolean(signupDatabaseUrl);
+
+/**
+ * Sign-up sheet only. Uses `SIGNUP_DATABASE_URL` when set so venue keys and
+ * player lists never share the desk database. Otherwise the normal database.
+ */
+export function getSignupSql(): Promise<Sql> {
+  if (!signupDatabaseUrl) return getSql();
+  globalRef.__pgSignupSqlPromise__ ??= neonPool(signupDatabaseUrl).catch((err) => {
+    globalRef.__pgSignupSqlPromise__ = undefined;
+    throw err;
+  });
+  return globalRef.__pgSignupSqlPromise__;
 }
 
 /**
