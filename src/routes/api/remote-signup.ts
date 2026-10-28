@@ -29,6 +29,11 @@ export const Route = createFileRoute("/api/remote-signup")({
         const url = new URL(request.url);
         const code = url.searchParams.get("code") ?? "";
         const venue = await venueFromSecret(request.headers.get("x-rok-signup-secret"));
+        if (url.searchParams.get("recover") === "1") {
+          const listed = await listRemoteSignups(code, null);
+          if ("error" in listed) return json({ error: listed.error }, 404);
+          return json(listed);
+        }
         if (venue) {
           const listed = await listRemoteSignups(code, venue.id);
           if ("error" in listed) return json({ error: listed.error }, 404);

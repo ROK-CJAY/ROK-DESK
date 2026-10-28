@@ -177,8 +177,8 @@ export function RemoteSignupPanel({
 
   const pull = async () => {
     const cleaned = normalizeSignupCode(code);
-    if (!secret.trim() || cleaned.length < 4) {
-      setError("Host, secret, and code are required to pull.");
+    if (cleaned.length < 4) {
+      setError("Paste the sign-up link that was sent out.");
       return;
     }
     setBusy("pull");
@@ -186,8 +186,8 @@ export function RemoteSignupPanel({
     setNote("");
     try {
       const res = await fetch(
-        `${host.trim().replace(/\/+$/, "")}/api/remote-signup?code=${encodeURIComponent(cleaned)}`,
-        { headers: { "x-rok-signup-secret": secret.trim() }, cache: "no-store" },
+        `${host.trim().replace(/\/+$/, "")}/api/remote-signup?code=${encodeURIComponent(cleaned)}&recover=1`,
+        { cache: "no-store" },
       );
       const data = (await res.json()) as {
         error?: string;
@@ -241,8 +241,7 @@ export function RemoteSignupPanel({
       <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Public sign-up</p>
       <p className="text-xs text-muted">
         {title ? `This list is only for ${title}. ` : ""}
-        Leave it open. This desk remembers the venue key and the code, so come back to this game and click Pull entrants.
-        On another computer, paste the venue key and the sign-up link, then pull. Each store's key only opens its own list.
+        Leave it open. Closing the desk does not delete it. On this computer or another one, paste the sign-up link that was sent out, then click Pull entrants.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Input value={host} onChange={(e) => save({ host: e.target.value })} placeholder="https://rok-desk.vercel.app" />

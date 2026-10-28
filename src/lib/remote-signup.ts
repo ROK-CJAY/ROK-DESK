@@ -307,14 +307,14 @@ export async function submitRemoteSignup(
 
 export async function listRemoteSignups(
   codeRaw: string,
-  venueId: string,
+  venueId: string | null,
 ): Promise<{ event: RemoteEvent; entrants: Array<RemoteSignupBody & { id: string }> } | { error: string }> {
   const blocked = durableDb();
   if (blocked) return { error: blocked };
   const code = normalizeSignupCode(codeRaw);
   await ensureTables();
   const row = await eventRow(code);
-  if (!row || ownerOf(row) !== venueId) return { error: "No sign-up with that code." };
+  if (!row || (venueId !== null && ownerOf(row) !== venueId)) return { error: "No sign-up with that code." };
   const event = await toEvent(row);
   if (!event) return { error: "No sign-up with that code." };
   const sql = await getSignupSql();
