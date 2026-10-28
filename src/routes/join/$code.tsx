@@ -19,6 +19,7 @@ type RemoteCard = {
   count: number;
   bestOf: 1 | 3 | 5 | 7;
   bracketType: "single" | "double" | "swiss";
+  closesAt: string | null;
 };
 
 function JoinCode() {
@@ -50,6 +51,7 @@ function JoinCode() {
           count: Number(data.event.count ?? 0),
           bestOf: best === 1 || best === 5 || best === 7 ? best : 3,
           bracketType: bracket === "double" || bracket === "swiss" ? bracket : "single",
+          closesAt: typeof data.event.closesAt === "string" ? data.event.closesAt : null,
         });
       })
       .catch((err: unknown) => {

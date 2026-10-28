@@ -15,6 +15,22 @@ function codeKey(gameId: GameId): string {
   return `rok.signup.code.${gameId}`;
 }
 
+function closesKey(gameId: GameId): string {
+  return `rok.signup.closes.${gameId}`;
+}
+
+function formatClose(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function codeForGame(gameId: GameId): string {
   const own = localStorage.getItem(codeKey(gameId));
   if (own) return normalizeSignupCode(own);
@@ -50,6 +66,7 @@ export function RemoteSignupPanel({
   const [host, setHost] = useState(PUBLIC_SIGNUP_ORIGIN);
   const [secret, setSecret] = useState("");
   const [code, setCode] = useState("");
+  const [closesAt, setClosesAt] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<"open" | "pull" | "close" | "mint" | null>(null);
@@ -58,6 +75,7 @@ export function RemoteSignupPanel({
     setHost(localStorage.getItem(HOST_KEY) || PUBLIC_SIGNUP_ORIGIN);
     setSecret(localStorage.getItem(SECRET_KEY) || "");
     setCode(codeForGame(gameId));
+    setClosesAt(localStorage.getItem(closesKey(gameId)) || "");
     setNote("");
     setError("");
   }, [gameId]);
@@ -121,6 +139,15 @@ export function RemoteSignupPanel({
       setError("Create a venue key, or paste the one this store already uses.");
       return;
     }
+    let closesIso = "";
+    if (closesAt.trim()) {
+      const when = new Date(closesAt);
+      if (Number.isNaN(when.getTime()) || when.getTime() <= Date.now()) {
+        setError("The close time has to be in the future.");
+        return;
+      }
+      closesIso = when.toISOString();
+    }
     setBusy("open");
     setError("");
     setNote("");
@@ -137,12 +164,14 @@ export function RemoteSignupPanel({
           requireDecklist,
           bestOf,
           bracketType,
+          closesAt: closesIso,
         }),
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error || "Could not open sign-up.");
       save({ code: cleaned });
-      setNote("Sign-up is open. Send the link.");
+      localStorage.setItem(closesKey(gameId), closesAt);
+      setNote(closesIso ? `Sign-up is open until ${formatClose(closesIso)}. Send the link.` : "Sign-up is open. Send the link. It stays open until you close it.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not reach the public host.");
     } finally {
@@ -256,6 +285,18 @@ export function RemoteSignupPanel({
         <Button type="button" variant="outline" onClick={() => save({ code: makeSignupCode() })}>
           New code
         </Button>
+        <label className="grid gap-1 text-xs text-muted sm:col-span-2">
+          Closes
+          <Input
+            type="datetime-local"
+            value={closesAt}
+            onChange={(e) => {
+              setClosesAt(e.target.value);
+              localStorage.setItem(closesKey(gameId), e.target.value);
+            }}
+          />
+          <span>Leave this blank to keep sign-up open until you close it. The time is this computer's clock.</span>
+        </label>
       </div>
       {link ? <p className="truncate font-mono text-xs text-fg">{link}</p> : null}
       <div className="flex flex-wrap gap-2">

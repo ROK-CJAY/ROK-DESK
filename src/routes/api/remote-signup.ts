@@ -73,6 +73,7 @@ export const Route = createFileRoute("/api/remote-signup")({
             bestOf: Number(body.bestOf ?? 3),
             bracketType: String(body.bracketType ?? "swiss"),
             venueId: venue.id,
+            closesAt: body.closesAt,
           });
           if ("error" in opened) return json(opened, 400);
           return json({ event: opened });

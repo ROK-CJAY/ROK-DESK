@@ -27,6 +27,7 @@ export type RemoteSignupCard = {
   count: number;
   bestOf: 1 | 3 | 5 | 7;
   bracketType: "single" | "double" | "swiss";
+  closesAt?: string | null;
 };
 
 export function SignupKiosk({ gameId: pinnedGame, remote }: { gameId?: GameId; remote?: RemoteSignupCard } = {}) {
@@ -177,6 +178,9 @@ export function SignupKiosk({ gameId: pinnedGame, remote }: { gameId?: GameId; r
             · {game.short} · {t.formatName}
           </span>
         </p>
+        {remote?.closesAt && !closed ? (
+          <p className="mt-1 text-sm text-muted">Closes {new Date(remote.closesAt).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</p>
+        ) : null}
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">

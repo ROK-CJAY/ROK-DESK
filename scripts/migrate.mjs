@@ -41,6 +41,7 @@ if (publicHost) {
       )
     `);
     await client.query(`alter table remote_signup_events add column if not exists venue_id text not null default ''`);
+    await client.query(`alter table remote_signup_events add column if not exists closes_at timestamptz`);
     await client.query(`
       create table if not exists remote_signups (
         id text primary key,

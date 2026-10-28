@@ -93,6 +93,7 @@ export type RemoteEvent = {
   bracketType: "single" | "double" | "swiss";
   open: boolean;
   count: number;
+  closesAt: string | null;
 };
 
 type EventRow = {
@@ -105,6 +106,7 @@ type EventRow = {
   bracket_type: string;
   is_open: boolean;
   venue_id: string;
+  closes_at: string | Date | null;
 };
 
 let tablesReady: Promise<void> | null = null;
@@ -126,6 +128,7 @@ function ensureTables(): Promise<void> {
       )
     `);
     await sql.query(`alter table remote_signup_events add column if not exists venue_id text not null default ''`);
+    await sql.query(`alter table remote_signup_events add column if not exists closes_at timestamptz`);
     await sql.query(`
       create table if not exists remote_signups (
         id text primary key,
@@ -162,9 +165,31 @@ function asBracket(value: string): "single" | "double" | "swiss" {
   return value === "double" || value === "swiss" ? value : "single";
 }
 
+function closesAtIso(value: string | Date | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
+function stillOpen(row: EventRow): boolean {
+  if (!row.is_open) return false;
+  const closes = closesAtIso(row.closes_at);
+  if (!closes) return true;
+  return new Date(closes).getTime() > Date.now();
+}
+
+function parseClosesAt(value: unknown): { at: string | null } | { error: string } {
+  if (value == null || String(value).trim() === "") return { at: null };
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return { error: "That close time is not valid." };
+  if (date.getTime() <= Date.now() + 30_000) return { error: "The close time has to be in the future." };
+  return { at: date.toISOString() };
+}
+
 async function eventRow(code: string): Promise<EventRow | null> {
   const sql = await getSignupSql();
-  const rows = await sql<EventRow>`select code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id from remote_signup_events where code = ${code}`;
+  const rows = await sql<EventRow>`select code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id, closes_at from remote_signup_events where code = ${code}`;
   return rows[0] ?? null;
 }
 
@@ -180,8 +205,9 @@ async function toEvent(row: EventRow): Promise<RemoteEvent | null> {
     requireDecklist: Boolean(row.require_decklist),
     bestOf: asBestOf(Number(row.best_of)),
     bracketType: asBracket(row.bracket_type),
-    open: Boolean(row.is_open),
+    open: stillOpen(row),
     count: Number(counts[0]?.n ?? 0),
+    closesAt: closesAtIso(row.closes_at),
   };
 }
 
@@ -198,6 +224,7 @@ export async function openRemoteEvent(input: {
   bestOf: number;
   bracketType: string;
   venueId: string;
+  closesAt?: unknown;
 }): Promise<RemoteEvent | { error: string }> {
   const blocked = durableDb();
   if (blocked) return { error: blocked };
@@ -208,6 +235,8 @@ export async function openRemoteEvent(input: {
   if (!gameId) return { error: "Unknown game." };
   const title = input.title.trim().slice(0, 80) || "ROK event";
   const formatName = input.formatName.trim().slice(0, 80) || "Swiss";
+  const closes = parseClosesAt(input.closesAt);
+  if ("error" in closes) return closes;
   await ensureTables();
   const existing = await eventRow(code);
   if (existing && existing.game_id !== gameId) {
@@ -218,8 +247,8 @@ export async function openRemoteEvent(input: {
   }
   const sql = await getSignupSql();
   await sql`
-    insert into remote_signup_events (code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id)
-    values (${code}, ${gameId}, ${title}, ${formatName}, ${input.requireDecklist}, ${asBestOf(input.bestOf)}, ${asBracket(input.bracketType)}, ${true}, ${input.venueId})
+    insert into remote_signup_events (code, game_id, title, format_name, require_decklist, best_of, bracket_type, is_open, venue_id, closes_at)
+    values (${code}, ${gameId}, ${title}, ${formatName}, ${input.requireDecklist}, ${asBestOf(input.bestOf)}, ${asBracket(input.bracketType)}, ${true}, ${input.venueId}, ${closes.at})
     on conflict (code) do update set
       title = excluded.title,
       format_name = excluded.format_name,
@@ -227,7 +256,8 @@ export async function openRemoteEvent(input: {
       best_of = excluded.best_of,
       bracket_type = excluded.bracket_type,
       is_open = true,
-      venue_id = excluded.venue_id
+      venue_id = excluded.venue_id,
+      closes_at = excluded.closes_at
     where remote_signup_events.venue_id = excluded.venue_id
       or (remote_signup_events.venue_id = '' and excluded.venue_id = ${HOST_VENUE})
   `;
@@ -247,7 +277,7 @@ export async function closeRemoteEvent(codeRaw: string, venueId: string): Promis
   const row = await eventRow(code);
   if (!row || ownerOf(row) !== venueId) return { error: "No sign-up with that code." };
   const sql = await getSignupSql();
-  await sql`update remote_signup_events set is_open = ${false} where code = ${code}`;
+  await sql`update remote_signup_events set is_open = ${false}, closes_at = null where code = ${code}`;
   return { ok: true };
 }
 
@@ -271,7 +301,7 @@ export async function submitRemoteSignup(
   await ensureTables();
   const row = await eventRow(code);
   if (!row || !isGameId(row.game_id)) return { error: "That sign-up code is not open.", status: 404 };
-  if (!row.is_open) return { error: "Registration is closed.", status: 409 };
+  if (!stillOpen(row)) return { error: "Registration is closed.", status: 409 };
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) return { error: "Name is required", status: 400 };
   const gameId = row.game_id;
