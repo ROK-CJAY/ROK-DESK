@@ -16,3 +16,20 @@ export function signupLink(origin: string, code: string): string {
   const host = origin.trim().replace(/\/+$/, "");
   return `${host}/join/${normalizeSignupCode(code)}`;
 }
+
+/** A code, or a full /join/CODE link. A link also returns the site it came from. */
+export function parseSignupTarget(raw: string): { host?: string; code: string } {
+  const trimmed = raw.trim();
+  if (/^https?:\/\//i.test(trimmed) || /\/join\//i.test(trimmed)) {
+    try {
+      const url = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+      const parts = url.pathname.split("/").filter(Boolean);
+      const join = parts.findIndex((part) => part.toLowerCase() === "join");
+      const code = join >= 0 ? parts[join + 1] ?? "" : "";
+      return { host: url.origin, code: normalizeSignupCode(code) };
+    } catch {
+      return { code: "" };
+    }
+  }
+  return { code: normalizeSignupCode(trimmed) };
+}

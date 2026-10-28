@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Copy, Download, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { makeSignupCode, normalizeSignupCode, PUBLIC_SIGNUP_ORIGIN, signupLink } from "@/lib/remote-signup-code";
+import { makeSignupCode, normalizeSignupCode, parseSignupTarget, PUBLIC_SIGNUP_ORIGIN, signupLink } from "@/lib/remote-signup-code";
 import { playAgeDivisionOf, type GameId } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
 import type { Entrant } from "@/lib/tournament-types";
@@ -74,9 +74,13 @@ export function RemoteSignupPanel({
       localStorage.setItem(SECRET_KEY, next.secret);
     }
     if (next.code !== undefined) {
-      const cleaned = normalizeSignupCode(next.code);
-      setCode(cleaned);
-      localStorage.setItem(codeKey(gameId), cleaned);
+      const parsed = parseSignupTarget(next.code);
+      if (parsed.host) {
+        setHost(parsed.host);
+        localStorage.setItem(HOST_KEY, parsed.host);
+      }
+      setCode(parsed.code);
+      if (parsed.code.length >= 4) localStorage.setItem(codeKey(gameId), parsed.code);
     }
   };
 
@@ -187,9 +191,13 @@ export function RemoteSignupPanel({
       );
       const data = (await res.json()) as {
         error?: string;
+        event?: { gameId?: string };
         entrants?: Array<Partial<Entrant> & { id: string }>;
       };
       if (!res.ok) throw new Error(data.error || "Could not pull sign-ups.");
+      if (data.event?.gameId && data.event.gameId !== gameId) {
+        throw new Error("That sign-up belongs to another game. Open that game, then pull.");
+      }
       const have = new Set(entrants.map((row) => row.judgeNote));
       let added = 0;
       for (const row of data.entrants ?? []) {
@@ -232,7 +240,9 @@ export function RemoteSignupPanel({
     <div className="mt-3 grid gap-2 rounded-lg border border-border bg-surface-2 p-3">
       <p className="font-mono text-[0.62rem] tracking-[0.16em] text-muted uppercase">Public sign-up</p>
       <p className="text-xs text-muted">
-        This link is only for {title}. Each game keeps its own code. Each store uses its own venue key, so another desk cannot pull this list.
+        {title ? `This list is only for ${title}. ` : ""}
+        Leave it open. This desk remembers the venue key and the code, so come back to this game and click Pull entrants.
+        On another computer, paste the venue key and the sign-up link, then pull. Each store's key only opens its own list.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Input value={host} onChange={(e) => save({ host: e.target.value })} placeholder="https://rok-desk.vercel.app" />
@@ -243,7 +253,7 @@ export function RemoteSignupPanel({
           type="password"
           autoComplete="off"
         />
-        <Input value={code} onChange={(e) => save({ code: e.target.value })} placeholder="Event code" className="font-mono tracking-widest" />
+        <Input value={code} onChange={(e) => save({ code: e.target.value })} placeholder="Event code or sign-up link" className="font-mono tracking-widest" />
         <Button type="button" variant="outline" onClick={() => save({ code: makeSignupCode() })}>
           New code
         </Button>
