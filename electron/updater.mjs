@@ -90,7 +90,9 @@ async function fetchGithubStatus() {
       return { status: "error", current, url: RELEASES_URL, message: `GitHub ${res.status}` };
     }
     const rows = await res.json();
-    const release = Array.isArray(rows) ? rows.find((row) => row && !row.draft && row.tag_name) : null;
+    const release = Array.isArray(rows)
+      ? rows.find((row) => row && !row.draft && !row.prerelease && row.tag_name)
+      : null;
     const latest = release ? normalizeVersion(release.tag_name) : "";
     if (!latest) {
       return { status: "error", current, url: RELEASES_URL, message: "No GitHub release found." };

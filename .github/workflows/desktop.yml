@@ -46,6 +46,8 @@ jobs:
             release/*.blockmap
           fail_on_unmatched_files: false
           overwrite_files: true
+          prerelease: ${{ contains(github.ref_name, '-preview') }}
+          make_latest: ${{ contains(github.ref_name, '-preview') && 'false' || 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Manual runs only: a few installer files, 1-day retention. Never upload unpacked Electron trees.
