@@ -143,6 +143,96 @@ function isHttpUrl(url) {
   return typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"));
 }
 
+let deskOrigin = "http://127.0.0.1:8080";
+let chooserWindow = null;
+
+function connectionPath() {
+  return path.join(deskDataRoot(), "connection.json");
+}
+
+function readConnection() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(connectionPath(), "utf8"));
+    if (raw?.mode === "host") return { mode: "host", origin: "" };
+    if (raw?.mode === "client" && typeof raw.origin === "string" && raw.origin) {
+      return { mode: "client", origin: raw.origin };
+    }
+  } catch {
+    /* first launch */
+  }
+  return null;
+}
+
+function writeConnection(next) {
+  fs.mkdirSync(deskDataRoot(), { recursive: true });
+  fs.writeFileSync(connectionPath(), JSON.stringify(next));
+}
+
+function clearConnection() {
+  try {
+    fs.unlinkSync(connectionPath());
+  } catch {
+    /* already clear */
+  }
+}
+
+function normalizeHost(raw) {
+  let text = String(raw || "").trim();
+  if (!text) return "";
+  if (!/^https?:\/\//i.test(text)) text = `http://${text}`;
+  try {
+    const url = new URL(text);
+    if (!url.hostname) return "";
+    if (!url.port && url.protocol === "http:") url.port = "8080";
+    return url.origin;
+  } catch {
+    return "";
+  }
+}
+
+function isDeskUrl(url) {
+  try {
+    return new URL(url).origin === new URL(deskOrigin).origin;
+  } catch {
+    return false;
+  }
+}
+
+function restartApp() {
+  app.relaunch();
+  app.exit(0);
+}
+
+function showChooser(prefill = "", message = "") {
+  if (chooserWindow && !chooserWindow.isDestroyed()) {
+    chooserWindow.focus();
+    return;
+  }
+  chooserWindow = new BrowserWindow({
+    width: 560,
+    height: 560,
+    resizable: false,
+    maximizable: false,
+    title: "ROK Desk",
+    backgroundColor: "#0b0d12",
+    autoHideMenuBar: true,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+  chooserWindow.once("ready-to-show", () => chooserWindow?.show());
+  chooserWindow.on("closed", () => {
+    chooserWindow = null;
+  });
+  void chooserWindow.loadFile(path.join(__dirname, "connect.html"), {
+    query: { address: prefill, error: message },
+  });
+}
+
 function offsetFromFocused() {
   const focused = BrowserWindow.getFocusedWindow();
   if (!focused) return {};
@@ -315,7 +405,7 @@ function wireBrowserView(win) {
   });
 }
 
-async function createWindow(port, route = "/", { offset = false } = {}) {
+async function createWindow(route = "/", { offset = false } = {}) {
   const pos = offset ? offsetFromFocused() : {};
   const win = new BrowserWindow({
     width: 1440,
@@ -343,9 +433,9 @@ async function createWindow(port, route = "/", { offset = false } = {}) {
   });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost")) {
+    if (isDeskUrl(url)) {
       if (url.includes("/browser")) {
-        void createWindow(port, "/browser", { offset: true });
+        void createWindow("/browser", { offset: true });
         return { action: "deny" };
       }
       return { action: "allow" };
@@ -358,21 +448,45 @@ async function createWindow(port, route = "/", { offset = false } = {}) {
     return { action: "deny" };
   });
   win.webContents.on("will-navigate", (event, url) => {
-    if (url.startsWith("http://127.0.0.1") || url.startsWith("http://localhost")) return;
+    if (isDeskUrl(url)) return;
     event.preventDefault();
     openExternal(url);
   });
 
   wireBrowserView(win);
   const pathName = route.startsWith("/") ? route : `/${route}`;
-  await win.loadURL(`http://127.0.0.1:${port}${pathName}`);
+  await win.loadURL(`${deskOrigin}${pathName}`);
   return win;
 }
 
 async function openBrowserWindow(go) {
-  const pathName =
-    isHttpUrl(go) ? `/browser?go=${encodeURIComponent(go)}` : "/browser";
-  return createWindow(servingPort, pathName, { offset: true });
+  const pathName = isHttpUrl(go) ? `/browser?go=${encodeURIComponent(go)}` : "/browser";
+  return createWindow(pathName, { offset: true });
+}
+
+async function bootDesk() {
+  const saved = readConnection();
+  if (!saved) {
+    showChooser();
+    return;
+  }
+  if (saved.mode === "client") {
+    deskOrigin = saved.origin;
+    try {
+      await waitForHttp(`${deskOrigin}/`, 40);
+    } catch {
+      showChooser(saved.origin.replace(/^https?:\/\//, ""), "That host did not answer. Is ROK Desk running there?");
+      return;
+    }
+    await createWindow("/");
+    return;
+  }
+  const port = await pickPort(DEFAULT_PORT);
+  servingPort = port;
+  deskOrigin = `http://127.0.0.1:${port}`;
+  await startServer(port);
+  await waitForHttp(`${deskOrigin}/`);
+  await createWindow("/");
 }
 
 app.setName("ROK Desk");
@@ -437,6 +551,34 @@ if (!gotLock) {
       void shell.openPath(deskDataRoot());
       return true;
     });
+    ipcMain.handle("rok:connection-info", () => {
+      const saved = readConnection();
+      if (!saved) return null;
+      if (saved.mode === "host") return { mode: "host", origin: deskOrigin };
+      return saved;
+    });
+    ipcMain.handle("rok:become-host", () => {
+      writeConnection({ mode: "host" });
+      restartApp();
+      return true;
+    });
+    ipcMain.handle("rok:connect-host", async (_event, raw) => {
+      const origin = normalizeHost(raw);
+      if (!origin) return { ok: false, error: "Enter the host address." };
+      try {
+        await waitForHttp(`${origin}/`, 40);
+      } catch {
+        return { ok: false, error: "That host did not answer. Is ROK Desk running there?" };
+      }
+      writeConnection({ mode: "client", origin });
+      restartApp();
+      return { ok: true };
+    });
+    ipcMain.handle("rok:choose-connection", () => {
+      clearConnection();
+      restartApp();
+      return true;
+    });
     initUpdater();
     ipcMain.handle("rok:browser-new-window", async (_event, url) => {
       await openBrowserWindow(isHttpUrl(url) ? url : "");
@@ -449,11 +591,7 @@ if (!gotLock) {
       saveSettings({ zoom: next });
       return next;
     });
-    const port = await pickPort(DEFAULT_PORT);
-    servingPort = port;
-    await startServer(port);
-    await waitForHttp(`http://127.0.0.1:${port}/`);
-    await createWindow(port);
+    await bootDesk();
   }).catch((err) => {
     console.error(err);
     app.quit();

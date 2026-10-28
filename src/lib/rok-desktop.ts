@@ -54,6 +54,10 @@ export type ClearDataOpts = {
 
 export type RokDeskBridge = {
   desktop: true;
+  becomeHost?: () => Promise<boolean>;
+  connectHost?: (address: string) => Promise<{ ok: boolean; error?: string }>;
+  connectionInfo?: () => Promise<{ mode: "host" | "client"; origin: string } | null>;
+  chooseConnection?: () => Promise<boolean>;
   browserAttach: (bounds: BrowserBounds) => void;
   browserDetach: () => void;
   browserLoad: (url: string, opts?: { restore?: boolean }) => void;

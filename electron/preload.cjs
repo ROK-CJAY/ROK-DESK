@@ -2,6 +2,10 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("rokDesk", {
   desktop: true,
+  becomeHost: () => ipcRenderer.invoke("rok:become-host"),
+  connectHost: (address) => ipcRenderer.invoke("rok:connect-host", address),
+  connectionInfo: () => ipcRenderer.invoke("rok:connection-info"),
+  chooseConnection: () => ipcRenderer.invoke("rok:choose-connection"),
   browserAttach: (bounds) => ipcRenderer.send("rok:browser-attach", bounds),
   browserDetach: () => ipcRenderer.send("rok:browser-detach"),
   browserLoad: (url, opts) => ipcRenderer.send("rok:browser-load", url, opts || {}),

@@ -1,10 +1,35 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Gamepad2, Layers } from "lucide-react";
 import { SupportButtons } from "@/components/app/support-links";
 import { UpdateBadge } from "@/components/app/update-badge";
 import { cn } from "@/lib/cn";
 import { useDeskStore } from "@/lib/desk-store";
+import { rokDesktop } from "@/lib/rok-desktop";
 import { streamChannelLine, streamChannelUrl, streamChannelsOf } from "@/lib/stream-channel";
+
+function ConnectionSwitch() {
+  const desktop = typeof window !== "undefined" ? rokDesktop() : null;
+  const [label, setLabel] = useState("");
+  useEffect(() => {
+    if (!desktop?.connectionInfo) return;
+    void desktop.connectionInfo().then((info) => {
+      if (!info) return;
+      setLabel(info.mode === "client" ? info.origin.replace(/^https?:\/\//, "") : "This PC is the host");
+    });
+  }, [desktop]);
+  if (!label || !desktop?.chooseConnection) return null;
+  return (
+    <button
+      type="button"
+      className="text-xs text-muted hover:text-fg"
+      title="Ask again whether this PC is the host"
+      onClick={() => void desktop.chooseConnection?.()}
+    >
+      {label}
+    </button>
+  );
+}
 
 export function AppChrome({
   view,
@@ -74,6 +99,7 @@ export function AppChrome({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {trailing}
+            <ConnectionSwitch />
             <SupportButtons />
           </div>
         </div>
