@@ -7,6 +7,7 @@ import { refreshStartggLogin } from "@/lib/startgg-oauth";
 
 const LIVE = "to-live";
 const BOARD = "to-board";
+const BEST = "to-bestof";
 const BOARD_MS = 8000;
 
 type ToLive = { slug: string; token: string; refreshToken: string; expiresAt: number };
@@ -127,6 +128,36 @@ function setOnStation(sets: ToSet[], stationId: string, streamId = "") {
   return rows.find((set) => set.state === 6) ?? rows.find((set) => set.state === 2) ?? rows[0] ?? null;
 }
 
+function asBestOf(value: number): 1 | 3 | 5 | 7 {
+  return value === 1 || value === 5 || value === 7 ? value : 3;
+}
+
+async function readBestOf(): Promise<Record<string, number>> {
+  const sql = await table();
+  const rows = await sql<{ payload: string }>`select payload from fgc_state where id = ${BEST}`;
+  if (!rows[0]) return {};
+  try {
+    const parsed = JSON.parse(rows[0].payload) as Record<string, number>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+export async function saveStationBestOf(setId: string, bestOf: number) {
+  const id = setId.trim();
+  if (!id) return;
+  const saved = await readBestOf();
+  const entries = Object.entries({ ...saved, [id]: asBestOf(bestOf) }).slice(-200);
+  const payload = JSON.stringify(Object.fromEntries(entries));
+  const sql = await table();
+  await sql`
+    insert into fgc_state (id, payload, updated_at)
+    values (${BEST}, ${payload}, CURRENT_TIMESTAMP)
+    on conflict (id) do update set payload = ${payload}, updated_at = CURRENT_TIMESTAMP
+  `;
+}
+
 function strikeRuleset(fgc: FgcState, stageNames: string[]): { ruleset: FgcRuleset | null; fallback: boolean } {
   const active = fgc.rulesets.find((item) => item.id === fgc.activeRulesetId) ?? fgc.rulesets[0] ?? null;
   if (active && (active.neutralStages.length || active.counterpickStages.length)) return { ruleset: active, fallback: false };
@@ -160,6 +191,8 @@ export async function stationView(stationId: string, requestUrl: string): Promis
   const { ruleset, fallback } = strikeRuleset(fgc, names);
   const listed = [...(ruleset?.neutralStages ?? []), ...(ruleset?.counterpickStages ?? [])];
   const set = setOnStation(board.sets, station?.id || spot.id, stream?.id || station?.streamId || "");
+  const chosen = set ? (await readBestOf())[set.id] : 0;
+  const bestOf = chosen === 1 || chosen === 3 || chosen === 5 || chosen === 7 ? chosen : set?.bestOf || 3;
   return {
     station: { id: spot.id, name: spot.name },
     set: set
@@ -167,7 +200,7 @@ export async function stationView(stationId: string, requestUrl: string): Promis
           id: set.id,
           phase: set.phase,
           round: set.round,
-          bestOf: set.bestOf || 3,
+          bestOf,
           p1: { id: set.p1.id, name: set.p1.name },
           p2: { id: set.p2.id, name: set.p2.name },
         }

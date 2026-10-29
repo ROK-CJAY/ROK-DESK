@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
-import { bindLive, clearLive, reportStation, stationView } from "@/lib/fgc-station";
+import { bindLive, clearLive, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
 
 export const Route = createFileRoute("/api/startgg")({
   server: {
@@ -32,6 +32,7 @@ export const Route = createFileRoute("/api/startgg")({
           character1?: string;
           character2?: string;
           dq?: boolean;
+          bestOf?: number;
           games?: { winnerId?: string; stage?: string; stageId?: string }[];
         };
         try {
@@ -92,6 +93,7 @@ export const Route = createFileRoute("/api/startgg")({
             if (body.action === "call-station" && body.stationId) {
               await stationToSet(token, body.setId, body.stationId);
               await callToSet(token, body.setId);
+              if (body.bestOf) await saveStationBestOf(body.setId, Number(body.bestOf));
             }
             if (body.action === "report" && body.winnerId) {
               const named = body.games ?? [];

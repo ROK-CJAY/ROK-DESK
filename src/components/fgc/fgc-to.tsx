@@ -373,6 +373,8 @@ function StationFloor({
   const [queuedSet, setQueuedSet] = useState("");
   const [sendStation, setSendStation] = useState("");
   const [sendStream, setSendStream] = useState("");
+  const [stationBest, setStationBest] = useState<1 | 3 | 5 | 7>(3);
+  const [cardBest, setCardBest] = useState<1 | 3 | 5 | 7>(3);
   const [qr, setQr] = useState("");
   const origin = useTabletOrigin();
   const set = board.sets.find((item) => item.id === picked) ?? null;
@@ -382,7 +384,9 @@ function StationFloor({
   useEffect(() => {
     setSendStation(set?.stationId ?? "");
     setSendStream(set?.streamId ?? "");
-  }, [set?.id, set?.stationId, set?.streamId]);
+    const value = set?.bestOf;
+    setCardBest(value === 1 || value === 5 || value === 7 ? value : 3);
+  }, [set?.id, set?.stationId, set?.streamId, set?.bestOf]);
   const called = !!set && !set.winnerId && (set.state === 2 || set.state === 6);
   const place = called ? [set.station, set.stream].filter((item) => item && item !== "Station").join(" · ") : "";
 
@@ -393,6 +397,13 @@ function StationFloor({
     : streamSpot
       ? { id: streamSpot.stationId || streamSpot.id, name: streamSpot.name, stationId: streamSpot.stationId, streamId: streamSpot.id }
       : null;
+  useEffect(() => {
+    const row = board.sets.find((item) => item.id === queuedSet);
+    const value = row?.bestOf;
+    setStationBest(value === 1 || value === 5 || value === 7 ? value : 3);
+    // Only the chosen set should reset the best-of. A board refresh must not wipe the choice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedSet]);
   const stationSets = board.sets.filter((item) => {
     if (item.state === 3 || item.p1.name === "TBD" || item.p2.name === "TBD") return false;
     const needle = stationQuery.trim().toLowerCase();
@@ -519,7 +530,13 @@ function StationFloor({
                       return <option key={item.id} value={item.id}>{item.name}{taken ? " · in use" : " · open"}</option>;
                     })}
                   </select>
-                  <Button size="sm" variant="secondary" disabled={!sendStation || busy.startsWith(set.id)} onClick={() => void onAct(set, "call-station", { stationId: sendStation })}>Send</Button>
+                  <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={cardBest} onChange={(event) => setCardBest(Number(event.target.value) as 1 | 3 | 5 | 7)} aria-label="Best of">
+                    <option value={1}>Bo1</option>
+                    <option value={3}>Bo3</option>
+                    <option value={5}>Bo5</option>
+                    <option value={7}>Bo7</option>
+                  </select>
+                  <Button size="sm" variant="secondary" disabled={!sendStation || busy.startsWith(set.id)} onClick={() => void onAct(set, "call-station", { stationId: sendStation, bestOf: cardBest })}>Send</Button>
                 </span>
               </label>
               <label className="grid gap-1 text-xs text-muted">
@@ -612,6 +629,17 @@ function StationFloor({
               ))}
               {stationSets.length === 0 ? <p className="text-sm text-muted">No open sets match.</p> : null}
             </div>
+            {spot.streamId ? null : (
+              <label className="grid gap-1 text-xs text-muted">
+                Best of
+                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={stationBest} onChange={(event) => setStationBest(Number(event.target.value) as 1 | 3 | 5 | 7)}>
+                  <option value={1}>Best of 1</option>
+                  <option value={3}>Best of 3</option>
+                  <option value={5}>Best of 5</option>
+                  <option value={7}>Best of 7</option>
+                </select>
+              </label>
+            )}
             <label className="grid gap-1 text-xs text-muted">
               Stream
               <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={sendStream} onChange={(event) => setSendStream(event.target.value)}>
@@ -628,7 +656,7 @@ function StationFloor({
                   if (!next) return;
                   setStationId("");
                   if (spot.streamId) void onAct(next, "call-stream", { streamId: spot.streamId, stationId: spot.stationId });
-                  else void onAct(next, "call-station", { stationId: spot.stationId });
+                  else void onAct(next, "call-station", { stationId: spot.stationId, bestOf: stationBest });
                 }}
               >
                 Send to {spot.name}
