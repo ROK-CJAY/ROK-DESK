@@ -1,31 +1,12 @@
 # ROK Desk
 
-**v1.5.0** — broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
+Broadcast production desk for [ROK Esports](https://github.com/ROK-CJAY/ROK-DESK).
 
-ROK Desk is the control room for a live TCG / VGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor iPads report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
+ROK Desk is the control room for a live TCG / VGC / FGC event. One host machine runs the **tournament** (roster, pairings, floor clock) and the **broadcast** (scorebug, cameras, casters, look) from the same event data. Floor tablets report scores. OBS / vMix pull 1920×1080 transparent browser sources. Players check in on a walk-up kiosk.
 
 It is built for a venue with a stream: a TO laptop, a production PC, tablets on feature tables, and a monitor showing the room clock.
 
 ROK Desk is **free and in beta**. If it saves you a night, [donate via PayPal](https://www.paypal.com/donate/?hosted_button_id=XM6K2Y4MXJZC4). See **[License](#license)** for venue / personal-use terms.
-
-
-Version history: **[CHANGELOG.md](./CHANGELOG.md)**.
-
-### FGC log in with start.gg
-
-Tournament Control can log a TO into their own start.gg account. The app secret stays on the public host. It is not in the GitHub release, and players do not paste an API token.
-
-On [start.gg developer settings](https://www.start.gg/admin/profile/developer), create an OAuth app. Set the redirect URI to exactly:
-
-`https://rok-desk.vercel.app/api/startgg-oauth/callback`
-
-On the Vercel project, set:
-
-- `STARTGG_CLIENT_ID`
-- `STARTGG_CLIENT_SECRET`
-- `STARTGG_REDIRECT_URI` = `https://rok-desk.vercel.app/api/startgg-oauth/callback`
-
-Scopes the login asks for: `user.identity`, `tournament.manager`, `tournament.reporter`. Each person only sees upcoming events that account is allowed to run.
 
 ---
 
@@ -33,364 +14,174 @@ Scopes the login asks for: `user.identity`, `tournament.manager`, `tournament.re
 
 On a typical show:
 
-1. **Tournament Organizer** names the event, picks the game and format, and takes the field — typed in, imported from walk-up sign-up, or loaded as an 8-player test roster.
-2. Pairings go out as **single elim**, **double elim**, or **Swiss** (optional **top cut** into single or double elim). Staff, player IDs, and VGC team sheets stay on this side for the archive — they never hit the overlay.
-3. A ready pairing is **sent** onto **Stream Match**, **Floor Match 1**, or **Floor Match 2**. Production receives names, decks, inks, and teams.
-4. **Production Control** drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
-5. **Judge tablets** sit with the table. They punch Game / Match, bump the resource, search a card onto the stream, and share **that table’s match clock**. PTCG judges also run the Play Layout board (Active / bench, Energy / Supporter / Retreat, Swap / KO). A **player tablet** is available for Commander, Lorcana, and YGO.
-6. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**, which is a separate timer from the feature match.
+1. **Tournament Organizer** (`/tournament`) names the event, picks the game and format, and takes the field — typed in, imported from walk-up sign-up, or loaded as an 8-player test roster.
+2. Pairings go out as **single elim**, **double elim**, or **Swiss** (optional **top cut**). A ready pairing is **sent** onto **Stream Match**, **Floor Match 1**, or **Floor Match 2**.
+3. **Production Control** (`/production`) drives the featured table: games, life / lore / prizes, the stream clock, casters, slates, and overlay look.
+4. **Judge tablets** sit with the table, report Game / Match, and share **that table’s match clock**.
+5. OBS / vMix key the **per-game, per-table** overlay URLs. The rest of the room watches the **floor clock**.
 
-Two TCG (or VGC) tables plus a stream can run on **one host**. **PTCG and VGC each run Masters, Seniors, and Juniors** as three titles on that same host — each with its own roster, kiosk, Stream / Floor 1 / Floor 2, and overlays. Two *different sports* at once (PTCG on one side of the hall, Commander on the other) still means two hosts if you want two TOs working the floor at the same time; one host can still switch between saved titles.
+### Tournament side
 
----
+- Bracket: single elim, double elim, Swiss with top cut (Top 4 / 6 / 8 / 16 / 32 or custom). Size 4–32 or custom 2–128; elim pads with byes
+- **Preview** pairings before Start; drag the roster to reshuffle
+- Swiss standings with OMW%, game-win%, opponents’ game-win%, plus a **Tiebreakers** panel. **Reopen** a result that needs a fix
+- Roster per title: name, handle, country, pronouns, deck / commander, organized-play **Player ID** (never on stream), optional **decklists** (PTCGL / Limitless text or links for PTCG), Lorcana inks, Commander + Partner (Scryfall), full VGC team sheet
+- Staff roles and judge notes for the archive
+- **Export tournament** (zip of JSON + CSVs) and **Import JSON** to bring a past event back
+- **TOM (PTCG and VGC)** — Export TDF for TOM, drop a `.tdf` roster, or **Watch TOM reports folder** so pairings / standings import as TOM writes them
+- Print the VGC team list and PTCG deck list in-app, or fill the **Official PDF** from sign-up
+- **Walk-up signup** kiosk at `/{game}/signup` — fields follow the game: deck / leader / commander, Lorcana inks, VGC team (six Pokémon), decklist when the TO turns on **Request decklist**, and Player ID with a privacy checkbox. PTCG / VGC kiosks lock **Masters / Seniors / Juniors** to the URL. A public sign-up link can be sent out, closed at a set date and time, and pulled back into the desk
+- **FGC Tournament** — a TO logs into their own start.gg account: bracket, stations, call a set to a station or stream, call / start clocks, report scores, DQ, characters, and stage
 
-## Titles
+### Broadcast side
+
+- Live match: names, game score, title resource (prizes, remaining Pokémon, LP, life, lore, base HP, points), **Game win** / **Match win** (reports into the bracket when linked), Swap and resets
+- Card search with **Show on stream**, **Show P1 / Show P2** (PTCG, YGO, OP, Lorcana), PTCG **Set Active / Bench**, MTG **Layer** for combos
+- PTCG **board** — Active + five bench, HP, Energy / Supporter / Retreat, Swap / KO
+- Show control: slates (Starting soon / BRB / Thanks / Tech), lower thirds, casters, up-next queue, scorebug style (bar / split / **ROK Layout** / **Play Layout** on VGC, PTCG, YGO, OP, Lorcana), per-overlay **look editor**
+- Branding: event logo and rotating sponsors
+- **FGC Production** — import a start.gg event or type a set in; player list, bracket tree, scoreboard with characters; start.gg ruleset presets and stage strike; TSH scoreboards, versus, bracket, top 8, and a layer editor that can import a PSD
+- **Built-in browser** (`/browser`) — Chromium inside the desk for pairings, PayPal, Scryfall, Limitless, or Pokémon DB. On desktop, cookies, logins, downloads, and print persist in a **ROK Desk Browser** folder that survives an uninstall. **Profiles** (Desk, Stream, Personal, …) isolate logins, bookmarks, and tabs. Login isolation is desktop-only
+
+### Tablets
+
+Open from Production or Tournament so the URL is pinned to that **game and match slot**.
+
+- **Judge** (`/{game}/tablet`) — this table’s match clock, Game / Match report, per-player judge notes, card lookup, PTCG board
+- **Player** (`?role=player`) — Commander, Lorcana, YGO face-out pads. Lorcana **extended** (`?role=extended`) runs a self-run table
+- **Commentary** (`?role=caster`) — read-only cheat sheet: teams / boards, bracket path, head-to-head, judge notes, staff, up next
+- **Android companion** — sideload APK, fullscreen, scans the Home QR. See [android-tablet/README.md](./android-tablet/README.md)
+
+| Game | Judge pad | Card lookup |
+| --- | --- | --- |
+| VGC | Remaining Pokémon from the team sheet (tap to KO) | — |
+| PTCG | Prize balls, Energy / Supporter / Retreat, PTCG board | pokemontcg.io (Download catalog for offline search) |
+| MTG | Life, poison, commander damage | Scryfall — Show, then Layer for a combo |
+| SWU | Base HP, initiative | SWU-DB |
+| YGO | 8000 LP, typed ticks | YGOPRODeck |
+| OP | Life circles, DON!! | Official English cards |
+| Lorcana | Lore 0–20 | Lorcast |
+| Riftbound | Points 1–8 | Riftcodex |
+
+If the pair submitted decklists, those cards sit above search so judges can pull them without retyping. Card overlay: **On Stream** is red while a card is up.
+
+### Supported games
 
 | Title | Slug | What the desk tracks |
 | --- | --- | --- |
-| Pokémon VGC · Masters | `vgc` | Remaining Pokémon from the submitted team, Bo3 games, **Play Layout**. Play! Pokémon Masters |
-| Pokémon VGC · Seniors | `vgc-seniors` | Same VGC desk as Masters, own roster / pairings / overlays |
-| Pokémon VGC · Juniors | `vgc-juniors` | Same VGC desk as Masters, own roster / pairings / overlays |
-| Pokémon TCG · Masters | `ptcg` | Prize cards, Bo3, **Play Layout** board. Play! Pokémon Masters |
-| Pokémon TCG · Seniors | `ptcg-seniors` | Same PTCG desk as Masters, own roster / pairings / overlays |
-| Pokémon TCG · Juniors | `ptcg-juniors` | Same PTCG desk as Masters, own roster / pairings / overlays |
+| Pokémon VGC · Masters / Seniors / Juniors | `vgc`, `vgc-seniors`, `vgc-juniors` | Remaining Pokémon from the team, Bo3, **Play Layout** |
+| Pokémon TCG · Masters / Seniors / Juniors | `ptcg`, `ptcg-seniors`, `ptcg-juniors` | Prize cards, Bo3, **Play Layout** board |
 | One Piece TCG | `op` | Life, DON!!, Bo1 by default, **Play Layout** |
 | Yu-Gi-Oh! | `ygo` | 8000 LP, Bo3, **Play Layout** |
 | Magic: The Gathering | `mtg` | Life, poison; Standard / Modern / Pioneer / Legacy / Pauper |
-| Commander | `edh` | Life, poison, commander damage; Commander / cEDH / Duel. Own overlays, separate from Constructed |
+| Commander | `edh` | Life, poison, commander damage; Commander / cEDH / Duel |
 | Disney Lorcana | `lorcana` | Lore 0–20, inks, W/L/D, **Play Layout** |
 | Star Wars Unlimited | `swu` | Base HP, initiative |
 | Riftbound | `rb` | First-to-8 points |
+| FGC (start.gg) | `/fgc` (path) | Sets, stations, characters, stage strike |
 
-Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switching games on Production does not throw away the other event’s live match. Play! Pokémon age divisions work the same way: tap **PTCG** or **VGC**, then **Masters / Seniors / Juniors**. Overlay URLs are `/ptcg/overlay/…`, `/vgc-seniors/overlay/…`, `/vgc-juniors/overlay/…`. Walk-up kiosks lock the age division (`/ptcg/signup`, `/vgc-juniors/signup`, …).
+Each title keeps its **own roster, bracket, desk, overlays, and tablets**. Switching games on Production does not throw away the other event’s live match.
 
----
-
-## Surfaces
-
-| Surface | Path | Who uses it |
-| --- | --- | --- |
-| Home | `/` | Landing and Get Started |
-| Tournament Organizer | `/tournament` | TO — roster, bracket, floor clock, staff, export |
-| Production Control | `/production` | Stream op — featured match, overlays, look |
-| Judge tablet | `/{game}/tablet` · Floor 1: `/{game}/2/tablet` · Floor 2: `/{game}/3/tablet` | Floor judge for that table |
-| Player tablet | `/{game}/tablet?role=player` | Commander or Lorcana table pad |
-| Commentary tablet | `/{game}/tablet?role=caster` | Casters — full player info, read-only |
-| Walk-up signup | `/{game}/signup` | Players at the door. PTCG/VGC: `/ptcg/signup` or `/vgc/signup` Masters, `/{game}-seniors/signup`, `/{game}-juniors/signup` |
-| VGC team-list print | `/print/team-list` | In-app 2-page Play! Pokémon team list |
-| PTCG deck-list print | `/print/deck-list` | In-app 8.5×11 Play! Pokémon deck list |
-| Official PDF | Tournament **Official PDF** | Fills the published Play! Pokémon TCG deck list / VGC team list from sign-up (sits next to the in-app sheets) |
-| Overlay index | `/overlay` | Browser-source list |
-| Floor clock | `/{game}/overlay/floor-clock` | Room monitor |
-| Stream clock | `/{game}/overlay/stream-clock` | Monitor at the streamed table |
-| Browser | `/browser` | In-app Chromium for pairings, downloads, card DBs |
-
-Header on Production / Tournament: **Home · Production · Tournament**, plus **Browser · License · Donate · Feedback**. Feedback goes to the [ROK Desk form](https://forms.gle/Re5mt8RXU7qNEN8W9). License is the same notice as Home and this README.
-
+**PTCG and VGC each run Masters, Seniors, and Juniors** as three titles on the same host — each with its own roster, kiosk, Stream / Floor 1 / Floor 2, and overlays. Tap **PTCG** or **VGC**, then **Masters / Seniors / Juniors**. Overlay URLs follow the slug (`/ptcg/overlay/…`, `/vgc-seniors/overlay/…`), and walk-up kiosks lock the age division (`/ptcg/signup`, `/vgc-juniors/signup`, …).
 
 ---
 
-## Dual matches (tables)
+## Tables, overlays, and clocks
 
-Every title — including VGC — has **three** independent tables:
+Every title has **three** independent tables. Floor 1 and Floor 2 add `/2/` or `/3/` to the path:
 
 | | Stream Match | Floor Match 1 | Floor Match 2 |
 | --- | --- | --- | --- |
 | Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` | `/{game}/3/overlay/scorebug` |
 | Judge tablet | `/{game}/tablet` | `/{game}/2/tablet` | `/{game}/3/tablet` |
-| Player tablet | `/{game}/tablet?role=player` | `/{game}/2/tablet?role=player` | `/{game}/3/tablet?role=player` |
-| Commentary tablet | `/{game}/tablet?role=caster` | `/{game}/2/tablet?role=caster` | `/{game}/3/tablet?role=caster` |
 
-On Production, **Stream | Floor 1 | Floor 2** sits under the game chips. Each slot has its own players, scores, **match clock**, winners, card spotlight, and tablets. Switching slots (or games) keeps the other tables.
+From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor 1**, or **Floor 2**. Each on-air card has **Remove** if it was sent by mistake. Each slot has its own players, scores, match clock, card spotlight, and tablets; switching slots (or games) keeps the other tables.
 
-**Floor clock** and **bracket** stay per-game (`/{game}/overlay/floor-clock`, `/{game}/overlay/bracket`) — one room overlay, not a copy per table. **Match clocks** are per table (`/{game}/overlay/stream-clock`, `/{game}/2/overlay/stream-clock`, `/{game}/3/overlay/stream-clock`).
+Add overlays as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no custom CSS. `/overlay` lists every source. Per-table sources include scorebug, HUD, versus, game win, timer, resource, up next, card, sponsors, event logo, and VGC roster. **Bracket** and **floor clock** are per game, not per table. Empty sources stay fully transparent.
 
-From Tournament **Assigned tables**, send a ready pairing to **Stream**, **Floor 1**, or **Floor 2**. Each on-air card has **Remove** if it was sent by mistake. That unassigns the pairing and clears that slot’s names on Production.
+**ROK Layout** is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), and the official card back (or a judged card when shown on stream).
 
----
+**Play Layout** is the table-cam overlay in **ROK colors** (charcoal rails, silver / red accents, gold clock) with a transparent center for the overhead camera. It is the default on **VGC** (names, games, and both teams across the top), **PTCG** (Active, five bench, prizes, HP bars), **OP** (life / DON!! and a card well per player), **Lorcana** (lore track, inks, card well), and **YGO** (Feature Duelist spine, extra-deck-style card well). Put player cams under the overlay in OBS.
 
-## Tournament Organizer
+**Versus** (`/{game}/overlay/versus`) on VGC is the split-cam intro with both teams in the spine; other titles keep the photo / name intro.
 
-`/tournament` is the event of record.
+There are **two timers** on purpose:
 
-**Event setup**
-- Show name (per title), stream channel / handle, game, format (including Pre-release on every title)
-- Bracket type: single elim, double elim, Swiss. Swiss can add a **top cut** (Top 4 / 6 / 8 / 16 / 32 or custom) in single or double elim
-- Size: 4 / 8 / 16 / 32 or **Custom** 2–128. Elim brackets pad to the next power of two with byes
-- Best-of for the event
-- **Test mode** — 8 demo players. Off restores the last real field
-
-**Roster**
-- Per-game. Switching titles does not share players
-- Name, handle, country, pronouns, deck / commander / extra
-- Organized-play **Player ID** (Play! Pokémon, Bandai TCG+, KONAMI, PlayMTG, PlayHub, SWU-Stats, Riot ID) with a required privacy checkbox. IDs stay on the roster and export, never on stream
-- **Decklists** (optional per event): TO toggles Request decklist. PTCG can paste a PTCGL export, Limitless Copy as Text, a public Limitless deck URL, or a **my.limitlesstcg.com/shared/…** link (https optional). `{P}` is Psychic. Named lines keep the card name if the collector number is from another print. Thumbnails use Limitless **printed** set codes (PBL, MEG, JTG, …) and fall back across CDNs. The ROK Desk card search stays as a backup. Export includes `decklists.csv` plus a count on `players.csv`
-- Lorcana: deck plus up to two official inks
-- Commander / cEDH / Duel Commander: searchable commander (Scryfall) plus an optional Partner field
-- VGC: full team sheet (species, Tera, ability, item, four moves)
-
-**Pairings & results**
-- **Preview** before Start: Round 1 (Swiss) or the seeded tree (elim) from current seeds. Drag the roster to reshuffle. The bracket overlay shows the same view (`Pairings · Not started`)
-- Generate bracket or pair the next Swiss round. After the last Swiss round, **Start top cut** seeds the cut from standings
-- Report winners and game scores from the match cards
-- Swiss standings with OMW%, game-win%, opponents’ game-win%. **Tiebreakers** panel: rank remaining ties, or switch **TO ranks after points** to ignore OMW/GW. That order seeds the top cut. No cut: complete the event from standings. With a cut: the cut bracket decides the champion. **Reopen** if a result still needs a fix
-- Champion / Top 3 on the result card
-
-**Stream**
-- Ready pairings list with send-to-Stream / Floor 1 / Floor 2
-- Remove from stream per slot
-- Judge / player tablet links for the right table
-
-**Room**
-- Independent **floor clock** — start, pause, add/remove time, reset, or type a time. Opens full-screen for a monitor
-- Event logo and rotating sponsors also show on that clock
-
-**Staff & archive**
-- Staff roles: Head Judge, Judge, Feature Match Judge, Producer, Scorekeeper, Staff, Other — archive only
-- **Export tournament** — zip of JSON plus CSVs (event, players, matches, standings, staff, VGC teams, decklists, judge notes). Other titles with a field go in their own folders. Completing the event also downloads this pack.
-- **Import JSON** — load a `tournament.json` from that zip (or a saved desk state) to bring a past event back. Other titles on the machine stay put.
-- **TOM (PTCG and VGC)** — Play! Pokémon companion. Pick the title on the TOM card. PTCG and VGC each keep their own organizer, roster, tables, and watch folder.
-  - Sign up in Desk, then **Export TDF** for TOM File → Open. PTCG is `TRADING_CARD_GAME`; VGC is `VIDEO_GAME` with in-game trainer names. Fill organizer name, Player ID, city, and state. Players without a Player ID are skipped.
-  - Drop a `.tdf` to load that roster onto PTCG or VGC.
-  - Drop `roster.html` / `pairings.html` / `standings.html` from `TOM_DATA/data/reports`. Desk fills tables so you can send a match to stream. TOM still pairs and scores.
-  - **Watch TOM reports folder** (Chrome, Edge, or ROK Desk desktop): pick `TOM_DATA` or `data/reports` once. Desk imports when TOM writes new pairings / standings. Drop files if you are not in a Chromium browser.
-  - **Load sample** / **Clear sample**, or **Clear roster** on the player list.
-- VGC **print team list** — in-app two-page Play! Pokémon VG team-list layout (staff page with stats, opponent page without), plus **Official PDF** that fills the published form from sign-up (age **X** in the box to the right of Juniors / Seniors / Masters)
-- PTCG **print deck list** — in-app 8.5×11 Play! Pokémon TCG deck list (Pokémon / Trainer / Energy, Player ID, age division, Standard / Expanded), plus **Official PDF** that fills the published deck list (H/I/J in the mark boxes)
-
----
-
-## Production Control
-
-`/production` is the featured table(s).
-
-**Live match**
-- Names, handles, countries, pronouns, deck / commander / extra
-- Game score (best-of diamonds or count)
-- Title resource: prizes, remaining Pokémon, LP, life, lore, base HP, points
-- **Game win** — awards a game, resets resources for the next game
-- **Match win** — awards a game *and* the match, reports into the live bracket when the pair is linked
-- **Swap**, **Reset game** (resources only), **Reset match** (resources + games), **Reset info** (wipe players, decks, W/L/D, teams, spotlight; keep event / format / timer)
-- Card search under the live match (same catalogs as the judge tablet): search, **Show on stream** (red while live), **Clear**. If the pairing brought in a submitted decklist, lookup defaults to **This match** (those scans, including Limitless imports) with **Catalog** as a fallback. PTCG has **Download catalog** so search does not depend on the live API. Empty card overlay stays fully transparent. PTCG, YGO, OP, and Lorcana have **Show P1 / Show P2** (card in that player’s well / over the bench). PTCG also has **Set Active** and **Set Bench 1–5**. **MTG** can **Layer** a second card on the first for a combo (same size as the card back; cascade after two+)
-- PTCG **board** — Active + five bench slots, typed HP with −10 / +10, Energy / Supporter / Retreat (start ON; punch to turn off), **Swap** (retreat / switch) and **KO in** (bench becomes Active, previous Active is removed)
-- Lorcana inks and W/L/D on the player cards
-- SWU initiative toggle
-- PTCG prize count 6 / 4 / 3 / 2 / 1
-
-**Match clock**
-- Starts at `00:00`. Type a time, start / pause, + / − while running or paused, reset
-- **Stream**, **Floor 1**, and **Floor 2** each have their own timer. Judge tablets on that table follow **that** clock
-- Independent from the Tournament **floor clock** (the room timer for every other table)
-- **Open clock** pops a full-screen page for a monitor at that table (`/{game}/overlay/stream-clock`, `/{game}/2/overlay/stream-clock`, `/{game}/3/overlay/stream-clock`)
-
-**Show control**
-- Hold slates: Starting soon / BRB / Thanks / Tech (hidden = fully transparent)
-- Lower third: player, caster, or custom
-- Casters (play-by-play and color)
-- Up-next queue
-- Scorebug style (bar / split / **ROK Layout** where the title supports it / **Play Layout** on VGC, PTCG, YGO, OP, and Lorcana)
-- Arrange widgets on the selected overlay (Casters, Clock, HUD pack, …); undo / redo / default look
-- Per-overlay **look editor** — colors, fonts, scale. Saves per source, not globally. Instructions for saving sit on the editor
-- OBS and vMix setup notes (browser sources as a dropdown)
-
-**Branding**
-- Event logo — Versus (VGC spine), VGC / Lorcana / OP Play Layout, slates, HUD, Event logo overlay, floor clock
-- Sponsors — rotating logos on Sponsors overlay, HUD, floor clock, and OP Play Layout (bottom left)
-
-**Test mode** matches Tournament: 8 demo players, toggle off restores the real field, tablets see the same data.
-
----
-
-## Tablets
-
-Open from Production or Tournament so the URL is pinned to that **game and match slot**. `/tablet` redirects to the current Production title.
-
-### Judge tablet
-
-How-to guide on first open. Start / pause / add or remove time / reset **this table’s match clock**. Game / Match report to the desk and, when linked, the bracket. Per-player **judge notes** (warnings, slow play, deck check) stay with that player for the event. PTCG judges get the same **PTCG board** card as Production (Active / bench / HP / Swap / KO / Clear).
-
-| Game | Pad | Lookup |
+| Clock | Driven from | Shown on |
 | --- | --- | --- |
-| VGC | Remaining Pokémon from the team sheet (tap to KO) | — |
-| PTCG | Prize balls, Energy / Supporter / Retreat, full PTCG board card (Active / bench / HP / Swap / KO) | pokemontcg.io (Download catalog for offline search) — Show P1 / Show P2 / Clear, Set Active, Set Bench |
-| MTG | Life, poison, commander damage (type a delta then + / −) | Scryfall — Show, then Layer for a combo |
-| SWU | Base HP, initiative | SWU-DB |
-| YGO | 8000 LP, typed ticks | YGOPRODeck — Show P1 / Show P2 / Clear |
-| OP | Life circles, DON!! | Official English cards — Show P1 / Show P2 / Clear |
-| Lorcana | Lore 0–20 | Lorcast — Show P1 / Show P2 / Clear |
-| Riftbound | Points 1–8 | Riftcodex |
+| Stream / match clock | Production and that table’s tablets | Scorebug, HUD, tablet, `/{game}/overlay/stream-clock` |
+| Floor clock | Tournament | `/{game}/overlay/floor-clock` — the rest of the room |
 
-Card overlay: **On Stream** is red while a card is up. With nothing selected the source is transparent. If the pair submitted decklists, those cards sit above search so judges can pull them without retyping.
-
-### Player tablet
-
-`/{game}/tablet?role=player` — face-out pad for the table.
-
-- **MTG Commander / cEDH / Duel Commander** — life, poison, commander damage
-- **Lorcana** — split lore pads, +8 / −8 chips, game diamonds plus large **+ / −** for games, match clock
-- **Lorcana player tablet extended** (`?role=extended`) — self-run table: names, deck, inks, lore, games, Game / Match, match clock, Lorcast Show P1 / Show P2, Reset game / match, Clear seat / table
-- **YGO** — split LP pads, typed ticks (default 100), −100 / −500 / −800 / −1000 / −2000 chips, game diamonds, match clock
-
-### Commentary tablet
-
-`/{game}/tablet?role=caster` — open from Production (**Commentary** card). Read-only cheat sheet for casters on that table.
-
-- Names, handle, country, pronouns, deck / commander + partner, W/L/D, game count, resource
-- VGC: six Pokémon with types, Tera, ability, item, moves (grey = KO)
-- PTCG: Active, bench, HP, prizes, Energy / Supporter / Retreat
-- Stream clock for that table
-- Bracket path: seed, record, completed matches, this pairing, Win → / Lose → (Swiss also shows place / match points / OMW)
-- Head-to-head if the seats already played in this event
-- Player photo, Limitless / notes, and **judge notes** (from the floor pad; read-only here)
-- Event staff (head judge, judges, producer) and the Production up-next queue
+Both default to `00:00`. Type the round length, then start. Add or remove time while running or paused. Reset returns to `00:00` (stream) or the last typed floor time. **Open clock** lives on Production next to that table’s timer; **Open floor clock** lives on Tournament.
 
 ---
 
-## Walk-up signup
+## Download
 
-`/{game}/signup` is a kiosk for the door. Fields follow the game:
+**Desktop (venues — no terminal).** Get the latest build from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases):
 
-- Name, handle, country, pronouns
-- Deck / leader / commander when that format needs it
-- Commander / cEDH / Duel Commander: Scryfall search for the commander, plus an optional Partner (or Background)
-- Limitless / notes (optional season record or accomplishments)
-- Decklist when the TO turns on **Request decklist**. PTCG: paste PTCGL / Limitless text, a public Limitless URL, or a shared `my.limitlesstcg.com` link (with or without https), or search/add cards. Art follows the printed set. Other titles: search a card, tap to add, set quantity.
-- Lorcana inks (up to two)
-- VGC official-style team (six Pokémon: species, types, Tera, ability, item, four moves) — the sheet scrolls. Age division is locked to that kiosk (Masters / Seniors / Juniors)
-- Player ID + privacy checkbox
+- Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
+- macOS: `.dmg` (unsigned — right-click → Open the first time)
+- Linux: `.AppImage`
 
-Players land on that game’s Tournament roster. PTCG and VGC kiosks lock **Masters / Seniors / Juniors** to the URL. Account sign-in is off until multi-user hosting ships.
+Run **ROK Desk**. Event data is saved on that PC under **ROK Desk** in AppData; uninstalling keeps players and tournament state. Click the version label to check for updates (Windows installer builds can apply them in-app).
 
----
+Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi, or scan the **Scan onto a tablet** QR. Allow ROK Desk on **private** networks in Windows Firewall or tablets will not connect. Keep the app open while you stream — closing it stops overlays and tablets.
 
-## Overlays
-
-Add as OBS or vMix **Browser** sources: **1920×1080**, **transparent**, no custom CSS. Prefer the **per-game** URL so two titles never share a bug. For a second TCG table, use the `/2/` path.
-
-| Source | Stream | Floor 1 | Floor 2 |
-| --- | --- | --- | --- |
-| HUD pack | `/{game}/overlay/hud` | `/{game}/2/overlay/hud` | `/{game}/3/overlay/hud` |
-| Scorebug | `/{game}/overlay/scorebug` | `/{game}/2/overlay/scorebug` | `/{game}/3/overlay/scorebug` |
-| Versus | `/{game}/overlay/versus` | `/{game}/2/overlay/versus` | `/{game}/3/overlay/versus` |
-| Hold slate | `/{game}/overlay/slate` | `/{game}/2/overlay/slate` | `/{game}/3/overlay/slate` |
-| Casters | `/{game}/overlay/casters` | `/{game}/2/overlay/casters` | `/{game}/3/overlay/casters` |
-| Lower third | `/{game}/overlay/lower-third` | `/{game}/2/overlay/lower-third` | `/{game}/3/overlay/lower-third` |
-| Match win | `/{game}/overlay/winner` | `/{game}/2/overlay/winner` | `/{game}/3/overlay/winner` |
-| Game win | `/{game}/overlay/game-win` | `/{game}/2/overlay/game-win` | `/{game}/3/overlay/game-win` |
-| Round clock | `/{game}/overlay/timer` | `/{game}/2/overlay/timer` | `/{game}/3/overlay/timer` |
-| Resource plates | `/{game}/overlay/resource` | `/{game}/2/overlay/resource` | `/{game}/3/overlay/resource` |
-| Up next | `/{game}/overlay/upcoming` | `/{game}/2/overlay/upcoming` | `/{game}/3/overlay/upcoming` |
-| Card | `/{game}/overlay/card` | `/{game}/2/overlay/card` | `/{game}/3/overlay/card` |
-| Sponsors | `/{game}/overlay/sponsors` | `/{game}/2/overlay/sponsors` | `/{game}/3/overlay/sponsors` |
-| Event logo | `/{game}/overlay/event-logo` | `/{game}/2/overlay/event-logo` | `/{game}/3/overlay/event-logo` |
-| VGC roster | `/{game}/overlay/roster` | `/{game}/2/overlay/roster` | `/{game}/3/overlay/roster` |
-| Bracket | `/{game}/overlay/bracket` | per game, not per table | per game, not per table |
-| Floor clock | `/{game}/overlay/floor-clock` | per game, not per table | per game, not per table |
-| Match clock | `/{game}/overlay/stream-clock` | `/{game}/2/overlay/stream-clock` | `/{game}/3/overlay/stream-clock` |
-| Stream clock | `/{game}/overlay/stream-clock` | per game, not per table | per game, not per table |
-
-Slugs: `vgc`, `ptcg`, `op`, `ygo`, `mtg`, `edh`, `lorcana`, `swu`, `rb`.
-
-**ROK Layout** (scorebug style) is the camera-well broadcast frame: player name, W/L/D, game diamonds for the event best-of, vertical resource (lore / prizes / life), official card back (or a judged card when shown on stream). Lorcana also shows up to two inks. MTG constructed, YGO, PTCG, One Piece, Riftbound, and SWU have the same frame with their own card backs.
-
-**Play Layout** is the table-cam overlay in **ROK colors** (charcoal rails, silver / red accents, gold clock). Transparent center for the overhead camera. OBS source: `/{game}/overlay/scorebug` (HUD pack is the same frame).
-
-- **VGC** (default): top bar with **names, games, and W/L/D on top** and both teams underneath. Rounded transparent player cams on the ends (put player cams under the overlay in OBS). Event logo in the spine (ROK mark until you upload one), round under the logo. Bar / split remain available.
-- **OP** (default): table cam in the middle. Side player cams (transparent wells) with names, life / DON!! / games, and a card well (official card back until **Show P1 / Show P2**). Round and clock in the top corners. **Sponsors** bottom left, **event logo** bottom right. ROK Layout remains available.
-- **Lorcana** (default): square full-height rails. **Transparent player cams** (silver frame only — put player cams under the overlay in OBS), name, reserved ink slots (fill when chosen), game diamonds, W/L/D, lore track 20–1 (WIN / START), card well (official back until **Show P1 / Show P2**). Event logo + **phase · round** + clock at the top center. ROK Layout remains available.
-- **PTCG** (default): full-height rails with Active illustration, five bench slots, prizes inline with the player name, W/L/D, country. Energy / Supporter / Retreat start ON. HP bars go green → orange at 30% → red at 10%. Show title · phase · round and the stream clock sit in a solid bar at the bottom center. **Show P1 / Show P2** from card search places the full card over that player’s bench.
-- **YGO** (default): full-height rails with **Feature Duelist** spine, **rounded transparent player camera wells** (put player cams under the overlay in OBS), deck type, extra-deck-style card well. Top bar is games · LP · clock · LP · games. Bottom ticker is event · format · round. **Show P1 / Show P2** from card search fills that player’s well — the two wells are independent. No music / now-playing chrome. ROK Layout remains available.
-
-**Versus** (`/{game}/overlay/versus`) on **VGC** is the split-cam intro: rounded transparent player wells, both teams in the center spine with **VS**, event logo on top (ROK mark until you upload one), names and round on cream plates. Other titles keep the photo / name intro. Put player cams under the overlay in OBS.
-
-Empty card / sponsor / event-logo sources stay fully transparent.
-
-Overlay pages are chromeless. Production and Tournament stay opaque.
+**Web.** [rok-desk.vercel.app](https://rok-desk.vercel.app) is the public host: the remote sign-up sheet and start.gg login. Overlays, the desk, and the show stay on the installed app.
 
 ---
 
-## Built-in browser
-
-`/browser` (also **Browser** next to Donate / Feedback) is a Chromium window inside the desk so TOs do not have to leave ROK Desk for pairings, PayPal, feedback, Scryfall, Limitless, or Pokémon DB.
-
-**Desktop `.exe`** is a real browser: cookies, cache, logins, downloads, and print persist on that PC. Data is stored in a **ROK Desk Browser** folder next to (not inside) the app’s install data, so uninstalling the desk does not wipe profiles, bookmarks, or logins. Reinstall and they come back. **Profiles** (Desk by default, add Stream / Personal / etc.) isolate logins, cookies, bookmarks, and tabs. **New tab** / **New window**, back / forward, a bookmark bar (star a page; right-click to rename or remove), history, zoom, and a Chrome-style **⋮** menu. Leave Browser and come back: tabs, bookmarks, history, and the last page restore (**Continue where you left off** is the default).
-
-**⋮ menu**
-- New tab, New window
-- Zoom − / 100% / + (Ctrl/⌘ +, −, 0)
-- Bookmarks manager (Done to close)
-- History, Downloads, Print
-- Settings — profiles, privacy (clear history / cookies / cache), search engine, startup, printing, downloads
-
-The web preview cannot embed Google (sites block iframes). It still saves bookmarks, history, open tabs, and profiles (local + desk database), and opens pages in a separate tab. Login isolation is desktop-only.
-
----
-
-## Clocks
-
-There are **two timers** on purpose.
-
-| Clock | Driven from | Shown on | Typical use |
-| --- | --- | --- | --- |
-| Stream clock | Production (and judge / player tablets) | Scorebug, HUD, tablet, full-screen `/{game}/overlay/stream-clock` | Featured match, which often starts late — put this on a monitor at that table |
-| Floor clock | Tournament | Full-screen `/{game}/overlay/floor-clock` | The rest of the round in the room |
-
-Both default to `00:00`. Type the round length, then start. Add or remove time while running or paused. Reset returns to `00:00` (stream) or the last typed floor time.
-
-**Open clock** lives on Production next to that table’s timer. **Open floor clock** lives on Tournament.
-
----
-
-## Download (venues)
-
-For stores and stream PCs — **no terminal**.
-
-1. Download **v1.5.0** from [ROK-DESK Releases](https://github.com/ROK-CJAY/ROK-DESK/releases/tag/v1.5.0) (Windows / macOS / Linux installers attach when **Actions → Desktop** finishes on that tag). Installs already on v1.4.8 pick this up as an update. The Android APK from v1.3.1-beta is unchanged.
-2. Pick **ROK-Desk** for your OS:
-   - Windows: portable `.exe` (double-click, nothing to install) or the NSIS installer
-   - macOS: `.dmg` (unsigned — right-click → Open the first time)
-   - Linux: `.AppImage`
-3. Run **ROK Desk**. The desk window opens. Event data is saved on that PC under **ROK Desk** in AppData (not next to a portable exe). Uninstalling keeps players and tournament state. Click the version label to check for updates on [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases). Windows installer builds can apply the update in-app.
-4. Home shows **this PC** addresses. OBS on the same computer uses `http://127.0.0.1:8080/{game}/overlay/scorebug`. Tablets use the **LAN** URL on the same Wi‑Fi. Home also has a **Scan onto a tablet** QR: pick the title, then only the surfaces that title has.
-5. Windows Firewall: allow ROK Desk on **private** networks or tablets will not connect.
-
-**Android companion (sideload)** — download [ROK-Desk-Tablet-0.1.apk](https://github.com/ROK-CJAY/ROK-DESK/raw/main/android-tablet/ROK-Desk-Tablet-0.1.apk) and drop it in Discord. Pads scan the Home QR (or type LAN + port **8080**) and run fullscreen with no browser bar. Source and rebuild notes: [android-tablet/README.md](./android-tablet/README.md). Not on Play Store. Same lounge / personal-use license.
-
-Keep the app open while you stream. Closing it stops overlays and tablets.
-
-SmartScreen may say “unknown publisher” until the Windows build is code-signed. Use **More info → Run anyway** for this beta.
-
----
-
-## Hosting model
-
-This build is a **local desk** (TSH-style): one process, one event, devices on the LAN.
-
-- One PC can run **one streamed table plus two floor tables** plus the floor clock
-- Overlay URLs are scoped by **game** and **match slot**, so two OBS machines pulling scorebugs from the same host do not mix tables
-- Two titles in one venue (PTCG streamed on one PC, Commander on another) = **two hosts**
-- Login / multi-account isolation is not in this beta. Do not share one running instance across unrelated organizers
-
-Local persistence uses PGLite on disk in the desktop app (`AppData/ROK Desk`). Set a Postgres URL if you deploy the web build. Production web build is Vercel-ready (`nitro` preset).
-
-### From source (developers)
+## Development
 
 ```bash
 npm install
-npm run dev
+npm run dev            # vite dev on 0.0.0.0:8080
+npm run typecheck      # tsc --noEmit
+npm run lint           # eslint
+npm test               # node --test scripts/**/*.test.mjs
+npm run build          # vite build + db migrations
+npm run desktop        # build the desktop bundle and open it in Electron
+npm run dist           # desktop installers via electron-builder (no publish)
 ```
 
-```bash
-npm run typecheck
-npm run build
-```
+Stack: TanStack Start (React 19) on Vite + Nitro, Tailwind, Kysely over PGLite (local) or Postgres, Electron for desktop. Pushing a `v*` tag runs **Actions → Desktop** to attach installers to a release.
 
-Desktop bundle:
+### Environment variables
 
-```bash
-npm run build:desktop
-npm run dist
-```
+| Variable | Used for |
+| --- | --- |
+| `DATABASE_URL` | Postgres for the web build. Unset = PGLite on disk |
+| `SIGNUP_DATABASE_URL` | Separate database for the public sign-up sheet |
+| `ROK_PUBLIC_HOST` | `1` = serve only the public sign-up host |
+| `SIGNUP_PULL_SECRET` | Host secret a desk uses to pull a public sign-up list |
+| `STARTGG_CLIENT_ID` | start.gg OAuth app |
+| `STARTGG_CLIENT_SECRET` | start.gg OAuth app (stays on the public host, never in a release) |
+| `STARTGG_REDIRECT_URI` | Must be exactly `https://rok-desk.vercel.app/api/startgg-oauth/callback` |
+| `ROK_DATA_DIR` | Data folder (the desktop app sets this) |
+| `ROK_DESKTOP` | `1` = Nitro node-server preset instead of Vercel (set by `build:desktop`) |
+
+**start.gg login:** create an OAuth app in [start.gg developer settings](https://www.start.gg/admin/profile/developer) with the redirect URI above and set the three `STARTGG_*` variables on the Vercel project. Scopes: `user.identity`, `tournament.manager`, `tournament.reporter`.
+
+### Project structure
+
+- `src/routes/` — pages and API routes (`$game`, `overlay`, `fgc`, `tablet`, `signup`, `tournament`, `production`, `api/`)
+- `src/components/` — desk, tournament, overlays, tablet, fgc, signup, ui
+- `src/lib/` — game rules, stores, start.gg, TOM, catalogs, database
+- `electron/` — desktop shell and updater
+- `migrations/` — SQL migrations
+- `public/` — card backs, slates, fonts, Play! Pokémon PDFs, TSH layouts
+- `android-tablet/` — Android companion app
+
+---
+
+## Beta limitations
+
+- One **local desk** per process: one streamed table plus two floor tables plus the floor clock per host
+- Two titles worked at the same time by two TOs (PTCG on one PC, Commander on another) = **two hosts**
+- Login / multi-account isolation is not in this beta. Do not share one running instance across unrelated organizers
+- Builds are not code-signed yet. SmartScreen may say “unknown publisher” — use **More info → Run anyway**. macOS needs right-click → Open
+- The web preview cannot embed Google in the built-in browser (sites block iframes)
 
 ---
 
@@ -408,381 +199,10 @@ Event data stays on this PC. If a future build sends anonymous usage stats, that
 
 This copy also appears on Home and behind **License** in the desk header. It is not a substitute for legal advice.
 
+Bundled FGC overlay templates in `public/tsh/layout/` come from [TournamentStreamHelper](https://github.com/joaorb64/TournamentStreamHelper).
+
 ---
 
 ## Changelog
 
-
 Full history lives in **[CHANGELOG.md](./CHANGELOG.md)**.
-
-### v1.5.0 — 26 Oct 2026 · FGC
-
-**Added**
-- Home opens into TCG/VGC or FGC. FGC Production is the stream desk. FGC Tournament is the start.gg organizer desk.
-- A TO signs in with their own start.gg account and runs the bracket: stations, streams, call clocks, scores, and DQs.
-- Production imports the event or a set can be typed in. Player list, bracket tree, ruleset presets, and stage strike follow the scoreboard match.
-- TSH scoreboards, versus, bracket, and top 8 are browser sources. A layout can also be built from layers or imported from a PSD. The live set includes the ruleset, stage icons, commentary, and bracket rounds those layouts draw. The editor is its own Overlays tab. Shapes can show a character icon or the selected skin, and resizing snaps.
-
-### v1.4.8 — 21 Oct 2026 · Lorcana Play Hub
-
-**Added**
-- Lorcana tournament control can link a public Ravensburger Play Hub event. Pairings, players, and standings load in, and the event starts so a table can go to stream. Update pulls the next round. Stop ends the link.
-- A Lorcana deck can use any number of inks. The play layout, versus screen, tablets, and top decks graphic show them.
-
-### v1.4.7 — 20 Oct 2026 · Miami Vice
-
-**Added**
-- Miami Vice is the cyan and pink layout. Lorcana, One Piece, PTCG, and VGC can use it on the play layout and on hold slates.
-- PTCG and VGC versus screens keep the default look. Versus theme can switch that screen to Miami Vice. The VGC version keeps the VGC frame.
-- Lorcana player tablets can sit side by side or stacked, head to head. Lore is one 1–20–1 bar. Player 1 is red and Player 2 is blue.
-- Magic has Play, UG, and stream layouts. Lorcana, Magic, and One Piece share the city versus screen.
-
-### v1.4.6 — 18 Oct 2026 · Surfaces and One Piece art
-
-**Added**
-- Home is shorter. The tablet list only shows surfaces that game has. Player Extended is Lorcana only.
-- Tournament uses the same game tabs as Production, including PTCG, VGC, and Magic sub-tabs.
-- Top decks can show a place. The show title is used. The corner mark reads ROK Gaming Lounge.
-- Lorcana tablets keep a match log of every lore change.
-- Tablets can switch Light or Dark. Commander damage is a four-seat map.
-
-**Fixed**
-- One Piece card lookup no longer shows a Pokémon card back.
-- Leaving the in-app browser no longer reloads its tabs.
-- Packaged desktop builds can download and apply a newer release on restart.
-
-### v1.4.5 — 7 Oct 2026 · Player pads
-
-**Added**
-- Each store can create its own public sign-up key. A code belongs to that store.
-- Player pads other than Commander can sit side by side or stacked, and can flip Player 2 for head to head.
-- Commander player tablet seats use the commander’s art. Tap Cmd to track damage from each other player. That damage also lowers life.
-
-### v1.4.4-beta — 7 Oct 2026 · Top decks
-
-**Added**
-- Top decks graphic for every title except VGC. Staff type the count, names, decks, and two cards. Each game keeps its own list.
-- Commander scorebug plates use the commander’s art. A partner splits the background. Color identity sits under the life total.
-
-**Changed**
-- Lorcana self-run tablet no longer has card lookup. Names, inks, lore, games, and the clock fit a short tablet.
-
-### v1.4.3-beta — 5 Oct 2026 · Public sign-up
-
-**Added**
-- Tournament can open a public sign-up code. Players use `/join/CODE`. The desk pulls those entrants in and can close the form.
-
-**Changed**
-- VGC formats drop Regulation I and Regulation H. Regulation M-C, Bo1 Swiss, and Pre-release stay.
-
-**Fixed**
-- Each game keeps its own public sign-up code.
-- TOM folder watch imports one event, not every player in the folder.
-- PTCG sign-up searches the live card API first and uses the card’s own image.
-- Phone dropdowns no longer jump the page to the top.
-
-### v1.4.2-beta — 4 Oct 2026 · VGC abilities
-
-**Changed**
-- Ability picker is the full main-series list (313), including Reckless, Tangled Feet, and Protean. Searchable on the sign-up sheet and the team editor.
-
-### v1.4.1-beta — 4 Oct 2026 · VGC Regulation M-C
-
-**Changed**
-- VGC sign-up uses the Regulation M-C species list. Mega formes are not selectable. Mega Stones stay held items. Leek and Normal Gem are included.
-- Form changes stay selectable for Rotom, Meowstic, Lycanroc, Toxtricity, Indeedee, Basculegion, and Maushold (Family of Three and Family of Four).
-- Type 1 and Type 2 show for the selected Pokémon and cannot be edited.
-- A sign-up needs at least 4 Pokémon.
-- Floette Eternal uses the Eternal Flower artwork.
-
-### v1.4.0-beta — 4 Oct 2026 · end of match
-
-**Added**
-- One Piece: 5:00 overtime. Active player is turn 0. Ends after turn 3 or when that clock hits 0:00.
-- Riftbound: turn 0 plus two more turns when time is called. No extra clock.
-- Magic constructed: turn 0 plus five (team / Two-Headed Giant uses three). Unfinished game is a draw. Commander unchanged.
-- Caster Twitter on Production. Commentary can edit name, handle, and Twitter.
-
-**Changed**
-- Pokémon TCG floor and stream clocks count past 0. Other games still stop at 0.
-
-### v1.3.4-beta — 1 Oct 2026 · PTCG search source
-
-**Added**
-- Pokémon TCG card lookup: **API first** or **Catalog first**. The other source is the backup. The choice sticks on that PC.
-
-### v1.3.3-beta — 1 Oct 2026 · PTCG lookup
-
-**Fixed**
-- Pokémon TCG search always hits the live API first. The downloaded catalog is only a backup when that call fails.
-
-### v1.3.2-beta — 1 Oct 2026 · catalogs and Z-A
-
-**Added**
-- Local card catalogs for Magic, Yu-Gi-Oh, One Piece, Lorcana, Star Wars Unlimited, and Riftbound (same download + progress as Pokémon TCG)
-- VGC Mega Stones, Eternal Flower Floette, and Legends Z-A / Mega Dimension Mega formes
-
-**Changed**
-- Pokémon TCG catalog download shows set progress and size
-
-### v1.3.1-beta — 13 Sep 2026 · Android companion
-
-**Added**
-- Home **Scan onto a tablet** QR (title, table, surface; port 8080)
-- Sideload **ROK Desk Tablet** APK — fullscreen judge / player / extended / commentary / sign-up / clocks
-- Venue / personal-use license on Home, header, and README
-
-### v1.3.0-beta — 12 Sep 2026 · software update
-
-**Changed**
-- Desktop event data lives in the ROK Desk AppData folder (survives uninstall / portable replace)
-- Version label checks [ROK-DESK releases](https://github.com/ROK-CJAY/ROK-DESK/releases); Windows installer can update in-app
-- Commander overlay plates tint from the commander’s color identity (partners merge)
-- Partner is on its own line; double-faced names show the front face
-- Scorebugs are larger; round clock sits at bottom center, same chip as the round plate
-
-**Fixed**
-- Commander player tablet no longer overlaps life / poison / commander damage on facing-out seats
-- Life total scales to the seat instead of clipping
-- Overlay no longer crashes with `DEFAULT_LAYOUT is not defined`
-
-### v1.2.12-beta — 4 Sep 2026 · TOM Game Type and age-combined Swiss
-
-**Fixed**
-- PTCG only pulls TOM Trading Card Game events; VGC only pulls Video Game
-- Mixed Masters / Seniors / Juniors in one standings file land on the matching desk
-- Play! Pokémon 5.2.1: a division with fewer than six shares Swiss with the next older pod
-
-### v1.2.11-beta — 4 Sep 2026 · TOM watch hotfix
-
-**Fixed**
-- Seniors and Juniors can pick a TOM reports folder (Chromium 32-character picker id)
-- Tournament dropdown always shows while watching
-- VG cup reports land on VGC, TCG on PTCG — one TOM_DATA folder is not copied onto every title
-
-### v1.2.10-beta — 4 Sep 2026 · TOM watch duplicates and event pick
-
-**Fixed**
-- Watching TOM reports no longer adds `Name (W/L/T - MA)` copies or the event title as a player
-- While watching a folder, pick which tournament to pull if more than one report set is in that tree
-
-### v1.2.9-beta — 2 Sep 2026 · Play! Pokémon age divisions, TOM, PTCG lookup
-
-**Added**
-- **Play! Pokémon age divisions** — PTCG and VGC each run Masters, Seniors, and Juniors as three events on one host (own roster, kiosk, Stream / Floor 1 / Floor 2, overlays, TOM watch). Kiosks: `/ptcg/signup`, `/ptcg-seniors/signup`, `/ptcg-juniors/signup`, `/vgc/signup`, `/vgc-seniors/signup`, `/vgc-juniors/signup`
-- **Official Play! Pokémon PDFs** — roster printers keep the in-app sheets and add **Official PDF**, which fills the published TCG deck list / VGC team list from sign-up
-- **TOM companion** for PTCG and VGC — export `.tdf` for TOM, drop `.tdf` / HTML reports back in, or **Watch TOM reports folder** so pairings import when TOM writes them. Send a table to stream. Load / clear sample. TOM stays official. Six TOM cards (PTCG/VGC × Masters/Seniors/Juniors)
-- **PTCG Limitless import** — paste Copy as Text, a public deck URL, or `my.limitlesstcg.com/shared/…` (https optional). Energy glyphs (`{P}`), Limitless set codes (`PBL` / `POR` / `CRI` / `MEE`), and **name-first** matching when a collector number is from another print. Search builder stays as backup
-- **PTCG deck-list print** — `/print/deck-list` fills the in-app 8.5×11 Play! Pokémon TCG deck list
-- **PTCG catalog download** — save every English card on this machine; hit the button again to refresh
-- **Lorcana player tablet extended** — self-run names, inks, lore, games, clock, and Show P1 / P2
-
-**Fixed**
-- Official PDF overlay — VGC names sit after **Pokémon**, stats sit in the boxes, age **X** is in the checkbox to the right of the division name. PTCG rows sit on the printed lines; H/I/J marks go in the boxes above the letters
-- PTCG Limitless import no longer stalls on an HTML timeout (`Unexpected token '<'`). Unmatched cards skip the slow TCGdex wait
-- PTCG lookup uses the local catalog, then pokemontcg.io, then TCGdex as a last backup
-- PTCG import keeps the pasted **name** when the number is wrong (`Charmander PAF 26` → Charmander, not Xatu). Shared lists still match set + number
-- PTCG sign-up / Limitless art uses printed set folders (`PBL`, `JTG`, `MEG`) instead of pokemontcg.io ids that 403 (`ME5`, `SV9`). Art proxy races PNG/WebP and sniffs the bytes. Sign-up falls back across CDNs like overlays
-- Submitted PTCG lists stay on that title — they no longer fill Yu-Gi-Oh, MTG, Lorcana, or other card lookups
-- Masters lists stay on Masters. Seniors / Juniors tablets only show that division
-- Lorcana **player tablet extended** keeps P1 / P2 seats on smaller tablets (clock sits on one row)
-
-### v1.2.8-beta — 28 Aug 2026 · Commander title, browser profiles, MTG combos
-
-**Added**
-- Swiss **top cut** after Swiss rounds (Top 4 / 6 / 8 / 16 / 32 or custom, single or double elim)
-- **Import JSON** to restore a past tournament from an export
-- **Stream channel** (handle or URL) on Event — Live badge, starting-soon, floor clock
-- **Browser profiles** (Desk by default) and a session that continues where you left off. Desktop data lives in `ROK Desk Browser` so uninstall does not wipe logins
-- **MTG combo stack** — Show, then Layer (up to 5). Same size as the card back until a second card is added
-- Arrange opens the overlay you picked, not always the HUD pack
-- **MTG vs Commander** — Constructed and Commander are separate titles (`/mtg` vs `/edh`) with their own overlays
-- **Match deck search** — submitted lists first (This match / Catalog); five rows then scroll
-
-**Fixed**
-- Tournament name is per game. Switching titles no longer carries the last show name
-- Export zip includes event.csv and the rest of the roster/match/team fields; other titles with a field are in their own folders
-- Arrange grid closes on the right; widgets stay on the 1920×1080 canvas
-- Lorcana Play Layout camera wells are transparent
-
-### v1.2.7-beta — 27 Aug 2026 · hotfix: clock titles
-
-**Fixed**
-- Floor and featured-match clocks (Stream, Floor 1, Floor 2) no longer keep the first show title across other clocks, tables, and games
-
-### v1.2.6-beta — 26 Aug 2026 · Play Layouts (VGC, OP, Lorcana)
-
-**Added**
-- **Play Layout** for Yu-Gi-Oh! (now the default YGO scorebug): Feature Duelist rails, rounded transparent player camera wells, deck type, extra-deck card well, LP / games / clock bar, event ticker. No now-playing chrome. ROK Layout remains available.
-- **Show P1 / Show P2** on YGO, OP, and Lorcana card lookup — each Play Layout well holds its own card
-- **YGO player tablet** — life points (typed ticks + damage chips), games, match clock. Judge tablet still looks up cards and reports the match.
-- Overlay scores, LP, and resource ticks fade instead of snapping (game 0→1, life, prizes)
-- **VGC Versus** — split player cams, both teams beside VS, event logo in the spine (ROK mark until you upload one)
-- **VGC Play Layout** (default VGC scorebug) — names / games / W/L/D on top, both teams underneath, side cams, event logo. Sits at the top of the frame.
-- **OP Play Layout** (default OP scorebug) — table cam, side player cams, life / DON!! / games, official card-back wells, sponsors bottom left, event logo bottom right. Show P1 / Show P2.
-- **Lorcana Play Layout** (default Lorcana scorebug) — square rails, player cams, reserved ink slots, diamonds, W/L/D, lore 20–1, card wells. Phase next to round. Show P1 / Show P2.
-
-### v1.2.5-beta — 25 Aug 2026 · hotfix: tablet scroll
-
-**Fixed**
-- Judge and commentary tablets now scroll. The board, card lookup, and notes were clipped below the fold.
-
-### v1.2.4-beta — 25 Aug 2026 · hotfix: PTCG art & judge board
-
-**Added**
-- PTCG judge tablet now has the full **PTCG board** card from Production (Active / bench / HP / Swap / KO / Clear)
-- `/api/ptcg-art` proxy — TCGdex → Pokémon.com → pokemontcg.io, only a real image is returned
-
-**Fixed**
-- Card lookup (search, selected card, on-stream spotlight) clears when you switch games in Production
-- Blank PTCG card art when TCGdex had no file (promos, some printings). A failed load no longer sticks on the next card
-
-### v1.2.3-beta — 25 Aug 2026 · hotfix: per-table clocks
-
-Stream, Floor 1, and Floor 2 no longer share one production timer. Desktop browser and overlay polling also get a smoothness pass.
-
-**Added**
-- Independent **match clock** per table — Stream / Floor 1 / Floor 2 each keep their own time, judge tablet, scorebug, and pop-out monitor
-- Desktop **New window** opens a real OS browser window (offset and focused). Site popups do the same instead of replacing the current tab
-
-**Changed**
-- Production clock label follows the selected table (Stream clock / Floor 1 clock / Floor 2 clock)
-- Overlay clocks tick fast only while a timer is running; control-panel polling pauses when the window is in the background
-- Desktop build turns on GPU rasterization and stops Windows from throttling an “occluded” window
-
-**Fixed**
-- Switching Stream / Floor 1 / Floor 2 left the typed clock display stuck on the previous table
-- Overlay pages re-rendered the HUD on every poll even when nothing changed
-
-### v1.2.2-beta — 25 Aug 2026 · caster, decklists, judge notes
-
-Ops pass: commentary pad, saved decklists, per-player judge notes, and a Production crash fix.
-
-**Added**
-- **Commentary / casting tablet** (`/{game}/tablet?role=caster`) — read-only names, decks, teams, board, clock, bracket path, H2H, staff, and up-next
-- **Request decklist** on Tournament setup — walk-up and roster search/add cards with qty; judge lookup lists those cards first; export writes `decklists.csv`
-- **Judge notes** per player on every judge tablet (and Production) — stay with the player, show on the caster pad, export as `judge-notes.csv`
-- Completing a tournament downloads the export zip
-- Stream-match **full-screen clock** (`/{game}/overlay/stream-clock`) like the floor clock
-- Commander / Partner **Scryfall search** on sign-up, roster, and Production
-- **ROK Layout** for One Piece TCG (life pips, DON!!, official card back) — now the default OP scorebug
-
-**Changed**
-- Format dropdown follows the selected game
-- Overlay preview sits in a fixed 16:9 box so it cannot fight the page scrollbar
-
-**Fixed**
-- Production Control crashed on open (`Maximum update depth exceeded`) — card lookup was rebuilding desk state every render
-- Format staying on the previous title after a game change
-
-### v1.2.1-beta — 25 Aug 2026 · Play Layout polish
-
-Graphical pass on the PTCG Play Layout and Production resource numbers.
-
-**Changed**
-- Play Layout uses ROK colors (charcoal rails, silver borders, red Energy / Supporter / Retreat, gold ability labels)
-- Prize balls sit horizontal, inline with the player name, on the inner edge of each rail
-- Larger player name, country, and W/L/D on Play Layout
-- Production life / HP / LP totals are a bit larger
-
-### v1.3.0-beta — 25 Aug 2026 · Stream / Floor tables
-
-Three independent tables on every title, including VGC.
-
-**Added**
-- **Floor Match 2** (`/{game}/3/overlay/…`, `/{game}/3/tablet`)
-- VGC now has the same three tables as the TCG titles
-
-**Changed**
-- Match 1 / Match 2 renamed to **Stream Match**, **Floor Match 1**, **Floor Match 2**
-- Production chips: Stream · Floor 1 · Floor 2
-- Tournament send / remove / tablet links follow those names
-- Existing Match 2 data stays on Floor Match 1 (`/2/`)
-
-### v1.2.0-beta — 21 Aug 2026 · PTCG Play Layout
-
-Play! Pokémon-style table-cam overlay for Pokémon TCG, plus the board tools to drive it.
-
-**Added**
-- **Play Layout** scorebug (default for PTCG): full-height rails, cropped card illustrations, Active + 5 bench, prizes, W/L/D, country
-- Energy / Supporter / Retreat chips (start ON; punch to turn off) on Production and the judge tablet
-- Dual **Show P1 / Show P2** card overlay over that player’s bench, plus Set Active / Set Bench from card search
-- Production **PTCG board** — typed HP (−10 / +10) on Active and every bench slot
-- **Swap** (retreat / switch) and **KO in** (promote a benched Pokémon, remove Active) on Production and the judge tablet
-- HP bars: green → orange at 30% → red at 10%
-- Solid show-title · phase · round + stream clock bar, centered between the rails
-
-**Changed**
-- ROK Layout remains available on PTCG; Play Layout is the default scorebug
-- Overlay card images load eagerly so OBS browser sources show bench art
-
-### v1.1.0-beta — 21 Aug 2026 · browser
-
-In-app Chromium so pairings, donations, feedback, and card databases stay next to the desk.
-
-**Added**
-- `/browser` and a **Browser** control next to Donate / Feedback
-- Persistent session (cookies, cache, logins) in the desktop app
-- Tabs, new window, bookmark bar + manager (rename / remove), history
-- Chrome-style ⋮ menu: zoom, bookmarks, history, downloads, print, settings
-- Settings: clear browsing data, search engine, startup, print, downloads folder
-- Page zoom (saved; Ctrl/⌘ +, −, 0)
-
-**Changed**
-- ROK Layout scorebug called out for Star Wars Unlimited as well as the other TCG frames
-
-### v1.0.0-beta — 20 Aug 2026 · dual matches
-
-Two live TCG tables on one host, plus the production/TO polish that landed after v0.3.
-
-**Added**
-- Match 1 / Match 2 on Production for every TCG title (not VGC), with slot-scoped overlay and tablet URLs
-- Tournament send targets Match 1 (A) / Match 2 (B), and **Remove from stream**
-- Production **Reset info**
-- Production card search under Live Match
-- Lorcana player tablet **+ / −** for game count
-- ROK Layout scorebugs for MTG constructed, YGO, PTCG, Riftbound, and SWU
-
-**Changed**
-- Match win also awards a game win (no double-count if Game was already punched)
-- Reset restores starting life for YGO (8000) and MTG (20 / 40 Commander), not the cap
-- Lorcana lore resets to 0
-- Overlay preview / tablet copy URLs follow the selected match slot
-
-### HOTFIX — 20 Aug 2026 · Lorcana lore reset
-
-Reset Match / Reset Game on Lorcana sets lore to 0. Prize-style remaining (PTCG, VGC) still reset to the match cap.
-
-### v0.3.0 — 18 Aug 2026 · Lorcana
-
-ROK Layout for Lorcana (camera wells, inks, W/L/D, lore ladder, game diamonds, official card back), player tablet, ink picker on Production / roster / signup.
-
-### HOTFIX — 18 Aug 2026 · VGC signup & team list
-
-VGC walk-up sign-up scrolls. Printed VG team list matches the Play! Pokémon two-page form.
-
-### HOTFIX — 17 Aug 2026 · player tablet
-
-MTG player tablet restored for Commander / cEDH / Duel Commander. PTCG card lookup loads TCGdex art.
-
-### HOTFIX — 17 Aug 2026
-
-Test mode stays on after you turn it on (demo cleanup no longer flips it off on refresh).
-
-### v0.2.2 — 17 Aug 2026
-
-Lorcana judge tablet and Lorcast card search.
-
-### v0.2.1 — 17 Aug 2026
-
-Riftbound on the desk. Per-game tablet URLs. Judge tablet stays with its event.
-
-### v0.2.0 — 17 Aug 2026 · tournament ops
-
-Landing, player IDs, staff list, export, complete/reopen Swiss, Pre-release formats, Production at `/production`.
-
-### v0.1.0 — 17 Aug 2026 · first beta
-
-Production, Tournament, judge tablets, walk-up signup, per-game overlays, stream vs floor clocks, overlay look, sponsors, test mode.
-
-This build is **v1.5.0**. Dual-match is the 1.0 feature cut; the in-app browser is 1.1; Play Layout is 1.2; software updates are 1.3; end-of-match turns are 1.4. FGC is 1.5. Expect polish.
