@@ -70,6 +70,7 @@ export function RemoteSignupPanel({
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<"open" | "pull" | "close" | "mint" | null>(null);
+  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     setHost(localStorage.getItem(HOST_KEY) || PUBLIC_SIGNUP_ORIGIN);
@@ -274,13 +275,28 @@ export function RemoteSignupPanel({
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Input value={host} onChange={(e) => save({ host: e.target.value })} placeholder="https://rok-desk.vercel.app" />
-        <Input
-          value={secret}
-          onChange={(e) => save({ secret: e.target.value })}
-          placeholder="Venue key"
-          type="password"
-          autoComplete="off"
-        />
+        <div className="flex gap-2">
+          <Input
+            value={secret}
+            onChange={(e) => save({ secret: e.target.value })}
+            placeholder="Venue key"
+            type={showKey ? "text" : "password"}
+            autoComplete="off"
+            className="font-mono"
+          />
+          <Button type="button" variant="outline" onClick={() => setShowKey((open) => !open)}>
+            {showKey ? "Hide" : "Show"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!secret.trim()}
+            onClick={() => void navigator.clipboard.writeText(secret.trim())}
+          >
+            <Copy className="size-3.5" />
+            Copy
+          </Button>
+        </div>
         <Input value={code} onChange={(e) => save({ code: e.target.value })} placeholder="Event code or sign-up link" className="font-mono tracking-widest" />
         <Button type="button" variant="outline" onClick={() => save({ code: makeSignupCode() })}>
           New code
