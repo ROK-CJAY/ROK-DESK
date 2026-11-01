@@ -11,26 +11,17 @@ permissions:
   actions: write
 
 jobs:
-  targets:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set.outputs.matrix }}
-    steps:
-      - id: set
-        env:
-          REF: ${{ github.ref_name }}
-        run: |
-          if [[ "$REF" == *-preview ]]; then
-            echo 'matrix={"include":[{"os":"windows-latest","args":"--win portable nsis"}]}' >> "$GITHUB_OUTPUT"
-          else
-            echo 'matrix={"include":[{"os":"windows-latest","args":"--win portable nsis"},{"os":"ubuntu-latest","args":"--linux AppImage"},{"os":"macos-latest","args":"--mac dmg"}]}' >> "$GITHUB_OUTPUT"
-          fi
-
   build:
-    needs: targets
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.targets.outputs.matrix) }}
+      matrix:
+        include:
+          - os: windows-latest
+            args: --win portable nsis
+          - os: ubuntu-latest
+            args: --linux AppImage
+          - os: macos-latest
+            args: --mac dmg
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
