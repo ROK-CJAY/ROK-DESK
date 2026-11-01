@@ -23,6 +23,8 @@ jobs:
           - os: macos-latest
             args: --mac dmg
     runs-on: ${{ matrix.os }}
+    # Preview tags ship the Windows installer and portable exe only.
+    if: ${{ !contains(github.ref_name, '-preview') || matrix.os == 'windows-latest' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
