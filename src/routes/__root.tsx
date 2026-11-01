@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { TABLET_THEME_KEY, TabletThemeContext } from "@/components/tablet/tablet-theme";
-import appCss from "../styles.css?url";
+import appCss from "../styles.css?inline";
 
 const APP_NAME = "ROK Desk";
 const host = import.meta.env.VITE_PUBLIC_HOSTNAME;
@@ -40,7 +40,6 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/png", href: "/brand/rok-mark.png" },
-      { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
       { rel: "preconnect", href: "https://assets.tcgdex.net" },
@@ -51,6 +50,7 @@ export const Route = createRootRoute({
         href: "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Narrow:wght@500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Exo+2:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Nunito+Sans:wght@500;600;700&family=Oswald:wght@500;600;700&family=Rajdhani:wght@500;600;700&family=Roboto+Mono:wght@500;600&family=Russo+One&family=Source+Sans+3:wght@500;600;700&family=Teko:wght@500;600;700&display=swap",
       },
     ],
+    styles: [{ children: appCss.replace(/<\/style/gi, "<\\/style") }],
   }),
   component: RootDocument,
 });

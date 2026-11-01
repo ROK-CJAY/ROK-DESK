@@ -21,14 +21,13 @@ function Side({
 }
 
 export function FgcHud() {
-  const hydrate = useFgcStore((s) => s.hydrate);
-  const reload = useFgcStore((s) => s.reload);
+  const pullProgram = useFgcStore((s) => s.pullProgram);
   const fgc = useFgcStore((s) => s.fgc);
   useEffect(() => {
-    hydrate();
-    const timer = window.setInterval(reload, 1000);
+    void pullProgram();
+    const timer = window.setInterval(() => void pullProgram(), 1000);
     return () => window.clearInterval(timer);
-  }, [hydrate, reload]);
+  }, [pullProgram]);
 
   const set = streamSetOf(fgc);
   const event = fgc.event;

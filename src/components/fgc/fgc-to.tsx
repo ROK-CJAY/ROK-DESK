@@ -66,6 +66,7 @@ export function FgcTournamentDesk() {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [picked, setPicked] = useState("");
   const [now, setNow] = useState(() => Date.now());
 
   const loadAccount = async (next: string) => {

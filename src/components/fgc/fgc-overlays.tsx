@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { playerLabel } from "@/lib/fgc-types";
@@ -8,15 +8,72 @@ import { FgcGraphic } from "@/components/fgc/fgc-graphics";
 import { fontFamilyCss } from "@/lib/fgc-fonts";
 import { activeTitle, liveSet, titleImage, titleStack, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
 
+function fontParts(fontSize: string | number) {
+  if (typeof fontSize === "number") return { value: fontSize, unit: "px" };
+  const match = String(fontSize).trim().match(/^(-?\d*\.?\d+)(.*)$/);
+  if (!match) return { value: 16, unit: "px" };
+  return { value: Number(match[1]), unit: match[2] || "px" };
+}
+
+export function FitText({ text, fontSize }: { text: string; fontSize: string | number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const base = fontParts(fontSize);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const box = el?.parentElement;
+    if (!el || !box) return;
+    const fit = () => {
+      const maxW = box.clientWidth;
+      const maxH = box.clientHeight;
+      if (maxW < 2 || maxH < 2) return;
+      el.style.fontSize = `${base.value}${base.unit}`;
+      const computed = getComputedStyle(el);
+      const px = parseFloat(computed.fontSize);
+      if (!px) return;
+      const probe = document.createElement("span");
+      probe.textContent = text || " ";
+      probe.style.position = "fixed";
+      probe.style.left = "-9999px";
+      probe.style.top = "0";
+      probe.style.visibility = "hidden";
+      probe.style.whiteSpace = "nowrap";
+      probe.style.fontFamily = computed.fontFamily;
+      probe.style.fontWeight = computed.fontWeight;
+      probe.style.fontStyle = computed.fontStyle;
+      probe.style.letterSpacing = computed.letterSpacing;
+      probe.style.lineHeight = "1";
+      probe.style.fontSize = `${px}px`;
+      document.body.appendChild(probe);
+      const naturalW = probe.offsetWidth;
+      const naturalH = probe.offsetHeight;
+      probe.remove();
+      const next = Math.max(0.12, Math.min(1, (maxW - 2) / Math.max(naturalW, 1), (maxH - 2) / Math.max(naturalH, 1)));
+      const rounded = Math.round(next * 1000) / 1000;
+      setScale((current) => (Math.abs(current - rounded) < 0.002 ? current : rounded));
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [text, base.value, base.unit]);
+
+  return (
+    <span ref={ref} className="block w-full min-w-0 overflow-hidden whitespace-nowrap" style={{ fontSize: `${base.value * scale}${base.unit}`, lineHeight: 1 }}>
+      {text}
+    </span>
+  );
+}
+
 function useLiveFgc() {
-  const hydrate = useFgcStore((s) => s.hydrate);
-  const reload = useFgcStore((s) => s.reload);
+  const pullProgram = useFgcStore((s) => s.pullProgram);
   const fgc = useFgcStore((s) => s.fgc);
   useEffect(() => {
-    hydrate();
-    const timer = window.setInterval(reload, 1000);
+    void pullProgram();
+    const timer = window.setInterval(() => void pullProgram(), 1000);
     return () => window.clearInterval(timer);
-  }, [hydrate, reload]);
+  }, [pullProgram]);
   return fgc;
 }
 
@@ -89,9 +146,9 @@ function TitleMotion({ token, anim, children }: { token: string; anim: string; c
     }, 220);
     return () => window.clearTimeout(timer);
   }, [anim, token]);
-  if (anim !== "fade") return <div className="h-full w-full">{children}</div>;
+  if (anim !== "fade") return <div className="flex h-full w-full min-w-0 items-center overflow-hidden">{children}</div>;
   return (
-    <div className="h-full w-full" style={{ animation: phase === "out" ? "rok-title-out 220ms ease forwards" : phase === "in" ? "rok-title-in 280ms ease" : undefined }}>
+    <div className="flex h-full w-full min-w-0 items-center overflow-hidden" style={{ animation: phase === "out" ? "rok-title-out 220ms ease forwards" : phase === "in" ? "rok-title-in 280ms ease" : undefined }}>
       {display}
     </div>
   );
@@ -135,8 +192,10 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
           <TitleMotion token={value} anim={element.anim || ""}>
             {picture ? (
               value ? <img src={value} alt="" className={`h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : null
+            ) : element.kind === "ticker" ? (
+              <span className="inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text)}</span>
             ) : words ? (
-              <span className={element.kind === "ticker" ? "inline-block whitespace-nowrap" : "block h-full overflow-hidden whitespace-pre-wrap break-words"} style={element.kind === "ticker" ? { animation: "rok-ticker 14s linear infinite" } : undefined}>{titleText(fgc, set, element.bind, element.text)}</span>
+              <FitText text={titleText(fgc, set, element.bind, element.text)} fontSize={element.size} />
             ) : null}
           </TitleMotion>
         </div>

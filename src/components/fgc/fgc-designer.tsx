@@ -7,6 +7,7 @@ import { deskFonts, fontFamilyCss } from "@/lib/fgc-fonts";
 import { useFgcStore } from "@/lib/fgc-store";
 import { titleFromPsd } from "@/lib/psd-title";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
+import { FitText } from "@/components/fgc/fgc-overlays";
 import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
 type Tool = "select" | "text" | "ticker" | "image" | "rect" | "circle" | "triangle";
@@ -464,7 +465,7 @@ export function FgcDesigner() {
                 onPointerDown={(event) => dragExisting(element, event)}
               >
                 <div
-                  className="h-full w-full overflow-hidden text-left"
+                  className={`absolute inset-0 overflow-hidden ${element.kind === "text" ? "flex items-center" : ""}`}
                   style={{
                     color: element.color,
                     background: (element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle") && titleImage(fgc, set, element) ? "transparent" : element.bg,
@@ -484,8 +485,10 @@ export function FgcDesigner() {
                 >
                   {element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle" ? (
                     titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className={`pointer-events-none h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : element.kind === "image" ? <span className="text-xs text-white/60">Image</span> : null
-                  ) : element.kind === "text" || element.kind === "ticker" ? (
-                    <span className={element.kind === "ticker" ? "pointer-events-none inline-block whitespace-nowrap" : "pointer-events-none block h-full overflow-hidden whitespace-pre-wrap break-words"} style={element.kind === "ticker" ? { animation: "rok-ticker 14s linear infinite" } : undefined}>{titleText(fgc, set, element.bind, element.text) || element.name}</span>
+                  ) : element.kind === "ticker" ? (
+                    <span className="pointer-events-none inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text) || element.name}</span>
+                  ) : element.kind === "text" ? (
+                    <FitText text={titleText(fgc, set, element.bind, element.text) || element.name} fontSize={`${(element.size / 1920) * 100}cqw`} />
                   ) : null}
                 </div>
                 {active && tool === "select" ? HANDLES.map((handle) => (

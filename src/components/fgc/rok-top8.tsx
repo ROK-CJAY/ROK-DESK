@@ -7,14 +7,13 @@ import { useFgcStore } from "@/lib/fgc-store";
 const PLACES = ["1ST", "2ND", "3RD", "4TH", "5TH", "5TH", "7TH", "7TH"];
 
 function useLiveFgc() {
-  const hydrate = useFgcStore((s) => s.hydrate);
-  const reload = useFgcStore((s) => s.reload);
+  const pullProgram = useFgcStore((s) => s.pullProgram);
   const fgc = useFgcStore((s) => s.fgc);
   useEffect(() => {
-    hydrate();
-    const timer = window.setInterval(reload, 1000);
+    void pullProgram();
+    const timer = window.setInterval(() => void pullProgram(), 1000);
     return () => window.clearInterval(timer);
-  }, [hydrate, reload]);
+  }, [pullProgram]);
   return fgc;
 }
 
@@ -101,9 +100,9 @@ function Card({ fgc, player, label, big = false }: { fgc: FgcState; player: FgcP
         <Art key={`${pictures.art}|${pictures.icon}`} art={pictures.art} icon={pictures.icon} />
       </div>
       <div className="bg-black/80 px-3 pt-1 pb-2">
-        <p className={`truncate font-display font-semibold tracking-wide text-white uppercase ${big ? "text-[1.7rem]" : "text-[1.05rem]"}`}>{name || "Player"}</p>
+        <p className={`truncate font-display font-semibold tracking-wide text-white uppercase ${big ? "text-[2.25rem]" : "text-[1.45rem]"}`}>{name || "Player"}</p>
         <div className="mt-0.5 flex items-center gap-2">
-          <p className="min-w-0 flex-1 truncate text-[0.78rem] text-white/75">{handle}</p>
+          <p className={`min-w-0 flex-1 truncate text-white/75 ${big ? "text-[1.15rem]" : "text-[0.95rem]"}`}>{handle}</p>
           {flags.length ? (
             <span className="flex gap-1">
               {flags.map((src) => (

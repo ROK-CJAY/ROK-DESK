@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { blankPlayer, blankRoster, blankRosterSlot, blankRuleset, blankSet, EMPTY_BRACKET_VIEW, EMPTY_FGC, type FgcBracketView, type FgcCaster, type FgcLibrary, type FgcPlayer, type FgcRoster, type FgcRosterSlot, type FgcRuleset, type FgcSet, type FgcState } from "@/lib/fgc-types";
 import { normalizeSettings } from "@/lib/fgc-settings";
-import { applyLane, applyStartggStreamNames, boardForStreamName, boardsForStreams, defaultBoard, emptyLane, isPermanentBoard, laneIdOf, mergeRemoteLanes, stampLanes, touchLane, withPermanentBoards } from "@/lib/fgc-lanes";
+import { applyLane, applyStartggStreamNames, boardForStreamName, boardsForStreams, defaultBoard, emptyLane, isPermanentBoard, laneIdOf, mergeRemoteLanes, overlayPin, resolveLane, stampLanes, touchLane, withPermanentBoards } from "@/lib/fgc-lanes";
 import { type StreamQueueRow } from "@/lib/startgg";
 import { startggAuthBody } from "@/lib/startgg-link";
 import { sourceFolders } from "@/lib/fgc-titles";
@@ -83,6 +83,7 @@ type FgcStore = {
   removeBoard: (id: string) => void;
   assignStream: (input: { eventId: string; eventName: string; game: string; slug: string; streamName: string; set: FgcSet }) => void;
   pullLanes: () => Promise<void>;
+  pullProgram: () => Promise<void>;
 };
 
 function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[], keep: boolean): SavedPlayer[] {
@@ -240,12 +241,19 @@ function ensureStreams(fgc: FgcState): FgcState {
   return { ...next, activeBoardId: active.id, streamSetId: active.setId };
 }
 
+function viewerOnly() {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname;
+  return path.includes("/overlay") || path.includes("/tsh/layout");
+}
+
 function write(fgc: FgcState, bump = true) {
   if (typeof window === "undefined") return;
   const stamped = bump ? touchLane(fgc) : stampLanes(fgc);
   Object.assign(fgc, stamped);
   window.localStorage.setItem(KEY, JSON.stringify(fgc));
   writeLibraries(fgc.libraries);
+  if (viewerOnly()) return;
   window.clearTimeout(publishTimer);
   publishTimer = window.setTimeout(() => {
     const desktop = rokDesktop();
@@ -813,6 +821,28 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       set({ fgc });
     } catch {
       /* the desk still works from this browser */
+    }
+  },
+  pullProgram: async () => {
+    const pin = overlayPin();
+    const local = get().ready ? get().fgc : ensureStreams(read());
+    try {
+      const res = await fetch("/api/fgc/program-state?raw=1", { cache: "no-store" });
+      if (!res.ok) {
+        set({ fgc: local, ready: true });
+        return;
+      }
+      const remote = (await res.json()) as FgcState;
+      let fgc = ensureStreams(resolveLane({ ...EMPTY_FGC, ...remote }, pin.lane || remote.laneId));
+      if (pin.board) {
+        const board = fgc.boards.find((item) => item.id === pin.board);
+        if (board) fgc = { ...fgc, activeBoardId: pin.board, streamSetId: board.setId };
+      }
+      const remotePlayers = (fgc.roster?.slots ?? []).some((slot) => slot.players?.some((player) => player.tag?.trim()));
+      const localPlayers = (local.roster?.slots ?? []).some((slot) => slot.players?.some((player) => player.tag?.trim()));
+      set({ fgc: remotePlayers || !localPlayers ? fgc : local, ready: true });
+    } catch {
+      set({ fgc: local, ready: true });
     }
   },
 }));
