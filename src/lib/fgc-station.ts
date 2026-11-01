@@ -125,7 +125,7 @@ async function boardOf(live: ToLive): Promise<ToBoard> {
 
 function setOnStation(sets: ToSet[], stationId: string, streamId = "") {
   const rows = sets.filter((set) => set.state !== 3 && !set.winnerId && (set.stationId === stationId || (streamId && set.streamId === streamId)));
-  return rows.find((set) => set.state === 6) ?? rows.find((set) => set.state === 2) ?? rows[0] ?? null;
+  return rows.find((set) => set.state === 2) ?? rows.find((set) => set.state === 6) ?? rows[0] ?? null;
 }
 
 function asBestOf(value: number): 1 | 3 | 5 | 7 {
@@ -232,9 +232,9 @@ export async function reportStation(
       // The event list is enough when the names already match.
     }
   }
-  if (set.state !== 6 && set.state !== 3) {
+  if (set.state !== 2 && set.state !== 3) {
     try {
-      if (set.state !== 2) await callToSet(live.token, set.id);
+      if (set.state !== 6) await callToSet(live.token, set.id);
       await beginToSet(live.token, set.id);
     } catch {
       // The report still goes through if the set was already called.

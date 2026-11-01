@@ -33,7 +33,7 @@ function readRender(file: File): Promise<string> {
   });
 }
 
-function PlayerFields({ index, playerIndex, player }: { index: number; playerIndex: number; player: FgcPlayer }) {
+function PlayerFields({ index, playerIndex, player, characters }: { index: number; playerIndex: number; player: FgcPlayer; characters: number }) {
   const setRosterPlayer = useFgcStore((s) => s.setRosterPlayer);
   const set = (partial: Partial<FgcPlayer>) => setRosterPlayer(index, playerIndex, partial);
   return (
@@ -65,6 +65,16 @@ function PlayerFields({ index, playerIndex, player }: { index: number; playerInd
       <Field label="Skin">
         <SkinField character={player.character} value={player.skin || 0} onChange={(skin) => set({ skin })} />
       </Field>
+      {characters > 1 ? (
+        <>
+          <Field label="Character 2">
+            <CharacterField value={player.character2} onChange={(character2) => set({ character2, skin2: character2 === player.character2 ? player.skin2 : 0 })} />
+          </Field>
+          <Field label="Skin 2">
+            <SkinField character={player.character2} value={player.skin2 || 0} onChange={(skin2) => set({ skin2 })} />
+          </Field>
+        </>
+      ) : null}
       <div className="flex items-center gap-3 sm:col-span-2">
         {player.render ? <img src={player.render} alt="" className="h-20 w-16 rounded bg-black object-contain" /> : <div className="h-20 w-16 rounded bg-black/30" />}
         <div className="grid gap-2">
@@ -105,7 +115,8 @@ export function FgcRoster() {
     const lines = slots
       .map((slot, index) => {
         const name = [slot.teamName, slot.players.map((player) => player.tag).filter(Boolean).join(" / ")].filter(Boolean).join(" ");
-        return name ? `${index + 1}. ${name}${slot.players[0]?.character ? ` (${slot.players[0].character})` : ""}` : "";
+        const characters = [slot.players[0]?.character, (roster?.charactersPerPlayer || 1) > 1 ? slot.players[0]?.character2 : ""].filter(Boolean).join(", ");
+        return name ? `${index + 1}. ${name}${characters ? ` (${characters})` : ""}` : "";
       })
       .filter(Boolean);
     await navigator.clipboard.writeText(lines.join("\n"));
@@ -121,6 +132,12 @@ export function FgcRoster() {
         </Field>
         <Field label="Players per slot">
           <select className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm" value={roster?.playersPerSlot || 1} onChange={(e) => setRoster({ playersPerSlot: Number(e.target.value) })}>
+            <option value={1}>1</option>
+            <option value={2}>2</option>
+          </select>
+        </Field>
+        <Field label="Characters per slot">
+          <select className="h-10 rounded-md border border-border bg-surface-2 px-3 text-sm" value={roster?.charactersPerPlayer || 1} onChange={(e) => setRoster({ charactersPerPlayer: Number(e.target.value) })}>
             <option value={1}>1</option>
             <option value={2}>2</option>
           </select>
@@ -149,10 +166,10 @@ export function FgcRoster() {
                 </Field>
               ) : null}
             </div>
-            <PlayerFields index={index} playerIndex={0} player={slot.players[0] ?? blankPlayer()} />
+            <PlayerFields index={index} playerIndex={0} player={slot.players[0] ?? blankPlayer()} characters={roster?.charactersPerPlayer || 1} />
             {(roster?.playersPerSlot || 1) > 1 ? (
               <div className="mt-3">
-                <PlayerFields index={index} playerIndex={1} player={slot.players[1] ?? blankPlayer()} />
+                <PlayerFields index={index} playerIndex={1} player={slot.players[1] ?? blankPlayer()} characters={roster?.charactersPerPlayer || 1} />
               </div>
             ) : null}
           </div>

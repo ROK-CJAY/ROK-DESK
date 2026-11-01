@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
-import { beginToSet, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
+import { beginToSet, callBeforeAssign, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
 import { bindLive, clearLive, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
 
 export const Route = createFileRoute("/api/startgg")({
@@ -86,13 +86,13 @@ export const Route = createFileRoute("/api/startgg")({
             if (body.action === "assign-station" && body.stationId) await stationToSet(token, body.setId, body.stationId);
             if (body.action === "assign-stream" && body.streamId) await streamToSet(token, body.setId, body.streamId);
             if (body.action === "call-stream" && body.streamId) {
+              await callBeforeAssign(token, body.setId);
               await streamToSet(token, body.setId, body.streamId);
               if (body.stationId) await stationToSet(token, body.setId, body.stationId);
-              await callToSet(token, body.setId);
             }
             if (body.action === "call-station" && body.stationId) {
+              await callBeforeAssign(token, body.setId);
               await stationToSet(token, body.setId, body.stationId);
-              await callToSet(token, body.setId);
               if (body.bestOf) await saveStationBestOf(body.setId, Number(body.bestOf));
             }
             if (body.action === "report" && body.winnerId) {

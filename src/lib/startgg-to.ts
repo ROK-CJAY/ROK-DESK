@@ -400,24 +400,46 @@ function optionsOf(rows: { id?: string | number | null; name?: string | null; im
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function gqlId(value: string) {
+  const id = value.trim();
+  if (/^preview/i.test(id)) {
+    throw new Error("That match is still a placeholder on start.gg. It can be called once both players are in.");
+  }
+  return /^\d+$/.test(id) ? Number(id) : id;
+}
+
+function alreadyCalled(err: unknown) {
+  const message = err instanceof Error ? err.message : String(err);
+  return /already|called|in progress/i.test(message);
+}
+
 async function mutate(token: string, query: string, variables: Record<string, unknown>, name: string) {
   await startggQuery(query, variables, name, token);
 }
 
 export async function callToSet(token: string, setId: string) {
-  await mutate(token, `mutation CallSet($setId: ID!) { markSetCalled(setId: $setId) { id state } }`, { setId }, "CallSet");
+  await mutate(token, `mutation CallSet($setId: ID!) { markSetCalled(setId: $setId) { id state } }`, { setId: gqlId(setId) }, "CallSet");
+}
+
+export async function callBeforeAssign(token: string, setId: string) {
+  try {
+    await callToSet(token, setId);
+  } catch (err) {
+    if (!alreadyCalled(err)) throw err;
+  }
 }
 
 export async function beginToSet(token: string, setId: string) {
-  await mutate(token, `mutation BeginSet($setId: ID!) { markSetInProgress(setId: $setId) { id state } }`, { setId }, "BeginSet");
+  await callBeforeAssign(token, setId);
+  await mutate(token, `mutation BeginSet($setId: ID!) { markSetInProgress(setId: $setId) { id state } }`, { setId: gqlId(setId) }, "BeginSet");
 }
 
 export async function stationToSet(token: string, setId: string, stationId: string) {
-  await mutate(token, `mutation StationSet($setId: ID!, $stationId: ID!) { assignStation(setId: $setId, stationId: $stationId) { id } }`, { setId, stationId }, "StationSet");
+  await mutate(token, `mutation StationSet($setId: ID!, $stationId: ID!) { assignStation(setId: $setId, stationId: $stationId) { id } }`, { setId: gqlId(setId), stationId: gqlId(stationId) }, "StationSet");
 }
 
 export async function streamToSet(token: string, setId: string, streamId: string) {
-  await mutate(token, `mutation StreamSet($setId: ID!, $streamId: ID!) { assignStream(setId: $setId, streamId: $streamId) { id } }`, { setId, streamId }, "StreamSet");
+  await mutate(token, `mutation StreamSet($setId: ID!, $streamId: ID!) { assignStream(setId: $setId, streamId: $streamId) { id } }`, { setId: gqlId(setId), streamId: gqlId(streamId) }, "StreamSet");
 }
 
 export type ReportedGame = {

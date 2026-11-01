@@ -5,10 +5,10 @@ import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { AppChrome } from "@/components/app/app-chrome";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { readToRefresh, readToToken, writeToSession, clearToSession } from "@/lib/startgg-link";
+import { readToRefresh, readToToken, readToEvent, writeToEvent, writeToSession, clearToSession } from "@/lib/startgg-link";
 import { rokDesktop } from "@/lib/rok-desktop";
 import { PUBLIC_SIGNUP_ORIGIN } from "@/lib/remote-signup-code";
-import type { ToBoard, ToOption, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
+import type { ToBoard, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
 import { BracketBoard } from "@/components/fgc/fgc-bracket";
 import { blankPlayer, blankSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
@@ -31,20 +31,17 @@ function clockText(now: number, at: number | null) {
 }
 
 function setLabel(state: number) {
-  if (state === 2) return "Called";
+  // start.gg: 1 waiting, 6 called, 2 started, 3 done.
+  if (state === 6) return "Called";
   if (state === 3) return "Done";
-  if (state === 6) return "Started";
+  if (state === 2) return "Started";
   return "Waiting";
 }
 
-function characterOptions(characters: ToOption[], id: string, name: string) {
-  if (!id || characters.some((character) => character.id === id)) return characters;
-  return [{ id, name: name || "Selected", icon: "" }, ...characters];
-}
-
-function CharacterMark({ characters, id, fallback }: { characters: ToOption[]; id: string; fallback: string }) {
-  const icon = characters.find((character) => character.id === id)?.icon || fallback;
-  return icon ? <img src={icon} alt="" className="h-8 w-8 shrink-0 object-contain" /> : <span className="h-8 w-8 shrink-0" />;
+function stationTone(state?: number): "open" | "called" | "started" {
+  if (state === 2) return "started";
+  if (state === 6) return "called";
+  return "open";
 }
 
 async function toApi(body: Record<string, unknown>) {
@@ -68,23 +65,26 @@ export function FgcTournamentDesk() {
   const [scores, setScores] = useState<Record<string, SetDraft>>({});
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const [picked, setPicked] = useState("");
+  const [copied, setCopied] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const loadAccount = async (next: string) => {
     setBusy("account");
     setError("");
+    let saved = "";
     try {
       const body = (await toApi({ action: "account", token: next })) as { user: ToUser; tournaments: ToTournament[] };
       setUser(body.user);
       setTournaments(body.tournaments);
       setToken(next);
       writeToSession(next, readToRefresh().refreshToken, readToRefresh().expiresAt);
+      saved = readToEvent();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect");
     } finally {
       setBusy("");
     }
+    if (saved) void loadBoard(saved, next);
   };
 
   const loadBoard = async (slug: string, auth = token, quiet = false) => {
@@ -94,6 +94,7 @@ export function FgcTournamentDesk() {
       setError("");
     }
     setEventSlug(slug);
+    writeToEvent(slug);
     try {
       const next = (await toApi({ action: "board", token: auth, slug })) as ToBoard;
       setBoard(next);
@@ -194,8 +195,8 @@ export function FgcTournamentDesk() {
       }
       if (item.state !== 2 && item.state !== 6) continue;
       const slot = clocks.current[item.id] ?? { called: null, started: null };
-      if (item.state === 2) slot.called = slot.called ?? item.updatedAt;
-      if (item.state === 6) {
+      if (item.state === 6) slot.called = slot.called ?? item.updatedAt;
+      if (item.state === 2) {
         slot.started = item.startedAt ?? slot.started ?? item.updatedAt;
         if (!slot.called && item.updatedAt && slot.started && item.updatedAt < (slot.started < 10_000_000_000 ? slot.started * 1000 : slot.started)) slot.called = item.updatedAt;
       }
@@ -241,6 +242,7 @@ export function FgcTournamentDesk() {
     setTournaments([]);
     setBoard(null);
     setEventSlug("");
+    writeToEvent("");
   };
 
   return (
@@ -277,7 +279,16 @@ export function FgcTournamentDesk() {
                 <select
                   className="h-10 min-w-64 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg"
                   value={eventSlug}
-                  onChange={(e) => void loadBoard(e.target.value)}
+                  onChange={(e) => {
+                    const slug = e.target.value;
+                    if (!slug) {
+                      writeToEvent("");
+                      setEventSlug("");
+                      setBoard(null);
+                      return;
+                    }
+                    void loadBoard(slug);
+                  }}
                 >
                   <option value="">Choose an event</option>
                   {tournaments.map((tournament) => (
@@ -289,6 +300,26 @@ export function FgcTournamentDesk() {
                   ))}
                 </select>
               </label>
+              {eventSlug ? (
+                <label className="grid min-w-[18rem] flex-[1.4] gap-1 text-xs text-muted">
+                  Event link
+                  <div className="flex gap-2">
+                    <Input readOnly value={`https://www.start.gg/${eventSlug.replace(/^\/+/, "")}`} onFocus={(e) => e.currentTarget.select()} />
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const link = `https://www.start.gg/${eventSlug.replace(/^\/+/, "")}`;
+                        void navigator.clipboard.writeText(link).then(() => {
+                          setCopied(true);
+                          window.setTimeout(() => setCopied(false), 1200);
+                        });
+                      }}
+                    >
+                      {copied ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                </label>
+              ) : null}
               <Button variant="outline" disabled={!eventSlug || busy === "board"} onClick={() => void loadBoard(eventSlug)}>Refresh</Button>
               <Button variant="ghost" onClick={logout}>Log out</Button>
               {error ? <p className="w-full text-sm text-live">{error}</p> : null}
@@ -306,10 +337,6 @@ export function FgcTournamentDesk() {
                 scores={scores}
                 clocks={clocks.current}
                 onPick={setPicked}
-                onDraft={(id, patch) => setScores((current) => {
-                  const prev = current[id] ?? { score1: 0, score2: 0, character1: "", character2: "", stageId: "" };
-                  return { ...current, [id]: { ...prev, ...patch } };
-                })}
                 onAct={act}
               />
             )}
@@ -322,7 +349,7 @@ export function FgcTournamentDesk() {
 
 function liveSet(sets: ToSet[]) {
   const open = (set: ToSet) => !set.winnerId && set.state !== 3;
-  return sets.find((set) => set.state === 6 && open(set)) ?? sets.find((set) => set.state === 2 && open(set)) ?? null;
+  return sets.find((set) => set.state === 2 && open(set)) ?? sets.find((set) => set.state === 6 && open(set)) ?? null;
 }
 
 function useTabletOrigin() {
@@ -347,6 +374,49 @@ function strikeHref(origin: string, id: string) {
   return `${base}/fgc/strike?station=${encodeURIComponent(id)}`;
 }
 
+type SideMark = "" | "w" | "dq" | number;
+
+const SCORE_PICKS = ["DQ", 0, 1, 2, 3, 4, "W"] as const;
+
+function ScorePicks({ name, mark, disabled, onPick }: { name: string; mark: SideMark; disabled: boolean; onPick: (mark: SideMark) => void }) {
+  return (
+    <div className="flex items-center gap-3 overflow-x-auto">
+      <span className="min-w-[7rem] flex-1 truncate text-sm">{name}</span>
+      <span className="flex shrink-0 items-center gap-1">
+        {SCORE_PICKS.map((item) => {
+          const value: SideMark = item === "DQ" ? "dq" : item === "W" ? "w" : item;
+          const on = mark === value;
+          return (
+            <button
+              key={String(item)}
+              type="button"
+              disabled={disabled}
+              onClick={() => onPick(value)}
+              className={cn(
+                "grid h-8 w-8 place-items-center rounded-full border text-[0.7rem] font-medium",
+                on ? "border-fg bg-fg text-bg" : "border-border text-fg hover:border-fg/70",
+                disabled && "opacity-50",
+              )}
+            >
+              {item}
+            </button>
+          );
+        })}
+      </span>
+    </div>
+  );
+}
+
+function winningScore(bestOf: number, mark: SideMark, other: SideMark) {
+  if (typeof mark === "number") return mark;
+  const floor = Math.max(1, Math.ceil(bestOf / 2));
+  return Math.max(floor, (typeof other === "number" ? other : 0) + 1);
+}
+
+function losingScore(mark: SideMark) {
+  return typeof mark === "number" ? mark : 0;
+}
+
 function StationFloor({
   board,
   now,
@@ -355,7 +425,6 @@ function StationFloor({
   picked,
   scores,
   onPick,
-  onDraft,
   onAct,
 }: {
   board: ToBoard;
@@ -365,7 +434,6 @@ function StationFloor({
   picked: string;
   scores: Record<string, SetDraft>;
   onPick: (id: string) => void;
-  onDraft: (id: string, patch: Partial<SetDraft>) => void;
   onAct: (set: ToSet, action: string, extra?: Record<string, unknown>) => Promise<void>;
 }) {
   const [stationId, setStationId] = useState("");
@@ -375,6 +443,7 @@ function StationFloor({
   const [sendStream, setSendStream] = useState("");
   const [stationBest, setStationBest] = useState<1 | 3 | 5 | 7>(3);
   const [cardBest, setCardBest] = useState<1 | 3 | 5 | 7>(3);
+  const [marks, setMarks] = useState<Record<string, { a: SideMark; b: SideMark }>>({});
   const [qr, setQr] = useState("");
   const origin = useTabletOrigin();
   const set = board.sets.find((item) => item.id === picked) ?? null;
@@ -389,9 +458,38 @@ function StationFloor({
   }, [set?.id, set?.stationId, set?.streamId, set?.bestOf]);
   const called = !!set && !set.winnerId && (set.state === 2 || set.state === 6);
   const place = called ? [set.station, set.stream].filter((item) => item && item !== "Station").join(" · ") : "";
+  const pickScore = (side: "a" | "b", mark: SideMark) => {
+    if (!set || busy.startsWith(set.id)) return;
+    const current = marks[set.id] ?? { a: "" as SideMark, b: "" as SideMark };
+    const next = { ...current, [side]: mark };
+    setMarks((prev) => ({ ...prev, [set.id]: next }));
+    const best = set.bestOf || cardBest || 3;
+    const { a, b } = next;
+    if (a === "dq" && b === "dq") return;
+    if (a === "w" && b === "w") return;
+    if (a === "dq") {
+      void onAct(set, "report", { winnerId: set.p2.id, dq: true, score1: 0, score2: winningScore(best, b, a) });
+      return;
+    }
+    if (b === "dq") {
+      void onAct(set, "report", { winnerId: set.p1.id, dq: true, score1: winningScore(best, a, b), score2: 0 });
+      return;
+    }
+    if (a === "w") {
+      void onAct(set, "report", { winnerId: set.p1.id, score1: winningScore(best, a, b), score2: losingScore(b) });
+      return;
+    }
+    if (b === "w") {
+      void onAct(set, "report", { winnerId: set.p2.id, score1: losingScore(a), score2: winningScore(best, b, a) });
+      return;
+    }
+    if (typeof a === "number" && typeof b === "number" && a !== b) {
+      void onAct(set, "report", { winnerId: a > b ? set.p1.id : set.p2.id, score1: a, score2: b });
+    }
+  };
 
-  const station = board.stations.find((item) => item.id === stationId) ?? null;
-  const streamSpot = board.streams.find((item) => item.id === stationId || item.stationId === stationId) ?? null;
+  const station = stationId ? board.stations.find((item) => item.id === stationId) ?? null : null;
+  const streamSpot = stationId ? board.streams.find((item) => item.id === stationId || (item.stationId && item.stationId === stationId)) ?? null : null;
   const spot = station
     ? { id: station.id, name: station.name, stationId: station.id, streamId: station.streamId }
     : streamSpot
@@ -454,13 +552,13 @@ function StationFloor({
             {board.stations.filter((item) => !item.streamId).map((item) => {
               const here = liveSet(board.sets.filter((row) => row.stationId === item.id && row.state !== 3));
               const clock = here ? clocks[here.id] : null;
-              const open = !here;
+              const tone = stationTone(here?.state);
               return (
-                <div key={item.id} className={cn("rounded-lg border p-3", open ? "border-border" : "border-accent")}>
+                <div key={item.id} className={cn("rounded-lg border p-3", tone === "started" ? "border-emerald-500 bg-emerald-500/15" : tone === "called" ? "border-amber-400 bg-amber-400/15" : "border-border")}>
                   <button type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(""); setStationId(item.id); }} className="w-full text-left">
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium">{item.name}</p>
-                      <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
+                      <span className={cn("font-mono text-[0.65rem] uppercase", tone === "started" ? "text-emerald-400" : tone === "called" ? "text-amber-300" : "text-muted")}>{here ? setLabel(here.state) : "Open"}</span>
                     </div>
                     <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
                     <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
@@ -485,13 +583,13 @@ function StationFloor({
               ].map((item) => {
                 const here = liveSet(board.sets.filter((row) => row.state !== 3 && (row.stationId === item.stationId || row.streamId === item.streamId)));
                 const clock = here ? clocks[here.id] : null;
-                const open = !here;
+                const tone = stationTone(here?.state);
                 return (
-                  <div key={item.key} className={cn("rounded-lg border p-3", open ? "border-border" : "border-accent")}>
+                  <div key={item.key} className={cn("rounded-lg border p-3", tone === "started" ? "border-emerald-500 bg-emerald-500/15" : tone === "called" ? "border-amber-400 bg-amber-400/15" : "border-border")}>
                     <button type="button" onClick={() => { setStationQuery(""); setQueuedSet(""); setSendStream(item.streamId); setStationId(item.openId); }} className="w-full text-left">
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-medium">{item.name}</p>
-                        <span className={cn("font-mono text-[0.65rem] uppercase", open ? "text-muted" : "text-live")}>{here ? setLabel(here.state) : "Open"}</span>
+                        <span className={cn("font-mono text-[0.65rem] uppercase", tone === "started" ? "text-emerald-400" : tone === "called" ? "text-amber-300" : "text-muted")}>{here ? setLabel(here.state) : "Open"}</span>
                       </div>
                       <p className="mt-1 truncate text-sm">{here ? `${here.p1.name} vs ${here.p2.name}` : "Open"}</p>
                       <p className="font-mono text-xs text-muted">{clock?.called ? `Called ${clockText(now, clock.called)}` : "—"}{clock?.started ? ` · Started ${clockText(now, clock.started)}` : ""}</p>
@@ -553,45 +651,19 @@ function StationFloor({
                 </span>
               </label>
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              <label className="grid gap-1 text-xs text-muted">
-                {set.p1.name} character
-                <span className="flex items-center gap-2">
-                  <CharacterMark characters={board.characters} id={draft.character1} fallback={set.p1.characterIcon} />
-                  <select className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character1} onChange={(e) => onDraft(set.id, { character1: e.target.value })}>
-                    <option value="">Character</option>
-                    {characterOptions(board.characters, draft.character1, set.p1.character).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
-                  </select>
-                </span>
-              </label>
-              <label className="grid gap-1 text-xs text-muted">
-                {set.p2.name} character
-                <span className="flex items-center gap-2">
-                  <CharacterMark characters={board.characters} id={draft.character2} fallback={set.p2.characterIcon} />
-                  <select className="h-9 min-w-0 flex-1 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.character2} onChange={(e) => onDraft(set.id, { character2: e.target.value })}>
-                    <option value="">Character</option>
-                    {characterOptions(board.characters, draft.character2, set.p2.character).map((character) => <option key={character.id} value={character.id}>{character.name}</option>)}
-                  </select>
-                </span>
-              </label>
-              <label className="grid gap-1 text-xs text-muted">
-                Stage
-                <select className="h-9 rounded-md border border-border bg-surface-2 px-2 text-sm text-fg" value={draft.stageId} onChange={(e) => onDraft(set.id, { stageId: e.target.value })}>
-                  <option value="">Stage</option>
-                  {board.stages.map((stage) => <option key={stage.id} value={stage.id}>{stage.name}</option>)}
-                </select>
-              </label>
-              <div className="flex items-end gap-2">
-                <Input className="h-9 w-16" inputMode="numeric" value={draft.score1} onChange={(e) => onDraft(set.id, { score1: Number(e.target.value) || 0 })} />
-                <span className="pb-2 text-muted">-</span>
-                <Input className="h-9 w-16" inputMode="numeric" value={draft.score2} onChange={(e) => onDraft(set.id, { score2: Number(e.target.value) || 0 })} />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id })}>{set.p1.name} wins</Button>
-              <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id })}>{set.p2.name} wins</Button>
-              <Button size="sm" variant="outline" disabled={!set.p2.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p2.id, dq: true })}>DQ {set.p1.name}</Button>
-              <Button size="sm" variant="outline" disabled={!set.p1.id || busy.startsWith(set.id)} onClick={() => void onAct(set, "report", { winnerId: set.p1.id, dq: true })}>DQ {set.p2.name}</Button>
+            <div className="grid gap-3">
+              <ScorePicks
+                name={set.p1.name}
+                mark={marks[set.id]?.a ?? (set.score1 || set.score2 ? set.score1 : set.winnerId === set.p1.id ? "w" : "")}
+                disabled={busy.startsWith(set.id) || !set.p1.id}
+                onPick={(mark) => pickScore("a", mark)}
+              />
+              <ScorePicks
+                name={set.p2.name}
+                mark={marks[set.id]?.b ?? (set.score1 || set.score2 ? set.score2 : set.winnerId === set.p2.id ? "w" : "")}
+                disabled={busy.startsWith(set.id) || !set.p2.id}
+                onPick={(mark) => pickScore("b", mark)}
+              />
             </div>
           </section>
         </div>

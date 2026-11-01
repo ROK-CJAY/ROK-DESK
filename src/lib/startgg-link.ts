@@ -45,11 +45,26 @@ export function readToRefresh(): { refreshToken: string; expiresAt: number } {
   };
 }
 
+const TO_EVENT = "rok-fgc-to-event";
+
+export function readToEvent(): string {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(TO_EVENT) ?? "";
+}
+
+export function writeToEvent(slug: string) {
+  if (typeof window === "undefined") return;
+  const next = slug.trim();
+  if (next) window.localStorage.setItem(TO_EVENT, next);
+  else window.localStorage.removeItem(TO_EVENT);
+}
+
 export function clearToSession() {
   writeToToken("");
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(TO_REFRESH);
   window.localStorage.removeItem(TO_EXP);
+  window.localStorage.removeItem(TO_EVENT);
 }
 
 /** Sent only when the optional API link is on and a token is saved. */

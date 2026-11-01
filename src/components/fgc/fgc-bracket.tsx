@@ -100,34 +100,44 @@ function Side({
           {columns.map((column, index) => column.rows.map((row) => {
             const winner1 = row.set.winnerId && row.set.winnerId === row.set.p1.id;
             const winner2 = row.set.winnerId && row.set.winnerId === row.set.p2.id;
-            const active = !row.set.winnerId && (row.set.state === 2 || row.set.state === 6);
-            const clock = active ? clocks[row.set.id] : null;
-            const place = [
-              active ? row.set.station : "",
-              active ? row.set.stream : "",
-              clock?.called ? `Called ${clockText(now, clock.called)}` : "",
-              clock?.started ? `Started ${clockText(now, clock.started)}` : "",
-            ].filter((item) => item && item !== "Station").join(" · ");
+            const called = !row.set.winnerId && row.set.state === 6;
+            const started = !row.set.winnerId && row.set.state === 2;
+            const live = called || started;
+            const clock = live ? clocks[row.set.id] : null;
+            const stationLabel = [row.set.station, row.set.stream].find((item) => item && item !== "Station") || (started ? "Live" : "Called");
+            const timer = started
+              ? clockText(now, clock?.started ?? null) || clockText(now, clock?.called ?? null)
+              : clockText(now, clock?.called ?? null);
             return (
               <button
                 key={row.set.id}
                 type="button"
                 onClick={() => onSelect(row.set.id)}
-                className={cn("absolute overflow-hidden rounded-md border bg-surface text-left", row.set.id === selected ? "border-accent" : "border-border")}
+                className={cn(
+                  "absolute overflow-hidden rounded-md border bg-surface text-left",
+                  started ? "border-emerald-500" : called ? "border-amber-400" : row.set.id === selected ? "border-accent" : "border-border",
+                )}
                 style={{ left: index * (CARD_W + COL_GAP), top: row.y + 28, width: CARD_W, height: CARD_H }}
               >
                 <span className="absolute inset-y-0 left-0 flex w-6 items-center justify-center bg-surface-2 text-[0.65rem] text-muted">{row.set.identifier}</span>
-                <span className={cn("absolute top-1 right-7 left-8 flex items-center gap-1 truncate text-xs", winner1 ? "font-semibold text-fg" : "text-muted")}>
+                <span className={cn("absolute top-1 left-8 flex items-center gap-1 truncate text-xs", live ? "right-[6.4rem]" : "right-7", winner1 ? "font-semibold text-fg" : "text-muted")}>
                   {row.set.p1.characterIcon ? <img src={row.set.p1.characterIcon} alt="" className="h-4 w-4 shrink-0 object-contain" /> : null}
                   <span className="truncate">{row.set.p1.name}</span>
                 </span>
-                <span className={cn("absolute top-1 right-1 font-mono text-xs", winner1 ? "text-emerald-400" : "text-muted")}>{row.set.state === 3 || row.set.score1 || row.set.score2 ? row.set.score1 : ""}</span>
-                <span className={cn("absolute bottom-4 right-7 left-8 flex items-center gap-1 truncate text-xs", winner2 ? "font-semibold text-fg" : "text-muted")}>
+                <span className={cn("absolute top-1 font-mono text-xs", live ? "right-[4.7rem]" : "right-1", winner1 ? "text-emerald-400" : "text-muted")}>{row.set.state === 3 || row.set.score1 || row.set.score2 ? row.set.score1 : ""}</span>
+                <span className={cn("absolute bottom-1 left-8 flex items-center gap-1 truncate text-xs", live ? "right-[6.4rem]" : "right-7", winner2 ? "font-semibold text-fg" : "text-muted")}>
                   {row.set.p2.characterIcon ? <img src={row.set.p2.characterIcon} alt="" className="h-4 w-4 shrink-0 object-contain" /> : null}
                   <span className="truncate">{row.set.p2.name}</span>
                 </span>
-                <span className={cn("absolute right-1 bottom-4 font-mono text-xs", winner2 ? "text-emerald-400" : "text-muted")}>{row.set.state === 3 || row.set.score1 || row.set.score2 ? row.set.score2 : ""}</span>
-                {place ? <span className="absolute bottom-0 left-8 truncate text-[0.6rem] text-accent">{place}</span> : null}
+                <span className={cn("absolute bottom-1 font-mono text-xs", live ? "right-[4.7rem]" : "right-1", winner2 ? "text-emerald-400" : "text-muted")}>{row.set.state === 3 || row.set.score1 || row.set.score2 ? row.set.score2 : ""}</span>
+                {live ? (
+                  <span className="absolute inset-y-0 right-0 flex w-[4.4rem] flex-col">
+                    <span className={cn("flex min-h-0 flex-1 items-center justify-center px-1 text-center text-[0.58rem] font-semibold leading-tight uppercase", started ? "bg-emerald-500 text-white" : "bg-amber-400 text-zinc-950")}>
+                      <span className="line-clamp-2">{stationLabel}</span>
+                    </span>
+                    <span className={cn("flex h-5 shrink-0 items-center justify-center font-mono text-[0.68rem]", started ? "bg-emerald-950 text-white" : "bg-amber-900 text-amber-50")}>{timer || "0:00"}</span>
+                  </span>
+                ) : null}
               </button>
             );
           }))}

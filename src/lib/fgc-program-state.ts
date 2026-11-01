@@ -18,9 +18,9 @@ function libraryFor(fgc: FgcState) {
   return fgc.libraries.find((library) => library.game === fgc.event?.game) ?? fgc.libraries[0];
 }
 
-function playerLabel(player: FgcPlayer | null) {
+function tshName(player: FgcPlayer | null) {
   if (!player) return "";
-  return [player.prefix, player.tag].filter(Boolean).join(" | ") || player.realName || "";
+  return player.tag.trim() || player.realName.trim() || "";
 }
 
 function emptyPlayer() {
@@ -68,7 +68,7 @@ function tshPlayer(fgc: FgcState, player: FgcPlayer | null) {
   const show = fgc.settings.show;
   const say = (value: string) => cleanSpeech(value, fgc.settings.profanity);
   return {
-    name: say(playerLabel(player)),
+    name: say(tshName(player)),
     team: say(player.prefix || ""),
     twitter: show.social ? say(player.twitter || "") : "",
     pronoun: show.pronouns ? say(player.pronouns || "") : "",
