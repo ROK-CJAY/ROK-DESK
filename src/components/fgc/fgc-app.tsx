@@ -15,10 +15,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
-import { FGC_OVERLAYS, overlayHref, tshLayoutHref } from "@/lib/fgc-titles";
+import { FGC_OVERLAYS, overlayHref, sourceFileName, sourceFolders, sourceList, sourceValue, tshLayoutHref } from "@/lib/fgc-titles";
 import { isPermanentBoard, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
 import { hotkeyEvent } from "@/lib/fgc-settings";
 import { FgcGuideButton } from "@/components/fgc/fgc-guide";
+import { rokDesktop } from "@/lib/rok-desktop";
 import { FgcSettingsButton } from "@/components/fgc/fgc-settings";
 import { cn } from "@/lib/cn";
 
@@ -279,6 +280,39 @@ export function FgcHome() {
   );
 }
 
+function FgcSources() {
+  const fgc = useFgcStore((s) => s.fgc);
+  const set = setForBoard(fgc);
+  const desktop = typeof window !== "undefined" ? rokDesktop() : null;
+  const folder = sourceFolders(fgc).find((item) => item.boardId === (fgc.activeBoardId || "main"));
+  return (
+    <div className="grid gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="max-w-2xl text-sm text-muted">
+          {desktop
+            ? "The installed desk writes one text file per row under Documents\\ROK Desk\\Sources, for the stream selected above. Point the outside overlay at the file. A score or name change rewrites the file, so the scene updates without a refresh."
+            : "Install ROK Desk to write these files. They are created under Documents\\ROK Desk\\Sources and update when the score or a name changes."}
+        </p>
+        <Button type="button" variant="outline" size="sm" disabled={!desktop} onClick={() => void desktop?.openSources(folder?.dir || "")}>
+          Open file location
+        </Button>
+      </div>
+      <ul className="grid gap-1">
+        {sourceList().map((item) => {
+          const value = sourceValue(fgc, set, item.id) ?? "";
+          return (
+            <li key={item.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm">
+              <span className="w-44 shrink-0">{item.label}</span>
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted">{value || "—"}</span>
+              <span className="shrink-0 font-mono text-xs text-muted">{sourceFileName(item.id)}</span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function FgcProduction() {
   return <FgcDesk />;
 }
@@ -295,7 +329,7 @@ function FgcDesk() {
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
   const [tab, setTab] = useState<"scoreboard" | "roster" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
-  const [overlayPane, setOverlayPane] = useState<"preview" | "editor">("preview");
+  const [overlayPane, setOverlayPane] = useState<"preview" | "editor" | "sources">("preview");
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   const [tshLayouts, setTshLayouts] = useState<{ path: string; name: string; group: string }[]>([]);
@@ -497,18 +531,18 @@ function FgcDesk() {
         {tab === "overlays" ? (
           <section className="grid gap-4 rounded-xl border border-border bg-surface p-4">
             <nav className="flex w-fit gap-0.5 rounded-lg border border-border bg-surface-2 p-0.5">
-              {(["preview", "editor"] as const).map((id) => (
+              {(["preview", "editor", "sources"] as const).map((id) => (
                 <button
                   key={id}
                   type="button"
                   className={cn("rounded-md px-3 py-1.5 text-xs font-medium", overlayPane === id ? "bg-surface text-fg" : "text-muted")}
                   onClick={() => setOverlayPane(id)}
                 >
-                  {id === "preview" ? "Preview" : "Editor"}
+                  {id === "preview" ? "Preview" : id === "editor" ? "Editor" : "Sources"}
                 </button>
               ))}
             </nav>
-            {overlayPane === "editor" ? <FgcDesigner /> : (
+            {overlayPane === "editor" ? <FgcDesigner /> : overlayPane === "sources" ? <FgcSources /> : (
               <>
             <div>
               <p className="font-medium">{shown.name}</p>

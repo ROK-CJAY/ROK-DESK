@@ -5,6 +5,7 @@ import { cleanSpeech } from "@/lib/fgc-settings";
 import { useFgcStore } from "@/lib/fgc-store";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { liveSet, type FgcOverlayId } from "@/lib/fgc-titles";
+import { RokTop8 } from "@/components/fgc/rok-top8";
 
 function tag(fgc: FgcState, player: FgcPlayer | null) {
   return cleanSpeech(playerLabel(player), fgc.settings.profanity);
@@ -460,6 +461,7 @@ export function FgcGraphic({ id }: { id: FgcOverlayId }) {
   if (id === "bracket") return <Bracket ultimate={false} />;
   if (id === "bracket-ultimate") return <Bracket ultimate />;
   if (id === "top-8") return <TopList count={8} />;
+  if (id === "top-8-rok") return <RokTop8 />;
   if (id === "top-n") return <TopList count={16} />;
   if (id === "last-sets") return <SetList count={5} title="Last sets" />;
   if (id === "recent-sets") return <SetList count={12} title="Recent sets" />;

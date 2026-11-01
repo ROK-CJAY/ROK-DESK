@@ -111,6 +111,7 @@ const COPY: Record<FgcGuideKind, { kicker: string; title: string; lead: string; 
       { title: "Layouts are grouped by game", body: "Scoreboards, versus screens, brackets, and top 8s from the TSH pack are in the list. Custom layouts you saved show under the group you filed them in." },
       { title: "The link is pinned", body: "Copy browser source after you select the stream and scoreboard. The URL carries that game and that scoreboard, so a second stream does not steal it." },
       { title: "1920 × 1080, transparent", body: "In OBS or vMix, set the browser source to 1920 × 1080 and turn the background off. The preview here is the same frame." },
+      { title: "Sources, when the overlay stays outside", body: "Open Sources. The installed desk writes a text file for each row under Documents\\ROK Desk\\Sources. Point the outside overlay at the file, then use Open file location to get there. Changing a score or a name rewrites the file." },
       { title: "Empty is still a layout", body: "A scoreboard with no set yet still draws. Names show as TBD until you pull a match." },
     ],
   },

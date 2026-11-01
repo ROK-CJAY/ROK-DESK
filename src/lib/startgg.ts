@@ -260,6 +260,7 @@ function playerOf(slot: NonNullable<RawSet["slots"]>[number] | undefined, charac
     skin: 0,
     character2: "",
     skin2: 0,
+    render: "",
     seed: entrant.seeds?.[0]?.seedNum ?? null,
   };
 }

@@ -4,6 +4,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { blankPlayer, type FgcPlayer } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { CharacterField, SkinField } from "@/components/fgc/fgc-scoreboard";
+
+function readRender(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1200;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(img.width * scale));
+        canvas.height = Math.max(1, Math.round(img.height * scale));
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(String(reader.result || ""));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.onerror = () => resolve(String(reader.result || ""));
+      img.src = String(reader.result || "");
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function PlayerFields({ index, playerIndex, player }: { index: number; playerIndex: number; player: FgcPlayer }) {
   const setRosterPlayer = useFgcStore((s) => s.setRosterPlayer);
@@ -32,8 +60,34 @@ function PlayerFields({ index, playerIndex, player }: { index: number; playerInd
         <Input value={player.region} onChange={(e) => set({ region: e.target.value })} />
       </Field>
       <Field label="Character">
-        <Input value={player.character} onChange={(e) => set({ character: e.target.value })} />
+        <CharacterField value={player.character} onChange={(character) => set({ character, skin: character === player.character ? player.skin : 0 })} />
       </Field>
+      <Field label="Skin">
+        <SkinField character={player.character} value={player.skin || 0} onChange={(skin) => set({ skin })} />
+      </Field>
+      <div className="flex items-center gap-3 sm:col-span-2">
+        {player.render ? <img src={player.render} alt="" className="h-20 w-16 rounded bg-black object-contain" /> : <div className="h-20 w-16 rounded bg-black/30" />}
+        <div className="grid gap-2">
+          <p className="text-xs text-muted">Character render</p>
+          <div className="flex gap-2">
+            <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border px-3 text-sm">
+              Upload
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  void readRender(file).then((render) => set({ render }));
+                }}
+              />
+            </label>
+            {player.render ? <Button variant="ghost" onClick={() => set({ render: "" })}>Clear</Button> : null}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { flagOf, playerLabel, type FgcSet } from "@/lib/fgc-types";
+import { flagOf, playerLabel, type FgcSet, type FgcSponsor } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { readSponsorLogo } from "@/lib/sponsors";
 import { startggAuthBody } from "@/lib/startgg-link";
 import { useEffect, useState } from "react";
 
@@ -152,6 +153,7 @@ function CasterCard({ index }: { index: number }) {
 export function FgcTournamentInfo() {
   const event = useFgcStore((s) => s.fgc.event);
   const url = useFgcStore((s) => s.fgc.url);
+  const sponsors = useFgcStore((s) => s.fgc.sponsors ?? []);
   const importEvent = useFgcStore((s) => s.importEvent);
   const patch = useFgcStore((s) => s.patch);
   const current = event ?? {
@@ -204,7 +206,48 @@ export function FgcTournamentInfo() {
           </div>
         </div>
       </div>
+      <Partners sponsors={sponsors} onChange={(next) => patch({ sponsors: next })} />
     </section>
+  );
+}
+
+function Partners({ sponsors, onChange }: { sponsors: FgcSponsor[]; onChange: (sponsors: FgcSponsor[]) => void }) {
+  const update = (id: string, partial: Partial<FgcSponsor>) => onChange(sponsors.map((row) => (row.id === id ? { ...row, ...partial } : row)));
+  return (
+    <div className="mt-6 border-t border-border pt-4">
+      <p className="font-medium">Partners</p>
+      <p className="mt-1 text-xs text-muted">These logos sit on the Top 8 board, left to right.</p>
+      <div className="mt-3 grid gap-2">
+        {sponsors.map((row) => (
+          <div key={row.id} className="flex items-center gap-2">
+            {row.logo ? <img src={row.logo} alt="" className="h-10 w-16 rounded bg-black object-contain" /> : <div className="h-10 w-16 rounded bg-surface-2" />}
+            <Input className="min-w-0 flex-1" value={row.name} placeholder="Partner name" onChange={(e) => update(row.id, { name: e.target.value })} />
+            <label className="inline-flex h-10 cursor-pointer items-center rounded-md border border-border px-3 text-sm">
+              Logo
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  void readSponsorLogo(file).then((logo) => update(row.id, { logo }));
+                }}
+              />
+            </label>
+            <Button variant="ghost" onClick={() => onChange(sponsors.filter((item) => item.id !== row.id))}>Remove</Button>
+          </div>
+        ))}
+      </div>
+      <Button
+        className="mt-3"
+        variant="outline"
+        onClick={() => onChange([...sponsors, { id: `sp-${Math.random().toString(36).slice(2, 9)}`, name: "", logo: "" }])}
+      >
+        Add partner
+      </Button>
+    </div>
   );
 }
 

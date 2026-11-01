@@ -18,6 +18,7 @@ export type FgcOverlayId =
   | "bracket"
   | "bracket-ultimate"
   | "top-8"
+  | "top-8-rok"
   | "top-n"
   | "last-sets"
   | "recent-sets"
@@ -91,6 +92,7 @@ export type FgcPlayer = {
   skin: number;
   character2: string;
   skin2: number;
+  render: string;
   seed: number | null;
 };
 
@@ -208,6 +210,12 @@ export type FgcBoard = {
   streamName?: string;
 };
 
+export type FgcSponsor = {
+  id: string;
+  name: string;
+  logo: string;
+};
+
 export type FgcLane = {
   id: string;
   url: string;
@@ -223,6 +231,7 @@ export type FgcLane = {
   activeBoardId: string;
   streamSetId: string | null;
   updatedAt: number;
+  sponsors: FgcSponsor[];
 };
 
 export type FgcState = {
@@ -247,6 +256,7 @@ export type FgcState = {
   lanes: Record<string, FgcLane>;
   boards: FgcBoard[];
   activeBoardId: string;
+  sponsors: FgcSponsor[];
 };
 
 export const EMPTY_FGC: FgcState = {
@@ -278,6 +288,7 @@ export const EMPTY_FGC: FgcState = {
     { id: "stream-3", name: "Scoreboard 1", setId: null, streamId: "stream-3" },
   ],
   activeBoardId: "main",
+  sponsors: [],
 };
 
 export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
@@ -297,6 +308,7 @@ export function blankPlayer(partial?: Partial<FgcPlayer>): FgcPlayer {
     skin: 0,
     character2: "",
     skin2: 0,
+    render: "",
     seed: null,
     ...partial,
   };
@@ -395,8 +407,61 @@ export function flagOf(country: string): string {
 }
 
 const FLAGS: Record<string, string> = {
-  "united states": "US", "united kingdom": "GB", canada: "CA", mexico: "MX", japan: "JP", france: "FR", germany: "DE", spain: "ES", italy: "IT", brazil: "BR", australia: "AU", "south korea": "KR", korea: "KR", netherlands: "NL", sweden: "SE", norway: "NO", finland: "FI", denmark: "DK", poland: "PL", argentina: "AR", chile: "CL", peru: "PE", colombia: "CO", china: "CN", taiwan: "TW", "hong kong": "HK", philippines: "PH", india: "IN", "new zealand": "NZ", ireland: "IE", portugal: "PT", belgium: "BE", switzerland: "CH", austria: "AT", "czech republic": "CZ", "united arab emirates": "AE", "saudi arabia": "SA", "south africa": "ZA",
+  "united states": "US", usa: "US", "united states of america": "US", america: "US",
+  "united kingdom": "GB", uk: "GB", "great britain": "GB", britain: "GB", england: "GB", scotland: "GB", wales: "GB",
+  canada: "CA", mexico: "MX", japan: "JP", france: "FR", germany: "DE", spain: "ES", italy: "IT", brazil: "BR", australia: "AU", "south korea": "KR", korea: "KR", netherlands: "NL", sweden: "SE", norway: "NO", finland: "FI", denmark: "DK", poland: "PL", argentina: "AR", chile: "CL", peru: "PE", colombia: "CO", china: "CN", taiwan: "TW", "hong kong": "HK", philippines: "PH", india: "IN", "new zealand": "NZ", ireland: "IE", portugal: "PT", belgium: "BE", switzerland: "CH", austria: "AT", "czech republic": "CZ", czechia: "CZ", "united arab emirates": "AE", "saudi arabia": "SA", "south africa": "ZA",
 };
+
+const US_STATES: Record<string, string> = {
+  al: "al", alabama: "al", ak: "ak", alaska: "ak", az: "az", arizona: "az", ar: "ar", arkansas: "ar",
+  ca: "ca", california: "ca", co: "co", colorado: "co", ct: "ct", connecticut: "ct", de: "de", delaware: "de",
+  dc: "dc", "district of columbia": "dc", fl: "fl", florida: "fl", ga: "ga", georgia: "ga",
+  hi: "hi", hawaii: "hi", id: "id", idaho: "id", il: "il", illinois: "il", in: "in", indiana: "in",
+  ia: "ia", iowa: "ia", ks: "ks", kansas: "ks", ky: "ky", kentucky: "ky", la: "la", louisiana: "la",
+  me: "me", maine: "me", md: "md", maryland: "md", ma: "ma", massachusetts: "ma", mi: "mi", michigan: "mi",
+  mn: "mn", minnesota: "mn", ms: "ms", mississippi: "ms", mo: "mo", missouri: "mo", mt: "mt", montana: "mt",
+  ne: "ne", nebraska: "ne", nv: "nv", nevada: "nv", nh: "nh", "new hampshire": "nh", nj: "nj", "new jersey": "nj",
+  nm: "nm", "new mexico": "nm", ny: "ny", "new york": "ny", nc: "nc", "north carolina": "nc", nd: "nd", "north dakota": "nd",
+  oh: "oh", ohio: "oh", ok: "ok", oklahoma: "ok", or: "or", oregon: "or", pa: "pa", pennsylvania: "pa",
+  ri: "ri", "rhode island": "ri", sc: "sc", "south carolina": "sc", sd: "sd", "south dakota": "sd",
+  tn: "tn", tennessee: "tn", tx: "tx", texas: "tx", ut: "ut", utah: "ut", vt: "vt", vermont: "vt",
+  va: "va", virginia: "va", wa: "wa", washington: "wa", wv: "wv", "west virginia": "wv", wi: "wi", wisconsin: "wi",
+  wy: "wy", wyoming: "wy",
+};
+
+const CA_PROVINCES: Record<string, string> = {
+  ab: "ab", alberta: "ab", bc: "bc", "british columbia": "bc", mb: "mb", manitoba: "mb",
+  nb: "nb", "new brunswick": "nb", nl: "nl", newfoundland: "nl", "newfoundland and labrador": "nl",
+  ns: "ns", "nova scotia": "ns", nt: "nt", "northwest territories": "nt", nu: "nu", nunavut: "nu",
+  on: "on", ontario: "on", pe: "pe", "prince edward island": "pe", qc: "qc", quebec: "qc",
+  sk: "sk", saskatchewan: "sk", yt: "yt", yukon: "yt",
+};
+
+function isoFrom(value: string): string {
+  const key = value.trim().toLowerCase().replace(/\./g, "");
+  if (!key) return "";
+  if (FLAGS[key]) return FLAGS[key].toLowerCase();
+  if (/^[a-z]{2}$/.test(key) && Object.values(FLAGS).some((code) => code.toLowerCase() === key)) return key;
+  const marks = [...value.trim()];
+  if (marks.length !== 2) return "";
+  const letters = marks.map((mark) => (mark.codePointAt(0) ?? 0) - 127397);
+  if (letters.some((letter) => letter < 65 || letter > 90)) return "";
+  return String.fromCharCode(...letters).toLowerCase();
+}
+
+export function countryFlagUrl(country: string, flag = ""): string {
+  const code = isoFrom(country) || isoFrom(flag);
+  return code ? `https://flagcdn.com/w160/${code}.png` : "";
+}
+
+export function stateFlagUrl(country: string, flag: string, region: string): string {
+  const key = region.trim().toLowerCase().replace(/\./g, "");
+  if (!key) return "";
+  const code = isoFrom(country) || isoFrom(flag);
+  if ((!code || code === "us") && US_STATES[key] && code !== "ca") return `https://flagcdn.com/w160/us-${US_STATES[key]}.png`;
+  if ((!code || code === "ca") && CA_PROVINCES[key] && code !== "us") return `https://flagcdn.com/w160/ca-${CA_PROVINCES[key]}.png`;
+  return "";
+}
 
 export function playerLabel(player: FgcPlayer | null): string {
   if (!player) return "TBD";

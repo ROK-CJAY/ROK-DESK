@@ -28,6 +28,7 @@ import {
   switchProfile,
 } from "./browser-session.mjs";
 import { applyStableUserData, deskDataRoot } from "./desk-data.mjs";
+import { ensureSourcesRoot, openSources, writeSourceFiles } from "./sources.mjs";
 import { initUpdater } from "./updater.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -505,6 +506,7 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
+    ensureSourcesRoot();
     attachDownloadHandler();
     ipcMain.handle("rok:browser-history", () => loadHistory());
     ipcMain.handle("rok:browser-bookmarks", () => loadBookmarks());
@@ -551,6 +553,9 @@ if (!gotLock) {
       void shell.openPath(deskDataRoot());
       return true;
     });
+    ipcMain.handle("rok:sources-root", () => ensureSourcesRoot());
+    ipcMain.handle("rok:sources-write", (_event, groups) => writeSourceFiles(groups));
+    ipcMain.handle("rok:sources-open", (_event, dir) => openSources(dir));
     ipcMain.handle("rok:connection-info", () => {
       const saved = readConnection();
       if (!saved) return null;

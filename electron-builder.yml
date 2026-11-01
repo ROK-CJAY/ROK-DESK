@@ -29,6 +29,7 @@ nsis:
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  include: electron/installer.nsh
   allowElevation: true
   shortcutName: ROK Desk
   deleteAppDataOnUninstall: false

@@ -4,6 +4,8 @@ import { normalizeSettings } from "@/lib/fgc-settings";
 import { applyLane, applyStartggStreamNames, boardForStreamName, boardsForStreams, defaultBoard, emptyLane, isPermanentBoard, laneIdOf, mergeRemoteLanes, stampLanes, touchLane, withPermanentBoards } from "@/lib/fgc-lanes";
 import { type StreamQueueRow } from "@/lib/startgg";
 import { startggAuthBody } from "@/lib/startgg-link";
+import { sourceFolders } from "@/lib/fgc-titles";
+import { rokDesktop } from "@/lib/rok-desktop";
 
 const KEY = "rok-fgc";
 const LIBRARIES_KEY = "rok-fgc-libraries";
@@ -106,9 +108,11 @@ function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[]
         skin: player.skin,
         character2: player.character2,
         skin2: player.skin2,
+        render: "",
       });
       continue;
     }
+    if (next[index].render) next[index] = { ...next[index], render: "" };
     if (index >= 0 && player.avatar) next[index] = { ...next[index], avatar: player.avatar };
     if (keep || (!player.character && !player.character2)) continue;
     const current = next[index];
@@ -141,7 +145,7 @@ function applySaved(player: FgcPlayer | null, saved: SavedPlayer[], keepCharacte
     : player.character2
       ? (player.character2.toLowerCase() === (match.character2 || "").toLowerCase() ? match.skin2 : player.skin2)
       : match.skin2;
-  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId, avatar: player.avatar || match.avatar || "", character, skin, character2, skin2 };
+  return { ...player, ...match, id: player.id, seed: player.seed, profileId: player.profileId || match.profileId, avatar: player.avatar || match.avatar || "", render: player.render || "", character, skin, character2, skin2 };
 }
 
 function playerOf(raw: Partial<FgcPlayer> & { stocks?: number } | null | undefined): FgcPlayer | null {
@@ -203,6 +207,7 @@ function read(): FgcState {
       lanes: parsed.lanes || {},
       boards: withPermanentBoards(parsed.boards?.length ? parsed.boards : [defaultBoard(parsed.streamSetId ?? null)], parsed.streamSetId ?? null),
       activeBoardId: parsed.activeBoardId || "main",
+      sponsors: Array.isArray(parsed.sponsors) ? parsed.sponsors.filter((row) => row && (row.logo || row.name)) : [],
     };
   } catch {
     return EMPTY_FGC;
@@ -243,6 +248,10 @@ function write(fgc: FgcState, bump = true) {
   writeLibraries(fgc.libraries);
   window.clearTimeout(publishTimer);
   publishTimer = window.setTimeout(() => {
+    const desktop = rokDesktop();
+    if (desktop?.writeSources) {
+      void desktop.writeSources(sourceFolders(fgc).map(({ dir, files }) => ({ dir, files })));
+    }
     void fetch("/api/fgc/program-state", {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -528,6 +537,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       skin: player.skin,
       character2: player.character2,
       skin2: player.skin2,
+      render: "",
     };
     const players = [
       saved,

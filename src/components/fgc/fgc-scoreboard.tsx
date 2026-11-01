@@ -105,7 +105,7 @@ function Picker({
   );
 }
 
-function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
+export function CharacterField({ value, onChange }: { value: string; onChange: (character: string) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const characters = library?.characters ?? [];
@@ -144,7 +144,7 @@ function StageField({ value, onChange }: { value: string; onChange: (stage: stri
   );
 }
 
-function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
+export function SkinField({ character, value, onChange }: { character: string; value: number; onChange: (value: number) => void }) {
   const library = useFgcStore((s) => libraryFor(s.fgc));
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const found = library?.characters.find((item) => item.name === character);

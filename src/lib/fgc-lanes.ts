@@ -125,6 +125,7 @@ export function laneSnapshot(state: FgcState, id = state.laneId || "local"): Fgc
     boards,
     activeBoardId,
     streamSetId: boards.find((board) => board.id === activeBoardId)?.setId ?? state.streamSetId,
+    sponsors: state.sponsors ?? [],
     updatedAt: state.lanes?.[id]?.updatedAt || Date.now(),
   };
 }
@@ -145,6 +146,7 @@ export function applyLane(state: FgcState, lane: FgcLane): FgcState {
     boards: withPermanentBoards(lane.boards?.length ? lane.boards : [defaultBoard(lane.streamSetId)], lane.streamSetId),
     activeBoardId: lane.activeBoardId || "main",
     streamSetId: lane.streamSetId,
+    sponsors: lane.sponsors ?? [],
     lanes: { ...(state.lanes || {}), [lane.id]: lane },
   };
 }
@@ -239,6 +241,7 @@ export function emptyLane(id: string, event: FgcEvent | null, casters: FgcCaster
     ],
     activeBoardId: "main",
     streamSetId: null,
+    sponsors: [],
     updatedAt: Date.now(),
   };
 }

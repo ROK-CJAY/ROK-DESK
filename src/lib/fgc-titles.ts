@@ -1,5 +1,5 @@
 import { resolvePreview, titleImageObjectUrl } from "@/lib/fgc-assets";
-import { overlayPin, resolveLane, setForBoard, withPin } from "@/lib/fgc-lanes";
+import { overlayPin, resolveLane, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
@@ -27,6 +27,7 @@ export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group
   { id: "bracket", group: "Bracket", name: "Bracket", note: "Sets by round." },
   { id: "bracket-ultimate", group: "Bracket", name: "Bracket · Ultimate", note: "Winners on top, losers underneath." },
   { id: "top-8", group: "Bracket", name: "Top 8", note: "The eight players with the most wins." },
+  { id: "top-8-rok", group: "Bracket", name: "Top 8 · ROK", note: "ROK Gaming Lounge board. 1st through 4th, then two 5ths and two 7ths. It reads the player list in order." },
   { id: "top-n", group: "Bracket", name: "Top list", note: "A longer standings list." },
   { id: "last-sets", group: "Bracket", name: "Last sets", note: "The latest finished sets." },
   { id: "recent-sets", group: "Bracket", name: "Recent sets", note: "A longer list of finished sets." },
@@ -224,6 +225,8 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
     "p2.character": show.characters ? p2?.character || "" : "",
     "p1.sponsor": p1?.prefix || "",
     "p2.sponsor": p2?.prefix || "",
+    "p1.sponsorName": [p1?.prefix, p1?.tag].map((part) => part?.trim()).filter(Boolean).join(" | "),
+    "p2.sponsorName": [p2?.prefix, p2?.tag].map((part) => part?.trim()).filter(Boolean).join(" | "),
     "p1.realName": show.realName ? p1?.realName || "" : "",
     "p2.realName": show.realName ? p2?.realName || "" : "",
     "p1.flag": show.location ? p1?.flag || "" : "",
@@ -273,6 +276,57 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
   if (name && library) return library.characters.find((item) => item.name === name)?.icon || "";
   if (element.imageKey) return titleImageObjectUrl(element.imageKey) || element.src;
   return element.src;
+}
+
+export function sourceList() {
+  const rows = TITLE_BINDS.filter((item) => item.id);
+  const insert = (id: string, label: string, after: string) => {
+    const index = rows.findIndex((item) => item.id === after);
+    rows.splice(index + 1, 0, { id, label });
+  };
+  insert("p1.sponsorName", "P1 sponsor + name", "p1.sponsor");
+  insert("p2.sponsorName", "P2 sponsor + name", "p2.sponsor");
+  return rows;
+}
+
+export function sourceFileName(id: string) {
+  return `${id.replace(/\./g, "_")}.txt`;
+}
+
+function sourceSegment(value: string) {
+  return value.replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim() || "Scoreboard";
+}
+
+export function sourceFolders(fgc: FgcState): { boardId: string; dir: string; files: Record<string, string> }[] {
+  const boards = fgc.boards?.length ? fgc.boards : [];
+  const streams = streamTabs(boards);
+  return boards.map((board) => {
+    const streamName = streams.find((tab) => tab.id === streamIdOf(board))?.name || "Main";
+    const siblings = boards.filter((item) => streamIdOf(item) === streamIdOf(board));
+    const boardName = board.name?.trim() || "Scoreboard";
+    const dir = siblings.length > 1
+      ? `${sourceSegment(streamName)}/${sourceSegment(boardName)}`
+      : sourceSegment(streamName);
+    const set = setForBoard(fgc, board.id);
+    const files: Record<string, string> = {};
+    for (const item of sourceList()) files[sourceFileName(item.id)] = sourceValue(fgc, set, item.id) ?? "";
+    return { boardId: board.id, dir, files };
+  });
+}
+
+export function sourceValue(fgc: FgcState, set: FgcSet | null, bind: string): string | null {
+  if (bind === "p1.sponsorName" || bind === "p2.sponsorName") return titleText(fgc, set, bind, "");
+  if (!TITLE_BINDS.some((item) => item.id === bind)) return null;
+  if (
+    bind === "event.icon" ||
+    bind.endsWith(".icon") ||
+    bind.endsWith(".skin") ||
+    bind.endsWith(".skin2") ||
+    bind.endsWith(".avatar")
+  ) {
+    return titleImage(fgc, set, { ...blankElement("image"), bind });
+  }
+  return titleText(fgc, set, bind, "");
 }
 
 export function activeTitle(fgc: FgcState, id?: string | null): FgcTitle {
