@@ -141,9 +141,9 @@ const COPY: Record<FgcGuideKind, { kicker: string; title: string; lead: string; 
   assets: {
     kicker: "Assets",
     title: "Characters and stages",
-    lead: "Download a game once. It stays on this desk, and only that game’s library is used while the event is set to it.",
+    lead: "Download a game from the asset host. The pictures stay on this desk, and only that game’s library is used while the event is set to it.",
     steps: [
-      { title: "Pick the game", body: "Search or use the dropdown. Download pulls the character stocks and the stage icons for that game." },
+      { title: "Pick the game", body: "Search or use the dropdown. Download saves the website renders, portraits, versus renders, mural art, full art, stage icons, and video from the asset host onto this computer." },
       { title: "Skins sit on the character", body: "The default picture is the stock icon. Extra skins show next to the character when you pick one on the scoreboard." },
       { title: "Your own pack", body: "Upload a pack and tie each file to a character. Mario.png belongs to Mario. It is saved here and does not need another download." },
     ],

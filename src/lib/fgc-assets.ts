@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import type { FgcCharacter, FgcLibrary } from "@/lib/fgc-types";
+import type { FgcAssetPack, FgcCharacter, FgcLibrary } from "@/lib/fgc-types";
 import { startggAuthBody } from "@/lib/startgg-link";
 
 export type AssetPack = {
@@ -16,16 +16,19 @@ export type CatalogGame = {
   packs: AssetPack[];
 };
 
-const TSH_CATALOG = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/assets.json";
+export const ASSET_HOST = "https://assets.rokdesk.app";
+
+export function assetRoot(base: string): string {
+  return base.trim().replace(/\/$/, "") || ASSET_HOST;
+}
 
 export function catalogUrl(base: string): string {
-  const root = base.trim().replace(/\/$/, "");
-  return root ? `${root}/catalog.json` : TSH_CATALOG;
+  return `${assetRoot(base)}/catalog.json`;
 }
 
 export async function loadCatalog(base: string): Promise<CatalogGame[]> {
   const res = await fetch(catalogUrl(base));
-  if (!res.ok) throw new Error("Could not load the asset catalog");
+  if (!res.ok) throw new Error(`Could not load the asset catalog from ${catalogUrl(base)}`);
   const body = (await res.json()) as Record<string, { name?: string; assets?: Record<string, { name?: string; description?: string; version?: string; credits?: string; files?: Record<string, { size?: number }> }> }>;
   return Object.entries(body)
     .map(([code, game]) => ({
@@ -42,23 +45,18 @@ export async function loadCatalog(base: string): Promise<CatalogGame[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const TSH_SITE = "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
-
 export function previewUrl(base: string, game: string, code: string, skin: number): string {
-  const root = base.trim().replace(/\/$/, "");
-  const host = root || TSH_SITE;
-  return `${host}/games/${game}/website/${code}_${skin}.png`;
+  return `${assetRoot(base)}/games/${game}/website/${code}_${skin}.png`;
 }
 
 export function stageIconUrl(base: string, game: string, code: string): string {
-  const root = base.trim().replace(/\/$/, "");
-  const host = root || TSH_SITE;
-  return `${host}/games/${game}/stage_icon/stage_2_${code}.png`;
+  return `${assetRoot(base)}/games/${game}/stage_icon/stage_2_${code}.png`;
 }
 
 const titleImages = new Map<string, string>();
 const localSkins = new Map<string, string>();
 const localStages = new Map<string, string>();
+const localPacks = new Map<string, string>();
 let titleVersion = 0;
 const titleListeners = new Set<() => void>();
 
@@ -229,6 +227,25 @@ export function resolvePreview(base: string, game: string, code: string, skin: n
   return localSkin(game, code, skin) ?? previewUrl(base, game, code, skin);
 }
 
+export function packKey(game: string, pack: string, code: string, skin: number | null): string {
+  return `pack:${game}:${pack}:${code}:${skin ?? ""}`;
+}
+
+export function localPack(game: string, pack: string, code: string, skin: number | null): string | null {
+  if (pack === "website" && skin != null) return localSkin(game, code, skin);
+  if (pack === "stage_icon" && skin == null) return localStage(game, code);
+  return localPacks.get(packKey(game, pack, code, skin)) ?? null;
+}
+
+export function packFileUrl(base: string, game: string, pack: FgcAssetPack, code: string, skin: number | null): string {
+  const skinPart = skin == null ? "" : pack.pad > 0 ? String(skin).padStart(pack.pad, "0") : String(skin);
+  return `${assetRoot(base)}/games/${game}/${pack.id}/${pack.prefix}${code}${pack.postfix}${skinPart}.${pack.ext}`;
+}
+
+export function resolvePack(base: string, game: string, pack: FgcAssetPack, code: string, skin: number | null): string {
+  return localPack(game, pack.id, code, skin) ?? packFileUrl(base, game, pack, code, skin);
+}
+
 export function resolveStage(base: string, game: string, code: string): string {
   return localStage(game, code) ?? stageIconUrl(base, game, code);
 }
@@ -253,6 +270,7 @@ export async function hydrateLocalAssets() {
   for (const row of rows) {
     if (row.key.startsWith("skin:")) localSkins.set(row.key, URL.createObjectURL(row.blob));
     if (row.key.startsWith("stage:")) localStages.set(row.key, URL.createObjectURL(row.blob));
+    if (row.key.startsWith("pack:")) localPacks.set(row.key, URL.createObjectURL(row.blob));
     if (row.key.startsWith("title:") && !titleImages.has(row.key)) titleImages.set(row.key, URL.createObjectURL(row.blob));
     if (row.key.startsWith("font:")) {
       try {
@@ -379,18 +397,142 @@ export function withIcons(characters: FgcCharacter[], icons: Record<string, stri
   }));
 }
 
-export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
-  const root = base.trim().replace(/\/$/, "");
-  const configUrl = root
-    ? `${root}/games/${game.code}/library.json`
-    : `https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${game.code}/base_files/config.json`;
+export type AssetProgress = { done: number; total: number; saved: number };
+
+const RENDER_PACKS = ["website", "full", "portrait", "vs_renders", "mural_art", "webm", "stage_icon", "variant_icon"];
+
+type PackConfig = {
+  prefix?: string;
+  postfix?: string;
+  uncropped_edge?: string[];
+  eyesights?: Record<string, Record<string, unknown>>;
+};
+
+async function fileExists(url: string): Promise<boolean> {
+  try {
+    const head = await fetch(url, { method: "HEAD" });
+    if (head.ok) return true;
+    if (head.status !== 405 && head.status !== 501) return false;
+    const get = await fetch(url);
+    return get.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function loadPack(root: string, game: string, id: string, sample: string, skinned: boolean): Promise<FgcAssetPack | null> {
+  const res = await fetch(`${root}/games/${game}/${id}/config.json`);
+  if (!res.ok) return null;
+  const config = (await res.json()) as PackConfig;
+  const prefix = config.prefix ?? "";
+  const postfix = config.postfix ?? "";
+  const exts = id === "webm" ? ["webm"] : ["png", "webp"];
+  const pads = skinned ? [0, 2] : [0];
+  for (const ext of exts) {
+    for (const pad of pads) {
+      const trial: FgcAssetPack = { id, prefix, postfix, pad, ext, uncropped: config.uncropped_edge };
+      const url = packFileUrl(root, game, trial, sample, skinned ? 0 : null);
+      if (await fileExists(url)) return trial;
+    }
+  }
+  return { id, prefix, postfix, pad: skinned ? 0 : 0, ext: exts[0], uncropped: config.uncropped_edge };
+}
+
+function skinCount(character: FgcCharacter, config: PackConfig | null): number {
+  const eyes = config?.eyesights?.[character.code];
+  const fromEyes = eyes ? Math.max(0, ...Object.keys(eyes).map(Number).filter((n) => !Number.isNaN(n))) + 1 : 0;
+  return Math.max(1, Math.min(16, Math.max(character.skins || 1, fromEyes)));
+}
+
+async function downloadPictures(
+  base: string,
+  game: string,
+  characters: FgcCharacter[],
+  stages: { code: string }[],
+  onProgress?: (progress: AssetProgress) => void,
+): Promise<FgcAssetPack[]> {
+  const sample = characters[0]?.code || stages[0]?.code || "";
+  const found = (await Promise.all(RENDER_PACKS.map((id) => loadPack(base, game, id, sample, id !== "stage_icon" && id !== "variant_icon")))).filter((pack): pack is FgcAssetPack => !!pack);
+  const packs = found.length ? found : [
+    { id: "website", prefix: "", postfix: "_", pad: 0, ext: "png" },
+    { id: "stage_icon", prefix: "stage_2_", postfix: "", pad: 0, ext: "png" },
+  ];
+  const jobs: { url: string; key: string; kind: "skin" | "stage" | "pack" }[] = [];
+  for (const pack of packs) {
+    if (pack.id === "stage_icon" || pack.id === "variant_icon") {
+      for (const stage of stages) {
+        if (localStage(game, stage.code) && pack.id === "stage_icon") continue;
+        jobs.push({
+          url: packFileUrl(base, game, pack, stage.code, null),
+          key: pack.id === "stage_icon" ? stageKey(game, stage.code) : packKey(game, pack.id, stage.code, null),
+          kind: pack.id === "stage_icon" ? "stage" : "pack",
+        });
+      }
+      continue;
+    }
+    for (const character of characters) {
+      const count = skinCount(character, null);
+      for (let skin = 0; skin < count; skin += 1) {
+        if (pack.id === "website" && localSkin(game, character.code, skin)) continue;
+        if (pack.id !== "website" && localPack(game, pack.id, character.code, skin)) continue;
+        jobs.push({
+          url: packFileUrl(base, game, pack, character.code, skin),
+          key: pack.id === "website" ? skinKey(game, character.code, skin) : packKey(game, pack.id, character.code, skin),
+          kind: pack.id === "website" ? "skin" : "pack",
+        });
+      }
+    }
+  }
+  const db = await assetDb();
+  let done = 0;
+  let saved = 0;
+  const total = jobs.length;
+  onProgress?.({ done, total, saved });
+  const queue = [...jobs];
+  const worker = async () => {
+    for (;;) {
+      const job = queue.shift();
+      if (!job) return;
+      try {
+        const res = await fetch(job.url);
+        if (res.ok) {
+          const blob = await res.blob();
+          if (blob.size > 32) {
+            await putFile(db, job.key, blob);
+            const objectUrl = URL.createObjectURL(blob);
+            if (job.kind === "skin") localSkins.set(job.key, objectUrl);
+            else if (job.kind === "stage") localStages.set(job.key, objectUrl);
+            else localPacks.set(job.key, objectUrl);
+            saved += 1;
+          }
+        }
+      } catch {
+        // A missing file is skipped. The rest of the pack still saves.
+      }
+      done += 1;
+      if (done === total || done % 8 === 0) onProgress?.({ done, total, saved });
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(6, Math.max(1, jobs.length)) }, () => worker()));
+  onProgress?.({ done, total, saved });
+  return packs;
+}
+
+export async function installLibrary(
+  base: string,
+  game: CatalogGame,
+  pack: AssetPack,
+  onProgress?: (progress: AssetProgress) => void,
+): Promise<FgcLibrary> {
+  const root = assetRoot(base);
+  const configUrl = `${root}/games/${game.code}/library.json`;
   const res = await fetch(configUrl);
-  if (!res.ok) throw new Error("That pack has no character library yet");
+  if (!res.ok) throw new Error(`No library for ${game.name} at ${configUrl}`);
   const body = (await res.json()) as {
     smashgg_game_id?: string | number;
     characters?: FgcCharacter[];
     stages?: { name: string; code: string }[];
-    character_to_codename?: Record<string, { codename?: string }>;
+    character_to_codename?: Record<string, { codename?: string; skins?: number }>;
     stage_to_codename?: Record<string, { codename?: string } | string>;
   };
   const characters = body.characters?.length
@@ -398,7 +540,7 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
     : Object.entries(body.character_to_codename ?? {}).map(([name, value]) => ({
         name,
         code: value.codename || name,
-        skins: 8,
+        skins: value.skins || 8,
       }));
   const stages = body.stages?.length
     ? body.stages
@@ -406,6 +548,7 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
         name,
         code: typeof value === "string" ? value : value.codename || name,
       }));
+  const packs = await downloadPictures(root, game.code, characters, stages, onProgress);
   const icons = await stockIconsFor(game.name, body.smashgg_game_id ? String(body.smashgg_game_id) : undefined);
   return {
     game: game.name,
@@ -415,6 +558,7 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
     startggGameId: body.smashgg_game_id ? String(body.smashgg_game_id) : undefined,
     characters: withIcons(characters, icons),
     stages,
+    packs,
   };
 }
 

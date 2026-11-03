@@ -3,18 +3,18 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Field } from "@/components/desk/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { resolveStage } from "@/lib/fgc-assets";
+import { assetRoot, resolveStage } from "@/lib/fgc-assets";
 import { blankRuleset, libraryFor, type FgcRuleset, type FgcStage } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import type { StartggRuleset } from "@/lib/startgg";
 
 const stageIds = new Map<string, Map<string, string>>();
 
-async function stageNames(code: string, ids: number[] | undefined): Promise<string[]> {
+async function stageNames(base: string, code: string, ids: number[] | undefined): Promise<string[]> {
   if (!code || !ids?.length) return [];
   let map = stageIds.get(code);
   if (!map) {
-    const res = await fetch(`https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${code}/base_files/config.json`);
+    const res = await fetch(`${assetRoot(base)}/games/${code}/library.json`);
     const body = (await res.json()) as { smashgg_game_id?: string | number; stage_to_codename?: Record<string, { smashgg_id?: string | number }> };
     map = new Map();
     for (const [name, value] of Object.entries(body.stage_to_codename ?? {})) {
@@ -70,11 +70,11 @@ export function FgcRulesetEditor() {
       setGameId("");
       return;
     }
-    void fetch(`https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${library.code}/base_files/config.json`)
+    void fetch(`${assetRoot(fgc.assetBase)}/games/${library.code}/library.json`)
       .then((res) => res.json())
       .then((body: { smashgg_game_id?: string | number }) => setGameId(body.smashgg_game_id ? String(body.smashgg_game_id) : ""))
       .catch(() => setGameId(""));
-  }, [library?.code, library?.startggGameId]);
+  }, [library?.code, library?.startggGameId, fgc.assetBase]);
 
   const applyPreset = (id: string) => {
     const preset = forThisGame.find((item) => String(item.id) === id);
@@ -96,8 +96,8 @@ export function FgcRulesetEditor() {
     selectRuleset(null);
     if (!library?.code) return;
     const known = (name: string) => stages.find((stage) => stage.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0)?.name || name;
-    void stageNames(library.code, preset.settings?.stages?.neutral).then(async (neutral) => {
-      const counter = await stageNames(library.code, preset.settings?.stages?.counterpick);
+    void stageNames(fgc.assetBase, library.code, preset.settings?.stages?.neutral).then(async (neutral) => {
+      const counter = await stageNames(fgc.assetBase, library.code, preset.settings?.stages?.counterpick);
       setDraft({ ...next, neutralStages: neutral.map(known), counterpickStages: counter.map(known) });
     });
   };

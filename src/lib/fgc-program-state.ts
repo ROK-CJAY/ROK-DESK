@@ -1,13 +1,22 @@
-import { EMPTY_FGC, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
-import { stageIconUrl } from "@/lib/fgc-assets";
+import { EMPTY_FGC, type FgcLibrary, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
+import { previewUrl, resolvePack, stageIconUrl } from "@/lib/fgc-assets";
 import { resolveLane, setForBoard } from "@/lib/fgc-lanes";
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { getSql } from "@/lib/db";
 
-function assetUrl(base: string, game: string, code: string, skin: number) {
-  const root = base.trim().replace(/\/$/, "");
-  const host = root || "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
-  return `${host}/games/${game}/website/${code}_${skin}.png`;
+function characterAssets(base: string, library: FgcLibrary, code: string, skin: number) {
+  const packs = library.packs?.filter((pack) => pack.id !== "stage_icon" && pack.id !== "variant_icon") ?? [];
+  const assets: Record<string, { asset: string; average_size: { x: number; y: number }; uncropped_edge?: string[] }> = {};
+  for (const pack of packs) {
+    assets[pack.id] = {
+      asset: resolvePack(base, library.code, pack, code, skin),
+      average_size: pack.id === "vs_renders" ? { x: 1920, y: 1080 } : { x: 512, y: 512 },
+      ...(pack.uncropped?.length ? { uncropped_edge: pack.uncropped } : {}),
+    };
+  }
+  if (!assets.website) assets.website = { asset: previewUrl(base, library.code, code, skin), average_size: { x: 512, y: 512 } };
+  assets["base_files/icon"] = assets.website;
+  return assets;
 }
 
 function liveSet(fgc: FgcState, boardId?: string | null) {
@@ -49,13 +58,11 @@ function characterOf(fgc: FgcState, player: FgcPlayer | null) {
   names.forEach((name, index) => {
     const known = library?.characters.find((item) => item.name.toLowerCase() === name.toLowerCase());
     const code = known?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    const asset = library ? assetUrl(fgc.assetBase, library.code, code, skins[index] || 0) : "";
+    const asset = library ? characterAssets(fgc.assetBase, library, code, skins[index] || 0) : null;
     character[String(index + 1)] = {
       name,
       codename: code,
-      assets: asset
-        ? { "base_files/icon": { asset, average_size: { x: 512, y: 512 } } }
-        : {},
+      assets: asset ?? {},
     };
   });
   return character;
@@ -115,7 +122,12 @@ function stageCard(fgc: FgcState, name: string) {
   const library = libraryFor(fgc);
   const stage = library?.stages.find((item) => item.name.toLowerCase() === name.toLowerCase());
   const code = stage?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-  return { name, codename: code, path: library ? stageIconUrl(fgc.assetBase, library.code, code) : "" };
+  const stagePack = library?.packs?.find((pack) => pack.id === "stage_icon");
+  return {
+    name,
+    codename: code,
+    path: library ? (stagePack ? resolvePack(fgc.assetBase, library.code, stagePack, code, null) : stageIconUrl(fgc.assetBase, library.code, code)) : "",
+  };
 }
 
 function recentSets(fgc: FgcState, player: FgcPlayer | null) {

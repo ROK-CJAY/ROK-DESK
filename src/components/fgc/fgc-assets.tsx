@@ -3,12 +3,13 @@ import { Download, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { Input } from "@/components/ui/input";
-import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type CatalogGame } from "@/lib/fgc-assets";
+import { ASSET_HOST, assetRoot, hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type AssetProgress, type CatalogGame } from "@/lib/fgc-assets";
 import { type FgcLibrary } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
 export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
+  const patch = useFgcStore((s) => s.patch);
   const libraries = useFgcStore((s) => s.fgc.libraries);
   const setLibrary = useFgcStore((s) => s.setLibrary);
   const [games, setGames] = useState<CatalogGame[]>([]);
@@ -16,13 +17,19 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [progress, setProgress] = useState<AssetProgress | null>(null);
   const [kind, setKind] = useState<"skin" | "stage">("skin");
   const [report, setReport] = useState("");
+  const [host, setHost] = useState(assetBase || ASSET_HOST);
+
+  useEffect(() => {
+    if (open) setHost(assetBase.trim().replace(/\/$/, "") || ASSET_HOST);
+  }, [open, assetBase]);
 
   useEffect(() => {
     if (!open) return;
     setError("");
-    void loadCatalog(assetBase)
+    void loadCatalog(assetRoot(assetBase))
       .then(setGames)
       .catch((err) => setError(err instanceof Error ? err.message : "Catalog failed"));
     void hydrateLocalAssets();
@@ -48,6 +55,22 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
             <FgcGuideButton kind="assets" autoOpen={false} />
             <Button size="icon" variant="ghost" onClick={onClose} aria-label="Close"><X className="size-4" /></Button>
           </div>
+        </div>
+        <div className="grid gap-2 border-b border-border px-4 py-3">
+          <label className="grid gap-1">
+            <span className="font-mono text-[0.65rem] tracking-[0.18em] text-muted uppercase">Asset host</span>
+            <Input
+              value={host}
+              onChange={(e) => setHost(e.target.value)}
+              onBlur={() => {
+                const next = host.trim().replace(/\/$/, "") || ASSET_HOST;
+                setHost(next);
+                if (next !== (assetBase || ASSET_HOST)) patch({ assetBase: next });
+              }}
+              spellCheck={false}
+            />
+          </label>
+          <p className="text-xs text-muted">Downloads every render pack and the video pack from this host, then keeps them on this computer.</p>
         </div>
         <div className="grid gap-3 border-b border-border px-4 py-3 sm:grid-cols-[1fr_16rem]">
           <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Type a game" />
@@ -122,10 +145,12 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                   </div>
                   <Button
                     size="sm"
-                    disabled={busy === pack.name || libraries.some((item) => item.code === selected.code && item.pack === pack.name)}
+                    disabled={busy === pack.name}
                     onClick={() => {
                       setBusy(pack.name);
-                      void installLibrary(assetBase, selected, pack)
+                      setProgress({ done: 0, total: 0, saved: 0 });
+                      setError("");
+                      void installLibrary(host, selected, pack, setProgress)
                         .then((next) => {
                           setLibrary(next);
                           setBusy("");
@@ -133,14 +158,17 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                         .catch((err) => {
                           setError(err instanceof Error ? err.message : "Download failed");
                           setBusy("");
+                          setProgress(null);
                         });
                     }}
                   >
                     <Download className="size-4" />
-                    {libraries.some((item) => item.code === selected.code && item.pack === pack.name)
-                      ? "Saved"
-                      : busy === pack.name
-                        ? "Loading"
+                    {busy === pack.name
+                      ? progress && progress.total
+                        ? `${progress.saved} saved`
+                        : "Loading"
+                      : libraries.some((item) => item.code === selected.code && item.pack === pack.name)
+                        ? "Update"
                         : "Download"}
                   </Button>
                 </li>

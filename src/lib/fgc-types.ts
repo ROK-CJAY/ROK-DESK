@@ -356,6 +356,15 @@ export type FgcStage = {
   code: string;
 };
 
+export type FgcAssetPack = {
+  id: string;
+  prefix: string;
+  postfix: string;
+  pad: number;
+  ext: string;
+  uncropped?: string[];
+};
+
 export type FgcLibrary = {
   game: string;
   code: string;
@@ -364,6 +373,7 @@ export type FgcLibrary = {
   startggGameId?: string;
   characters: FgcCharacter[];
   stages: FgcStage[];
+  packs?: FgcAssetPack[];
 };
 
 export type FgcRuleset = {
