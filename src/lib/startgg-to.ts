@@ -403,7 +403,7 @@ function optionsOf(rows: { id?: string | number | null; name?: string | null; im
 function gqlId(value: string) {
   const id = value.trim();
   if (/^preview/i.test(id)) {
-    throw new Error("That match is still a placeholder on start.gg. It can be called once both players are in.");
+    throw new Error("start.gg has not started this phase. Open the event on start.gg, press Start on the phase, then refresh the desk.");
   }
   return /^\d+$/.test(id) ? Number(id) : id;
 }
@@ -465,26 +465,24 @@ export async function reportToSet(
   detail?: { stageId?: string; entrant1?: string; character1?: string; entrant2?: string; character2?: string; dq?: boolean; games?: ReportedGame[] },
 ) {
   const played = detail?.games?.filter((game) => game.winnerId) ?? [];
-  const gameData = played.length
-    ? played.map((game, index) => {
-        const selections = gameSelections(detail?.entrant1, game.character1 || detail?.character1, detail?.entrant2, game.character2 || detail?.character2);
-        return {
-          gameNum: index + 1,
-          winnerId: game.winnerId,
-          ...(game.stageId ? { stageId: game.stageId } : {}),
-          ...(selections.length ? { selections } : {}),
-        };
-      })
-    : [{
-        gameNum: 1,
-        entrant1Score: score1,
-        entrant2Score: score2,
-        winnerId,
-        ...(detail?.stageId ? { stageId: detail.stageId } : {}),
-        ...(gameSelections(detail?.entrant1, detail?.character1, detail?.entrant2, detail?.character2).length
-          ? { selections: gameSelections(detail?.entrant1, detail?.character1, detail?.entrant2, detail?.character2) }
-          : {}),
-      }];
+  const wins: ReportedGame[] = played.length
+    ? played
+    : [
+        ...Array.from({ length: Math.max(0, score1) }, () => detail?.entrant1 || ""),
+        ...Array.from({ length: Math.max(0, score2) }, () => detail?.entrant2 || ""),
+      ]
+        .filter(Boolean)
+        .map((id) => ({ winnerId: id }));
+  const rows = wins.length ? wins : [{ winnerId }];
+  const gameData = rows.map((game, index) => {
+    const selections = gameSelections(detail?.entrant1, game.character1 || detail?.character1, detail?.entrant2, game.character2 || detail?.character2);
+    return {
+      gameNum: index + 1,
+      winnerId: game.winnerId,
+      ...(game.stageId || detail?.stageId ? { stageId: game.stageId || detail?.stageId } : {}),
+      ...(selections.length ? { selections } : {}),
+    };
+  });
   const isDQ = Boolean(detail?.dq);
   try {
     await mutate(

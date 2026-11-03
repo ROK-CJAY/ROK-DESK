@@ -543,6 +543,11 @@ function StationFloor({
           <p className="font-medium">{board.event.name}</p>
           <p className="text-xs text-muted">{[board.tournament, board.event.game, `${board.stations.length} stations`, `${board.event.entrants} entrants`].filter(Boolean).join(" · ")}</p>
         </div>
+        {board.sets.some((item) => /^preview/i.test(item.id)) ? (
+          <p className="mb-3 rounded-md border border-amber-400/60 bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+            start.gg has not started this phase. The names can already be filled in. Open the event on start.gg, press Start on the phase, then Refresh here. Call, Start, and reporting stay blocked until then. Check-in is a separate step.
+          </p>
+        ) : null}
         <BracketBoard sets={board.sets} now={now} clocks={clocks} selected={picked} onSelect={onPick} />
       </section>
       <section className="rounded-xl border border-border bg-surface p-4">
