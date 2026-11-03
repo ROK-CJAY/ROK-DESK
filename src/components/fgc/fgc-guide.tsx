@@ -35,7 +35,7 @@ const COPY: Record<FgcGuideKind, { kicker: string; title: string; lead: string; 
     title: "Run the event from here",
     lead: "This replaces hopping back to start.gg for calling sets. The account you log in with only sees upcoming events it is allowed to run.",
     steps: [
-      { title: "Log in with start.gg", body: "You do not paste an API token. The host already has the app. You approve your own account, then pick the event." },
+      { title: "Start the phase on start.gg first", body: "The desk can call, station, and report a match only after the phase is started. A bracket that already shows both names is still a preview until you press Start in the start.gg admin and refresh here. Check-in does not do that step." },
       { title: "Read the bracket, then the stations", body: "The tree is the whole event. Stations sit under it. A set only shows a station or stream after it has been called. Old calls do not stay on the card." },
       { title: "Call from the set or the station", body: "Click a set for the card, or click an empty station. Send it to a station or a stream. The stream it lands on is that start.gg channel, and only that game." },
       { title: "Clocks only while it is live", body: "You get a called timer and a started timer on the set and on the station. They clear when the set is reported." },
