@@ -1,6 +1,6 @@
 {
   "name": "rok-desk",
-  "version": "1.5.1-preview-v3",
+  "version": "1.5.2-preview",
   "private": true,
   "sideEffects": false,
   "type": "module",

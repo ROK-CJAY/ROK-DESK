@@ -37,6 +37,7 @@ jobs:
       - if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name == 'v1.5.2-preview' && '1.5.2 Preview FGC Update' || github.ref_name }}
           files: |
             release/ROK-Desk-*.exe
             release/ROK-Desk-*.dmg

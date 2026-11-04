@@ -4,6 +4,17 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview — 2026-11-04
+
+Preview only. It does not replace the current installer.
+
+### Added
+
+- **Scoreboard ROK** — the gameplay scoreboard as editable layers: slanted name cards, character tokens, games-won pips, a slide-in, a score pulse, and rotating partners. It fits a 1920×1080 stage to the window.
+- **Versus ROK** — the head-to-head split camera layout, using the same scoreboard data. Round and phase sit on the center line, and the partner line splits around the logo.
+- **Commentators ROK** — a two-commentator lower third.
+- Country and state chips draw flag images, with the text code as a fallback.
+
 ## v1.5.0 — 2026-10-26
 
 ### Added
