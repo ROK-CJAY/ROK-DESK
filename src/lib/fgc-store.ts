@@ -209,6 +209,7 @@ function read(): FgcState {
       boards: withPermanentBoards(parsed.boards?.length ? parsed.boards : [defaultBoard(parsed.streamSetId ?? null)], parsed.streamSetId ?? null),
       activeBoardId: parsed.activeBoardId || "main",
       sponsors: Array.isArray(parsed.sponsors) ? parsed.sponsors.filter((row) => row && (row.logo || row.name)) : [],
+      assetBase: /assets\.rokdesk\.app/i.test(parsed.assetBase || "") ? "" : parsed.assetBase || "",
     };
   } catch {
     return EMPTY_FGC;

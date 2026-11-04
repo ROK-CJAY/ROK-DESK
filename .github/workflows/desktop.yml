@@ -37,7 +37,7 @@ jobs:
       - if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ github.ref_name == 'v1.5.2-preview' && '1.5.2 Preview FGC Update' || github.ref_name }}
+          name: ${{ github.ref_name == 'v1.5.2-preview-v2' && '1.5.2 Preview FGC Update' || github.ref_name }}
           files: |
             release/ROK-Desk-*.exe
             release/ROK-Desk-*.dmg
@@ -47,8 +47,8 @@ jobs:
             release/*.blockmap
           fail_on_unmatched_files: false
           overwrite_files: true
-          prerelease: ${{ contains(github.ref_name, '-preview') }}
-          make_latest: ${{ contains(github.ref_name, '-preview') && 'false' || 'true' }}
+          prerelease: ${{ contains(github.ref_name, '-preview') && github.ref_name != 'v1.5.2-preview-v2' }}
+          make_latest: ${{ (contains(github.ref_name, '-preview') && github.ref_name != 'v1.5.2-preview-v2') && 'false' || 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Manual runs only: a few installer files, 1-day retention. Never upload unpacked Electron trees.

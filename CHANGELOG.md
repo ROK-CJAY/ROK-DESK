@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v2 — 2026-11-04
+
+### Fixed
+
+- Asset download uses Tournament Stream Helper again. A saved `assets.rokdesk.app` host is ignored. Download saves the character list, skin pictures, and stage icons.
+
 ## v1.5.2-preview — 2026-11-04
 
 Preview only. It does not replace the current installer.
