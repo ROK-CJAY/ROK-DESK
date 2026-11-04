@@ -18,6 +18,8 @@ export type FgcSettings = {
   team1: string;
   team2: string;
   hotkeys: boolean;
+  /** Seconds each partner stays up on rotating partner layers (min 2). */
+  sponsorSeconds: number;
   keys: Record<FgcHotkey, string>;
   show: {
     realName: boolean;
@@ -39,6 +41,7 @@ export const DEFAULT_FGC_SETTINGS: FgcSettings = {
   team1: "#e11d2e",
   team2: "#2f6bff",
   hotkeys: true,
+  sponsorSeconds: 8,
   keys: {
     loadSet: "Ctrl+O",
     p1Up: "Ctrl+F1",

@@ -7,9 +7,8 @@ import { deskFonts, fontFamilyCss } from "@/lib/fgc-fonts";
 import { useFgcStore } from "@/lib/fgc-store";
 import { titleFromPsd } from "@/lib/psd-title";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
-import { ElementWords, elementExtraStyle, elementText } from "@/components/fgc/fgc-overlays";
-import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
-import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
+import { ElementWords, GamePips, PartnerSlides, elementExtraStyle, elementText } from "@/components/fgc/fgc-overlays";
+import { activeTitle, blankElement, blankLayer, gamesWon, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
 type Tool = "select" | "text" | "ticker" | "image" | "rect" | "circle" | "triangle";
 type Handle = "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
@@ -489,6 +488,10 @@ export function FgcDesigner() {
                     titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className={`pointer-events-none h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : element.kind === "image" ? <span className="text-xs text-white/60">Image</span> : null
                   ) : element.kind === "ticker" ? (
                     <span className="pointer-events-none inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text) || element.name}</span>
+                  ) : element.pips ? (
+                    <GamePips element={element} won={gamesWon(set, element.pips).won} total={gamesWon(set, element.pips).total} unit={canvasUnit} />
+                  ) : element.kind === "text" && element.anim === "partners" ? (
+                    <PartnerSlides element={element} unit={canvasUnit} />
                   ) : element.kind === "text" ? (
                     <ElementWords element={element} text={elementText(element, titleText(fgc, set, element.bind, element.text)) || element.name} fontSize={`${(element.size / 1920) * 100}cqw`} unit={canvasUnit} />
                   ) : null}
@@ -599,12 +602,6 @@ export function FgcDesigner() {
           setLayerId("layer-1");
           setSelected(null);
         }}>New</Button>
-        <Button size="sm" variant="outline" onClick={() => {
-          const exists = fgc.titles.some((item) => item.id === SCOREBOARD_ROK_ID);
-          patch(exists ? { activeTitleId: SCOREBOARD_ROK_ID } : { titles: [...fgc.titles, scoreboardRokTitle()], activeTitleId: SCOREBOARD_ROK_ID });
-          setLayerId(exists ? layerId : scoreboardRokTitle().layers[1]?.id ?? "layer-1");
-          setSelected(null);
-        }}>Scoreboard ROK</Button>
         <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-border px-3 text-xs">
           {importing ? "Reading PSD" : "Import PSD"}
           <input
@@ -724,6 +721,14 @@ function ObjectFields({ current, update, onAlign, onDelete }: { current: FgcTitl
         <select className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm normal-case tracking-normal text-fg" value={current.anim || ""} onChange={(e) => update({ anim: e.target.value })}>
           <option value="">None</option>
           <option value="fade">Fade out, then fade in</option>
+          <option value="pulse">Pulse (score bump)</option>
+          <option value="partners">Rotate partners (logo + text)</option>
+        </select>
+      </Field>
+      <Field label="On air entrance">
+        <select className="h-10 rounded-md border border-border bg-surface-2 px-2 text-sm normal-case tracking-normal text-fg" value={current.enter || ""} onChange={(e) => update({ enter: e.target.value === "slide" ? "slide" : "" })}>
+          <option value="">None</option>
+          <option value="slide">Slide in from top</option>
         </select>
       </Field>
       <Field label="Opacity">

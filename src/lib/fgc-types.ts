@@ -79,6 +79,10 @@ export type FgcTitleElement = {
   hideEmpty?: boolean;
   template?: string;
   prefixColor?: string;
+  /** On-air entrance. "slide" drops in from above (Scoreboard ROK top bar). */
+  enter?: "" | "slide";
+  /** Games-won pips for a side: ceil(bestOf / 2) diamonds, filled up to that side's score. */
+  pips?: "" | "p1" | "p2";
 };
 
 export type FgcTitle = {

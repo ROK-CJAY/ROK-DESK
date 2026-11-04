@@ -47,6 +47,7 @@ function side(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     [`${g}-token`, { id: `${g}-character`, kind: "rect", name: `P${n} character icon`, x: well + 12, y: 49, w: 48, h: 30, bind: `p${n}.icon`, src: TOKEN }],
     [`${g}-card`, { id: `${g}-card`, kind: "rect", name: `P${n} card`, x: card, y: 40, w: 396, h: 48, bg: stripe(CH, R1, 48), clip: shape(396) }],
     [`${g}-card`, text({ id: `${g}-name`, kind: "text", name: `P${n} name`, x: card + 33, y: 40, w: 330, h: 46, bind: `p${n}.sponsorName`, prefixColor: R1, ...anton(27) })],
+    [`${g}-pips`, { id: `${g}-pips`, kind: "text", name: `P${n} games-won pips`, x: left ? 716 : 1084, y: 92, w: 120, h: 16, pips: g as "p1" | "p2", anim: "pulse", enter: "slide", color: R1 }],
     [`${g}-score`, text({ id: `${g}-score`, kind: "text", name: `P${n} score`, x: score, y: 40, w: 72, h: 48, bind: `p${n}.score`, bg: stripe(R0, R2, 48), clip: shape(72), ...anton(32, 0) })],
   ];
   const layers: FgcTitleLayer[] = [
@@ -55,8 +56,10 @@ function side(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     { id: `${g}-token`, name: `P${n} character token`, visible: true, locked: false, kind: "layer", parent: g },
     { id: `${g}-card`, name: `P${n} card`, visible: true, locked: false, kind: "layer", parent: g },
     { id: `${g}-score`, name: `P${n} score`, visible: true, locked: false, kind: "layer", parent: g },
+    { id: `${g}-pips`, name: `P${n} games-won pips`, visible: true, locked: false, kind: "layer", parent: g },
   ];
-  return { layers, elements: parts.map(([layer, p]) => part(layer, p)) };
+  // Every top-bar piece slides in (original .tb); the score pulses when it changes.
+  return { layers, elements: parts.map(([layer, p]) => part(layer, { enter: "slide", ...p, ...(p.id === `${g}-score` ? { anim: "pulse" } : {}) })) };
 }
 
 function cam(n: 1 | 2, x: number, color: string): FgcTitleElement[] {
@@ -87,14 +90,14 @@ export function scoreboardRokTitle(): FgcTitle {
     part("round", text({ id: "round", kind: "text", name: "Round", x: 0, y: 40, w: 260, h: 48, bind: "round", align: "left", bg: stripe(CH, R1, 48), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(16, 260)}) 100%, 0 100%)`, padLeft: 22, padRight: 38, hideEmpty: true, ...anton(24) })),
     part("round", text({ id: "phase", kind: "text", name: "Phase chip", x: 0, y: 92, w: 110, h: 22, bind: "phase", align: "left", bg: R1, clip: `polygon(0 0, 100% 0, calc(100% - ${pct(7, 110)}) 100%, 0 100%)`, padLeft: 22, padRight: 20, hideEmpty: true, ...oswald(13, 700, 2) })),
     ...p1.elements,
-    part("center", { id: "logo-plate", kind: "rect", name: "ROK logo plate", x: 904, y: 40, w: 112, h: 48, bg: stripe(CH, R1, 48), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(16, 112)}) 100%, ${pct(16, 112)} 100%)` }),
-    part("center", { id: "logo", kind: "rect", name: "ROK logo", x: 935, y: 47, w: 50, h: 34, src: LOGO }),
+    part("center", { id: "logo-plate", kind: "rect", name: "ROK logo plate", x: 904, y: 40, w: 112, h: 48, enter: "slide", bg: stripe(CH, R1, 48), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(16, 112)}) 100%, ${pct(16, 112)} 100%)` }),
+    part("center", { id: "logo", kind: "rect", name: "ROK logo", x: 935, y: 47, w: 50, h: 34, src: LOGO, enter: "slide" }),
     ...p2.elements,
     part("sponsor", { id: "sponsor-plate", kind: "rect", name: "Sponsor ribbon", x: 24, y: 806, w: 344, h: 44, bg: stripe(CH, R1, 44) }),
     part("sponsor", { id: "sponsor-key", kind: "rect", name: "Sponsor key", x: 24, y: 806, w: 39, h: 41, bg: R1 }),
     part("sponsor", { id: "sponsor-token", kind: "rect", name: "Sponsor key token", x: 34, y: 813, w: 19, h: 26, src: TOKEN }),
-    part("sponsor", { id: "sponsor-logo", kind: "rect", name: "Sponsor logo", x: 73, y: 813, w: 110, h: 26, bind: "sponsor.logo", anim: "fade" }),
-    part("sponsor", text({ id: "sponsor-name", kind: "text", name: "Sponsor ad text", x: 190, y: 806, w: 172, h: 41, bind: "sponsor.name", align: "left", anim: "fade", ...oswald(13, 600, 1) })),
+    // Partners: logo and ad text rotate together, centred as a pair, .8s crossfade every sponsorSeconds.
+    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 63, y: 806, w: 305, h: 41, bind: "sponsor.name", anim: "partners", ...oswald(13, 600, 1) })),
     ...cam(1, 28, R1),
     ...cam(2, 1556, R2),
   ];

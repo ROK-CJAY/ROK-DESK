@@ -182,7 +182,7 @@ export function normalizeTitle(title: FgcTitle): FgcTitle {
       font: element.font || "",
       weight: element.weight || 0,
       fontStyle: element.fontStyle === "italic" ? "italic" : "",
-      anim: element.anim === "fade" ? "fade" : "",
+      anim: element.anim === "fade" || element.anim === "pulse" || element.anim === "partners" ? element.anim : "",
     })),
   };
 }
@@ -355,8 +355,27 @@ export function overlayHref(id: string, titleId?: string | null, laneId = "", bo
 /** Seconds each FGC sponsor stays up on rotating sponsor layers. */
 export const SPONSOR_SECONDS = 8;
 
+/** Games-won pips: total = games needed (ceil(bestOf/2)); falls back to the score when best-of is unknown. */
+export function gamesWon(set: FgcSet | null, side: "p1" | "p2") {
+  const won = Math.max(0, side === "p1" ? set?.score1 ?? 0 : set?.score2 ?? 0);
+  const total = set?.bestOf ? Math.ceil(set.bestOf / 2) : won;
+  return { won: Math.min(won, total), total };
+}
+
+export function sponsorSeconds(fgc: FgcState) {
+  return Math.max(2, Number(fgc.settings?.sponsorSeconds) || SPONSOR_SECONDS);
+}
+
+export function sponsorList(fgc: FgcState) {
+  return (fgc.sponsors || []).filter((item) => item.name || item.logo);
+}
+
+export function sponsorIndex(fgc: FgcState, now = Date.now()) {
+  const count = sponsorList(fgc).length;
+  return count ? Math.floor(now / (sponsorSeconds(fgc) * 1000)) % count : -1;
+}
+
 export function rotatingSponsor(fgc: FgcState, now = Date.now()) {
-  const list = (fgc.sponsors || []).filter((item) => item.name || item.logo);
-  if (!list.length) return null;
-  return list[Math.floor(now / (SPONSOR_SECONDS * 1000)) % list.length];
+  const index = sponsorIndex(fgc, now);
+  return index < 0 ? null : sponsorList(fgc)[index];
 }

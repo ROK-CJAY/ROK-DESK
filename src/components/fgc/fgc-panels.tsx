@@ -154,6 +154,7 @@ export function FgcTournamentInfo() {
   const event = useFgcStore((s) => s.fgc.event);
   const url = useFgcStore((s) => s.fgc.url);
   const sponsors = useFgcStore((s) => s.fgc.sponsors ?? []);
+  const settings = useFgcStore((s) => s.fgc.settings);
   const importEvent = useFgcStore((s) => s.importEvent);
   const patch = useFgcStore((s) => s.patch);
   const current = event ?? {
@@ -207,6 +208,9 @@ export function FgcTournamentInfo() {
         </div>
       </div>
       <Partners sponsors={sponsors} onChange={(next) => patch({ sponsors: next })} />
+      <Field label="Seconds per partner (rotating partner layers)">
+        <Input type="number" min={2} value={String(settings.sponsorSeconds ?? 8)} onChange={(e) => patch({ settings: { ...settings, sponsorSeconds: Math.max(2, Number(e.target.value) || 8) } })} />
+      </Field>
     </section>
   );
 }

@@ -6,7 +6,7 @@ import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
 import { fontFamilyCss } from "@/lib/fgc-fonts";
-import { activeTitle, liveSet, normalizeTitle, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
+import { activeTitle, gamesWon, liveSet, normalizeTitle, sponsorIndex, sponsorList, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
 import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
 
 function fontParts(fontSize: string | number) {
@@ -198,17 +198,98 @@ function TitleMotion({ token, anim, children }: { token: string; anim: string; c
 
 const px = (value: number) => `${value}px`;
 
+
+/** Original Scoreboard ROK timings (public/overlays/gameplay/index.html). */
+const SLIDE_EASE = "cubic-bezier(.2,1.1,.4,1)";
+
+/**
+ * One positioned layer element with its on-air effects. Effects only use transform/opacity/filter,
+ * so moving or resizing the layer in the editor never changes how they play.
+ *  - enter "slide": translateY(-70px) and opacity 0 to rest; transform .7s SLIDE_EASE, opacity .4s, 60ms after mount.
+ *  - anim "pulse": on value change, brightness(1.6) scale(1.12) back to none over .6s ease-out.
+ */
+function FxBox({ element, value, unit, className, style, children }: { element: FgcTitleElement; value: string; unit: (px: number) => string; className: string; style: CSSProperties; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const last = useRef<string | null>(null);
+  // First program pull lands right after mount; like the original (no pulse on first render), skip it.
+  const mounted = useRef(0);
+  useEffect(() => { mounted.current = performance.now(); }, []);
+  const rest = element.opacity ?? 1;
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || element.enter !== "slide" || typeof node.animate !== "function") return;
+    const lift = node.animate([{ transform: `translateY(${unit(-70)})` }, { transform: "none" }], { duration: 700, delay: 60, easing: SLIDE_EASE, fill: "backwards" });
+    const show = node.animate([{ opacity: 0 }, { opacity: rest }], { duration: 400, delay: 60, easing: "ease", fill: "backwards" });
+    return () => { lift.cancel(); show.cancel(); };
+    // Entrance plays once when the layer goes on air.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [element.enter]);
+  useEffect(() => {
+    const node = ref.current;
+    const before = last.current;
+    last.current = value;
+    if (!node || element.anim !== "pulse" || before === null || before === value || performance.now() - mounted.current < 1000 || typeof node.animate !== "function") return;
+    node.animate([{ filter: "brightness(1.6)", transform: "scale(1.12)" }, { filter: "none", transform: "none" }], { duration: 600, easing: "ease-out" });
+  }, [value, element.anim]);
+  return <div ref={ref} className={className} style={style} data-fx={[element.enter, element.anim].filter(Boolean).join(" ") || undefined}>{children}</div>;
+}
+
+/** Row of diamonds, mirrored for P2 (fills from the score side outwards). */
+export function GamePips({ element, won, total, unit }: { element: FgcTitleElement; won: number; total: number; unit: (px: number) => string }) {
+  const size = element.h * 0.7;
+  const fill = element.color && element.color !== "#ffffff" ? element.color : "#d32f2f";
+  const right = element.pips === "p1";
+  return (
+    <div className="absolute inset-0 flex items-center" style={{ justifyContent: "flex-start", flexDirection: right ? "row-reverse" : "row", gap: unit(size * 0.75), padding: `0 ${unit(size * 0.25)}` }}>
+      {Array.from({ length: total }, (_, index) => (
+        <span
+          key={index}
+          data-pip={index < won ? "on" : "off"}
+          style={{ width: unit(size), height: unit(size), flex: "none", transform: "rotate(45deg)", boxSizing: "border-box", background: index < won ? fill : "#1a1a1a", border: `${unit(2)} solid ${index < won ? fill : "rgba(255,255,255,0.55)"}`, transition: "background .3s" }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Rotating partners, as the original sponsor stage: every partner is stacked, the current one is
+ * opacity 1 and the rest 0 with an .8s opacity transition, logo and text centred together (gap 10, padding 0 8).
+ * Advances every FGC sponsorSeconds (min 2, default 8).
+ */
+export function PartnerSlides({ element, unit }: { element: FgcTitleElement; unit: (px: number) => string }) {
+  const fgc = useFgcStore((s) => s.fgc);
+  const list = sponsorList(fgc);
+  const on = sponsorIndex(fgc);
+  return (
+    <div className="absolute inset-0">
+      {list.map((sponsor, index) => (
+        <div
+          key={sponsor.id || index}
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ gap: unit(10), padding: `0 ${unit(8)}`, opacity: index === on ? 1 : 0, transition: "opacity .8s" }}
+        >
+          {sponsor.logo ? <img src={sponsor.logo} alt="" style={{ maxHeight: unit(26), maxWidth: unit(110) }} /> : null}
+          {sponsor.name ? (
+            <span className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ maxWidth: unit(190), textTransform: element.caps ? "uppercase" : undefined }}>{sponsor.name}</span>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function CustomLayout({ editing = false, titleId = "", fallback }: { editing?: boolean; titleId?: string; fallback?: () => FgcTitle }) {
   useTitleImages();
   const fgc = useLiveFgc();
   const set = liveSet(fgc);
   const saved = fallback ? fgc.titles.find((item) => item.id === titleId) : null;
   const title = fallback ? normalizeTitle(saved ?? fallback()) : activeTitle(fgc, titleId);
-  const rotating = title.elements.some((element) => element.bind.startsWith("sponsor."));
+  const rotating = title.elements.some((element) => element.bind.startsWith("sponsor.") || element.anim === "partners");
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!rotating) return;
-    const timer = window.setInterval(() => setTick((n) => n + 1), 1000);
+    const timer = window.setInterval(() => setTick((n) => n + 1), 250);
     return () => window.clearInterval(timer);
   }, [rotating]);
   return (
@@ -216,11 +297,15 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
       {titleStack(title).map((element) => {
         const words = element.kind === "text" || element.kind === "ticker";
         const picture = element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle";
-        const value = picture ? titleImage(fgc, set, element) : elementText(element, titleText(fgc, set, element.bind, element.text));
+        const pips = element.pips ? gamesWon(set, element.pips) : null;
+        const value = pips ? `${pips.won}/${pips.total}` : picture ? titleImage(fgc, set, element) : elementText(element, titleText(fgc, set, element.bind, element.text));
         if (element.hideEmpty && !value) return null;
         return (
-        <div
+        <FxBox
           key={element.id}
+          element={element}
+          value={value}
+          unit={px}
           className="absolute overflow-hidden"
           style={{
             left: element.x,
@@ -248,11 +333,15 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
               value ? <img src={value} alt="" className={`h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : null
             ) : element.kind === "ticker" ? (
               <span className="inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text)}</span>
+            ) : pips ? (
+              <GamePips element={element} won={pips.won} total={pips.total} unit={px} />
+            ) : element.anim === "partners" ? (
+              <PartnerSlides element={element} unit={px} />
             ) : words ? (
               <ElementWords element={element} text={value} fontSize={element.size} unit={px} />
             ) : null}
           </TitleMotion>
-        </div>
+        </FxBox>
         );
       })}
     </div>
