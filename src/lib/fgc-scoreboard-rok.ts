@@ -44,7 +44,8 @@ function side(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
   const parts: [string, Part][] = [
     ...chips.map((c) => [`${g}-chips`, c] as [string, Part]),
     [`${g}-token`, { id: `${g}-token-well`, kind: "rect", name: `P${n} character token well`, x: well, y: 40, w: 72, h: 48, bg: `linear-gradient(${left ? 90 : 270}deg, ${R2} 0 55%, ${R1} 55%)`, clip: shape(72) }],
-    [`${g}-token`, { id: `${g}-character`, kind: "rect", name: `P${n} character icon`, x: well + 12, y: 49, w: 48, h: 30, bind: `p${n}.icon`, src: TOKEN }],
+    // Character art for the selected skin, cropped to the face; white ROK token (48x30, centred) when there is none.
+    [`${g}-token`, { id: `${g}-character`, kind: "rect", name: `P${n} character`, x: well, y: 40, w: 72, h: 48, bind: `p${n}.skin`, src: TOKEN, clip: shape(72), fit: "cover", focus: "50% 22%", fallbackPad: [9, 12] }],
     [`${g}-card`, { id: `${g}-card`, kind: "rect", name: `P${n} card`, x: card, y: 40, w: 396, h: 48, bg: stripe(CH, R1, 48), clip: shape(396) }],
     [`${g}-card`, text({ id: `${g}-name`, kind: "text", name: `P${n} name`, x: card + 33, y: 40, w: 330, h: 46, bind: `p${n}.sponsorName`, prefixColor: R1, ...anton(27) })],
     [`${g}-pips`, { id: `${g}-pips`, kind: "text", name: `P${n} games-won pips`, x: left ? 716 : 1084, y: 92, w: 120, h: 16, pips: g as "p1" | "p2", anim: "pulse", enter: "slide", color: R1 }],

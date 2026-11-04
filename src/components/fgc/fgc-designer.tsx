@@ -7,7 +7,7 @@ import { deskFonts, fontFamilyCss } from "@/lib/fgc-fonts";
 import { useFgcStore } from "@/lib/fgc-store";
 import { titleFromPsd } from "@/lib/psd-title";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
-import { ElementWords, GamePips, PartnerSlides, elementExtraStyle, elementText } from "@/components/fgc/fgc-overlays";
+import { ElementWords, GamePips, LayerPicture, PartnerSlides, elementExtraStyle, elementText } from "@/components/fgc/fgc-overlays";
 import { activeTitle, blankElement, blankLayer, gamesWon, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
 type Tool = "select" | "text" | "ticker" | "image" | "rect" | "circle" | "triangle";
@@ -485,7 +485,7 @@ export function FgcDesigner() {
                   }}
                 >
                   {element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle" ? (
-                    titleImage(fgc, set, element) ? <img src={titleImage(fgc, set, element)} alt="" className={`pointer-events-none h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : element.kind === "image" ? <span className="text-xs text-white/60">Image</span> : null
+                    titleImage(fgc, set, element) ? <LayerPicture element={element} value={titleImage(fgc, set, element)} unit={canvasUnit} /> : element.kind === "image" ? <span className="text-xs text-white/60">Image</span> : null
                   ) : element.kind === "ticker" ? (
                     <span className="pointer-events-none inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text) || element.name}</span>
                   ) : element.pips ? (

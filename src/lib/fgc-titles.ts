@@ -272,12 +272,16 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
   const library = libraryFor(fgc);
   const skinBind = element.bind.match(/^p([12])\.skin(2)?$/);
   if (!fgc.settings.show.characters && (element.bind.endsWith(".icon") || skinBind) && element.bind !== "event.icon") return element.src || "";
+  if (skinBind && !library) return element.src || "";
   if (skinBind && library) {
     const player = skinBind[1] === "1" ? set?.p1 : set?.p2;
     const name = skinBind[2] ? player?.character2 : player?.character;
     const skin = skinBind[2] ? player?.skin2 : player?.skin;
-    const found = library.characters.find((item) => item.name === name);
-    return found ? resolvePreview(fgc.assetBase, library.code, found.code, skin || 0) : "";
+    if (!name) return element.src || "";
+    const found = library.characters.find((item) => item.name.toLowerCase() === name.toLowerCase());
+    // Same per-skin art the TSH scoreboards get (website/<code>_<skin>.png, or a local pack override).
+    const code = found?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
+    return resolvePreview(fgc.assetBase, library.code, code, skin || 0);
   }
   const name = element.bind === "p1.icon" ? set?.p1?.character : element.bind === "p2.icon" ? set?.p2?.character : "";
   if (name && library) return library.characters.find((item) => item.name === name)?.icon || element.src || "";
@@ -358,7 +362,9 @@ export const SPONSOR_SECONDS = 8;
 /** Games-won pips: total = games needed (ceil(bestOf/2)); falls back to the score when best-of is unknown. */
 export function gamesWon(set: FgcSet | null, side: "p1" | "p2") {
   const won = Math.max(0, side === "p1" ? set?.score1 ?? 0 : set?.score2 ?? 0);
-  const total = set?.bestOf ? Math.ceil(set.bestOf / 2) : won;
+  const top = Math.max(0, set?.score1 ?? 0, set?.score2 ?? 0);
+  // Unknown best-of defaults to Bo3 (2 pips); never fewer pips than the leading score.
+  const total = Math.max(Math.ceil((set?.bestOf || 3) / 2), top);
   return { won: Math.min(won, total), total };
 }
 

@@ -83,6 +83,10 @@ export type FgcTitleElement = {
   enter?: "" | "slide";
   /** Games-won pips for a side: ceil(bestOf / 2) diamonds, filled up to that side's score. */
   pips?: "" | "p1" | "p2";
+  /** Picture fit when the bind resolves (the fallback `src` keeps contain + padding). */
+  fit?: "cover";
+  focus?: string;
+  fallbackPad?: [number, number];
 };
 
 export type FgcTitle = {

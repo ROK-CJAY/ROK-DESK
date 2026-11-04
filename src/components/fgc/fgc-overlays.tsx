@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { FgcHud } from "@/components/overlays/fgc-hud";
+import { ScaleFrame } from "@/components/overlays/scale-frame";
 import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
@@ -234,6 +235,24 @@ function FxBox({ element, value, unit, className, style, children }: { element: 
   return <div ref={ref} className={className} style={style} data-fx={[element.enter, element.anim].filter(Boolean).join(" ") || undefined}>{children}</div>;
 }
 
+/** Layer picture. `fit: "cover"` crops bound art (e.g. character skin) to the box; a missing image falls back to `src`. */
+export function LayerPicture({ element, value, unit }: { element: FgcTitleElement; value: string; unit: (px: number) => string }) {
+  const [broken, setBroken] = useState("");
+  const src = broken === value && element.src ? element.src : value;
+  const fallback = !!element.src && src === element.src;
+  const cover = element.kind === "image" || (element.fit === "cover" && !fallback);
+  const pad = fallback && element.fallbackPad ? `${unit(element.fallbackPad[0])} ${unit(element.fallbackPad[1])}` : undefined;
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setBroken(value)}
+      className={`pointer-events-none h-full w-full ${cover ? "object-cover" : "object-contain"}`}
+      style={{ objectPosition: cover && element.focus ? element.focus : undefined, padding: pad, boxSizing: "border-box" }}
+    />
+  );
+}
+
 /** Row of diamonds, mirrored for P2 (fills from the score side outwards). */
 export function GamePips({ element, won, total, unit }: { element: FgcTitleElement; won: number; total: number; unit: (px: number) => string }) {
   const size = element.h * 0.7;
@@ -283,7 +302,8 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
   useTitleImages();
   const fgc = useLiveFgc();
   const set = liveSet(fgc);
-  const saved = fallback ? fgc.titles.find((item) => item.id === titleId) : null;
+  // Built-in templates always render the current template; an older saved copy (from the removed editor button) is ignored.
+  const saved = null as FgcTitle | null;
   const title = fallback ? normalizeTitle(saved ?? fallback()) : activeTitle(fgc, titleId);
   const rotating = title.elements.some((element) => element.bind.startsWith("sponsor.") || element.anim === "partners");
   const [, setTick] = useState(0);
@@ -330,7 +350,7 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
         >
           <TitleMotion token={value} anim={element.anim || ""}>
             {picture ? (
-              value ? <img src={value} alt="" className={`h-full w-full ${element.kind === "image" ? "object-cover" : "object-contain"}`} /> : null
+              value ? <LayerPicture element={element} value={value} unit={px} /> : null
             ) : element.kind === "ticker" ? (
               <span className="inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text)}</span>
             ) : pips ? (
@@ -352,7 +372,8 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   const id = (source || "hud") as FgcOverlayId;
   const graphic = FgcGraphic({ id });
   if (graphic) return graphic;
-  if (id === "scoreboard-rok") return <CustomLayout titleId={SCOREBOARD_ROK_ID} fallback={scoreboardRokTitle} />;
+  // Fixed 1920x1080 stage scaled to fit whatever window or preview hosts it (scale 1 at 1920x1080).
+  if (id === "scoreboard-rok") return <ScaleFrame><CustomLayout titleId={SCOREBOARD_ROK_ID} fallback={scoreboardRokTitle} /></ScaleFrame>;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;
