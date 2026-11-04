@@ -19,14 +19,10 @@ export type CatalogGame = {
 const TSH_CATALOG = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/assets.json";
 const TSH_SITE = "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
 
-/** Cloudflare is not loaded yet. A saved rokdesk host is ignored so downloads stay on TSH. */
-function useTsh(base: string): boolean {
-  const root = base.trim().replace(/\/$/, "");
-  return !root || /assets\.rokdesk\.app/i.test(root);
-}
-
 export function catalogUrl(base: string): string {
-  return useTsh(base) ? TSH_CATALOG : `${base.trim().replace(/\/$/, "")}/catalog.json`;
+  const root = base.trim().replace(/\/$/, "");
+  if (!root || /assets\.rokdesk\.app/i.test(root)) return TSH_CATALOG;
+  return `${root}/catalog.json`;
 }
 
 export async function loadCatalog(base: string): Promise<CatalogGame[]> {
@@ -48,14 +44,18 @@ export async function loadCatalog(base: string): Promise<CatalogGame[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+function tshHost(base: string): string {
+  const root = base.trim().replace(/\/$/, "");
+  if (!root || /assets\.rokdesk\.app/i.test(root)) return TSH_SITE;
+  return root;
+}
+
 export function previewUrl(base: string, game: string, code: string, skin: number): string {
-  const host = useTsh(base) ? TSH_SITE : base.trim().replace(/\/$/, "");
-  return `${host}/games/${game}/website/${code}_${skin}.png`;
+  return `${tshHost(base)}/games/${game}/website/${code}_${skin}.png`;
 }
 
 export function stageIconUrl(base: string, game: string, code: string): string {
-  const host = useTsh(base) ? TSH_SITE : base.trim().replace(/\/$/, "");
-  return `${host}/games/${game}/stage_icon/stage_2_${code}.png`;
+  return `${tshHost(base)}/games/${game}/stage_icon/stage_2_${code}.png`;
 }
 
 const titleImages = new Map<string, string>();
@@ -381,50 +381,18 @@ export function withIcons(characters: FgcCharacter[], icons: Record<string, stri
   }));
 }
 
-export type AssetProgress = { done: number; total: number; saved: number };
-
-type PackShape = { prefix: string; postfix: string };
-
-async function packShape(game: string, folder: string, fallback: PackShape): Promise<PackShape> {
-  try {
-    const res = await fetch(`${TSH_SITE}/games/${game}/${folder}/config.json`);
-    if (!res.ok) return fallback;
-    const body = (await res.json()) as { prefix?: string; postfix?: string };
-    return { prefix: body.prefix ?? fallback.prefix, postfix: body.postfix ?? fallback.postfix };
-  } catch {
-    return fallback;
-  }
-}
-
-async function saveRemote(db: IDBDatabase, url: string, key: string, kind: "skin" | "stage"): Promise<boolean> {
-  const res = await fetch(url);
-  if (!res.ok) return false;
-  const blob = await res.blob();
-  if (blob.size < 32) return false;
-  await putFile(db, key, blob);
-  const objectUrl = URL.createObjectURL(blob);
-  if (kind === "skin") localSkins.set(key, objectUrl);
-  else localStages.set(key, objectUrl);
-  return true;
-}
-
-export async function installLibrary(
-  base: string,
-  game: CatalogGame,
-  pack: AssetPack,
-  onProgress?: (progress: AssetProgress) => void,
-): Promise<FgcLibrary> {
-  const host = useTsh(base) ? TSH_SITE : base.trim().replace(/\/$/, "");
-  const configUrl = useTsh(base)
-    ? `${TSH_SITE}/games/${game.code}/base_files/config.json`
-    : `${host}/games/${game.code}/library.json`;
+export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
+  const root = base.trim().replace(/\/$/, "");
+  const configUrl = !root || /assets\.rokdesk\.app/i.test(root)
+    ? `https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${game.code}/base_files/config.json`
+    : `${root}/games/${game.code}/library.json`;
   const res = await fetch(configUrl);
   if (!res.ok) throw new Error("That pack has no character library yet");
   const body = (await res.json()) as {
     smashgg_game_id?: string | number;
     characters?: FgcCharacter[];
     stages?: { name: string; code: string }[];
-    character_to_codename?: Record<string, { codename?: string; skins?: number } | string>;
+    character_to_codename?: Record<string, { codename?: string } | string>;
     stage_to_codename?: Record<string, { codename?: string } | string>;
   };
   const characters = body.characters?.length
@@ -432,7 +400,7 @@ export async function installLibrary(
     : Object.entries(body.character_to_codename ?? {}).map(([name, value]) => ({
         name,
         code: typeof value === "string" ? value : value.codename || name,
-        skins: typeof value === "string" ? 8 : value.skins || 8,
+        skins: 8,
       }));
   const stages = body.stages?.length
     ? body.stages
@@ -440,51 +408,6 @@ export async function installLibrary(
         name,
         code: typeof value === "string" ? value : value.codename || name,
       }));
-  const skins = await packShape(game.code, "website", { prefix: "", postfix: "_" });
-  const stageArt = await packShape(game.code, "stage_icon", { prefix: "stage_2_", postfix: "" });
-  const jobs: { url: string; key: string; kind: "skin" | "stage" }[] = [];
-  for (const character of characters) {
-    const count = Math.max(1, Math.min(16, character.skins || 1));
-    for (let skin = 0; skin < count; skin += 1) {
-      const key = skinKey(game.code, character.code, skin);
-      if (localSkins.has(key)) continue;
-      jobs.push({
-        url: `${host}/games/${game.code}/website/${skins.prefix}${character.code}${skins.postfix}${skin}.png`,
-        key,
-        kind: "skin",
-      });
-    }
-  }
-  for (const stage of stages) {
-    const key = stageKey(game.code, stage.code);
-    if (localStages.has(key)) continue;
-    jobs.push({
-      url: `${host}/games/${game.code}/stage_icon/${stageArt.prefix}${stage.code}${stageArt.postfix}.png`,
-      key,
-      kind: "stage",
-    });
-  }
-  const db = await assetDb();
-  let done = 0;
-  let saved = 0;
-  onProgress?.({ done, total: jobs.length, saved });
-  const queue = [...jobs];
-  const worker = async () => {
-    for (;;) {
-      const job = queue.shift();
-      if (!job) return;
-      try {
-        if (await saveRemote(db, job.url, job.key, job.kind)) saved += 1;
-      } catch {
-        // A missing skin is skipped. The rest of the library still saves.
-      }
-      done += 1;
-      if (done === jobs.length || done % 8 === 0) onProgress?.({ done, total: jobs.length, saved });
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(6, Math.max(1, jobs.length)) }, () => worker()));
-  onProgress?.({ done, total: jobs.length, saved });
-  if (!characters.length && saved === 0) throw new Error("Tournament Stream Helper returned nothing for that game");
   const icons = await stockIconsFor(game.name, body.smashgg_game_id ? String(body.smashgg_game_id) : undefined);
   return {
     game: game.name,

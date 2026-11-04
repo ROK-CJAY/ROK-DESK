@@ -3,7 +3,7 @@ import { Download, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { Input } from "@/components/ui/input";
-import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type AssetProgress, type CatalogGame } from "@/lib/fgc-assets";
+import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type CatalogGame } from "@/lib/fgc-assets";
 import { type FgcLibrary } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
@@ -16,7 +16,6 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
-  const [progress, setProgress] = useState<AssetProgress | null>(null);
   const [kind, setKind] = useState<"skin" | "stage">("skin");
   const [report, setReport] = useState("");
 
@@ -126,26 +125,21 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                     disabled={busy === pack.name}
                     onClick={() => {
                       setBusy(pack.name);
-                      setProgress(null);
                       setError("");
-                      void installLibrary(assetBase, selected, pack, setProgress)
+                      void installLibrary(assetBase, selected, pack)
                         .then((next) => {
                           setLibrary(next);
-                          setReport("Saved from Tournament Stream Helper");
                           setBusy("");
                         })
                         .catch((err) => {
                           setError(err instanceof Error ? err.message : "Download failed");
                           setBusy("");
-                          setProgress(null);
                         });
                     }}
                   >
                     <Download className="size-4" />
                     {busy === pack.name
-                      ? progress
-                        ? `${progress.saved}/${progress.total}`
-                        : "Loading"
+                      ? "Loading"
                       : libraries.some((item) => item.code === selected.code && item.pack === pack.name)
                         ? "Update"
                         : "Download"}

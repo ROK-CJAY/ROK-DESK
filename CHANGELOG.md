@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v3 — 2026-11-04
+
+### Fixed
+
+- Asset download is back to the 1.5.1 Tournament Stream Helper path. A saved Cloudflare host is ignored, so Smash and the other games load their character lists again.
+
 ## v1.5.2-preview-v2 — 2026-11-04
 
 ### Fixed
