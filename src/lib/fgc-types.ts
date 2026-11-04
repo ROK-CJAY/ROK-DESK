@@ -9,8 +9,10 @@ export type FgcOverlayId =
   | "scoreboard-4by3"
   | "scoreboard-ultimate"
   | "scoreboard-rok"
+  | "scoreboard-ssi"
   | "versus"
   | "versus-rok"
+  | "versus-ssi"
   | "versus-tekken"
   | "versus-pokken"
   | "casters"
@@ -96,6 +98,8 @@ export type FgcTitleElement = {
   shadow?: string;
   /** Rotating partners arrangement: default logo + text in a row (crossfade); "stack" = logo over label, slide up (Commentators ROK). */
   partnerLayout?: "" | "stack";
+  /** Built-in partner cards shown before the Production partners in the same rotation (Scoreboard SSI). */
+  partnerCards?: FgcPartnerCard[];
   /**
    * Frame-exact on-air motion (60 fps frames from going on air), used by Commentators ROK (lower third build.py).
    *  - wipe [a, b, from, to, cy]: 22 deg slanted reveal, lead edge from -> to (stage px through row cy), ease-in-out quart.
@@ -252,6 +256,9 @@ export type FgcBoard = {
   streamId?: string;
   streamName?: string;
 };
+
+/** A built-in rotating partner card: small label (\n for a line break), logo at logoH stage px tall, then a name. */
+export type FgcPartnerCard = { id: string; label?: string; logo?: string; logoH?: number; logoW?: number; name?: string; font?: string };
 
 export type FgcSponsor = {
   id: string;

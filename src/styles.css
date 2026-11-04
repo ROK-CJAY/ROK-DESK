@@ -234,6 +234,30 @@
 }
 
 @font-face {
+  font-family: "Saira";
+  src: url("/overlays/ssi/Saira-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Orbitron";
+  src: url("/overlays/ssi/Orbitron-Variable.ttf") format("truetype");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Manrope";
+  src: url("/overlays/ssi/Manrope-Variable.ttf") format("truetype");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Bebas Neue";
   src: url("/fonts/BebasNeue-Regular.otf") format("opentype");
   font-weight: 400;
