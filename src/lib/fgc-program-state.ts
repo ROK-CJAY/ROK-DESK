@@ -446,3 +446,54 @@ export async function saveFgcState(incoming: FgcState) {
     on conflict (id) do update set payload = ${payload}, updated_at = CURRENT_TIMESTAMP
   `;
 }
+
+/**
+ * Scoreboard ROK (public/overlays/gameplay/) reads the DeskState-like fields below.
+ * Same lane / board resolution and show settings as the TSH program state.
+ */
+export function gameplayState(source: FgcState, laneId?: string | null, boardId?: string | null) {
+  const fgc = resolveLane({ ...EMPTY_FGC, ...source, lanes: source.lanes || {}, boards: source.boards || [], activeBoardId: source.activeBoardId || "main", laneId: source.laneId || "local" }, laneId);
+  const set = liveSet(fgc, boardId);
+  const show = fgc.settings.show;
+  const say = (value: string) => cleanSpeech(value, fgc.settings.profanity);
+  const side = (player: FgcPlayer | null, score: number) => {
+    if (!player) return { name: "", tag: "", country: "", score, photoUrl: "" };
+    const icon = show.characters ? characterIcon(fgc, player) : "";
+    return {
+      name: say(tshName(player)),
+      tag: say(player.prefix || ""),
+      country: show.location ? player.region.trim() || player.country.trim() : player.country.trim(),
+      score,
+      photoUrl: icon || player.avatar || "",
+      ...(show.seed && player.seed != null ? { seed: player.seed } : {}),
+      ...(show.social && player.twitter ? { handle: say(player.twitter) } : {}),
+      character: show.characters ? player.character || "" : "",
+    };
+  };
+  const score1 = set?.score1 ?? 0;
+  const score2 = set?.score2 ?? 0;
+  const done = set?.state === "done";
+  const body = {
+    p1: side(set?.p1 ?? null, score1),
+    p2: side(set?.p2 ?? null, score2),
+    bestOf: set?.bestOf || 0,
+    roundName: set?.round || "",
+    eventPhase: set?.phase || fgc.event?.name || "",
+    eventName: fgc.event?.name || "",
+    winnerSide: done && score1 !== score2 ? (score1 > score2 ? "p1" : "p2") : null,
+    gameWinnerSide: null,
+    sponsors: (fgc.sponsors || []).filter((item) => item.name || item.logo).map((item) => ({ id: item.id, name: item.name, logo: item.logo })),
+  };
+  const json = JSON.stringify(body);
+  let hash = 2166136261;
+  for (let i = 0; i < json.length; i += 1) {
+    hash ^= json.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return { version: (hash >>> 0) || 1, ...body };
+}
+
+function characterIcon(fgc: FgcState, player: FgcPlayer): string {
+  const first = (characterOf(fgc, player) as Record<string, { assets?: Record<string, { asset?: string }> }>)["1"];
+  return first?.assets?.["base_files/icon"]?.asset || "";
+}

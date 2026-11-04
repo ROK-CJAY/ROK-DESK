@@ -53,7 +53,6 @@ import { Route as OverlayCastersRouteImport } from './routes/overlay/casters'
 import { Route as OverlayEventLogoRouteImport } from './routes/overlay/event-logo'
 import { Route as OverlayFloorClockRouteImport } from './routes/overlay/floor-clock'
 import { Route as OverlayGameWinRouteImport } from './routes/overlay/game-win'
-import { Route as OverlayGameplayRouteImport } from './routes/overlay/gameplay'
 import { Route as OverlayHudRouteImport } from './routes/overlay/hud'
 import { Route as OverlayLowerThirdRouteImport } from './routes/overlay/lower-third'
 import { Route as OverlayResourceRouteImport } from './routes/overlay/resource'
@@ -72,6 +71,7 @@ import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
 import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiFgcGameplayRouteImport } from './routes/api/fgc/gameplay'
 import { Route as ApiFgcProgramStateRouteImport } from './routes/api/fgc/program-state'
 import { Route as ApiFgcTshLayoutRouteImport } from './routes/api/fgc/tsh-layout'
 import { Route as ApiLorcanaPlayhubRouteImport } from './routes/api/lorcana/playhub'
@@ -304,11 +304,6 @@ const OverlayGameWinRoute = OverlayGameWinRouteImport.update({
   path: '/game-win',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
-const OverlayGameplayRoute = OverlayGameplayRouteImport.update({
-  id: '/gameplay',
-  path: '/gameplay',
-  getParentRoute: () => OverlayRouteRoute,
-} as any)
 const OverlayHudRoute = OverlayHudRouteImport.update({
   id: '/hud',
   path: '/hud',
@@ -397,6 +392,11 @@ const GameOverlaySourceRoute = GameOverlaySourceRouteImport.update({
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFgcGameplayRoute = ApiFgcGameplayRouteImport.update({
+  id: '/api/fgc/gameplay',
+  path: '/api/fgc/gameplay',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiFgcProgramStateRoute = ApiFgcProgramStateRouteImport.update({
@@ -499,7 +499,6 @@ export interface FileRoutesByFullPath {
   '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
-  '/overlay/gameplay': typeof OverlayGameplayRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -521,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/fgc/gameplay': typeof ApiFgcGameplayRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -573,7 +573,6 @@ export interface FileRoutesByTo {
   '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
-  '/overlay/gameplay': typeof OverlayGameplayRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -595,6 +594,7 @@ export interface FileRoutesByTo {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/fgc/gameplay': typeof ApiFgcGameplayRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -650,7 +650,6 @@ export interface FileRoutesById {
   '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
-  '/overlay/gameplay': typeof OverlayGameplayRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -672,6 +671,7 @@ export interface FileRoutesById {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/fgc/gameplay': typeof ApiFgcGameplayRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -728,7 +728,6 @@ export interface FileRouteTypes {
     | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
-    | '/overlay/gameplay'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -750,6 +749,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/fgc/gameplay'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -802,7 +802,6 @@ export interface FileRouteTypes {
     | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
-    | '/overlay/gameplay'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -824,6 +823,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/fgc/gameplay'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -878,7 +878,6 @@ export interface FileRouteTypes {
     | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
-    | '/overlay/gameplay'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -900,6 +899,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/fgc/gameplay'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -952,6 +952,7 @@ export interface RootRouteChildren {
   GameSlotTabletRoute: typeof GameSlotTabletRoute
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiFgcGameplayRoute: typeof ApiFgcGameplayRoute
   ApiFgcProgramStateRoute: typeof ApiFgcProgramStateRoute
   ApiFgcTshLayoutRoute: typeof ApiFgcTshLayoutRoute
   ApiLorcanaPlayhubRoute: typeof ApiLorcanaPlayhubRoute
@@ -1269,13 +1270,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayGameWinRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
-    '/overlay/gameplay': {
-      id: '/overlay/gameplay'
-      path: '/gameplay'
-      fullPath: '/overlay/gameplay'
-      preLoaderRoute: typeof OverlayGameplayRouteImport
-      parentRoute: typeof OverlayRouteRoute
-    }
     '/overlay/hud': {
       id: '/overlay/hud'
       path: '/hud'
@@ -1402,6 +1396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/fgc/gameplay': {
+      id: '/api/fgc/gameplay'
+      path: '/api/fgc/gameplay'
+      fullPath: '/api/fgc/gameplay'
+      preLoaderRoute: typeof ApiFgcGameplayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/fgc/program-state': {
       id: '/api/fgc/program-state'
       path: '/api/fgc/program-state'
@@ -1489,7 +1490,6 @@ interface OverlayRouteRouteChildren {
   OverlayEventLogoRoute: typeof OverlayEventLogoRoute
   OverlayFloorClockRoute: typeof OverlayFloorClockRoute
   OverlayGameWinRoute: typeof OverlayGameWinRoute
-  OverlayGameplayRoute: typeof OverlayGameplayRoute
   OverlayHudRoute: typeof OverlayHudRoute
   OverlayLowerThirdRoute: typeof OverlayLowerThirdRoute
   OverlayResourceRoute: typeof OverlayResourceRoute
@@ -1513,7 +1513,6 @@ const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayEventLogoRoute: OverlayEventLogoRoute,
   OverlayFloorClockRoute: OverlayFloorClockRoute,
   OverlayGameWinRoute: OverlayGameWinRoute,
-  OverlayGameplayRoute: OverlayGameplayRoute,
   OverlayHudRoute: OverlayHudRoute,
   OverlayLowerThirdRoute: OverlayLowerThirdRoute,
   OverlayResourceRoute: OverlayResourceRoute,
@@ -1621,6 +1620,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameSlotTabletRoute: GameSlotTabletRoute,
   GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiFgcGameplayRoute: ApiFgcGameplayRoute,
   ApiFgcProgramStateRoute: ApiFgcProgramStateRoute,
   ApiFgcTshLayoutRoute: ApiFgcTshLayoutRoute,
   ApiLorcanaPlayhubRoute: ApiLorcanaPlayhubRoute,

@@ -78,7 +78,7 @@ body.frame .dyn{visibility:hidden}
 <div id="spon"><div class="k"><img src="assets/helmet.png" alt=""></div><div id="stage" class="dyn"></div></div>
 <script>
 (()=>{
-const Q=new URLSearchParams(location.search),GAME=Q.get('game')||'vgc',SLOT=Q.get('slot')||'1',API=(Q.get('api')||'').replace(/\/$/,''),DEMO=Q.get('demo')==='1',FRAME=Q.get('frame')==='1';
+const Q=new URLSearchParams(location.search),GAME=Q.get('game')||'vgc',SLOT=Q.get('slot')||'1',API=(Q.get('api')||'').replace(/\/$/,''),DEMO=Q.get('demo')==='1',FRAME=Q.get('frame')==='1',FGC=Q.get('fgc')==='1';
 const $=id=>document.getElementById(id);let last=null,ver,spKey='',spT=null,spI=0;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function ov(s){s=JSON.parse(JSON.stringify(s||{}));s.p1=s.p1||{};s.p2=s.p2||{};
@@ -97,7 +97,7 @@ function render(s){['1','2'].forEach(i=>{const p=s['p'+i]||{},sc=Math.max(0,+p.s
 function sponsors(list,sec){const key=JSON.stringify(list)+sec;if(key===spKey)return;spKey=key;clearInterval(spT);const st=$('stage');st.innerHTML='';if(!list.length)return;
  list.forEach(sp=>{const d=document.createElement('div');d.className='slide';d.innerHTML=(sp.logo?'<img src="'+esc(sp.logo)+'" alt="">':'')+'<span>'+esc(sp.name)+'</span>';st.appendChild(d)});
  spI=0;st.children[0].classList.add('on');if(list.length>1)spT=setInterval(()=>{st.children[spI].classList.remove('on');spI=(spI+1)%list.length;st.children[spI].classList.add('on')},sec*1000)}
-async function poll(){try{const r=await fetch(API+'/api/desk?game='+encodeURIComponent(GAME)+'&slot='+encodeURIComponent(SLOT),{cache:'no-store'});
+async function poll(){try{const r=await fetch(API+(FGC?'/api/fgc/gameplay?lane='+encodeURIComponent(Q.get('lane')||'')+'&board='+encodeURIComponent(Q.get('board')||''):'/api/desk?game='+encodeURIComponent(GAME)+'&slot='+encodeURIComponent(SLOT)),{cache:'no-store'});
  if(r.ok){const s=await r.json();if(s&&s.version!==ver){ver=s.version;render(ov(s))}}}catch(e){}setTimeout(poll,400)}
 function demo(){const S={p1:{name:'ShadowTeemo',tag:'ROK',country:'Florida',seed:19,handle:'shadowteemo',score:0},p2:{name:'Scrub',country:'Florida',seed:14,handle:'scrub_sfl',score:0},
  bestOf:5,roundName:'Winners Round 1',eventPhase:'Top 24',sponsorSeconds:4,version:0,

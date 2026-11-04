@@ -5,6 +5,7 @@ import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
+import { FgcScoreboardRok } from "@/components/fgc/fgc-scoreboard-rok";
 import { fontFamilyCss } from "@/lib/fgc-fonts";
 import { activeTitle, liveSet, titleImage, titleStack, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
 
@@ -209,6 +210,7 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   const id = (source || "hud") as FgcOverlayId;
   const graphic = FgcGraphic({ id });
   if (graphic) return graphic;
+  if (id === "scoreboard-rok") return <FgcScoreboardRok />;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;

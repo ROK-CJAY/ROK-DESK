@@ -19,8 +19,7 @@ import type { OverlayEdit } from "@/components/overlays/placed";
 import { Button } from "@/components/ui/button";
 import { OVERLAY_SOURCES, overlayPath, overlayWindowName, type OverlaySourceId } from "@/components/desk/sources";
 import { useDeskStore } from "@/lib/desk-store";
-import { isPtcgTitle, isVgcTitle, slugOf, supportsStreamColors } from "@/lib/games";
-import { GameplayFrame } from "@/components/overlays/gameplay-frame";
+import { isPtcgTitle, isVgcTitle, supportsStreamColors } from "@/lib/games";
 import { useTournamentStore } from "@/lib/tournament-store";
 import { viewTournament } from "@/lib/tournament-types";
 import { deskLaneOf } from "@/lib/desk-types";
@@ -153,7 +152,7 @@ export function OverlayPreview() {
   const current = OVERLAY_SOURCES.find((s) => s.id === source)!;
   const pathFor = (id: OverlaySourceId) => overlayPath(desk.gameId, id, desk.matchSlot ?? 1);
   const url = origin ? `${origin}${pathFor(source)}` : pathFor(source);
-  const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock" && source !== "stream-clock" && source !== "gameplay";
+  const canArrange = source !== "versus" && source !== "slate" && source !== "bracket" && source !== "floor-clock" && source !== "stream-clock";
   const atDefault = isDefaultLayout(desk.layout);
 
   const edit = useMemo<OverlayEdit | null>(() => {
@@ -517,7 +516,6 @@ function SourceCanvas({
   if (source === "card") return <CardSpotlightView desk={desk} edit={edit} />;
   if (source === "sponsors") return <SponsorsView desk={desk} now={now} edit={edit} />;
   if (source === "event-logo") return <EventLogoView desk={desk} edit={edit} />;
-  if (source === "gameplay") return <GameplayFrame slug={slugOf(desk.gameId)} slot={desk.matchSlot ?? 1} fill={false} />;
   return null;
 }
 
