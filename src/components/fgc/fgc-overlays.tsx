@@ -286,9 +286,11 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
           className="absolute inset-0 flex items-center justify-center"
           style={{ gap: unit(10), padding: `0 ${unit(8)}`, opacity: index === on ? 1 : 0, transition: "opacity .8s" }}
         >
-          {sponsor.logo ? <img src={sponsor.logo} alt="" style={{ maxHeight: unit(26), maxWidth: unit(110) }} /> : null}
+          {sponsor.logo ? <img src={sponsor.logo} alt="" style={{ flexShrink: 0, maxHeight: unit(26), maxWidth: unit(110) }} /> : null}
           {sponsor.name ? (
-            <span className="overflow-hidden text-ellipsis whitespace-nowrap" style={{ maxWidth: unit(190), textTransform: element.caps ? "uppercase" : undefined }}>{sponsor.name}</span>
+            <div className="flex h-full min-w-0 items-center" style={{ flex: "0 1 auto", textTransform: element.caps ? "uppercase" : undefined }}>
+              <FitText text={sponsor.name} fontSize="1em" />
+            </div>
           ) : null}
         </div>
       ))}

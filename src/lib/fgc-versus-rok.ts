@@ -69,7 +69,7 @@ export function versusRokTitle(): FgcTitle {
     part("sponsor", { id: "sponsor-plate", kind: "rect", name: "Sponsor box", x: 660, y: 1024, w: 600, h: 52, bg: CH, clip: `polygon(${pct(20, 600)} 0, calc(100% - ${pct(20, 600)}) 0, 100% 100%, 0 100%)` }),
     part("sponsor", text({ id: "sponsor-key", kind: "text", name: "Partners label", x: 700, y: 1024, w: 110, h: 52, text: "PARTNERS", align: "left", color: R1, ...anton(18, 3) })),
     // Partners: logo and ad text rotate together, .8s crossfade every sponsorSeconds (same as Scoreboard ROK).
-    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 810, y: 1024, w: 420, h: 52, bind: "sponsor.name", anim: "partners", ...oswald(16, 600, 1.5) })),
+    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 826, y: 1024, w: 406, h: 52, bind: "sponsor.name", anim: "partners", ...oswald(16, 600, 1.5) })),
   ];
   return { id: VERSUS_ROK_ID, name: "Versus ROK", group: "", layers, elements };
 }
