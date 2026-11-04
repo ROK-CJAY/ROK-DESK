@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v5 — 2026-11-04
+
+### Added
+
+- Scoreboard SSI and Versus SSI overlays for the PlayVS Sunshine State Invitational.
+
 ## v1.5.2-preview-v4 — 2026-11-04
 
 ### Fixed
