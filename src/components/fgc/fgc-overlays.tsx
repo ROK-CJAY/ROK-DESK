@@ -35,31 +35,28 @@ export function FitText({ text, fontSize, prefixColor }: { text: string; fontSiz
       const computed = getComputedStyle(el);
       const px = parseFloat(computed.fontSize);
       if (!px) return;
-      const probe = document.createElement("span");
-      probe.textContent = text || " ";
-      probe.style.position = "fixed";
-      probe.style.left = "-9999px";
-      probe.style.top = "0";
-      probe.style.visibility = "hidden";
-      probe.style.whiteSpace = "nowrap";
-      probe.style.fontFamily = computed.fontFamily;
-      probe.style.fontWeight = computed.fontWeight;
-      probe.style.fontStyle = computed.fontStyle;
-      probe.style.letterSpacing = computed.letterSpacing;
-      probe.style.lineHeight = "1";
-      probe.style.fontSize = `${px}px`;
-      document.body.appendChild(probe);
-      const naturalW = probe.offsetWidth;
-      const naturalH = probe.offsetHeight;
-      probe.remove();
+      // Measure the real span at base size (same font, tracking and caps as on air), not a detached probe.
+      const naturalW = el.scrollWidth;
+      const naturalH = px;
       const next = Math.max(0.12, Math.min(1, (maxW - 2) / Math.max(naturalW, 1), (maxH - 2) / Math.max(naturalH, 1)));
-      const rounded = Math.round(next * 1000) / 1000;
+      let rounded = Math.round(next * 1000) / 1000;
+      el.style.fontSize = `${base.value * rounded}${base.unit}`;
+      // Fixed letter-spacing does not shrink with the font, so tighten until the full string fits.
+      for (let i = 0; i < 20 && rounded > 0.12 && el.scrollWidth > el.clientWidth; i++) {
+        rounded = Math.max(0.12, Math.round(rounded * 970) / 1000);
+        el.style.fontSize = `${base.value * rounded}${base.unit}`;
+      }
       setScale((current) => (Math.abs(current - rounded) < 0.002 ? current : rounded));
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(box);
-    return () => observer.disconnect();
+    // Web fonts (Anton/Oswald) swap in after first paint and change the width: measure again once they load.
+    const fonts = typeof document !== "undefined" ? document.fonts : undefined;
+    let alive = true;
+    void fonts?.ready.then(() => { if (alive) fit(); });
+    fonts?.addEventListener?.("loadingdone", fit);
+    return () => { alive = false; observer.disconnect(); fonts?.removeEventListener?.("loadingdone", fit); };
   }, [text, base.value, base.unit]);
 
   return (
