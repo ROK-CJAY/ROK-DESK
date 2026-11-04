@@ -19,6 +19,7 @@ export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group
   { id: "scoreboard-ultimate", group: "In game", name: "Scoreboard · Ultimate", note: "Smash Bros. Ultimate. Tag, losers, seed, state, flag, Twitter, pronouns, character, and camera wells." },
   { id: "scoreboard-rok", group: "In game", name: "Scoreboard ROK · index", note: "Compact ROK top bar, round and phase, sponsors, transparent cam wells (P1 x28 y862, P2 x1556 y862, 336 × 189). Put cams under it." },
   { id: "versus", group: "Versus", name: "Versus", note: "Match intro. Smash, Tekken, or Pokkén is picked from the game." },
+  { id: "versus-rok", group: "Versus", name: "Versus ROK", note: "ROK H2H split cam. Same data as Scoreboard ROK. Transparent holes: P1 cam x0 y0 957 × 1020, P2 cam x963 y0 957 × 1020, gameplay x640 y554 640 × 360. Put the gameplay source above the cams, both under this overlay." },
   { id: "versus-tekken", group: "Versus", name: "Versus · Tekken", note: "Tekken versus screen." },
   { id: "versus-pokken", group: "Versus", name: "Versus · Pokkén", note: "Pokkén versus screen." },
   { id: "casters", group: "People", name: "Commentators", note: "Plates for the commentators on the desk." },

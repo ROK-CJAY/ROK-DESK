@@ -3,30 +3,30 @@ import { blankElement, type FgcTitle, type FgcTitleElement, type FgcTitleLayer }
 /** Built-in FGC layout: the approved ROK gameplay scoreboard, rebuilt as editable layers. */
 export const SCOREBOARD_ROK_ID = "scoreboard-rok";
 
-const R0 = "#c62828";
-const R1 = "#d32f2f";
-const R2 = "#8e0000";
-const CH = "#1a1a1a";
-const TOKEN = "/overlays/scoreboard-rok/rok-token-white.png";
-const LOGO = "/overlays/scoreboard-rok/rok-logo-white.png";
+export const R0 = "#c62828";
+export const R1 = "#d32f2f";
+export const R2 = "#8e0000";
+export const CH = "#1a1a1a";
+export const TOKEN = "/overlays/scoreboard-rok/rok-token-white.png";
+export const LOGO = "/overlays/scoreboard-rok/rok-logo-white.png";
 
-const pct = (px: number, w: number) => `${Math.round((px / w) * 10000) / 100}%`;
+export const pct = (px: number, w: number) => `${Math.round((px / w) * 10000) / 100}%`;
 /** Slants, in percent of the box so the editor (scaled) and the browser source match. */
-const slantL = (w: number, s = 16) => `polygon(0 0, calc(100% - ${pct(s, w)}) 0, 100% 100%, ${pct(s, w)} 100%)`;
-const slantR = (w: number, s = 16) => `polygon(${pct(s, w)} 0, 100% 0, calc(100% - ${pct(s, w)}) 100%, 0 100%)`;
-const stripe = (top: string, bottom: string, h: number, px = 3) => `linear-gradient(to top, ${bottom} ${pct(px, h)}, ${top} ${pct(px, h)})`;
+export const slantL = (w: number, s = 16) => `polygon(0 0, calc(100% - ${pct(s, w)}) 0, 100% 100%, ${pct(s, w)} 100%)`;
+export const slantR = (w: number, s = 16) => `polygon(${pct(s, w)} 0, 100% 0, calc(100% - ${pct(s, w)}) 100%, 0 100%)`;
+export const stripe = (top: string, bottom: string, h: number, px = 3) => `linear-gradient(to top, ${bottom} ${pct(px, h)}, ${top} ${pct(px, h)})`;
 
-type Part = Partial<FgcTitleElement> & Pick<FgcTitleElement, "id" | "kind" | "name" | "x" | "y" | "w" | "h">;
+export type Part = Partial<FgcTitleElement> & Pick<FgcTitleElement, "id" | "kind" | "name" | "x" | "y" | "w" | "h">;
 
-function part(layer: string, p: Part): FgcTitleElement {
+export function part(layer: string, p: Part): FgcTitleElement {
   const base = blankElement(p.kind, layer);
   const shape = p.kind === "rect" || p.kind === "circle" || p.kind === "triangle";
   return { ...base, bind: "", text: "", bg: shape ? "transparent" : "transparent", ...p, layer };
 }
 
-const text = (p: Part): Part => ({ align: "center", valign: "middle", caps: true, color: "#ffffff", ...p });
-const anton = (size: number, tracking = 2) => ({ font: "Anton", weight: 400, size, tracking });
-const oswald = (size: number, weight: number, tracking: number) => ({ font: "Oswald", weight, size, tracking });
+export const text = (p: Part): Part => ({ align: "center", valign: "middle", caps: true, color: "#ffffff", ...p });
+export const anton = (size: number, tracking = 2) => ({ font: "Anton", weight: 400, size, tracking });
+export const oswald = (size: number, weight: number, tracking: number) => ({ font: "Oswald", weight, size, tracking });
 
 function side(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] } {
   const g = `p${n}`;

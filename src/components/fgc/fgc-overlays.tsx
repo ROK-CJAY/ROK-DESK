@@ -9,6 +9,7 @@ import { FgcGraphic } from "@/components/fgc/fgc-graphics";
 import { fontFamilyCss } from "@/lib/fgc-fonts";
 import { activeTitle, gamesWon, liveSet, normalizeTitle, sponsorIndex, sponsorList, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
 import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
+import { VERSUS_ROK_ID, versusRokTitle } from "@/lib/fgc-versus-rok";
 
 function fontParts(fontSize: string | number) {
   if (typeof fontSize === "number") return { value: fontSize, unit: "px" };
@@ -374,6 +375,7 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   if (graphic) return graphic;
   // Fixed 1920x1080 stage scaled to fit whatever window or preview hosts it (scale 1 at 1920x1080).
   if (id === "scoreboard-rok") return <ScaleFrame><CustomLayout titleId={SCOREBOARD_ROK_ID} fallback={scoreboardRokTitle} /></ScaleFrame>;
+  if (id === "versus-rok") return <ScaleFrame><CustomLayout titleId={VERSUS_ROK_ID} fallback={versusRokTitle} /></ScaleFrame>;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;

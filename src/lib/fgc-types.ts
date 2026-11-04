@@ -10,6 +10,7 @@ export type FgcOverlayId =
   | "scoreboard-ultimate"
   | "scoreboard-rok"
   | "versus"
+  | "versus-rok"
   | "versus-tekken"
   | "versus-pokken"
   | "casters"
