@@ -7,9 +7,10 @@ import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
 import { fontFamilyCss } from "@/lib/fgc-fonts";
-import { activeTitle, gamesWon, liveSet, normalizeTitle, sponsorIndex, sponsorList, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
+import { activeTitle, gamesWon, liveSet, normalizeTitle, sponsorIndex, sponsorList, sponsorSeconds, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
 import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
 import { VERSUS_ROK_ID, versusRokTitle } from "@/lib/fgc-versus-rok";
+import { SCOREBOARD_SSI_ID, VERSUS_SSI_ID, scoreboardSsiTitle, versusSsiTitle } from "@/lib/fgc-ssi";
 import { COMMENTATORS_ROK_ID, commentatorsRokTitle } from "@/lib/fgc-commentators-rok";
 
 function fontParts(fontSize: string | number) {
@@ -434,6 +435,7 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
   const fgc = useFgcStore((s) => s.fgc);
   const list = sponsorList(fgc);
   const on = sponsorIndex(fgc);
+  if (element.partnerCards?.length) return <PartnerCards element={element} unit={unit} list={list} />;
   if (element.partnerLayout === "stack") return <PartnerStack element={element} unit={unit} list={list} on={on} />;
   if (typeof element.partnerSplit === "number") {
     const split = element.partnerSplit;
@@ -468,6 +470,41 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
           className="absolute inset-0 flex items-center justify-center"
           style={{ gap: unit(10), padding: `0 ${unit(8)}`, opacity: index === on ? 1 : 0, transition: "opacity .8s" }}
         >
+          {sponsor.logo ? <img src={sponsor.logo} alt="" style={{ flexShrink: 0, maxHeight: unit(26), maxWidth: unit(110) }} /> : null}
+          {sponsor.name ? (
+            <div className="flex h-full min-w-0 items-center" style={{ flex: "0 1 auto", textTransform: element.caps ? "uppercase" : undefined }}>
+              <FitText text={sponsor.name} fontSize="1em" />
+            </div>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Scoreboard SSI partners: the built-in cards first, then the Production partners, one rotation
+ * (same .8s crossfade and sponsorSeconds as PartnerSlides).
+ */
+function PartnerCards({ element, unit, list }: { element: FgcTitleElement; unit: (px: number) => string; list: ReturnType<typeof sponsorList> }) {
+  const fgc = useFgcStore((s) => s.fgc);
+  const cards = element.partnerCards || [];
+  const count = cards.length + list.length;
+  const on = Math.floor(Date.now() / (sponsorSeconds(fgc) * 1000)) % count;
+  const slide = (index: number): CSSProperties => ({ opacity: index === on ? 1 : 0, transition: "opacity .8s", gap: unit(8), padding: `0 ${unit(8)}` });
+  return (
+    <div className="absolute inset-0">
+      {cards.map((card, index) => (
+        <div key={card.id} className="absolute inset-0 flex items-center justify-center" style={slide(index)}>
+          {card.label ? (
+            <small style={{ fontFamily: card.font || undefined, fontWeight: 600, fontSize: unit(10), letterSpacing: unit(2), lineHeight: unit(11), color: "#AFB4B6", textAlign: "right", whiteSpace: "pre-line", textTransform: "uppercase" }}>{card.label}</small>
+          ) : null}
+          {card.logo ? <img src={card.logo} alt="" style={{ flexShrink: 0, maxHeight: unit(card.logoH || 26), maxWidth: card.logoW ? unit(card.logoW) : "none" }} /> : null}
+          {card.name ? <i style={{ fontStyle: "normal", fontFamily: card.font || undefined, fontWeight: 600, fontSize: unit(15), letterSpacing: unit(0.3), whiteSpace: "nowrap", textTransform: "none" }}>{card.name}</i> : null}
+        </div>
+      ))}
+      {list.map((sponsor, index) => (
+        <div key={sponsor.id || index} className="absolute inset-0 flex items-center justify-center" style={{ ...slide(cards.length + index), gap: unit(10) }}>
           {sponsor.logo ? <img src={sponsor.logo} alt="" style={{ flexShrink: 0, maxHeight: unit(26), maxWidth: unit(110) }} /> : null}
           {sponsor.name ? (
             <div className="flex h-full min-w-0 items-center" style={{ flex: "0 1 auto", textTransform: element.caps ? "uppercase" : undefined }}>
@@ -665,6 +702,8 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   if (graphic) return graphic;
   // Fixed 1920x1080 stage scaled to fit whatever window or preview hosts it (scale 1 at 1920x1080).
   if (id === "scoreboard-rok") return <ScaleFrame><CustomLayout titleId={SCOREBOARD_ROK_ID} fallback={scoreboardRokTitle} /></ScaleFrame>;
+  if (id === "scoreboard-ssi") return <ScaleFrame><CustomLayout titleId={SCOREBOARD_SSI_ID} fallback={scoreboardSsiTitle} /></ScaleFrame>;
+  if (id === "versus-ssi") return <ScaleFrame><CustomLayout titleId={VERSUS_SSI_ID} fallback={versusSsiTitle} /></ScaleFrame>;
   if (id === "versus-rok") return <ScaleFrame><CustomLayout titleId={VERSUS_ROK_ID} fallback={versusRokTitle} /></ScaleFrame>;
   if (id === "commentators-rok") return <ScaleFrame><CustomLayout titleId={COMMENTATORS_ROK_ID} fallback={commentatorsRokTitle} /></ScaleFrame>;
   if (id === "casters") return <Casters />;
