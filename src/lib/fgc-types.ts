@@ -88,6 +88,9 @@ export type FgcTitleElement = {
   fit?: "cover";
   focus?: string;
   fallbackPad?: [number, number];
+  /** Rotating partners split on a vertical line: x offset (stage px) inside the element; logo right-aligned left of it, label left-aligned right of it. Versus ROK only. */
+  partnerSplit?: number;
+  partnerGap?: number;
 };
 
 export type FgcTitle = {

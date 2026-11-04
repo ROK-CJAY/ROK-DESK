@@ -278,6 +278,31 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
   const fgc = useFgcStore((s) => s.fgc);
   const list = sponsorList(fgc);
   const on = sponsorIndex(fgc);
+  if (typeof element.partnerSplit === "number") {
+    const split = element.partnerSplit;
+    const gap = element.partnerGap ?? 14;
+    const pad = 6;
+    const logoW = Math.max(0, split - gap - pad);
+    const textW = Math.max(0, element.w - split - gap - pad);
+    return (
+      <div className="absolute inset-0">
+        {list.map((sponsor, index) => (
+          <div key={sponsor.id || index} className="absolute inset-0" style={{ opacity: index === on ? 1 : 0, transition: "opacity .8s" }}>
+            {sponsor.logo ? (
+              <div className="absolute flex items-center justify-end" style={{ left: unit(pad), width: unit(logoW), top: 0, bottom: 0 }}>
+                <img src={sponsor.logo} alt="" style={{ maxHeight: unit(Math.min(34, element.h - 12)), maxWidth: "100%", objectFit: "contain" }} />
+              </div>
+            ) : null}
+            {sponsor.name ? (
+              <div className="absolute flex items-center overflow-hidden" style={{ left: unit(split + gap), width: unit(textW), top: 0, bottom: 0, justifyContent: "flex-start", textAlign: "left", textTransform: element.caps ? "uppercase" : undefined }}>
+                <FitText text={sponsor.name} fontSize={unit(element.size)} />
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="absolute inset-0">
       {list.map((sponsor, index) => (
