@@ -61,6 +61,8 @@ export const TITLE_BINDS = [
   { id: "p2.region", label: "P2 state" },
   { id: "p1.twitter", label: "P1 Twitter" },
   { id: "p2.twitter", label: "P2 Twitter" },
+  { id: "p1.seed", label: "P1 seed" },
+  { id: "p2.seed", label: "P2 seed" },
   { id: "round", label: "Round" },
   { id: "phase", label: "Phase" },
   { id: "stage", label: "Stage" },
@@ -81,6 +83,8 @@ export const TITLE_BINDS = [
   { id: "p2.skin2", label: "P2 second skin" },
   { id: "p1.avatar", label: "P1 start.gg photo" },
   { id: "p2.avatar", label: "P2 start.gg photo" },
+  { id: "sponsor.name", label: "Sponsor (rotating)" },
+  { id: "sponsor.logo", label: "Sponsor logo (rotating)" },
   { id: "p1b.avatar", label: "P1 partner photo" },
   { id: "p2b.avatar", label: "P2 partner photo" },
 ];
@@ -251,6 +255,7 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
     caster2: casterName(fgc, 1),
     caster3: casterName(fgc, 2),
     caster4: casterName(fgc, 3),
+    "sponsor.name": rotatingSponsor(fgc)?.name || "",
   };
   if (!bind) return cleanSpeech(fallback, fgc.settings.profanity);
   return cleanSpeech(value[bind] ?? fallback, fgc.settings.profanity);
@@ -258,6 +263,7 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
 
 export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleElement): string {
   if (element.bind === "event.icon") return fgc.event?.icon || "";
+  if (element.bind === "sponsor.logo") return rotatingSponsor(fgc)?.logo || "";
   const photo = element.bind.match(/^p(1b|2b|1|2)\.avatar$/);
   if (photo) {
     const player = photo[1] === "1" ? set?.p1 : photo[1] === "2" ? set?.p2 : photo[1] === "1b" ? set?.p1b : set?.p2b;
@@ -265,7 +271,7 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
   }
   const library = libraryFor(fgc);
   const skinBind = element.bind.match(/^p([12])\.skin(2)?$/);
-  if (!fgc.settings.show.characters && (element.bind.endsWith(".icon") || skinBind) && element.bind !== "event.icon") return "";
+  if (!fgc.settings.show.characters && (element.bind.endsWith(".icon") || skinBind) && element.bind !== "event.icon") return element.src || "";
   if (skinBind && library) {
     const player = skinBind[1] === "1" ? set?.p1 : set?.p2;
     const name = skinBind[2] ? player?.character2 : player?.character;
@@ -274,13 +280,13 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
     return found ? resolvePreview(fgc.assetBase, library.code, found.code, skin || 0) : "";
   }
   const name = element.bind === "p1.icon" ? set?.p1?.character : element.bind === "p2.icon" ? set?.p2?.character : "";
-  if (name && library) return library.characters.find((item) => item.name === name)?.icon || "";
+  if (name && library) return library.characters.find((item) => item.name === name)?.icon || element.src || "";
   if (element.imageKey) return titleImageObjectUrl(element.imageKey) || element.src;
   return element.src;
 }
 
 export function sourceList() {
-  const rows = TITLE_BINDS.filter((item) => item.id);
+  const rows = TITLE_BINDS.filter((item) => item.id && !item.id.startsWith("sponsor."));
   const insert = (id: string, label: string, after: string) => {
     const index = rows.findIndex((item) => item.id === after);
     rows.splice(index + 1, 0, { id, label });
@@ -323,7 +329,8 @@ export function sourceValue(fgc: FgcState, set: FgcSet | null, bind: string): st
     bind.endsWith(".icon") ||
     bind.endsWith(".skin") ||
     bind.endsWith(".skin2") ||
-    bind.endsWith(".avatar")
+    bind.endsWith(".avatar") ||
+    bind.endsWith(".logo")
   ) {
     return titleImage(fgc, set, { ...blankElement("image"), bind });
   }
@@ -343,4 +350,13 @@ export function liveSet(fgc: FgcState): FgcSet | null {
 export function overlayHref(id: string, titleId?: string | null, laneId = "", boardId = ""): string {
   const path = id === "custom" && titleId ? `/fgc/overlay/hud?source=custom&title=${encodeURIComponent(titleId)}` : id === "hud" ? "/fgc/overlay/hud" : `/fgc/overlay/hud?source=${id}`;
   return withPin(path, laneId, boardId);
+}
+
+/** Seconds each FGC sponsor stays up on rotating sponsor layers. */
+export const SPONSOR_SECONDS = 8;
+
+export function rotatingSponsor(fgc: FgcState, now = Date.now()) {
+  const list = (fgc.sponsors || []).filter((item) => item.name || item.logo);
+  if (!list.length) return null;
+  return list[Math.floor(now / (SPONSOR_SECONDS * 1000)) % list.length];
 }

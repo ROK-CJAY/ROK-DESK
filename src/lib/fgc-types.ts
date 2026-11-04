@@ -67,6 +67,18 @@ export type FgcTitleElement = {
   imageKey: string;
   blend: string;
   anim: string;
+  /** Optional, used by Scoreboard ROK. Other layouts leave them unset. */
+  clip?: string;
+  borderWidth?: number;
+  borderColor?: string;
+  caps?: boolean;
+  tracking?: number;
+  padLeft?: number;
+  padRight?: number;
+  valign?: "middle";
+  hideEmpty?: boolean;
+  template?: string;
+  prefixColor?: string;
 };
 
 export type FgcTitle = {

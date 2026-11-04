@@ -7,7 +7,8 @@ import { deskFonts, fontFamilyCss } from "@/lib/fgc-fonts";
 import { useFgcStore } from "@/lib/fgc-store";
 import { titleFromPsd } from "@/lib/psd-title";
 import type { FgcTitle, FgcTitleElement } from "@/lib/fgc-types";
-import { FitText } from "@/components/fgc/fgc-overlays";
+import { ElementWords, elementExtraStyle, elementText } from "@/components/fgc/fgc-overlays";
+import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
 import { activeTitle, blankElement, blankLayer, liveSet, normalizeTitle, starterTitle, TITLE_BINDS, TITLE_GROUPS, titleImage, titleText } from "@/lib/fgc-titles";
 
 type Tool = "select" | "text" | "ticker" | "image" | "rect" | "circle" | "triangle";
@@ -481,6 +482,7 @@ export function FgcDesigner() {
                     mixBlendMode: (element.blend || undefined) as CSSProperties["mixBlendMode"],
                     outline: active ? "1px solid #e11d2e" : undefined,
                     outlineOffset: "-1px",
+                    ...elementExtraStyle(element, canvasUnit),
                   }}
                 >
                   {element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle" ? (
@@ -488,7 +490,7 @@ export function FgcDesigner() {
                   ) : element.kind === "ticker" ? (
                     <span className="pointer-events-none inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text) || element.name}</span>
                   ) : element.kind === "text" ? (
-                    <FitText text={titleText(fgc, set, element.bind, element.text) || element.name} fontSize={`${(element.size / 1920) * 100}cqw`} />
+                    <ElementWords element={element} text={elementText(element, titleText(fgc, set, element.bind, element.text)) || element.name} fontSize={`${(element.size / 1920) * 100}cqw`} unit={canvasUnit} />
                   ) : null}
                 </div>
                 {active && tool === "select" ? HANDLES.map((handle) => (
@@ -597,6 +599,12 @@ export function FgcDesigner() {
           setLayerId("layer-1");
           setSelected(null);
         }}>New</Button>
+        <Button size="sm" variant="outline" onClick={() => {
+          const exists = fgc.titles.some((item) => item.id === SCOREBOARD_ROK_ID);
+          patch(exists ? { activeTitleId: SCOREBOARD_ROK_ID } : { titles: [...fgc.titles, scoreboardRokTitle()], activeTitleId: SCOREBOARD_ROK_ID });
+          setLayerId(exists ? layerId : scoreboardRokTitle().layers[1]?.id ?? "layer-1");
+          setSelected(null);
+        }}>Scoreboard ROK</Button>
         <label className="inline-flex h-8 cursor-pointer items-center rounded-md border border-border px-3 text-xs">
           {importing ? "Reading PSD" : "Import PSD"}
           <input
@@ -671,7 +679,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 function ObjectFields({ current, update, onAlign, onDelete }: { current: FgcTitleElement; update: (partial: Partial<FgcTitleElement>) => void; onAlign: (edge: "left" | "center" | "right" | "top" | "middle" | "bottom") => void; onDelete: () => void }) {
   const words = current.kind === "text" || current.kind === "ticker";
   const picture = current.kind === "image" || current.kind === "rect" || current.kind === "circle" || current.kind === "triangle";
-  const pictureBind = (id: string) => id.endsWith(".icon") || id.includes(".skin") || id.endsWith(".avatar");
+  const pictureBind = (id: string) => id.endsWith(".icon") || id.includes(".skin") || id.endsWith(".avatar") || id.endsWith(".logo");
   const binds = TITLE_BINDS.filter((item) => picture ? !item.id || pictureBind(item.id) : !pictureBind(item.id));
   return (
     <div className="grid max-h-[70vh] content-start gap-3 overflow-auto pr-1">
@@ -803,3 +811,5 @@ function ImageSource({ current, update }: { current: FgcTitleElement; update: (p
     </>
   );
 }
+
+const canvasUnit = (value: number) => `${(value / 1920) * 100}cqw`;

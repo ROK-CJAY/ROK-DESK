@@ -218,6 +218,22 @@
 }
 
 @font-face {
+  font-family: "Anton";
+  src: url("/fonts/Anton-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Oswald";
+  src: url("/fonts/Oswald-VariableFont_wght.ttf") format("truetype");
+  font-weight: 200 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Bebas Neue";
   src: url("/fonts/BebasNeue-Regular.otf") format("opentype");
   font-weight: 400;

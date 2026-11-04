@@ -29,5 +29,3 @@ Params: `game` (vgc), `slot` (1), `api`, `demo=1`, `frame=1`, `p1`, `p2`, `s1`, 
 Reads the optional player fields `seed` and `handle` alongside name, tag, country and photoUrl.
 The score pulses when it changes. `gameWinnerSide` flashes that player's plate and cam border. `winnerSide` highlights the winner in red.
 Serve it from ROK Desk (for example under `/{game}/overlay/gameplay`) to avoid CORS, or run it from a `file:///...?demo=1` URL.
-
-In ROK Desk this is the FGC source **Scoreboard ROK · index** (`/fgc/overlay/hud?source=scoreboard-rok&lane=…&board=…`). With `fgc=1` the page polls `/api/fgc/gameplay?lane=&board=` (the live FGC set) instead of `/api/desk`.

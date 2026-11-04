@@ -5,9 +5,9 @@ import { playerLabel } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
-import { FgcScoreboardRok } from "@/components/fgc/fgc-scoreboard-rok";
 import { fontFamilyCss } from "@/lib/fgc-fonts";
-import { activeTitle, liveSet, titleImage, titleStack, titleText, type FgcOverlayId } from "@/lib/fgc-titles";
+import { activeTitle, liveSet, normalizeTitle, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
+import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
 
 function fontParts(fontSize: string | number) {
   if (typeof fontSize === "number") return { value: fontSize, unit: "px" };
@@ -16,7 +16,7 @@ function fontParts(fontSize: string | number) {
   return { value: Number(match[1]), unit: match[2] || "px" };
 }
 
-export function FitText({ text, fontSize }: { text: string; fontSize: string | number }) {
+export function FitText({ text, fontSize, prefixColor }: { text: string; fontSize: string | number; prefixColor?: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const base = fontParts(fontSize);
   const [scale, setScale] = useState(1);
@@ -62,8 +62,49 @@ export function FitText({ text, fontSize }: { text: string; fontSize: string | n
 
   return (
     <span ref={ref} className="block w-full min-w-0 overflow-hidden whitespace-nowrap" style={{ fontSize: `${base.value * scale}${base.unit}`, lineHeight: 1 }}>
-      {text}
+      {prefixColor ? <AccentText text={text} color={prefixColor} /> : text}
     </span>
+  );
+}
+
+/** "ROK | Name" → ROK in the accent color, then the name (Scoreboard ROK cards). */
+function AccentText({ text, color }: { text: string; color: string }) {
+  const cut = text.indexOf(" | ");
+  if (cut < 0) return <>{text}</>;
+  return (
+    <>
+      <span style={{ color, marginRight: "0.3em" }}>{text.slice(0, cut)}</span>
+      {text.slice(cut + 3)}
+    </>
+  );
+}
+
+/** Text shown by a title element, after the optional template / caps / hide rules. */
+export function elementText(element: FgcTitleElement, value: string): string {
+  let text = value;
+  if (element.template && text) text = element.template.replace("{}", text.replace(/^@/, ""));
+  if (element.caps) text = text.toUpperCase();
+  return text;
+}
+
+/** Optional Scoreboard ROK styling. `unit` maps 1920-wide canvas px to CSS (px on air, cqw in the editor). */
+export function elementExtraStyle(element: FgcTitleElement, unit: (px: number) => string): CSSProperties {
+  return {
+    ...(element.clip ? { clipPath: element.clip } : {}),
+    ...(element.borderWidth ? { border: `${unit(element.borderWidth)} solid ${element.borderColor || "#ffffff"}`, boxSizing: "border-box" as const } : {}),
+    ...(element.tracking ? { letterSpacing: unit(element.tracking) } : {}),
+  };
+}
+
+/** Text box with optional padding and vertical centering, keeping FitText measuring the inner width. */
+export function ElementWords({ element, text, fontSize, unit }: { element: FgcTitleElement; text: string; fontSize: string | number; unit: (px: number) => string }) {
+  if (!element.padLeft && !element.padRight && element.valign !== "middle") {
+    return <FitText text={text} fontSize={fontSize} prefixColor={element.prefixColor} />;
+  }
+  return (
+    <div className="absolute top-0 bottom-0 flex items-center" style={{ left: unit(element.padLeft || 0), right: unit(element.padRight || 0) }}>
+      <FitText text={text} fontSize={fontSize} prefixColor={element.prefixColor} />
+    </div>
   );
 }
 
@@ -155,17 +196,28 @@ function TitleMotion({ token, anim, children }: { token: string; anim: string; c
   );
 }
 
-export function CustomLayout({ editing = false, titleId = "" }: { editing?: boolean; titleId?: string }) {
+const px = (value: number) => `${value}px`;
+
+export function CustomLayout({ editing = false, titleId = "", fallback }: { editing?: boolean; titleId?: string; fallback?: () => FgcTitle }) {
   useTitleImages();
   const fgc = useLiveFgc();
   const set = liveSet(fgc);
-  const title = activeTitle(fgc, titleId);
+  const saved = fallback ? fgc.titles.find((item) => item.id === titleId) : null;
+  const title = fallback ? normalizeTitle(saved ?? fallback()) : activeTitle(fgc, titleId);
+  const rotating = title.elements.some((element) => element.bind.startsWith("sponsor."));
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!rotating) return;
+    const timer = window.setInterval(() => setTick((n) => n + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [rotating]);
   return (
     <div className="relative h-full w-full">
       {titleStack(title).map((element) => {
         const words = element.kind === "text" || element.kind === "ticker";
         const picture = element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle";
-        const value = picture ? titleImage(fgc, set, element) : titleText(fgc, set, element.bind, element.text);
+        const value = picture ? titleImage(fgc, set, element) : elementText(element, titleText(fgc, set, element.bind, element.text));
+        if (element.hideEmpty && !value) return null;
         return (
         <div
           key={element.id}
@@ -188,6 +240,7 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
             clipPath: element.kind === "triangle" ? "polygon(50% 0, 100% 100%, 0 100%)" : undefined,
             mixBlendMode: (element.blend || undefined) as CSSProperties["mixBlendMode"],
             outline: editing ? "1px dashed rgba(255,255,255,0.35)" : undefined,
+            ...elementExtraStyle(element, px),
           }}
         >
           <TitleMotion token={value} anim={element.anim || ""}>
@@ -196,7 +249,7 @@ export function CustomLayout({ editing = false, titleId = "" }: { editing?: bool
             ) : element.kind === "ticker" ? (
               <span className="inline-block whitespace-nowrap" style={{ animation: "rok-ticker 14s linear infinite" }}>{titleText(fgc, set, element.bind, element.text)}</span>
             ) : words ? (
-              <FitText text={titleText(fgc, set, element.bind, element.text)} fontSize={element.size} />
+              <ElementWords element={element} text={value} fontSize={element.size} unit={px} />
             ) : null}
           </TitleMotion>
         </div>
@@ -210,7 +263,7 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   const id = (source || "hud") as FgcOverlayId;
   const graphic = FgcGraphic({ id });
   if (graphic) return graphic;
-  if (id === "scoreboard-rok") return <FgcScoreboardRok />;
+  if (id === "scoreboard-rok") return <CustomLayout titleId={SCOREBOARD_ROK_ID} fallback={scoreboardRokTitle} />;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;

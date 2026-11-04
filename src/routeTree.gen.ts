@@ -71,7 +71,6 @@ import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
 import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as ApiFgcGameplayRouteImport } from './routes/api/fgc/gameplay'
 import { Route as ApiFgcProgramStateRouteImport } from './routes/api/fgc/program-state'
 import { Route as ApiFgcTshLayoutRouteImport } from './routes/api/fgc/tsh-layout'
 import { Route as ApiLorcanaPlayhubRouteImport } from './routes/api/lorcana/playhub'
@@ -394,11 +393,6 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiFgcGameplayRoute = ApiFgcGameplayRouteImport.update({
-  id: '/api/fgc/gameplay',
-  path: '/api/fgc/gameplay',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiFgcProgramStateRoute = ApiFgcProgramStateRouteImport.update({
   id: '/api/fgc/program-state',
   path: '/api/fgc/program-state',
@@ -520,7 +514,6 @@ export interface FileRoutesByFullPath {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/fgc/gameplay': typeof ApiFgcGameplayRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -594,7 +587,6 @@ export interface FileRoutesByTo {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/fgc/gameplay': typeof ApiFgcGameplayRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -671,7 +663,6 @@ export interface FileRoutesById {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/fgc/gameplay': typeof ApiFgcGameplayRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -749,7 +740,6 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
-    | '/api/fgc/gameplay'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -823,7 +813,6 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
-    | '/api/fgc/gameplay'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -899,7 +888,6 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
-    | '/api/fgc/gameplay'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -952,7 +940,6 @@ export interface RootRouteChildren {
   GameSlotTabletRoute: typeof GameSlotTabletRoute
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiFgcGameplayRoute: typeof ApiFgcGameplayRoute
   ApiFgcProgramStateRoute: typeof ApiFgcProgramStateRoute
   ApiFgcTshLayoutRoute: typeof ApiFgcTshLayoutRoute
   ApiLorcanaPlayhubRoute: typeof ApiLorcanaPlayhubRoute
@@ -1396,13 +1383,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/fgc/gameplay': {
-      id: '/api/fgc/gameplay'
-      path: '/api/fgc/gameplay'
-      fullPath: '/api/fgc/gameplay'
-      preLoaderRoute: typeof ApiFgcGameplayRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/fgc/program-state': {
       id: '/api/fgc/program-state'
       path: '/api/fgc/program-state'
@@ -1620,7 +1600,6 @@ const rootRouteChildren: RootRouteChildren = {
   GameSlotTabletRoute: GameSlotTabletRoute,
   GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiFgcGameplayRoute: ApiFgcGameplayRoute,
   ApiFgcProgramStateRoute: ApiFgcProgramStateRoute,
   ApiFgcTshLayoutRoute: ApiFgcTshLayoutRoute,
   ApiLorcanaPlayhubRoute: ApiLorcanaPlayhubRoute,
