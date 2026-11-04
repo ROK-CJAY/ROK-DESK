@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
@@ -10,6 +10,7 @@ import { fontFamilyCss } from "@/lib/fgc-fonts";
 import { activeTitle, gamesWon, liveSet, normalizeTitle, sponsorIndex, sponsorList, titleImage, titleStack, titleText, type FgcOverlayId, type FgcTitle, type FgcTitleElement } from "@/lib/fgc-titles";
 import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
 import { VERSUS_ROK_ID, versusRokTitle } from "@/lib/fgc-versus-rok";
+import { COMMENTATORS_ROK_ID, commentatorsRokTitle } from "@/lib/fgc-commentators-rok";
 
 function fontParts(fontSize: string | number) {
   if (typeof fontSize === "number") return { value: fontSize, unit: "px" };
@@ -60,7 +61,7 @@ export function FitText({ text, fontSize, prefixColor }: { text: string; fontSiz
   }, [text, base.value, base.unit]);
 
   return (
-    <span ref={ref} className="block w-full min-w-0 overflow-hidden whitespace-nowrap" style={{ fontSize: `${base.value * scale}${base.unit}`, lineHeight: 1 }}>
+    <span ref={ref} className="block w-full min-w-0 overflow-hidden whitespace-nowrap" style={{ fontSize: `${base.value * scale}${base.unit}`, lineHeight: 1, paddingBottom: "0.14em", marginBottom: "-0.14em" }}>
       {prefixColor ? <AccentText text={text} color={prefixColor} /> : text}
     </span>
   );
@@ -92,6 +93,7 @@ export function elementExtraStyle(element: FgcTitleElement, unit: (px: number) =
     ...(element.clip ? { clipPath: element.clip } : {}),
     ...(element.borderWidth ? { border: `${unit(element.borderWidth)} solid ${element.borderColor || "#ffffff"}`, boxSizing: "border-box" as const } : {}),
     ...(element.tracking ? { letterSpacing: unit(element.tracking) } : {}),
+    ...(element.shadow ? { textShadow: element.shadow } : {}),
   };
 }
 
@@ -201,13 +203,97 @@ const px = (value: number) => `${value}px`;
 /** Original Scoreboard ROK timings (public/overlays/gameplay/index.html). */
 const SLIDE_EASE = "cubic-bezier(.2,1.1,.4,1)";
 
+/** When the layout went on air (performance.now()), so every element's frame-exact motion shares one clock. */
+const OnAirClock = createContext(0);
+
+const FPS = 60;
+const TAN22 = Math.tan((22 * Math.PI) / 180);
+const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
+const easeQuart = (t: number) => (t < 0.5 ? 8 * t ** 4 : 1 - (-2 * t + 2) ** 4 / 2);
+const easeCubic = (t: number) => (t < 0.5 ? 4 * t ** 3 : 1 - (-2 * t + 2) ** 3 / 2);
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const easeBack = (t: number, s = 1.8) => { const u = t - 1; return 1 + (s + 1) * u ** 3 + s * u ** 2; };
+
+/** Sampled keyframes for frames a..b (one per frame), so the curve matches build.py exactly. */
+function sampled(a: number, b: number, at: (t: number) => Keyframe) {
+  const n = Math.max(1, Math.round(b - a));
+  return { frames: Array.from({ length: n + 1 }, (_, i) => ({ ...at(i / n), offset: i / n })), timing: { delay: (a / FPS) * 1000, duration: ((b - a) / FPS) * 1000, fill: "backwards" as const, easing: "linear" } };
+}
+
+/** Plays element.motion (see FgcTitleElement.motion) on the outer (wipe) and inner (fade/shift/pop) boxes. */
+function useMotion(element: FgcTitleElement, outer: React.RefObject<HTMLDivElement | null>, inner: React.RefObject<HTMLDivElement | null>, glint: React.RefObject<HTMLDivElement | null>) {
+  const epoch = useContext(OnAirClock);
+  const rest = element.opacity ?? 1;
+  useLayoutEffect(() => {
+    const m = element.motion;
+    if (!m || typeof inner.current?.animate !== "function") return;
+    const out: Animation[] = [];
+    const play = (node: HTMLElement | null, spec: ReturnType<typeof sampled>) => {
+      if (!node) return;
+      const anim = node.animate(spec.frames, spec.timing);
+      if (epoch && document.timeline) anim.startTime = epoch;
+      out.push(anim);
+    };
+    if (m.wipe) {
+      const [a, b, from, to, cy] = m.wipe;
+      // Visible where x < lead - (y - cy) * tan22, in the element's own px.
+      const top = element.y - cy;
+      const bottom = element.y + element.h - cy;
+      play(outer.current, sampled(a, b, (t) => {
+        const lead = from + (to - from) * easeQuart(t) - element.x;
+        return { clipPath: `polygon(-4000px 0px, ${lead - top * TAN22}px 0px, ${lead - bottom * TAN22}px ${element.h}px, -4000px ${element.h}px)` };
+      }));
+    }
+    if (m.fade) play(inner.current, sampled(m.fade[0], m.fade[1], (t) => ({ opacity: rest * t })));
+    if (m.shift) { const [a, b, dx] = m.shift; play(inner.current, sampled(a, b, (t) => ({ transform: `translateX(${-dx * (1 - easeOut(t))}px)` }))); }
+    if (m.pop) play(inner.current, sampled(m.pop[0], m.pop[1], (t) => ({ transform: `scale(${0.75 + 0.25 * easeBack(clamp01(t))})` })));
+    if (m.sweep && glint.current) {
+      const [a, b, from, to, cy, width] = m.sweep;
+      glint.current.style.transformOrigin = `0 ${cy - element.y}px`;
+      play(glint.current, sampled(a, b, (t) => ({ transform: `translateX(${from + (to - from) * easeCubic(t) - element.x}px) skewX(-22deg)`, opacity: t <= 0 || t >= 1 ? 0 : 1 })));
+      glint.current.style.width = `${width * 6}px`;
+    }
+    return () => out.forEach((anim) => anim.cancel());
+    // Motion plays once when the layer goes on air.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(element.motion), epoch]);
+}
+
+/** Gaussian white band (exp(-(d/w)^2) * amount), centred in a 6w-wide strip. */
+function glintBand(amount: number) {
+  const stops = [-3, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 3].map((d) => `rgba(255,255,255,${Math.round(amount * Math.exp(-(d * d)) * 1000) / 1000}) ${Math.round(((d + 3) / 6) * 1000) / 10}%`);
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+}
+
+/** Element with frame-exact lower-third motion: outer box carries the wipe, inner box the shape and the rest. */
+function MotionBox({ element, className, style, children }: { element: FgcTitleElement; className: string; style: CSSProperties; children: ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null);
+  const inner = useRef<HTMLDivElement>(null);
+  const glint = useRef<HTMLDivElement>(null);
+  useMotion(element, outer, inner, glint);
+  const sweep = element.motion?.sweep;
+  return (
+    <div ref={outer} className="absolute" style={{ left: style.left, top: style.top, width: style.width, height: style.height }} data-fx="motion">
+      <div ref={inner} className={className} style={{ ...style, left: 0, top: 0, transformOrigin: "center" }}>
+        {children}
+        {sweep ? <div ref={glint} className="pointer-events-none absolute top-0 left-0 h-full" style={{ background: glintBand(sweep[6]), marginLeft: `${-sweep[5] * 3}px`, opacity: 0 }} /> : null}
+      </div>
+    </div>
+  );
+}
+
 /**
  * One positioned layer element with its on-air effects. Effects only use transform/opacity/filter,
  * so moving or resizing the layer in the editor never changes how they play.
  *  - enter "slide": translateY(-70px) and opacity 0 to rest; transform .7s SLIDE_EASE, opacity .4s, 60ms after mount.
  *  - anim "pulse": on value change, brightness(1.6) scale(1.12) back to none over .6s ease-out.
  */
-function FxBox({ element, value, unit, className, style, children }: { element: FgcTitleElement; value: string; unit: (px: number) => string; className: string; style: CSSProperties; children: ReactNode }) {
+function FxBox(props: { element: FgcTitleElement; value: string; unit: (px: number) => string; className: string; style: CSSProperties; children: ReactNode }) {
+  if (props.element.motion) return <MotionBox element={props.element} className={props.className} style={props.style}>{props.children}</MotionBox>;
+  return <SlideBox {...props} />;
+}
+
+function SlideBox({ element, value, unit, className, style, children }: { element: FgcTitleElement; value: string; unit: (px: number) => string; className: string; style: CSSProperties; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const last = useRef<string | null>(null);
   // First program pull lands right after mount; like the original (no pulse on first render), skip it.
@@ -278,6 +364,7 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
   const fgc = useFgcStore((s) => s.fgc);
   const list = sponsorList(fgc);
   const on = sponsorIndex(fgc);
+  if (element.partnerLayout === "stack") return <PartnerStack element={element} unit={unit} list={list} on={on} />;
   if (typeof element.partnerSplit === "number") {
     const split = element.partnerSplit;
     const gap = element.partnerGap ?? 14;
@@ -368,6 +455,62 @@ function FlagChip({ flags, element, text, unit }: { flags: string[][]; element: 
   );
 }
 
+/**
+ * Commentators ROK partners: logo centred over its label, never cut (the label shrinks to fit, no ellipsis).
+ * Same list, index and sponsorSeconds as PartnerSlides; the change slides up 24px with a 20-frame ease-in-out
+ * cubic (build.py slot_cycle T=20, dy=24), so every unit on the page changes on the same tick.
+ */
+/** Long partner labels go on two balanced lines (split at a word) instead of shrinking to a sliver. */
+function partnerLines(label: string): string[] {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (label.length <= 26 || words.length < 2) return label ? [label] : [];
+  let best = 1;
+  for (let i = 1; i < words.length; i++) {
+    const a = words.slice(0, i).join(" ").length;
+    const b = words.slice(i).join(" ").length;
+    const top = words.slice(0, best).join(" ").length;
+    if (Math.abs(a - b) < Math.abs(top - words.slice(best).join(" ").length)) best = i;
+  }
+  return [words.slice(0, best).join(" "), words.slice(best).join(" ")];
+}
+
+function PartnerStack({ element, unit, list, on }: { element: FgcTitleElement; unit: (px: number) => string; list: ReturnType<typeof sponsorList>; on: number }) {
+  const [prev, setPrev] = useState(-1);
+  const last = useRef(on);
+  useEffect(() => {
+    if (last.current === on) return;
+    setPrev(last.current);
+    last.current = on;
+    const timer = window.setTimeout(() => setPrev(-1), 400);
+    return () => window.clearTimeout(timer);
+  }, [on]);
+  const dy = element.h * 0.29;
+  const move = "transform 333ms cubic-bezier(.65,0,.35,1), opacity 333ms cubic-bezier(.65,0,.35,1)";
+  return (
+    <div className="absolute inset-0">
+      {list.map((sponsor, index) => {
+        const state = index === on ? "on" : index === prev ? "out" : "next";
+        const label = sponsor.name ? (element.caps ? sponsor.name.toUpperCase() : sponsor.name) : "";
+        return (
+          <div
+            key={sponsor.id || index}
+            data-partner={state}
+            className="absolute inset-0 flex flex-col items-center justify-center"
+            style={{ gap: unit(element.h * 0.1), padding: `${unit(element.h * 0.1)} ${unit(10)}`, opacity: state === "on" ? 1 : 0, transform: state === "on" ? "none" : `translateY(${unit(state === "out" ? -dy : dy)})`, transition: state === "next" ? "none" : move }}
+          >
+            {sponsor.logo ? <img src={sponsor.logo} alt="" className="block min-h-0 object-contain" style={{ maxHeight: unit(!label ? element.h * 0.62 : partnerLines(label).length > 1 ? element.h * 0.36 : element.h * 0.42), maxWidth: "100%" }} /> : null}
+            {partnerLines(label).map((line, row, lines) => (
+              <div key={row} className="w-full flex-none text-center" style={{ height: unit(sponsor.logo ? element.size * 1.2 : element.size * (lines.length > 1 ? 1.5 : 2)), marginTop: row ? unit(-element.h * 0.07) : undefined }}>
+                <FitText text={line} fontSize={sponsor.logo ? element.size : element.size * (lines.length > 1 ? 1.3 : 1.6)} />
+              </div>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function CustomLayout({ editing = false, titleId = "", fallback }: { editing?: boolean; titleId?: string; fallback?: () => FgcTitle }) {
   useTitleImages();
   const fgc = useLiveFgc();
@@ -382,7 +525,9 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
     const timer = window.setInterval(() => setTick((n) => n + 1), 250);
     return () => window.clearInterval(timer);
   }, [rotating]);
+  const [epoch] = useState(() => (typeof performance !== "undefined" ? performance.now() : 0));
   return (
+    <OnAirClock.Provider value={epoch}>
     <div className="relative h-full w-full">
       {titleStack(title).map((element) => {
         const words = element.kind === "text" || element.kind === "ticker";
@@ -438,6 +583,7 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
         );
       })}
     </div>
+    </OnAirClock.Provider>
   );
 }
 
@@ -448,6 +594,7 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   // Fixed 1920x1080 stage scaled to fit whatever window or preview hosts it (scale 1 at 1920x1080).
   if (id === "scoreboard-rok") return <ScaleFrame><CustomLayout titleId={SCOREBOARD_ROK_ID} fallback={scoreboardRokTitle} /></ScaleFrame>;
   if (id === "versus-rok") return <ScaleFrame><CustomLayout titleId={VERSUS_ROK_ID} fallback={versusRokTitle} /></ScaleFrame>;
+  if (id === "commentators-rok") return <ScaleFrame><CustomLayout titleId={COMMENTATORS_ROK_ID} fallback={commentatorsRokTitle} /></ScaleFrame>;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;
   if (id === "winner") return <Winner />;

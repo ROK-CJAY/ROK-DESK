@@ -34,6 +34,7 @@ export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group
   { id: "last-sets", group: "Bracket", name: "Last sets", note: "The latest finished sets." },
   { id: "recent-sets", group: "Bracket", name: "Recent sets", note: "A longer list of finished sets." },
   { id: "tournament-history", group: "Bracket", name: "Tournament history", note: "Event, phases, and how many sets are done." },
+  { id: "commentators-rok", group: "Desk", name: "Commentators ROK", note: "ROK dual-commentator lower third: Commentator 1 at x60-920, Commentator 2 at x1000-1860 (y812-968), names and X handles from FGC commentators, rotating Production partners. Wipes in, then holds with partners rotating." },
   { id: "stage-strike", group: "Desk", name: "Stage strike", note: "Neutrals, counterpicks, and the stage in play." },
   { id: "stream-queue", group: "Desk", name: "Stream queue", note: "Sets marked for the stream." },
   { id: "ruleset", group: "Desk", name: "Ruleset", note: "The saved ruleset on stream." },
@@ -75,6 +76,8 @@ export const TITLE_BINDS = [
   { id: "caster2", label: "Commentator 2" },
   { id: "caster3", label: "Commentator 3" },
   { id: "caster4", label: "Commentator 4" },
+  { id: "caster1.twitter", label: "Commentator 1 Twitter" },
+  { id: "caster2.twitter", label: "Commentator 2 Twitter" },
   { id: "event.icon", label: "Event icon" },
   { id: "p1.icon", label: "P1 character icon" },
   { id: "p2.icon", label: "P2 character icon" },
@@ -217,6 +220,11 @@ function casterName(fgc: FgcState, index: number): string {
   return [caster.prefix, caster.name].filter(Boolean).join(" | ");
 }
 
+function casterTwitter(fgc: FgcState, index: number): string {
+  const handle = fgc.casters[index]?.twitter?.trim().replace(/^@/, "");
+  return handle ? `@${handle}` : "";
+}
+
 export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallback: string): string {
   const p1 = set?.p1;
   const p2 = set?.p2;
@@ -256,6 +264,8 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
     caster2: casterName(fgc, 1),
     caster3: casterName(fgc, 2),
     caster4: casterName(fgc, 3),
+    "caster1.twitter": casterTwitter(fgc, 0),
+    "caster2.twitter": casterTwitter(fgc, 1),
     "sponsor.name": rotatingSponsor(fgc)?.name || "",
   };
   if (!bind) return cleanSpeech(fallback, fgc.settings.profanity);

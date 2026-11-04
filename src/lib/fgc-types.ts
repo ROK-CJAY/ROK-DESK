@@ -14,6 +14,7 @@ export type FgcOverlayId =
   | "versus-tekken"
   | "versus-pokken"
   | "casters"
+  | "commentators-rok"
   | "player-list"
   | "character-gallery"
   | "character-line"
@@ -91,6 +92,23 @@ export type FgcTitleElement = {
   /** Rotating partners split on a vertical line: x offset (stage px) inside the element; logo right-aligned left of it, label left-aligned right of it. Versus ROK only. */
   partnerSplit?: number;
   partnerGap?: number;
+  /** CSS text-shadow for the words (Commentators ROK name). */
+  shadow?: string;
+  /** Rotating partners arrangement: default logo + text in a row (crossfade); "stack" = logo over label, slide up (Commentators ROK). */
+  partnerLayout?: "" | "stack";
+  /**
+   * Frame-exact on-air motion (60 fps frames from going on air), used by Commentators ROK (lower third build.py).
+   *  - wipe [a, b, from, to, cy]: 22 deg slanted reveal, lead edge from -> to (stage px through row cy), ease-in-out quart.
+   *  - fade [a, b]: opacity 0 -> rest, linear. shift [a, b, px]: slide in from px to the left, ease-out cubic.
+   *  - pop [a, b]: scale .75 -> 1 with back overshoot. sweep [a, b, from, to, cy, width, amount]: white glint pass, ease-in-out cubic.
+   */
+  motion?: {
+    wipe?: [number, number, number, number, number];
+    fade?: [number, number];
+    shift?: [number, number, number];
+    pop?: [number, number];
+    sweep?: [number, number, number, number, number, number, number];
+  };
 };
 
 export type FgcTitle = {

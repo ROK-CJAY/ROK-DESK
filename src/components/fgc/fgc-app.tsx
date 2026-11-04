@@ -17,6 +17,7 @@ import { playerLabel, type FgcSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { SCOREBOARD_ROK_ID } from "@/lib/fgc-scoreboard-rok";
 import { VERSUS_ROK_ID } from "@/lib/fgc-versus-rok";
+import { COMMENTATORS_ROK_ID } from "@/lib/fgc-commentators-rok";
 import { FGC_OVERLAYS, overlayHref, sourceFileName, sourceFolders, sourceList, sourceValue, tshLayoutHref } from "@/lib/fgc-titles";
 import { isPermanentBoard, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
 import { hotkeyEvent } from "@/lib/fgc-settings";
@@ -354,7 +355,7 @@ function FgcDesk() {
   };
   const browserSources = [
     ...FGC_OVERLAYS.map((item) => ({ key: item.id, name: item.name, group: item.group, path: pin(overlayHref(item.id)) })),
-    ...fgc.titles.filter((item) => item.group && item.id !== SCOREBOARD_ROK_ID && item.id !== VERSUS_ROK_ID).map((item) => ({ key: item.id, name: item.name, group: item.group, path: pin(overlayHref("custom", item.id)) })),
+    ...fgc.titles.filter((item) => item.group && item.id !== SCOREBOARD_ROK_ID && item.id !== VERSUS_ROK_ID && item.id !== COMMENTATORS_ROK_ID).map((item) => ({ key: item.id, name: item.name, group: item.group, path: pin(overlayHref("custom", item.id)) })),
     ...tshLayouts.map((item) => ({ key: item.path, name: item.name, group: item.group, path: pin(tshLayoutHref(item.path)) })),
   ];
 
@@ -484,7 +485,7 @@ function FgcDesk() {
                 {[...new Set(FGC_OVERLAYS.map((item) => item.group))].map((group) => (
                   <optgroup key={group} label={group}>
                     {FGC_OVERLAYS.filter((item) => item.group === group).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-                    {fgc.titles.filter((item) => item.id !== SCOREBOARD_ROK_ID && item.id !== VERSUS_ROK_ID && (item.group || "Custom") === group).map((item) => <option key={item.id} value={`title:${item.id}`}>{item.name}</option>)}
+                    {fgc.titles.filter((item) => item.id !== SCOREBOARD_ROK_ID && item.id !== VERSUS_ROK_ID && item.id !== COMMENTATORS_ROK_ID && (item.group || "Custom") === group).map((item) => <option key={item.id} value={`title:${item.id}`}>{item.name}</option>)}
                     {tshLayouts.filter((item) => item.group === group).map((item) => <option key={item.path} value={`tsh:${item.path}`}>{item.name}</option>)}
                   </optgroup>
                 ))}
