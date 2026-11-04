@@ -53,6 +53,7 @@ import { Route as OverlayCastersRouteImport } from './routes/overlay/casters'
 import { Route as OverlayEventLogoRouteImport } from './routes/overlay/event-logo'
 import { Route as OverlayFloorClockRouteImport } from './routes/overlay/floor-clock'
 import { Route as OverlayGameWinRouteImport } from './routes/overlay/game-win'
+import { Route as OverlayGameplayRouteImport } from './routes/overlay/gameplay'
 import { Route as OverlayHudRouteImport } from './routes/overlay/hud'
 import { Route as OverlayLowerThirdRouteImport } from './routes/overlay/lower-third'
 import { Route as OverlayResourceRouteImport } from './routes/overlay/resource'
@@ -303,6 +304,11 @@ const OverlayGameWinRoute = OverlayGameWinRouteImport.update({
   path: '/game-win',
   getParentRoute: () => OverlayRouteRoute,
 } as any)
+const OverlayGameplayRoute = OverlayGameplayRouteImport.update({
+  id: '/gameplay',
+  path: '/gameplay',
+  getParentRoute: () => OverlayRouteRoute,
+} as any)
 const OverlayHudRoute = OverlayHudRouteImport.update({
   id: '/hud',
   path: '/hud',
@@ -493,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
+  '/overlay/gameplay': typeof OverlayGameplayRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -566,6 +573,7 @@ export interface FileRoutesByTo {
   '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
+  '/overlay/gameplay': typeof OverlayGameplayRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -642,6 +650,7 @@ export interface FileRoutesById {
   '/overlay/event-logo': typeof OverlayEventLogoRoute
   '/overlay/floor-clock': typeof OverlayFloorClockRoute
   '/overlay/game-win': typeof OverlayGameWinRoute
+  '/overlay/gameplay': typeof OverlayGameplayRoute
   '/overlay/hud': typeof OverlayHudRoute
   '/overlay/lower-third': typeof OverlayLowerThirdRoute
   '/overlay/resource': typeof OverlayResourceRoute
@@ -719,6 +728,7 @@ export interface FileRouteTypes {
     | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
+    | '/overlay/gameplay'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -792,6 +802,7 @@ export interface FileRouteTypes {
     | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
+    | '/overlay/gameplay'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -867,6 +878,7 @@ export interface FileRouteTypes {
     | '/overlay/event-logo'
     | '/overlay/floor-clock'
     | '/overlay/game-win'
+    | '/overlay/gameplay'
     | '/overlay/hud'
     | '/overlay/lower-third'
     | '/overlay/resource'
@@ -1257,6 +1269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OverlayGameWinRouteImport
       parentRoute: typeof OverlayRouteRoute
     }
+    '/overlay/gameplay': {
+      id: '/overlay/gameplay'
+      path: '/gameplay'
+      fullPath: '/overlay/gameplay'
+      preLoaderRoute: typeof OverlayGameplayRouteImport
+      parentRoute: typeof OverlayRouteRoute
+    }
     '/overlay/hud': {
       id: '/overlay/hud'
       path: '/hud'
@@ -1470,6 +1489,7 @@ interface OverlayRouteRouteChildren {
   OverlayEventLogoRoute: typeof OverlayEventLogoRoute
   OverlayFloorClockRoute: typeof OverlayFloorClockRoute
   OverlayGameWinRoute: typeof OverlayGameWinRoute
+  OverlayGameplayRoute: typeof OverlayGameplayRoute
   OverlayHudRoute: typeof OverlayHudRoute
   OverlayLowerThirdRoute: typeof OverlayLowerThirdRoute
   OverlayResourceRoute: typeof OverlayResourceRoute
@@ -1493,6 +1513,7 @@ const OverlayRouteRouteChildren: OverlayRouteRouteChildren = {
   OverlayEventLogoRoute: OverlayEventLogoRoute,
   OverlayFloorClockRoute: OverlayFloorClockRoute,
   OverlayGameWinRoute: OverlayGameWinRoute,
+  OverlayGameplayRoute: OverlayGameplayRoute,
   OverlayHudRoute: OverlayHudRoute,
   OverlayLowerThirdRoute: OverlayLowerThirdRoute,
   OverlayResourceRoute: OverlayResourceRoute,

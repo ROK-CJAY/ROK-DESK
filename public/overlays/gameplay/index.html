@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>ROK Gameplay Scoreboard B</title>
+<style>
+@font-face{font-family:Anton;src:url(assets/Anton-Regular.ttf)}
+@font-face{font-family:Oswald;src:url(assets/Oswald-VariableFont_wght.ttf);font-weight:200 700}
+:root{--r0:#c62828;--r1:#d32f2f;--r2:#8e0000;--ch:#1a1a1a;--sk:-20deg}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;background:transparent;overflow:hidden;font-family:Oswald,sans-serif;color:#fff}
+.sk{transform:skewX(var(--sk))}.us{transform:skewX(20deg)}
+/* top bar: y 40-88, one geometry, slant 16px per 48px, 4px gaps, mirrored about x=960 */
+.tb{position:absolute;top:40px;height:48px;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(-70px);transition:transform .7s cubic-bezier(.2,1.1,.4,1),opacity .4s}
+body.in .tb{opacity:1;transform:none}
+.L{clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+.R{clip-path:polygon(0 0,calc(100% - 16px) 0,100% 100%,16px 100%)}
+.ch-bg{background:linear-gradient(to top,var(--r1) 3px,var(--ch) 3px)}
+.p2 .ch-bg{background:linear-gradient(to top,var(--r2) 3px,var(--ch) 3px)}
+#i1w{left:400px;width:72px;background:var(--r1)}#i2w{left:1448px;width:72px;background:var(--r2)}
+#n1w{left:460px;width:396px}#n2w{left:1064px;width:396px}
+#sc1{left:844px;width:72px;background:linear-gradient(to top,var(--r1) 3px,#fff 3px);color:var(--ch)}#sc2{left:1004px;width:72px;background:linear-gradient(to top,var(--r2) 3px,#fff 3px);color:var(--ch)}
+#logo{left:904px;width:112px;clip-path:polygon(16px 0,calc(100% - 16px) 0,100% 100%,0 100%);background:linear-gradient(to top,var(--r1) 3px,#111 3px)}
+#logo img{height:34px}
+.tb img.ph{width:100%;height:100%;object-fit:cover}.tb img.h{height:30px;filter:brightness(0) invert(1)}
+.nm{font-family:Anton;font-size:27px;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;max-width:330px;overflow:hidden;text-overflow:ellipsis;line-height:48px;padding-bottom:2px}
+.nm b{color:var(--r1);font-weight:400;margin-right:8px}
+.sc span{font-family:Anton;font-size:32px;line-height:1;display:block}
+.sc.pulse{animation:pulse .6s ease-out}@keyframes pulse{0%{filter:brightness(1.6);transform:scale(1.12)}100%{filter:none;transform:none}}
+.pl.gwin{animation:gf .45s ease-out 4}@keyframes gf{50%{background:var(--r1)}}
+.win.pl{background:linear-gradient(to top,#fff 3px,var(--r1) 3px)!important}
+.sc.win{background:var(--r1);color:#fff}
+.chips{position:absolute;top:14px;height:22px;display:flex;gap:3px}
+#ch1{right:1055px}#ch2{left:1055px;flex-direction:row-reverse}
+.chip{height:22px;font-weight:700;font-size:13px;letter-spacing:1.5px;padding:0 14px;display:flex;align-items:center;text-transform:uppercase;white-space:nowrap;background:var(--ch)}
+#ch1 .chip{clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)}#ch2 .chip{clip-path:polygon(0 0,calc(100% - 7px) 0,100% 100%,7px 100%)}
+#ch1 .chip:last-child{background:var(--r1)}#ch2 .chip:last-child{background:var(--r2)}
+#rnd{position:absolute;top:40px;left:0;height:48px;padding:0 38px 0 22px;background:linear-gradient(to top,var(--r1) 3px,var(--ch) 3px);clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%);font-family:Anton;font-size:24px;letter-spacing:2px;display:flex;align-items:center;text-transform:uppercase;white-space:nowrap}
+#ph{position:absolute;top:92px;left:0;height:22px;padding:0 20px 0 22px;background:var(--r1);clip-path:polygon(0 0,100% 0,calc(100% - 7px) 100%,0 100%);font-weight:700;font-size:13px;letter-spacing:2px;display:flex;align-items:center;text-transform:uppercase}
+#ph:empty{display:none}
+
+/* ===== Variant B: original big-scoreboard look, compact ===== */
+.L{clip-path:polygon(0 0,calc(100% - 16px) 0,100% 100%,16px 100%)}
+.R{clip-path:polygon(16px 0,100% 0,calc(100% - 16px) 100%,0 100%)}
+#logo{clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,16px 100%);background:linear-gradient(to top,var(--r1) 3px,var(--ch) 3px)}
+#i1w,#i2w{background:linear-gradient(90deg,var(--r2) 0 55%,var(--r1) 55%)}
+#i2w{background:linear-gradient(270deg,var(--r2) 0 55%,var(--r1) 55%)}
+#sc1,#sc2{background:linear-gradient(to top,var(--r2) 3px,var(--r0) 3px);color:#fff}
+.sc.win{background:linear-gradient(to top,var(--r2) 3px,#fff 3px)!important;color:var(--r2)!important}
+.ch-bg,.p2 .ch-bg{background:linear-gradient(to top,var(--r1) 3px,var(--ch) 3px)}
+#ch1 .chip{clip-path:polygon(0 0,calc(100% - 7px) 0,100% 100%,7px 100%)}#ch2 .chip{clip-path:polygon(7px 0,100% 0,calc(100% - 7px) 100%,0 100%)}
+#ch1{right:1057px}#ch2{left:1057px}
+#ch2 .chip:last-child{background:var(--r1)}
+/* cam wells: L 28,862 336x189 / R 1556,862 336x189 */
+.cam{position:absolute;top:862px;width:336px;height:189px}
+#c1{left:28px}#c2{left:1556px}
+.cam::before{content:'';position:absolute;inset:-4px;border:4px solid var(--r1)}#c2::before{border-color:var(--r2)}
+.cn{position:absolute;width:22px;height:22px;border:0 solid #fff}
+.cn.a{top:-8px;left:-8px;border-top-width:4px;border-left-width:4px}.cn.b{bottom:-8px;right:-8px;border-bottom-width:4px;border-right-width:4px}
+.cam.gwin::before{animation:cg .45s 4}@keyframes cg{50%{border-color:#fff}}
+.cam.win::before{border-color:#fff;box-shadow:0 0 18px var(--r1)}
+/* sponsor plate above left cam: 28,806 336x44 */
+#spon{position:absolute;left:24px;top:806px;width:344px;height:44px;background:var(--ch);border-bottom:3px solid var(--r1);display:flex;align-items:center;overflow:hidden}
+#spon .k{height:100%;background:var(--r1);display:flex;align-items:center;padding:0 10px}#spon .k img{height:26px;filter:brightness(0) invert(1)}
+#stage{flex:1;position:relative;height:100%}
+.slide{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity .8s;padding:0 8px}.slide.on{opacity:1}
+.slide img{max-height:26px;max-width:110px}.slide span{font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px}
+body.frame .dyn{visibility:hidden}
+</style></head><body>
+<div id="rnd" class="dyn">ROUND</div><div id="ph" class="dyn"></div>
+<div class="chips dyn tb" id="ch1"></div><div class="chips dyn tb" id="ch2"></div>
+<div class="tb L" id="i1w"><img class="h" id="i1" src="assets/helmet.png"></div>
+<div class="tb L ch-bg pl" id="n1w"><div class="nm dyn" id="n1"></div></div>
+<div class="tb L sc" id="sc1"><span class="dyn" id="v1">0</span></div>
+<div class="tb" id="logo"><img src="assets/rok_logo_white.png" alt="ROK"></div>
+<div class="tb R sc" id="sc2"><span class="dyn" id="v2">0</span></div>
+<div class="tb R ch-bg pl p2" id="n2w"><div class="nm dyn" id="n2"></div></div>
+<div class="tb R" id="i2w"><img class="h" id="i2" src="assets/helmet.png"></div>
+<div class="cam" id="c1"><div class="cn a"></div><div class="cn b"></div></div>
+<div class="cam" id="c2"><div class="cn a"></div><div class="cn b"></div></div>
+<div id="spon"><div class="k"><img src="assets/helmet.png" alt=""></div><div id="stage" class="dyn"></div></div>
+<script>
+(()=>{
+const Q=new URLSearchParams(location.search),GAME=Q.get('game')||'vgc',SLOT=Q.get('slot')||'1',API=(Q.get('api')||'').replace(/\/$/,''),DEMO=Q.get('demo')==='1',FRAME=Q.get('frame')==='1';
+const $=id=>document.getElementById(id);let last=null,ver,spKey='',spT=null,spI=0;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function ov(s){s=JSON.parse(JSON.stringify(s||{}));s.p1=s.p1||{};s.p2=s.p2||{};
+ if(Q.has('p1'))s.p1.name=Q.get('p1');if(Q.has('p2'))s.p2.name=Q.get('p2');if(Q.has('s1'))s.p1.score=+Q.get('s1');if(Q.has('s2'))s.p2.score=+Q.get('s2');
+ if(Q.has('bo'))s.bestOf=+Q.get('bo');if(Q.has('round'))s.roundName=Q.get('round');return s}
+function render(s){['1','2'].forEach(i=>{const p=s['p'+i]||{},sc=Math.max(0,+p.score||0);
+  $('n'+i).innerHTML=(p.tag?'<b>'+esc(p.tag)+'</b>':'')+esc(p.name||('Player '+i));
+  const c=[];if(p.country)c.push(esc(p.country));if(p.seed!=null&&p.seed!=='')c.push('Seed '+esc(p.seed));if(p.handle)c.push('<span>𝕏&nbsp;'+esc(String(p.handle).replace(/^@/,''))+'</span>');
+  $('ch'+i).innerHTML=c.map((t,k)=>'<div class="chip">'+t+'</div>').join('');
+  const im=$('i'+i),src=p.photoUrl||'assets/helmet.png';if(im.getAttribute('src')!==src){im.src=src;im.className=p.photoUrl?'ph':'h'}
+  const v=$('v'+i);if(last&&String(sc)!==v.textContent){const b=$('sc'+i);b.classList.remove('pulse');void b.offsetWidth;b.classList.add('pulse')}v.textContent=sc;
+  const w=s.winnerSide==='p'+i,g=!w&&s.gameWinnerSide==='p'+i;
+  [$('n'+i+'w'),$('sc'+i),$('c'+i)].forEach(e=>{e.classList.toggle('win',w);if(g&&!e.classList.contains('gwin'))e.classList.add('gwin');else if(!g)e.classList.remove('gwin')})});
+ $('rnd').textContent=s.roundName||'';$('rnd').style.visibility=s.roundName?'':'hidden';$('ph').textContent=s.eventPhase||'';
+ sponsors(s.sponsors||[],Math.max(2,+s.sponsorSeconds||8));last=s}
+function sponsors(list,sec){const key=JSON.stringify(list)+sec;if(key===spKey)return;spKey=key;clearInterval(spT);const st=$('stage');st.innerHTML='';if(!list.length)return;
+ list.forEach(sp=>{const d=document.createElement('div');d.className='slide';d.innerHTML=(sp.logo?'<img src="'+esc(sp.logo)+'" alt="">':'')+'<span>'+esc(sp.name)+'</span>';st.appendChild(d)});
+ spI=0;st.children[0].classList.add('on');if(list.length>1)spT=setInterval(()=>{st.children[spI].classList.remove('on');spI=(spI+1)%list.length;st.children[spI].classList.add('on')},sec*1000)}
+async function poll(){try{const r=await fetch(API+'/api/desk?game='+encodeURIComponent(GAME)+'&slot='+encodeURIComponent(SLOT),{cache:'no-store'});
+ if(r.ok){const s=await r.json();if(s&&s.version!==ver){ver=s.version;render(ov(s))}}}catch(e){}setTimeout(poll,400)}
+function demo(){const S={p1:{name:'ShadowTeemo',tag:'ROK',country:'Florida',seed:19,handle:'shadowteemo',score:0},p2:{name:'Scrub',country:'Florida',seed:14,handle:'scrub_sfl',score:0},
+ bestOf:5,roundName:'Winners Round 1',eventPhase:'Top 24',sponsorSeconds:4,version:0,
+ sponsors:[{id:'amd',name:'Powered by AMD',logo:'assets/amd_white.png'},{id:'rb',name:'Official Energy Drink',logo:'assets/redbull_logo.png'},{id:'sd',name:'Official Merchandise',logo:'assets/soardogg_white.png'}]};
+ const seq=[[1,0],[1,1],[2,1],[2,2],[3,2]];let k=-1;render(ov(S));
+ setInterval(()=>{k=(k+1)%(seq.length+1);if(k===seq.length){S.p1.score=S.p2.score=0;S.winnerSide=S.gameWinnerSide=null}
+ else{const[a,b]=seq[k];S.gameWinnerSide=a>S.p1.score?'p1':'p2';S.p1.score=a;S.p2.score=b;S.winnerSide=a>=3?'p1':null}S.version++;render(ov(S))},3000)}
+if(FRAME){document.body.classList.add('frame','in')}else{requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add('in'),60));DEMO?demo():poll()}
+})();
+</script></body></html>

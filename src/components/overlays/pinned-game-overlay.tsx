@@ -24,7 +24,8 @@ import { OverlayLookRoot } from "@/components/overlays/overlay-look-root";
 import { useLiveDesk } from "@/components/overlays/use-live-desk";
 import { useLiveTournament } from "@/components/overlays/use-live-tournament";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
-import { type GameId } from "@/lib/games";
+import { GameplayFrame } from "@/components/overlays/gameplay-frame";
+import { slugOf, type GameId } from "@/lib/games";
 import { viewTournament } from "@/lib/tournament-types";
 import type { OverlaySourceId } from "@/components/desk/sources";
 import type { MatchSlot } from "@/lib/desk-types";
@@ -49,6 +50,7 @@ const SOURCES = new Set<string>([
   "card",
   "sponsors",
   "event-logo",
+  "gameplay",
 ]);
 
 export function PinnedGameOverlay({
@@ -62,6 +64,10 @@ export function PinnedGameOverlay({
 }) {
   if (!gameId || !SOURCES.has(source)) throw notFound();
 
+  if (source === "gameplay") {
+    const search = typeof window === "undefined" ? "" : window.location.search;
+    return <GameplayFrame slug={slugOf(gameId)} slot={slot} search={search} />;
+  }
   if (source === "floor-clock") {
     return <PinnedFloorClock gameId={gameId} />;
   }

@@ -20,7 +20,8 @@ export type OverlaySourceId =
   | "top-decks"
   | "card"
   | "sponsors"
-  | "event-logo";
+  | "event-logo"
+  | "gameplay";
 
 export type OverlaySource = {
   id: OverlaySourceId;
@@ -163,6 +164,13 @@ export const OVERLAY_SOURCES: OverlaySource[] = [
     name: "Event logo",
     size: "1920 × 1080",
     note: "Tournament mark. Upload in Event. Hidden and fully transparent when empty.",
+  },
+  {
+    id: "gameplay",
+    path: "/overlay/gameplay",
+    name: "Gameplay scoreboard",
+    size: "1920 × 1080",
+    note: "Compact ROK top bar, sponsor plate, transparent cam wells (P1 x28 y862, P2 x1556 y862, 336 × 189). Put cams under it.",
   },
 ];
 
