@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { ScaleFrame } from "@/components/overlays/scale-frame";
-import { playerLabel } from "@/lib/fgc-types";
+import { countryFlagUrl, playerLabel, stateFlagUrl, type FgcPlayer } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { useTitleImages } from "@/lib/fgc-assets";
 import { FgcGraphic } from "@/components/fgc/fgc-graphics";
@@ -323,6 +323,51 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
   );
 }
 
+// Local TSH flag pack (same files TSH layouts reference as country.asset); flagcdn as the network fallback.
+const TSH_COUNTRY_FLAGS = "/tsh/layout/scoreboard_vgbootcampy_neo/assets/country_flag";
+
+function chipFlags(location: boolean, bind: string, set: ReturnType<typeof liveSet>): string[][] {
+  const hit = bind.match(/^p([12])\.region$/);
+  if (!hit || !location) return [];
+  const player = (hit[1] === "1" ? set?.p1 : set?.p2) as FgcPlayer | null | undefined;
+  if (!player) return [];
+  const out: string[][] = [];
+  const remote = countryFlagUrl(player.country || "", player.flag || "");
+  const iso = remote.match(/\/([a-z]{2})\.png$/)?.[1];
+  if (iso) out.push([`${TSH_COUNTRY_FLAGS}/${iso}.png`, remote]);
+  const state = stateFlagUrl(player.country || "", player.flag || "", player.region || "");
+  if (state) out.push([state]);
+  return out;
+}
+
+function FlagImg({ sources, onFail }: { sources: string[]; onFail: () => void }) {
+  const [index, setIndex] = useState(0);
+  if (index >= sources.length) return null;
+  // TSH pack flags are 92x92 with the 92x66 flag centred in transparent padding: crop to the flag itself.
+  const padded = sources[index].includes("/country_flag/");
+  return (
+    <img
+      src={sources[index]}
+      alt=""
+      onError={() => (index + 1 >= sources.length ? onFail() : setIndex(index + 1))}
+      style={{ height: "100%", width: "auto", aspectRatio: padded ? "92 / 66" : undefined, objectFit: padded ? "cover" : "contain", boxShadow: "0 0 0 1px rgba(255,255,255,0.55)", flex: "0 0 auto" }}
+    />
+  );
+}
+
+function FlagChip({ flags, element, text, unit }: { flags: string[][]; element: FgcTitleElement; text: string; unit: (value: number) => string }) {
+  const [failed, setFailed] = useState<number[]>([]);
+  const live = flags.map((sources, i) => ({ sources, i })).filter((item) => !failed.includes(item.i));
+  if (!live.length) return text ? <ElementWords element={element} text={text} fontSize={element.size} unit={unit} /> : null;
+  return (
+    <div style={{ display: "flex", height: "100%", alignItems: "center", justifyContent: "center", gap: unit(6), padding: `${unit(3)} ${unit(10)}`, boxSizing: "border-box" }}>
+      {live.map((item) => (
+        <FlagImg key={item.sources.join("|")} sources={item.sources} onFail={() => setFailed((list) => [...list, item.i])} />
+      ))}
+    </div>
+  );
+}
+
 export function CustomLayout({ editing = false, titleId = "", fallback }: { editing?: boolean; titleId?: string; fallback?: () => FgcTitle }) {
   useTitleImages();
   const fgc = useLiveFgc();
@@ -344,7 +389,8 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
         const picture = element.kind === "image" || element.kind === "rect" || element.kind === "circle" || element.kind === "triangle";
         const pips = element.pips ? gamesWon(set, element.pips) : null;
         const value = pips ? `${pips.won}/${pips.total}` : picture ? titleImage(fgc, set, element) : elementText(element, titleText(fgc, set, element.bind, element.text));
-        if (element.hideEmpty && !value) return null;
+        const flags = !picture && !pips ? chipFlags(fgc.settings.show.location, element.bind, set) : [];
+        if (element.hideEmpty && !value && !flags.length) return null;
         return (
         <FxBox
           key={element.id}
@@ -382,6 +428,8 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
               <GamePips element={element} won={pips.won} total={pips.total} unit={px} />
             ) : element.anim === "partners" ? (
               <PartnerSlides element={element} unit={px} />
+            ) : flags.length ? (
+              <FlagChip flags={flags} element={element} text={value} unit={px} />
             ) : words ? (
               <ElementWords element={element} text={value} fontSize={element.size} unit={px} />
             ) : null}
