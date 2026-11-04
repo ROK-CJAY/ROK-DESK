@@ -97,6 +97,76 @@ export function elementExtraStyle(element: FgcTitleElement, unit: (px: number) =
   };
 }
 
+/** Long commentator names use two lines in the name plate instead of shrinking to a sliver. */
+function casterNameLines(name: string): string[] {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length < 2 || name.length <= 16) return name ? [name] : [];
+  let best = 1;
+  let bestGap = Infinity;
+  for (let i = 1; i < words.length; i += 1) {
+    const gap = Math.abs(words.slice(0, i).join(" ").length - words.slice(i).join(" ").length);
+    if (gap < bestGap) {
+      bestGap = gap;
+      best = i;
+    }
+  }
+  return [words.slice(0, best).join(" "), words.slice(best).join(" ")];
+}
+
+function CasterName({ element, text, unit }: { element: FgcTitleElement; text: string; unit: (px: number) => string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const cut = text.indexOf(" | ");
+  const prefix = cut >= 0 ? text.slice(0, cut) : "";
+  const name = cut >= 0 ? text.slice(cut + 3) : text;
+  const words = [...(prefix ? prefix.split(/\s+/) : []), ...name.split(/\s+/)].filter(Boolean);
+  const wrapped = words.length >= 4 || `${prefix} ${name}`.trim().length > 18;
+  const lines = wrapped && words.length > 1 ? casterNameLines(words.join(" ")) : [words.join(" ")];
+  const base = (lines.length > 1 ? element.size * 0.7 : element.size);
+
+  useLayoutEffect(() => {
+    const root = box.current;
+    if (!root) return;
+    const fit = () => {
+      const spans = [...root.querySelectorAll<HTMLElement>("[data-caster-line]")];
+      if (!spans.length || root.clientWidth < 2 || root.clientHeight < 2) return;
+      let px = base;
+      const apply = (value: number) => {
+        for (const span of spans) span.style.fontSize = `${value}px`;
+      };
+      apply(px);
+      for (let i = 0; i < 28; i += 1) {
+        const wide = spans.some((span) => span.scrollWidth > span.clientWidth + 1);
+        const tall = root.scrollHeight > root.clientHeight + 1;
+        if (!wide && !tall) break;
+        px = Math.max(13, px * 0.92);
+        apply(px);
+      }
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(root);
+    const fonts = document.fonts;
+    let alive = true;
+    void fonts?.ready.then(() => { if (alive) fit(); });
+    return () => { alive = false; observer.disconnect(); };
+  }, [text, base]);
+
+  return (
+    <div ref={box} className="flex h-full w-full flex-col justify-center overflow-hidden" style={{ lineHeight: 0.95, paddingRight: unit(8) }}>
+      {lines.map((line) => {
+        const lead = prefix && (line === prefix || line.startsWith(`${prefix} `));
+        const rest = lead ? line.slice(prefix.length).trim() : line;
+        return (
+          <span key={line} data-caster-line className="block w-full overflow-hidden whitespace-nowrap" style={{ fontSize: base }}>
+            {lead ? <span style={{ color: element.prefixColor, marginRight: rest ? "0.35em" : undefined }}>{prefix}</span> : null}
+            {lead ? rest : line}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 /** Text box with optional padding and vertical centering, keeping FitText measuring the inner width. */
 export function ElementWords({ element, text, fontSize, unit }: { element: FgcTitleElement; text: string; fontSize: string | number; unit: (px: number) => string }) {
   if (!element.padLeft && !element.padRight && element.valign !== "middle") {
@@ -575,6 +645,8 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
               <PartnerSlides element={element} unit={px} />
             ) : flags.length ? (
               <FlagChip flags={flags} element={element} text={value} unit={px} />
+            ) : words && /^caster\d+$/.test(element.bind) ? (
+              <CasterName element={element} text={value} unit={px} />
             ) : words ? (
               <ElementWords element={element} text={value} fontSize={element.size} unit={px} />
             ) : null}

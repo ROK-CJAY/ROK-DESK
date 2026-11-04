@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v4 — 2026-11-04
+
+### Fixed
+
+- Commentators ROK keeps a long name readable. It uses two lines in the name plate instead of shrinking to one tiny line. A short name stays on one line.
+
 ## v1.5.2-preview-v3 — 2026-11-04
 
 ### Fixed
