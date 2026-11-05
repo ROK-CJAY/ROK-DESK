@@ -21,6 +21,7 @@ export const PLAYVS_H = `${DIR}/playvs_h_primary_white.png`;
 export const ROK_MONO = `${DIR}/rok_logo_mono_white.png`;
 export const GUARD = `${DIR}/flarng_badge.png`;
 export const LOCKUP = `${DIR}/ssi_event_lockup.png`;
+export const OFFICIAL = `${DIR}/SSI_official_logo.png`;
 
 export const SSI_PARTNER_CARDS: FgcPartnerCard[] = [
   { id: "ssi-host", label: "Host\nvenue", logo: ROK_MONO, logoH: 30, name: "ROK Gaming Lounge", font: "Saira" },
@@ -72,7 +73,8 @@ export function versusSsiTitle(): FgcTitle {
   const at = elements.findIndex((e) => e.id === "game-corner-b") + 1;
   elements.splice(at, 0,
     part("center", { id: "logo-plate", kind: "rect", name: "Event lockup plate", x: 870, y: 0, w: 180, h: 118, enter: "slide", bg: stripe(SCH, S1, 118, 4), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(22, 180)}) 100%, ${pct(22, 180)} 100%)` }),
-    part("center", { id: "logo", kind: "rect", name: "SSI event lockup", x: 891, y: 9, w: 138, h: 104, src: LOCKUP, enter: "slide" }),
+    // Official PlayVS SSI logo: HTML #logo img is height 96, width auto, flex-centered with margin-top 4 in the 180×118 plate.
+    part("center", { id: "logo", kind: "rect", name: "SSI official logo", x: 892, y: 13, w: 135, h: 96, src: OFFICIAL, enter: "slide" }),
   );
   const strip = [
     part("strip", { id: "strip", kind: "rect", name: "Bottom strip", x: 0, y: 1020, w: 1920, h: 60, bg: `linear-gradient(to bottom, ${S1} ${pct(4, 60)}, #0F1010 ${pct(4, 60)})` }),
@@ -90,6 +92,6 @@ export function versusSsiTitle(): FgcTitle {
   const plate = elements.findIndex((e) => e.id === "sponsor-plate");
   elements.splice(plate, 0, ...strip);
   elements.push(...sponsor);
-  const layers = rok.layers.map((l) => (l.id === "center" ? { ...l, name: "Event lockup" } : l));
+  const layers = rok.layers.map((l) => (l.id === "center" ? { ...l, name: "SSI official logo" } : l));
   return { id: VERSUS_SSI_ID, name: "Versus SSI", group: "", layers, elements };
 }
