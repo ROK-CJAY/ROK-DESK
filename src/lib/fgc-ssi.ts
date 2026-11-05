@@ -85,9 +85,10 @@ export function versusSsiTitle(): FgcTitle {
   ];
   const sponsor = [
     part("sponsor", text({ id: "sponsor-key", kind: "text", name: "Presented by label", x: 700, y: 1024, w: 165, h: 52, text: "PRESENTED BY", align: "left", color: S1, font: "Saira", weight: 600, size: 16, tracking: 4 })),
-    part("sponsor", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 861, y: 1027, w: 41, h: 46, src: GUARD }),
-    // Partners split on the x960 centre line (logo left, text right, shrinks to 1232), as Versus ROK.
-    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 906, y: 1024, w: 326, h: 52, bind: "sponsor.name", anim: "partners", partnerSplit: 54, partnerGap: 14, font: "Manrope", weight: 600, size: 16, tracking: 1.5 })),
+    // ~28px after the PRESENTED BY glyphs (natural width ~161 from x700); was overlapping at x861.
+    part("sponsor", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 891, y: 1027, w: 41, h: 46, src: GUARD }),
+    // Keep the partners split on x960 (x + partnerSplit); nudge right so the badge has a few px after it.
+    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 942, y: 1024, w: 290, h: 52, bind: "sponsor.name", anim: "partners", partnerSplit: 18, partnerGap: 14, font: "Manrope", weight: 600, size: 16, tracking: 1.5 })),
   ];
   const plate = elements.findIndex((e) => e.id === "sponsor-plate");
   elements.splice(plate, 0, ...strip);
