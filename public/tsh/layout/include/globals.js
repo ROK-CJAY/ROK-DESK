@@ -716,7 +716,6 @@ function getData() {
       var params = new URLSearchParams(window.location.search);
       var query = new URLSearchParams();
       if (tshPreviewMode()) query.set("preview", "1");
-      if (params.get("lane")) query.set("lane", params.get("lane"));
       if (params.get("board")) query.set("board", params.get("board"));
       var text = query.toString();
       return text ? "/api/fgc/program-state?" + text : "/api/fgc/program-state";

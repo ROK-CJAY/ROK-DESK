@@ -834,7 +834,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         return;
       }
       const remote = (await res.json()) as FgcState;
-      let fgc = ensureStreams(resolveLane({ ...EMPTY_FGC, ...remote }, pin.lane || remote.laneId));
+      let fgc = ensureStreams(resolveLane({ ...EMPTY_FGC, ...remote }, remote.laneId));
       if (pin.board) {
         const board = fgc.boards.find((item) => item.id === pin.board);
         if (board) fgc = { ...fgc, activeBoardId: pin.board, streamSetId: board.setId };

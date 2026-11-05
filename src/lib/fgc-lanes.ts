@@ -183,12 +183,14 @@ export function setForBoard(state: FgcState, boardId?: string | null): FgcSet | 
 export function overlayPin(): { lane: string; board: string } {
   if (typeof window === "undefined") return { lane: "", board: "" };
   const params = new URLSearchParams(window.location.search);
-  return { lane: params.get("lane") || "", board: params.get("board") || "" };
+  // The lane is the start.gg event id, and that changes every event. The scoreboard
+  // id does not, so a browser source follows whatever is live on that scoreboard.
+  return { lane: "", board: params.get("board") || "" };
 }
 
-export function withPin(path: string, laneId: string, boardId: string): string {
+export function withPin(path: string, _laneId: string, boardId: string): string {
   const params = new URLSearchParams(path.split("?")[1] || "");
-  if (laneId) params.set("lane", laneId);
+  params.delete("lane");
   if (boardId) params.set("board", boardId);
   const base = path.split("?")[0] || path;
   const query = params.toString();

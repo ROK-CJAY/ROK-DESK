@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/fgc/program-state")({
         const saved = await loadFgcState();
         const field = url.searchParams.get("field");
         if (field) {
-          const fgc = resolveLane(saved, url.searchParams.get("lane"));
+          const fgc = resolveLane(saved, null);
           const value = sourceValue(fgc, setForBoard(fgc, url.searchParams.get("board")), field);
           if (value == null) {
             return new Response("Unknown source", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", ...noStore } });
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/api/fgc/program-state")({
         }
         if (url.searchParams.get("raw") === "1") return Response.json(saved, { headers: noStore });
         const preview = url.searchParams.get("preview") === "1";
-        return Response.json(programState(saved, preview, url.searchParams.get("lane"), url.searchParams.get("board")), { headers: noStore });
+        return Response.json(programState(saved, preview, null, url.searchParams.get("board")), { headers: noStore });
       },
       PUT: async ({ request }) => {
         const { saveFgcState } = await import("@/lib/fgc-program-state");

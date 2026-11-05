@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v8 — 2026-11-05
+
+### Changed
+
+- Overlay links no longer include the event lane id. A browser source stays on its scoreboard (`main`, `stream-2`, `stream-3`) and follows whatever is live there, including old links that still have `lane=` in them.
+
 ## v1.5.2-preview-v7 — 2026-11-04
 
 ### Changed
