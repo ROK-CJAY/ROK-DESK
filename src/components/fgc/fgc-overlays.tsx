@@ -114,13 +114,14 @@ function casterNameLines(name: string): string[] {
   return [words.slice(0, best).join(" "), words.slice(best).join(" ")];
 }
 
-function CasterName({ element, text, unit }: { element: FgcTitleElement; text: string; unit: (px: number) => string }) {
+/** `oneLine` (Commentators ROK): never split, shrink the single line to the full box width instead. */
+function CasterName({ element, text, unit, oneLine = false }: { element: FgcTitleElement; text: string; unit: (px: number) => string; oneLine?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const cut = text.indexOf(" | ");
   const prefix = cut >= 0 ? text.slice(0, cut) : "";
   const name = cut >= 0 ? text.slice(cut + 3) : text;
   const words = [...(prefix ? prefix.split(/\s+/) : []), ...name.split(/\s+/)].filter(Boolean);
-  const wrapped = words.length >= 4 || `${prefix} ${name}`.trim().length > 18;
+  const wrapped = !oneLine && (words.length >= 4 || `${prefix} ${name}`.trim().length > 18);
   const lines = wrapped && words.length > 1 ? casterNameLines(words.join(" ")) : [words.join(" ")];
   const base = (lines.length > 1 ? element.size * 0.7 : element.size);
 
@@ -135,11 +136,19 @@ function CasterName({ element, text, unit }: { element: FgcTitleElement; text: s
         for (const span of spans) span.style.fontSize = `${value}px`;
       };
       apply(px);
+      if (oneLine) {
+        // Exact shrink so a long single line fills the box (the 8% steps below can leave a gap).
+        const span = spans[0];
+        if (span.scrollWidth > span.clientWidth + 1) {
+          px = Math.max(13, Math.floor(px * (span.clientWidth / span.scrollWidth) * 10) / 10);
+          apply(px);
+        }
+      }
       for (let i = 0; i < 28; i += 1) {
         const wide = spans.some((span) => span.scrollWidth > span.clientWidth + 1);
         const tall = root.scrollHeight > root.clientHeight + 1;
         if (!wide && !tall) break;
-        px = Math.max(13, px * 0.92);
+        px = Math.max(13, px * (oneLine ? 0.98 : 0.92));
         apply(px);
       }
     };
@@ -150,7 +159,7 @@ function CasterName({ element, text, unit }: { element: FgcTitleElement; text: s
     let alive = true;
     void fonts?.ready.then(() => { if (alive) fit(); });
     return () => { alive = false; observer.disconnect(); };
-  }, [text, base]);
+  }, [text, base, oneLine]);
 
   return (
     <div ref={box} className="flex h-full w-full flex-col justify-center overflow-hidden" style={{ lineHeight: 0.95, paddingRight: unit(8) }}>
@@ -683,7 +692,7 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
             ) : flags.length ? (
               <FlagChip flags={flags} element={element} text={value} unit={px} />
             ) : words && /^caster\d+$/.test(element.bind) ? (
-              <CasterName element={element} text={value} unit={px} />
+              <CasterName element={element} text={value} unit={px} oneLine={title.id === COMMENTATORS_ROK_ID} />
             ) : words ? (
               <ElementWords element={element} text={value} fontSize={element.size} unit={px} />
             ) : null}
