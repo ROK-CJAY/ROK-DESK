@@ -4,8 +4,8 @@ import { CH, R0, R1, R2, anton, oswald, part, pct, text, type Part } from "@/lib
 /**
  * Built-in FGC layout: ROK dual-commentator lower third ("Commentators ROK"), rebuilt as editable layers
  * from rok/smash_v2/lower_third/dual/build.py (render(f) at 60 fps). Two units at 0.86 scale, left unit at
- * x60-920 and right unit at x1000-1860, right unit 8 frames behind. In-transition (0-54f), then it holds and
- * the Production partners rotate (same sponsorSeconds and index as Scoreboard ROK, so both units stay in sync).
+ * x60-920 and right unit at x1000-1860, right unit 8 frames behind. In-transition (0-54f), then it holds.
+ * No partner section: the name and handle span the full plate to the right of the ROK logo tag (names shrink via FitText).
  * Names/handles: FGC commentators 1 and 2 (caster1 / caster1.twitter, caster2 / caster2.twitter), blank when empty.
  */
 export const COMMENTATORS_ROK_ID = "commentators-rok";
@@ -52,10 +52,10 @@ function unit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     // Name plate: charcoal bar with a soft white top rule.
     [`${g}-name`, { id: `${g}-plate`, kind: "rect", name: `C${n} name plate`, ...pc(330, 1070, 820, 904, 862), bg: CH, opacity: 0.96, motion: { wipe: darkWipe } }],
     [`${g}-name`, { id: `${g}-plate-rule`, kind: "rect", name: `C${n} name plate top rule`, ...pc(330, 1070, 820, 823, 862), bg: "#ffffff", opacity: 0.7, motion: { wipe: darkWipe } }],
-    [`${g}-name`, text({ id: `${g}-name`, kind: "text", name: `Commentator ${n} name`, x: X(384), y: Y(820), w: r1(332 * SC), h: r1(84 * SC), bind: `caster${n}`, align: "left", prefixColor: R1, shadow: "3px 4px 6px rgba(0,0,0,0.6)", ...anton(r1(80 * SC), r1(1 * SC)), motion: { wipe: wipe(22, 44, 300, 560, 862, d), shift: [22 + d, 44 + d, r1(36 * SC)] } })],
+    [`${g}-name`, text({ id: `${g}-name`, kind: "text", name: `Commentator ${n} name`, x: X(384), y: Y(820), w: r1(656 * SC), h: r1(84 * SC), bind: `caster${n}`, align: "left", prefixColor: R1, shadow: "3px 4px 6px rgba(0,0,0,0.6)", ...anton(r1(80 * SC), r1(1 * SC)), motion: { wipe: wipe(22, 44, 300, 560, 862, d), shift: [22 + d, 44 + d, r1(36 * SC)] } })],
     // Handle bar: red with a darker right end (RD2 at 60% over 600px).
     [`${g}-handle`, { id: `${g}-handle-bar`, kind: "rect", name: `C${n} handle bar`, ...pc(318, 1020, 906, 950, 928), bg: `linear-gradient(to right, ${R0} ${r1(22 * SC * TA)}px, #a41010 ${r1(22 * SC * TA + 600 * SC)}px)`, motion: { wipe: wipe(20, 40, 318, 1020, 928, d) } }],
-    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Commentator ${n} X handle`, x: X(372), y: Y(906), w: r1(600 * SC), h: r1(44 * SC), bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", ...oswald(r1(32 * SC), 700, r1(7 * SC)), motion: { wipe: wipe(30, 50, 318, 760, 928, d), shift: [30 + d, 50 + d, r1(30 * SC)] } })],
+    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Commentator ${n} X handle`, x: X(372), y: Y(906), w: r1(620 * SC), h: r1(44 * SC), bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", ...oswald(r1(32 * SC), 700, r1(7 * SC)), motion: { wipe: wipe(30, 50, 318, 760, 928, d), shift: [30 + d, 50 + d, r1(30 * SC)] } })],
     // Light logo tag on top, red rule along its foot, colour ROK logo popping in.
     [`${g}-tag`, { id: `${g}-tag`, kind: "rect", name: `C${n} logo tag`, ...pc(112, 350, 816, 944, 880), bg: LIGHT, motion: { wipe: wipe(6, 24, 112, 350, 880, d) } }],
     [`${g}-tag`, { id: `${g}-tag-rule`, kind: "rect", name: `C${n} logo tag rule`, ...pc(112, 350, 938, 944, 880), bg: R1, motion: { wipe: wipe(6, 24, 112, 350, 880, d) } }],
@@ -63,9 +63,6 @@ function unit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     // One glint across tag and plate at 2s (frames 120-160).
     [`${g}-tag`, { id: `${g}-glint-tag`, kind: "rect", name: `C${n} glint (tag)`, ...pc(112, 350, 816, 944, 880), motion: { sweep: [120 + d, 160 + d, X(150), X(960), Y(880), r1(30 * SC), 0.45] } }],
     [`${g}-name`, { id: `${g}-glint-plate`, kind: "rect", name: `C${n} glint (plate)`, ...pc(330, 1070, 820, 904, 862), motion: { sweep: [120 + d, 160 + d, X(150), X(960), Y(880), r1(30 * SC), 0.27] } }],
-    // Partners: red divider, then the rotating Production partners (logo over label), synced across both units.
-    [`${g}-partners`, { id: `${g}-divider`, kind: "rect", name: `C${n} partner divider`, ...pc(732, 736, 836, 888, 862), bg: R1, motion: { wipe: darkWipe, fade: f(40, 54) } }],
-    [`${g}-partners`, text({ id: `${g}-partners`, kind: "text", name: `C${n} partners`, x: X(744), y: Y(820), w: r1(308 * SC), h: r1(84 * SC), bind: "sponsor.name", anim: "partners", partnerLayout: "stack", ...oswald(r1(16 * SC), 600, 1.5), color: "#ebebeb", motion: { wipe: darkWipe, fade: f(40, 54) } })],
   ];
   const layers: FgcTitleLayer[] = [
     { id: g, name: `Commentator ${n}`, visible: true, locked: false, kind: "group", open: true, parent: "" },
@@ -73,7 +70,6 @@ function unit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     { id: `${g}-name`, name: `C${n} name plate`, visible: true, locked: false, kind: "layer", parent: g },
     { id: `${g}-handle`, name: `C${n} handle bar`, visible: true, locked: false, kind: "layer", parent: g },
     { id: `${g}-tag`, name: `C${n} logo tag`, visible: true, locked: false, kind: "layer", parent: g },
-    { id: `${g}-partners`, name: `C${n} partners`, visible: true, locked: false, kind: "layer", parent: g },
   ];
   return { layers, elements: parts.map(([layer, p]) => part(layer, p)) };
 }
