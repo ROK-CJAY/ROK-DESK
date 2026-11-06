@@ -31,7 +31,7 @@ function unit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     [`${g}-name`, { id: `${g}-plate`, kind: "rect", name: `C${n} name plate`, x: ux + 190, y: uy + 16, w: 680, h: 72, bg: CH, opacity: 0.96, clip: para(680, 16) }],
     [`${g}-name`, { id: `${g}-plate-rule`, kind: "rect", name: `C${n} name plate top rule`, x: ux + 190, y: uy + 16, w: 680, h: 2, bg: "#ffffff", opacity: 0.55, clip: para(680, 16) }],
     [`${g}-name`, text({ id: `${g}-name`, kind: "text", name: `Caster ${n} name`, x: ux + 226, y: uy + 16, w: 620, h: 72, bind: `caster${n}`, align: "left", prefixColor: R1, shadow: "3px 4px 6px rgba(0,0,0,0.55)", hideEmpty: true, ...anton(44, 1) })],
-    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 178, y: uy + 92, w: 640, h: 40, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${R0}, #a41010 60%)`, clip: para(640, 14), hideEmpty: true, ...oswald(22, 700, 4) })],
+    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 178, y: uy + 92, w: 640, h: 40, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${R0}, #a41010 60%)`, clip: para(640, 14), padLeft: 32, padRight: 24, hideEmpty: true, ...oswald(22, 700, 4) })],
   ];
   const layers: FgcTitleLayer[] = [
     { id: g, name: `Caster ${n}`, visible: true, locked: false, kind: "group", open: true, parent: "" },
