@@ -8,13 +8,14 @@ import { blankPlayer, flagOf, libraryFor, type FgcPlayer, type FgcSet } from "@/
 import { useFgcStore } from "@/lib/fgc-store";
 
 function Preview({ url, className }: { url: string; className: string }) {
-  const [src, setSrc] = useState(() => cachedThumb(url) ?? "");
+  const [src, setSrc] = useState(() => cachedThumb(url) || url);
   useEffect(() => {
     const cached = cachedThumb(url);
     if (cached) {
       setSrc(cached);
       return;
     }
+    setSrc(url);
     let live = true;
     void loadThumb(url).then((thumb) => {
       if (live) setSrc(thumb);
@@ -25,7 +26,6 @@ function Preview({ url, className }: { url: string; className: string }) {
       live = false;
     };
   }, [url]);
-  if (!src) return <span className={`${className} bg-black/40`} />;
   return <img src={src} alt="" className={className} />;
 }
 

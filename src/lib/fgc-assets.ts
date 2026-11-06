@@ -17,7 +17,7 @@ export type CatalogGame = {
 };
 
 const TSH_CATALOG = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/assets.json";
-const TSH_SITE = "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main";
+const TSH_SITE = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main";
 
 export function catalogUrl(base: string): string {
   const root = base.trim().replace(/\/$/, "");

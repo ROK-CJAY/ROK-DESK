@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v11 — 2026-11-06
+
+### Fixed
+
+- Skin icons show as soon as the file arrives instead of staying blank until a redraw finishes. Skin art is also pulled from a host that actually serves the large Smash pack.
+
 ## v1.5.2-preview-v10 — 2026-11-06
 
 ### Changed

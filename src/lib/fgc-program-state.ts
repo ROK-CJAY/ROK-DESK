@@ -6,7 +6,7 @@ import { getSql } from "@/lib/db";
 
 function assetUrl(base: string, game: string, code: string, skin: number) {
   const root = base.trim().replace(/\/$/, "");
-  const host = !root || /assets\.rokdesk\.app/i.test(root) ? "https://cdn.jsdelivr.net/gh/joaorb64/StreamHelperAssets@main" : root;
+  const host = !root || /assets\.rokdesk\.app/i.test(root) ? "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main" : root;
   return `${host}/games/${game}/website/${code}_${skin}.png`;
 }
 
