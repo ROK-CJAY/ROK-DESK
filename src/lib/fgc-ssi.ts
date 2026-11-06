@@ -69,12 +69,19 @@ export function versusSsiTitle(): FgcTitle {
   const drop = new Set(["logo-plate", "logo", "strip", "strip-left", "strip-token", "sponsor-key", "sponsor-partners"]);
   const base = rok.elements.filter((e) => !drop.has(e.id)).map((e) => restyle(e, { name: 30, round: 26, score: 36 }));
   // Source divider stops at the round plate (y504); the plate and window keep the Versus ROK positions.
-  const elements = base.map((e) => (e.id === "divider-top" ? { ...e, h: 386 } : e));
+  // HTML #ph is at y908 so the Guard badge under the window (y930) stays clear.
+  const elements = base.map((e) => {
+    if (e.id === "divider-top") return { ...e, h: 386 };
+    if (e.id === "phase") return { ...e, y: 908 };
+    return e;
+  });
   const at = elements.findIndex((e) => e.id === "game-corner-b") + 1;
   elements.splice(at, 0,
     part("center", { id: "logo-plate", kind: "rect", name: "Event lockup plate", x: 870, y: 0, w: 180, h: 118, enter: "slide", bg: stripe(SCH, S1, 118, 4), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(22, 180)}) 100%, ${pct(22, 180)} 100%)` }),
     // Official PlayVS SSI logo: HTML #logo img is height 96, width auto, flex-centered with margin-top 4 in the 180×118 plate.
     part("center", { id: "logo", kind: "rect", name: "SSI official logo", x: 892, y: 13, w: 135, h: 96, src: OFFICIAL, enter: "slide" }),
+    // HTML #guard: left 960 + translateX(-50%), top 930, height 80 → 72×80 box at x924 (badge asset 431×479).
+    part("frame", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 924, y: 930, w: 72, h: 80, src: GUARD }),
   );
   const strip = [
     part("strip", { id: "strip", kind: "rect", name: "Bottom strip", x: 0, y: 1020, w: 1920, h: 60, bg: `linear-gradient(to bottom, ${S1} ${pct(4, 60)}, #0F1010 ${pct(4, 60)})` }),
@@ -83,12 +90,9 @@ export function versusSsiTitle(): FgcTitle {
     part("strip", { id: "host-logo", kind: "rect", name: "ROK logo", x: 1805, y: 1027, w: 56, h: 38, src: ROK_MONO }),
     part("strip", text({ id: "host-name", kind: "text", name: "ROK Gaming Lounge", x: 1778, y: 1065, w: 110, h: 14, text: "ROK Gaming Lounge", caps: false, font: "Saira", weight: 600, size: 12, tracking: 0.5 })),
   ];
+  // Gray sponsor plate: no PRESENTED BY / small Guard. Desk sponsors still rotate when present (centred on x960).
   const sponsor = [
-    part("sponsor", text({ id: "sponsor-key", kind: "text", name: "Presented by label", x: 700, y: 1024, w: 165, h: 52, text: "PRESENTED BY", align: "left", color: S1, font: "Saira", weight: 600, size: 16, tracking: 4 })),
-    // ~28px after the PRESENTED BY glyphs (natural width ~161 from x700); was overlapping at x861.
-    part("sponsor", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 891, y: 1027, w: 41, h: 46, src: GUARD }),
-    // Keep the partners split on x960 (x + partnerSplit); nudge right so the badge has a few px after it.
-    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 942, y: 1024, w: 290, h: 52, bind: "sponsor.name", anim: "partners", partnerSplit: 18, partnerGap: 14, font: "Manrope", weight: 600, size: 16, tracking: 1.5 })),
+    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 826, y: 1024, w: 406, h: 52, bind: "sponsor.name", anim: "partners", partnerSplit: 134, partnerGap: 14, font: "Manrope", weight: 600, size: 16, tracking: 1.5 })),
   ];
   const plate = elements.findIndex((e) => e.id === "sponsor-plate");
   elements.splice(plate, 0, ...strip);
