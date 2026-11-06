@@ -14,6 +14,7 @@ const G15 = "#0e0e0e";
 const DIR = "/overlays/casters-remote-rok";
 export const ROK_LOGO_COLOR = `${DIR}/rok-logo.png`;
 export const ROK_LOGO_WHITE = `${DIR}/rok_logo_white.png`;
+const CASTERS_REMOTE_ROK_BG = `${DIR}/casters-remote-rok-bg.png`;
 
 const para = (w: number, s: number) => `polygon(${pct(s, w)} 0, 100% 0, calc(100% - ${pct(s, w)}) 100%, 0 100%)`;
 
@@ -48,6 +49,7 @@ export function castersRemoteRokTitle(): FgcTitle {
   const corner = pct(5, 28);
   const end = pct(25, 28);
   const layers: FgcTitleLayer[] = [
+    { id: "bg", name: "Background", visible: true, locked: false, kind: "layer", parent: "" },
     { id: "frame", name: "Cam frames", visible: true, locked: false, kind: "layer", parent: "" },
     ...c1.layers,
     ...c2.layers,
@@ -55,6 +57,8 @@ export function castersRemoteRokTitle(): FgcTitle {
     { id: "sponsor", name: "Partner logos", visible: true, locked: false, kind: "layer", parent: "" },
   ];
   const elements: FgcTitleElement[] = [
+    // Opaque ROK charcoal fill; dual cam holes 24,48 924×760 and 972,48 924×760 are transparent in the PNG.
+    part("bg", { id: "background", kind: "rect", name: "ROK charcoal background", x: 0, y: 0, w: 1920, h: 1080, src: CASTERS_REMOTE_ROK_BG }),
     part("frame", { id: "cam1-frame", kind: "rect", name: "Caster 1 cam border", x: 24, y: 48, w: 924, h: 760, borderWidth: 4, borderColor: R1 }),
     part("frame", { id: "cam2-frame", kind: "rect", name: "Caster 2 cam border", x: 972, y: 48, w: 924, h: 760, borderWidth: 4, borderColor: R1 }),
     part("frame", { id: "divider", kind: "rect", name: "Cam divider", x: 957, y: 48, w: 6, h: 760, bg: R1 }),

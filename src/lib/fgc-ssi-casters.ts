@@ -2,6 +2,9 @@ import type { FgcTitle, FgcTitleElement, FgcTitleLayer } from "@/lib/fgc-types";
 import { part, pct, stripe, text, type Part } from "@/lib/fgc-scoreboard-rok";
 import { FLAME_ORANGE, GUARD, OFFICIAL, ROK_MONO, S0, S1, S2, SCH } from "@/lib/fgc-ssi";
 
+const CASTERS_SSI_BG = "/overlays/ssi/casters-ssi-bg.png";
+const CASTERS_REMOTE_SSI_BG = "/overlays/ssi/casters-remote-ssi-bg.png";
+
 /**
  * PlayVS Sunshine State Invitational caster scenes (desk + remote), rebuilt as native FGC layers
  * from ssi/pack/casters/SSI_Casters.html and ssi/pack/casters_remote/SSI_RemoteCasters.html.
@@ -74,6 +77,7 @@ export function castersSsiTitle(): FgcTitle {
   const corner = pct(5, 30);
   const end = pct(25, 30);
   const layers: FgcTitleLayer[] = [
+    { id: "bg", name: "Background", visible: true, locked: false, kind: "layer", parent: "" },
     { id: "frame", name: "Desk cam frame", visible: true, locked: false, kind: "layer", parent: "" },
     { id: "brand", name: "Guard badge", visible: true, locked: false, kind: "layer", parent: "" },
     ...c1.layers,
@@ -81,6 +85,8 @@ export function castersSsiTitle(): FgcTitle {
     { id: "strip", name: "Bottom strip", visible: true, locked: false, kind: "layer", parent: "" },
   ];
   const elements: FgcTitleElement[] = [
+    // Opaque low-poly fill; cam hole 160,80 1600×900 is transparent in the PNG (OBS cam under this source).
+    part("bg", { id: "background", kind: "rect", name: "SSI low-poly background", x: 0, y: 0, w: 1920, h: 1080, src: CASTERS_SSI_BG }),
     part("frame", { id: "cam-frame", kind: "rect", name: "Desk cam border", x: 160, y: 80, w: 1600, h: 900, borderWidth: 6, borderColor: S1 }),
     part("frame", { id: "cam-corner-a", kind: "rect", name: "Cam corner (top left)", x: 150, y: 70, w: 30, h: 30, bg: "#ffffff", clip: `polygon(0 0, 100% 0, 100% ${corner}, ${corner} ${corner}, ${corner} 100%, 0 100%)` }),
     part("frame", { id: "cam-corner-b", kind: "rect", name: "Cam corner (bottom right)", x: 1740, y: 960, w: 30, h: 30, bg: "#ffffff", clip: `polygon(${end} 0, 100% 0, 100% 100%, 0 100%, 0 ${end}, ${end} ${end})` }),
@@ -104,6 +110,7 @@ export function castersRemoteSsiTitle(): FgcTitle {
   const corner = pct(5, 28);
   const end = pct(25, 28);
   const layers: FgcTitleLayer[] = [
+    { id: "bg", name: "Background", visible: true, locked: false, kind: "layer", parent: "" },
     { id: "frame", name: "Cam frames", visible: true, locked: false, kind: "layer", parent: "" },
     { id: "brand", name: "Logo and Guard", visible: true, locked: false, kind: "layer", parent: "" },
     ...c1.layers,
@@ -111,6 +118,8 @@ export function castersRemoteSsiTitle(): FgcTitle {
     { id: "strip", name: "Bottom strip", visible: true, locked: false, kind: "layer", parent: "" },
   ];
   const elements: FgcTitleElement[] = [
+    // Opaque low-poly fill; dual cam holes 24,48 924×760 and 972,48 924×760 are transparent in the PNG.
+    part("bg", { id: "background", kind: "rect", name: "SSI low-poly background", x: 0, y: 0, w: 1920, h: 1080, src: CASTERS_REMOTE_SSI_BG }),
     part("frame", { id: "cam1-frame", kind: "rect", name: "Caster 1 cam border", x: 24, y: 48, w: 924, h: 760, borderWidth: 4, borderColor: S1 }),
     part("frame", { id: "cam2-frame", kind: "rect", name: "Caster 2 cam border", x: 972, y: 48, w: 924, h: 760, borderWidth: 4, borderColor: S1 }),
     part("frame", { id: "divider", kind: "rect", name: "Cam divider", x: 957, y: 48, w: 6, h: 760, bg: S1 }),
