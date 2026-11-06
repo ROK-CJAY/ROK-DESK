@@ -16,6 +16,9 @@ export type FgcOverlayId =
   | "versus-tekken"
   | "versus-pokken"
   | "casters"
+  | "casters-ssi"
+  | "casters-remote-ssi"
+  | "casters-remote-rok"
   | "commentators-rok"
   | "player-list"
   | "character-gallery"
@@ -97,7 +100,7 @@ export type FgcTitleElement = {
   /** CSS text-shadow for the words (Commentators ROK name). */
   shadow?: string;
   /** Rotating partners arrangement: default logo + text in a row (crossfade); "stack" = logo over label, slide up (Commentators ROK). */
-  partnerLayout?: "" | "stack";
+  partnerLayout?: "" | "stack" | "name-logo";
   /** Built-in partner cards shown before the Production partners in the same rotation (Scoreboard SSI). */
   partnerCards?: FgcPartnerCard[];
   /**

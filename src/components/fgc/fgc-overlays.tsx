@@ -11,6 +11,8 @@ import { activeTitle, gamesWon, liveSet, normalizeTitle, sponsorIndex, sponsorLi
 import { SCOREBOARD_ROK_ID, scoreboardRokTitle } from "@/lib/fgc-scoreboard-rok";
 import { VERSUS_ROK_ID, versusRokTitle } from "@/lib/fgc-versus-rok";
 import { SCOREBOARD_SSI_ID, VERSUS_SSI_ID, scoreboardSsiTitle, versusSsiTitle } from "@/lib/fgc-ssi";
+import { CASTERS_SSI_ID, CASTERS_REMOTE_SSI_ID, castersSsiTitle, castersRemoteSsiTitle } from "@/lib/fgc-ssi-casters";
+import { CASTERS_REMOTE_ROK_ID, castersRemoteRokTitle } from "@/lib/fgc-casters-remote-rok";
 import { COMMENTATORS_ROK_ID, commentatorsRokTitle } from "@/lib/fgc-commentators-rok";
 
 function fontParts(fontSize: string | number) {
@@ -446,6 +448,27 @@ export function PartnerSlides({ element, unit }: { element: FgcTitleElement; uni
   const on = sponsorIndex(fgc);
   if (element.partnerCards?.length) return <PartnerCards element={element} unit={unit} list={list} />;
   if (element.partnerLayout === "stack") return <PartnerStack element={element} unit={unit} list={list} on={on} />;
+  // Remote Casters ROK strip: name on the left, logo on the right, pack to the end of the slot.
+  if (element.partnerLayout === "name-logo") {
+    return (
+      <div className="absolute inset-0">
+        {list.map((sponsor, index) => (
+          <div
+            key={sponsor.id || index}
+            className="absolute inset-0 flex items-center justify-end"
+            style={{ gap: unit(12), padding: `0 ${unit(8)}`, opacity: index === on ? 1 : 0, transition: "opacity .8s" }}
+          >
+            {sponsor.name ? (
+              <div className="flex h-full min-w-0 items-center" style={{ flex: "0 1 auto", maxWidth: unit(240), textTransform: element.caps ? "uppercase" : undefined }}>
+                <FitText text={sponsor.name} fontSize="1em" />
+              </div>
+            ) : null}
+            {sponsor.logo ? <img src={sponsor.logo} alt="" style={{ flexShrink: 0, maxHeight: unit(28), maxWidth: unit(140) }} /> : null}
+          </div>
+        ))}
+      </div>
+    );
+  }
   if (typeof element.partnerSplit === "number") {
     const split = element.partnerSplit;
     const gap = element.partnerGap ?? 14;
@@ -692,7 +715,7 @@ export function CustomLayout({ editing = false, titleId = "", fallback }: { edit
             ) : flags.length ? (
               <FlagChip flags={flags} element={element} text={value} unit={px} />
             ) : words && /^caster\d+$/.test(element.bind) ? (
-              <CasterName element={element} text={value} unit={px} oneLine={title.id === COMMENTATORS_ROK_ID} />
+              <CasterName element={element} text={value} unit={px} oneLine={title.id === COMMENTATORS_ROK_ID || title.id === CASTERS_SSI_ID || title.id === CASTERS_REMOTE_SSI_ID || title.id === CASTERS_REMOTE_ROK_ID} />
             ) : words ? (
               <ElementWords element={element} text={value} fontSize={element.size} unit={px} />
             ) : null}
@@ -714,6 +737,9 @@ export function FgcOverlay({ source, titleId = "" }: { source: string; titleId?:
   if (id === "scoreboard-ssi") return <ScaleFrame><CustomLayout titleId={SCOREBOARD_SSI_ID} fallback={scoreboardSsiTitle} /></ScaleFrame>;
   if (id === "versus-ssi") return <ScaleFrame><CustomLayout titleId={VERSUS_SSI_ID} fallback={versusSsiTitle} /></ScaleFrame>;
   if (id === "versus-rok") return <ScaleFrame><CustomLayout titleId={VERSUS_ROK_ID} fallback={versusRokTitle} /></ScaleFrame>;
+  if (id === "casters-ssi") return <ScaleFrame><CustomLayout titleId={CASTERS_SSI_ID} fallback={castersSsiTitle} /></ScaleFrame>;
+  if (id === "casters-remote-ssi") return <ScaleFrame><CustomLayout titleId={CASTERS_REMOTE_SSI_ID} fallback={castersRemoteSsiTitle} /></ScaleFrame>;
+  if (id === "casters-remote-rok") return <ScaleFrame><CustomLayout titleId={CASTERS_REMOTE_ROK_ID} fallback={castersRemoteRokTitle} /></ScaleFrame>;
   if (id === "commentators-rok") return <ScaleFrame><CustomLayout titleId={COMMENTATORS_ROK_ID} fallback={commentatorsRokTitle} /></ScaleFrame>;
   if (id === "casters") return <Casters />;
   if (id === "lower") return <Lower />;

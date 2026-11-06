@@ -80,8 +80,8 @@ export function versusSsiTitle(): FgcTitle {
     part("center", { id: "logo-plate", kind: "rect", name: "Event lockup plate", x: 870, y: 0, w: 180, h: 118, enter: "slide", bg: stripe(SCH, S1, 118, 4), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(22, 180)}) 100%, ${pct(22, 180)} 100%)` }),
     // Official PlayVS SSI logo: HTML #logo img is height 96, width auto, flex-centered with margin-top 4 in the 180×118 plate.
     part("center", { id: "logo", kind: "rect", name: "SSI official logo", x: 892, y: 13, w: 135, h: 96, src: OFFICIAL, enter: "slide" }),
-    // Guard under the window: 72×80 centred at x924. y938 clears the phase chip (y908–932); HTML pack used y930.
-    part("frame", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 924, y: 938, w: 72, h: 80, src: GUARD }),
+    // Guard under the window: G&V exact — 69×77, left x926 (centred on x960), top y938; phase chip y908 h24.
+    part("frame", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 926, y: 938, w: 69, h: 77, src: GUARD }),
   );
   const strip = [
     part("strip", { id: "strip", kind: "rect", name: "Bottom strip", x: 0, y: 1020, w: 1920, h: 60, bg: `linear-gradient(to bottom, ${S1} ${pct(4, 60)}, #0F1010 ${pct(4, 60)})` }),
@@ -90,13 +90,9 @@ export function versusSsiTitle(): FgcTitle {
     part("strip", { id: "host-logo", kind: "rect", name: "ROK logo", x: 1805, y: 1027, w: 56, h: 38, src: ROK_MONO }),
     part("strip", text({ id: "host-name", kind: "text", name: "ROK Gaming Lounge", x: 1778, y: 1065, w: 110, h: 14, text: "ROK Gaming Lounge", caps: false, font: "Saira", weight: 600, size: 12, tracking: 0.5 })),
   ];
-  // Gray sponsor plate: no PRESENTED BY / small Guard. Desk sponsors still rotate when present (centred on x960).
-  const sponsor = [
-    part("sponsor", text({ id: "sponsor-partners", kind: "text", name: "Sponsor partners", x: 826, y: 1024, w: 406, h: 52, bind: "sponsor.name", anim: "partners", partnerSplit: 134, partnerGap: 14, font: "Manrope", weight: 600, size: 16, tracking: 1.5 })),
-  ];
+  // Gray sponsor plate stays blank — no PRESENTED BY, Guard, or rotating desk sponsor text.
   const plate = elements.findIndex((e) => e.id === "sponsor-plate");
   elements.splice(plate, 0, ...strip);
-  elements.push(...sponsor);
   const layers = rok.layers.map((l) => (l.id === "center" ? { ...l, name: "SSI official logo" } : l));
   return { id: VERSUS_SSI_ID, name: "Versus SSI", group: "", layers, elements };
 }

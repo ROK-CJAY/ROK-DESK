@@ -12,16 +12,21 @@ export type { FgcOverlayId, FgcTitle, FgcTitleElement, FgcTitleLayer };
 export const TITLE_GROUPS = ["In game", "Versus", "People", "Bracket", "Desk"] as const;
 
 export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group: string }[] = [
+  // Branded packs first so Production Control shows ROK and PlayVS as their own sections.
+  { id: "scoreboard-rok", group: "ROK", name: "Scoreboard ROK · index", note: "Compact ROK top bar, round and phase, sponsors, transparent cam wells (P1 x28 y862, P2 x1556 y862, 336 × 189). Put cams under it." },
+  { id: "versus-rok", group: "ROK", name: "Versus ROK", note: "ROK H2H split cam. Same data as Scoreboard ROK. Transparent holes: P1 cam x0 y0 957 × 1020, P2 cam x963 y0 957 × 1020, gameplay x640 y554 640 × 360. Put the gameplay source above the cams, both under this overlay." },
+  { id: "commentators-rok", group: "ROK", name: "Commentators ROK", note: "ROK dual-commentator lower third: Commentator 1 at x60-920, Commentator 2 at x1000-1860 (y812-968), names and X handles from FGC commentators. Wipes in, then holds." },
+  { id: "casters-remote-rok", group: "ROK", name: "Remote Casters ROK", note: "ROK dual remote-caster scene. Transparent cam holes: Caster 1 x24 y48 924 × 760, Caster 2 x972 y48 924 × 760. Names and X handles from FGC commentators. Bottom-right rotates Desk sponsors (logo + name); blank when there are none." },
+  { id: "scoreboard-ssi", group: "PlayVS", name: "Scoreboard SSI · index", note: "PlayVS Sunshine State Invitational (Smash), presented by the Florida Army National Guard, ROK host venue. Scoreboard ROK layout in PlayVS orange; the partner slot rotates HOST VENUE ROK, PRESENTED BY the Guard badge and PlayVS, then the Production partners. Transparent cam wells (P1 x28 y862, P2 x1556 y862, 336 × 189)." },
+  { id: "versus-ssi", group: "PlayVS", name: "Versus SSI", note: "PlayVS Sunshine State Invitational split cam. Guard badge under the gameplay window; gray sponsor plate is blank. Transparent holes: P1 cam x0 y0 957 × 1020, P2 cam x963 y0 957 × 1020, gameplay x640 y554 640 × 360." },
+  { id: "casters-ssi", group: "PlayVS", name: "Caster Scene SSI", note: "PlayVS SSI desk caster scene. Transparent desk cam hole x160 y80 1600 × 900. Caster 1 / 2 name plates and X handles from FGC commentators; Guard badge top-right." },
+  { id: "casters-remote-ssi", group: "PlayVS", name: "Remote Casters SSI", note: "PlayVS SSI dual remote-caster scene. Transparent cam holes: Caster 1 x24 y48 924 × 760, Caster 2 x972 y48 924 × 760. Names and X handles from FGC commentators; official logo tab and Guard badge." },
   { id: "hud", group: "In game", name: "Scoreboard", note: "In-game names, characters, and score along the bottom." },
   { id: "scoreboard-simple", group: "In game", name: "Scoreboard simple", note: "A thinner bottom scoreboard." },
   { id: "scoreboard-topleft", group: "In game", name: "Scoreboard top left", note: "Compact scoreboard in the top left." },
   { id: "scoreboard-4by3", group: "In game", name: "Scoreboard 4:3", note: "Scoreboard kept inside a 4:3 frame." },
   { id: "scoreboard-ultimate", group: "In game", name: "Scoreboard · Ultimate", note: "Smash Bros. Ultimate. Tag, losers, seed, state, flag, Twitter, pronouns, character, and camera wells." },
-  { id: "scoreboard-rok", group: "In game", name: "Scoreboard ROK · index", note: "Compact ROK top bar, round and phase, sponsors, transparent cam wells (P1 x28 y862, P2 x1556 y862, 336 × 189). Put cams under it." },
-  { id: "scoreboard-ssi", group: "In game", name: "Scoreboard SSI · index", note: "PlayVS Sunshine State Invitational (Smash), presented by the Florida Army National Guard, ROK host venue. Scoreboard ROK layout in PlayVS orange; the partner slot (x24-368, y802-850) rotates HOST VENUE ROK, PRESENTED BY the Guard badge and PlayVS, then the Production partners. Transparent cam wells (P1 x28 y862, P2 x1556 y862, 336 × 189). Put cams under it." },
   { id: "versus", group: "Versus", name: "Versus", note: "Match intro. Smash, Tekken, or Pokkén is picked from the game." },
-  { id: "versus-rok", group: "Versus", name: "Versus ROK", note: "ROK H2H split cam. Same data as Scoreboard ROK. Transparent holes: P1 cam x0 y0 957 × 1020, P2 cam x963 y0 957 × 1020, gameplay x640 y554 640 × 360. Put the gameplay source above the cams, both under this overlay." },
-  { id: "versus-ssi", group: "Versus", name: "Versus SSI", note: "PlayVS Sunshine State Invitational split cam (Versus ROK layout in PlayVS orange). Presented by the Florida Army National Guard, ROK host venue, Production partners rotate. Transparent holes: P1 cam x0 y0 957 × 1020, P2 cam x963 y0 957 × 1020, gameplay x640 y554 640 × 360. Put the gameplay source above the cams, both under this overlay." },
   { id: "versus-tekken", group: "Versus", name: "Versus · Tekken", note: "Tekken versus screen." },
   { id: "versus-pokken", group: "Versus", name: "Versus · Pokkén", note: "Pokkén versus screen." },
   { id: "casters", group: "People", name: "Commentators", note: "Plates for the commentators on the desk." },
@@ -36,7 +41,6 @@ export const FGC_OVERLAYS: { id: FgcOverlayId; name: string; note: string; group
   { id: "last-sets", group: "Bracket", name: "Last sets", note: "The latest finished sets." },
   { id: "recent-sets", group: "Bracket", name: "Recent sets", note: "A longer list of finished sets." },
   { id: "tournament-history", group: "Bracket", name: "Tournament history", note: "Event, phases, and how many sets are done." },
-  { id: "commentators-rok", group: "Desk", name: "Commentators ROK", note: "ROK dual-commentator lower third: Commentator 1 at x60-920, Commentator 2 at x1000-1860 (y812-968), names and X handles from FGC commentators, rotating Production partners. Wipes in, then holds with partners rotating." },
   { id: "stage-strike", group: "Desk", name: "Stage strike", note: "Neutrals, counterpicks, and the stage in play." },
   { id: "stream-queue", group: "Desk", name: "Stream queue", note: "Sets marked for the stream." },
   { id: "ruleset", group: "Desk", name: "Ruleset", note: "The saved ruleset on stream." },
