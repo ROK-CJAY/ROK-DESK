@@ -4,6 +4,18 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v9 — 2026-11-06
+
+### Added
+
+- SSI and ROK caster overlays, including the remote caster layout, with opaque backgrounds.
+- PlayVS and ROK sections on the caster plates.
+
+### Changed
+
+- Versus SSI moves the Guard badge under the gameplay so it clears the phase chip and the sponsor plate.
+- Caster handles keep the X icon clear of the slanted plate edge.
+
 ## v1.5.2-preview-v8 — 2026-11-05
 
 ### Changed
