@@ -4,7 +4,7 @@ import { CH, R0, R1, R2, anton, oswald, part, pct, text, type Part } from "@/lib
 /**
  * Built-in FGC layout: ROK dual remote-caster scene, from rok/casters_remote/ROK_RemoteCasters.html.
  * Transparent cam holes: Caster 1 x24 y48 924×760, Caster 2 x972 y48 924×760.
- * No top-left logo tab. Names/handles: FGC commentators (caster1 / caster1.twitter, caster2 / caster2.twitter).
+ * No top-left logo tab. Names/handles: FGC commentators (caster1 / caster1.twitter, caster2 / caster2.twitter). Handle bars always show; text is blank when twitter is empty.
  * Bottom-right: Desk sponsors rotate (logo + name); blank when there are none.
  */
 export const CASTERS_REMOTE_ROK_ID = "casters-remote-rok";
@@ -31,7 +31,7 @@ function unit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElement[] 
     [`${g}-name`, { id: `${g}-plate`, kind: "rect", name: `C${n} name plate`, x: ux + 190, y: uy + 16, w: 680, h: 72, bg: CH, opacity: 0.96, clip: para(680, 16) }],
     [`${g}-name`, { id: `${g}-plate-rule`, kind: "rect", name: `C${n} name plate top rule`, x: ux + 190, y: uy + 16, w: 680, h: 2, bg: "#ffffff", opacity: 0.55, clip: para(680, 16) }],
     [`${g}-name`, text({ id: `${g}-name`, kind: "text", name: `Caster ${n} name`, x: ux + 226, y: uy + 16, w: 620, h: 72, bind: `caster${n}`, align: "left", prefixColor: R1, shadow: "3px 4px 6px rgba(0,0,0,0.55)", hideEmpty: true, ...anton(44, 1) })],
-    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 178, y: uy + 92, w: 640, h: 40, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${R0}, #a41010 60%)`, clip: para(640, 14), padLeft: 32, padRight: 24, hideEmpty: true, ...oswald(22, 700, 4) })],
+    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 178, y: uy + 92, w: 640, h: 40, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${R0}, #a41010 60%)`, clip: para(640, 14), padLeft: 32, padRight: 24, ...oswald(22, 700, 4) })],
   ];
   const layers: FgcTitleLayer[] = [
     { id: g, name: `Caster ${n}`, visible: true, locked: false, kind: "group", open: true, parent: "" },

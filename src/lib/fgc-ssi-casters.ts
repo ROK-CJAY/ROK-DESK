@@ -8,7 +8,7 @@ const CASTERS_REMOTE_SSI_BG = "/overlays/ssi/casters-remote-ssi-bg.png";
 /**
  * PlayVS Sunshine State Invitational caster scenes (desk + remote), rebuilt as native FGC layers
  * from ssi/pack/casters/SSI_Casters.html and ssi/pack/casters_remote/SSI_RemoteCasters.html.
- * Names/handles: FGC commentators (caster1 / caster1.twitter, caster2 / caster2.twitter).
+ * Names/handles: FGC commentators (caster1 / caster1.twitter, caster2 / caster2.twitter). Handle bars always show; text is blank when twitter is empty.
  */
 export const CASTERS_SSI_ID = "casters-ssi";
 export const CASTERS_REMOTE_SSI_ID = "casters-remote-ssi";
@@ -33,7 +33,7 @@ function deskUnit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElemen
     [`${g}-name`, { id: `${g}-plate`, kind: "rect", name: `C${n} name plate`, x: ux + 128, y: uy + 8, w: 580, h: 44, bg: SCH, opacity: 0.96, clip: para(580, 12) }],
     [`${g}-name`, { id: `${g}-plate-rule`, kind: "rect", name: `C${n} name plate top rule`, x: ux + 128, y: uy + 8, w: 580, h: 2, bg: "#ffffff", opacity: 0.5, clip: para(580, 12) }],
     [`${g}-name`, text({ id: `${g}-name`, kind: "text", name: `Caster ${n} name`, x: ux + 154, y: uy + 8, w: 540, h: 44, bind: `caster${n}`, align: "left", prefixColor: S1, shadow: "2px 3px 5px rgba(0,0,0,0.55)", hideEmpty: true, ...saira(28, 700, 1) })],
-    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 120, y: uy + 54, w: 520, h: 30, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${S0}, ${S2})`, clip: para(520, 10), padLeft: 22, padRight: 18, hideEmpty: true, ...saira(17, 700, 3) })],
+    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 120, y: uy + 54, w: 520, h: 30, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${S0}, ${S2})`, clip: para(520, 10), padLeft: 22, padRight: 18, ...saira(17, 700, 3) })],
   ];
   const layers: FgcTitleLayer[] = [
     { id: g, name: `Caster ${n}`, visible: true, locked: false, kind: "group", open: true, parent: "" },
@@ -58,7 +58,7 @@ function remoteUnit(n: 1 | 2): { layers: FgcTitleLayer[]; elements: FgcTitleElem
     [`${g}-name`, { id: `${g}-plate`, kind: "rect", name: `C${n} name plate`, x: ux + 190, y: uy + 16, w: 680, h: 72, bg: SCH, opacity: 0.96, clip: para(680, 16) }],
     [`${g}-name`, { id: `${g}-plate-rule`, kind: "rect", name: `C${n} name plate top rule`, x: ux + 190, y: uy + 16, w: 680, h: 2, bg: "#ffffff", opacity: 0.55, clip: para(680, 16) }],
     [`${g}-name`, text({ id: `${g}-name`, kind: "text", name: `Caster ${n} name`, x: ux + 226, y: uy + 16, w: 620, h: 72, bind: `caster${n}`, align: "left", prefixColor: S1, shadow: "3px 4px 6px rgba(0,0,0,0.55)", hideEmpty: true, ...saira(42, 700, 1) })],
-    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 178, y: uy + 92, w: 640, h: 40, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${S0}, ${S2})`, clip: para(640, 14), padLeft: 32, padRight: 24, hideEmpty: true, ...saira(22, 700, 4) })],
+    [`${g}-handle`, text({ id: `${g}-handle`, kind: "text", name: `Caster ${n} X handle`, x: ux + 178, y: uy + 92, w: 640, h: 40, bind: `caster${n}.twitter`, template: "𝕏 {}", align: "left", bg: `linear-gradient(to right, ${S0}, ${S2})`, clip: para(640, 14), padLeft: 32, padRight: 24, ...saira(22, 700, 4) })],
   ];
   const layers: FgcTitleLayer[] = [
     { id: g, name: `Caster ${n}`, visible: true, locked: false, kind: "group", open: true, parent: "" },
