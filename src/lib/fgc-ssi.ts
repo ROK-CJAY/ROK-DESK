@@ -80,8 +80,8 @@ export function versusSsiTitle(): FgcTitle {
     part("center", { id: "logo-plate", kind: "rect", name: "Event lockup plate", x: 870, y: 0, w: 180, h: 118, enter: "slide", bg: stripe(SCH, S1, 118, 4), clip: `polygon(0 0, 100% 0, calc(100% - ${pct(22, 180)}) 100%, ${pct(22, 180)} 100%)` }),
     // Official PlayVS SSI logo: HTML #logo img is height 96, width auto, flex-centered with margin-top 4 in the 180×118 plate.
     part("center", { id: "logo", kind: "rect", name: "SSI official logo", x: 892, y: 13, w: 135, h: 96, src: OFFICIAL, enter: "slide" }),
-    // HTML #guard: left 960 + translateX(-50%), top 930, height 80 → 72×80 box at x924 (badge asset 431×479).
-    part("frame", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 924, y: 930, w: 72, h: 80, src: GUARD }),
+    // Guard under the window: 72×80 centred at x924. y938 clears the phase chip (y908–932); HTML pack used y930.
+    part("frame", { id: "guard-badge", kind: "rect", name: "Florida Army National Guard badge", x: 924, y: 938, w: 72, h: 80, src: GUARD }),
   );
   const strip = [
     part("strip", { id: "strip", kind: "rect", name: "Bottom strip", x: 0, y: 1020, w: 1920, h: 60, bg: `linear-gradient(to bottom, ${S1} ${pct(4, 60)}, #0F1010 ${pct(4, 60)})` }),
