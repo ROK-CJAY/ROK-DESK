@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v10 — 2026-11-06
+
+### Changed
+
+- Caster handle bars stay visible even when a commentator has no Twitter handle.
+
 ## v1.5.2-preview-v9 — 2026-11-06
 
 ### Added
