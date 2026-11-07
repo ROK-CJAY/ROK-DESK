@@ -18,12 +18,7 @@ jobs:
         include:
           - os: windows-latest
             args: --win portable nsis
-          - os: ubuntu-latest
-            args: --linux AppImage
-          - os: macos-latest
-            args: --mac dmg
     runs-on: ${{ matrix.os }}
-    if: matrix.os == 'windows-latest' || github.ref_name != 'v1.5.2-preview-v13'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
