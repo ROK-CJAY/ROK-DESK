@@ -2,6 +2,13 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("rokDesk", {
   desktop: true,
+  configureFgcHotkeys: (config) => ipcRenderer.invoke("rok:fgc-hotkeys-configure", config),
+  releaseFgcHotkeys: (token) => ipcRenderer.invoke("rok:fgc-hotkeys-release", token),
+  onFgcHotkey: (cb) => {
+    const listener = (_event, payload) => cb(payload);
+    ipcRenderer.on("rok:fgc-hotkey", listener);
+    return () => ipcRenderer.removeListener("rok:fgc-hotkey", listener);
+  },
   becomeHost: () => ipcRenderer.invoke("rok:become-host"),
   connectHost: (address) => ipcRenderer.invoke("rok:connect-host", address),
   connectionInfo: () => ipcRenderer.invoke("rok:connection-info"),

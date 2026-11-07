@@ -1,4 +1,4 @@
-import { app, BrowserView, BrowserWindow, Menu, WebContentsView, ipcMain, shell } from "electron";
+import { app, BrowserView, BrowserWindow, Menu, WebContentsView, ipcMain, shell, globalShortcut } from "electron";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
@@ -30,6 +30,7 @@ import {
 import { applyStableUserData, deskDataRoot } from "./desk-data.mjs";
 import { ensureSourcesRoot, openSources, writeSourceFiles } from "./sources.mjs";
 import { initUpdater } from "./updater.mjs";
+import { createFgcHotkeys, trustedFgcSender } from "./fgc-hotkeys.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 8080;
@@ -425,6 +426,14 @@ function wireBrowserView(win) {
   });
 }
 
+const fgcWindows = new Set();
+const fgcHotkeys = createFgcHotkeys({
+  globalShortcut,
+  trusted: (contents) => !contents.isDestroyed() && trustedFgcSender({ sender: contents, senderFrame: contents.mainFrame }, fgcWindows, deskOrigin),
+  deliver: (contents, payload) => contents.send("rok:fgc-hotkey", payload),
+});
+app.on("will-quit", () => fgcHotkeys.clear());
+
 async function createWindow(route = "/", { offset = false } = {}) {
   const pos = offset ? offsetFromFocused() : {};
   const win = new BrowserWindow({
@@ -452,6 +461,16 @@ async function createWindow(route = "/", { offset = false } = {}) {
     if (offset) win.focus();
   });
   attachEditMenu(win.webContents);
+  const contents = win.webContents;
+  fgcWindows.add(contents);
+  contents.on("did-start-navigation", (_event, _url, isInPlace, isMainFrame) => {
+    if (isMainFrame && !isInPlace) fgcHotkeys.release(contents);
+  });
+  contents.on("did-navigate-in-page", () => {
+    if (!trustedFgcSender({ sender: contents, senderFrame: contents.mainFrame }, fgcWindows, deskOrigin)) fgcHotkeys.release(contents);
+  });
+  contents.on("render-process-gone", () => fgcHotkeys.release(contents));
+  contents.once("destroyed", () => { fgcHotkeys.release(contents); fgcWindows.delete(contents); });
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (isDeskUrl(url)) {
@@ -527,6 +546,13 @@ if (!gotLock) {
 
   app.whenReady().then(async () => {
     Menu.setApplicationMenu(null);
+    ipcMain.handle("rok:fgc-hotkeys-configure", (event, payload) => {
+      if (!trustedFgcSender(event, fgcWindows, deskOrigin)) return { errors: ["Untrusted hotkey sender."] };
+      return fgcHotkeys.configure(event.sender, payload);
+    });
+    ipcMain.handle("rok:fgc-hotkeys-release", (event, token) => {
+      if (trustedFgcSender(event, fgcWindows, deskOrigin) && typeof token === "string") fgcHotkeys.release(event.sender, token);
+    });
     ensureSourcesRoot();
     attachDownloadHandler();
     ipcMain.handle("rok:browser-history", () => loadHistory());

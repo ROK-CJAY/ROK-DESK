@@ -23,7 +23,7 @@ import { CASTERS_REMOTE_ROK_ID } from "@/lib/fgc-casters-remote-rok";
 import { COMMENTATORS_ROK_ID } from "@/lib/fgc-commentators-rok";
 import { FGC_OVERLAYS, overlayHref, sourceFileName, sourceFolders, sourceList, sourceValue, tshLayoutHref } from "@/lib/fgc-titles";
 import { isPermanentBoard, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
-import { hotkeyEvent } from "@/lib/fgc-settings";
+import { hotkeyEvent, type FgcHotkey } from "@/lib/fgc-settings";
 import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { rokDesktop } from "@/lib/rok-desktop";
 import { FgcSettingsButton } from "@/components/fgc/fgc-settings";
@@ -334,6 +334,8 @@ function FgcDesk() {
   const clearImport = useFgcStore((s) => s.clearImport);
   const [picker, setPicker] = useState(false);
   const [assets, setAssets] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [hotkeyError, setHotkeyError] = useState("");
   const [tab, setTab] = useState<"scoreboard" | "roster" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
   const [overlayPane, setOverlayPane] = useState<"preview" | "editor" | "sources">("preview");
   const [copied, setCopied] = useState<string | null>(null);
@@ -373,10 +375,6 @@ function FgcDesk() {
     return () => window.clearInterval(timer);
   }, [hydrate]);
 
-  const loadStandings = useFgcStore((s) => s.loadStandings);
-  const patchSet = useFgcStore((s) => s.patchSet);
-  const swapTeams = useFgcStore((s) => s.swapTeams);
-  const resetScore = useFgcStore((s) => s.resetScore);
   const live = setForBoard(fgc);
 
   useEffect(() => {
@@ -385,45 +383,58 @@ function FgcDesk() {
   }, [fgc, live]);
 
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
+    const desktop = rokDesktop();
+    const native = !!(desktop?.configureFgcHotkeys && desktop.releaseFgcHotkeys && desktop.onFgcHotkey);
+    // Ownership token, not a credential. LAN HTTP origins may lack randomUUID.
+    const token = native ? (globalThis.crypto?.randomUUID?.() ?? `fgc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`) : "";
+    let active = true;
+    const dispatch = (action: FgcHotkey) => {
       const state = useFgcStore.getState();
-      const settings = state.fgc.settings;
-      if (!settings?.hotkeys || document.querySelector("[data-fgc-settings]")) return;
-      const target = event.target as HTMLElement | null;
-      const typing = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
-      const modified = event.ctrlKey || event.metaKey || event.altKey;
-      if (typing && !modified) return;
+      if (!state.fgc.settings?.hotkeys || settingsOpen || document.querySelector("[data-fgc-settings]")) return;
       const set = setForBoard(state.fgc);
-      const hit = (id: keyof typeof settings.keys) => hotkeyEvent(settings.keys[id], event);
-      if (hit("loadSet")) {
-        event.preventDefault();
-        setPicker(true);
-      } else if (set && hit("p1Up")) {
-        event.preventDefault();
-        patchSet(set.id, { score1: set.score1 + 1 });
-      } else if (set && hit("p1Down")) {
-        event.preventDefault();
-        patchSet(set.id, { score1: Math.max(0, set.score1 - 1) });
-      } else if (set && hit("p2Up")) {
-        event.preventDefault();
-        patchSet(set.id, { score2: set.score2 + 1 });
-      } else if (set && hit("p2Down")) {
-        event.preventDefault();
-        patchSet(set.id, { score2: Math.max(0, set.score2 - 1) });
-      } else if (set && hit("reset")) {
-        event.preventDefault();
-        resetScore(set.id);
-      } else if (set && hit("swap")) {
-        event.preventDefault();
-        swapTeams(set.id);
-      } else if (hit("refresh")) {
-        event.preventDefault();
-        void loadStandings();
+      switch (action) {
+        case "loadSet": setPicker(true); break;
+        case "p1Up": if (set) state.patchSet(set.id, { score1: set.score1 + 1 }); break;
+        case "p1Down": if (set) state.patchSet(set.id, { score1: Math.max(0, set.score1 - 1) }); break;
+        case "p2Up": if (set) state.patchSet(set.id, { score2: set.score2 + 1 }); break;
+        case "p2Down": if (set) state.patchSet(set.id, { score2: Math.max(0, set.score2 - 1) }); break;
+        case "reset": if (set) state.resetScore(set.id); break;
+        case "swap": if (set) state.swapTeams(set.id); break;
+        case "refresh": void state.loadStandings(); break;
       }
     };
+    // A native-capable desktop has exactly one action path, even while focused.
+    // Keep the DOM listener only to suppress browser defaults for configured keys.
+    const onKey = (event: KeyboardEvent) => {
+      const settings = useFgcStore.getState().fgc.settings;
+      if (!settings?.hotkeys || settingsOpen || document.querySelector("[data-fgc-settings]")) return;
+      const target = event.target as HTMLElement | null;
+      const typing = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
+      if (typing && !event.ctrlKey && !event.metaKey && !event.altKey) return;
+      const action = (Object.keys(settings.keys) as FgcHotkey[]).find((id) => hotkeyEvent(settings.keys[id], event));
+      if (!action) return;
+      event.preventDefault();
+      if (!native) dispatch(action);
+    };
     window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [loadStandings, patchSet, resetScore, swapTeams]);
+    let unsubscribe: (() => void) | undefined;
+    if (native) {
+      unsubscribe = desktop!.onFgcHotkey!((payload) => {
+        if (active && payload.token === token) dispatch(payload.action);
+      });
+      void desktop!.configureFgcHotkeys!({ token, enabled: fgc.settings.hotkeys && !settingsOpen, keys: fgc.settings.keys })
+        .then((status) => { if (active) setHotkeyError(status.errors.join(" ")); })
+        .catch(() => { if (active) setHotkeyError("Desktop hotkeys could not be enabled. Restart Desk and try again."); });
+    } else if (desktop) {
+      setHotkeyError("This desktop build only supports focused-window hotkeys. Install and restart the updated desktop app for background hotkeys.");
+    }
+    return () => {
+      active = false;
+      window.removeEventListener("keydown", onKey, true);
+      unsubscribe?.();
+      if (native) void desktop!.releaseFgcHotkeys!(token).catch(() => undefined);
+    };
+  }, [fgc.settings.hotkeys, fgc.settings.keys, settingsOpen]);
 
   return (
     <div className="min-h-dvh bg-bg text-fg">
@@ -449,7 +460,7 @@ function FgcDesk() {
                 Select set
               </Button>
               <Button variant="outline" onClick={() => setAssets(true)}>Download assets</Button>
-              <FgcSettingsButton />
+              <FgcSettingsButton onOpenChange={setSettingsOpen} />
               <Button variant="outline" onClick={() => clearImport()}>Clear import</Button>
               <Button variant="outline" onClick={() => void loadStreamSet()} disabled={!fgc.url}>
                 Stream set
@@ -461,6 +472,7 @@ function FgcDesk() {
               ) : null}
             </div>
             {error ? <p className="text-sm text-live">{error}</p> : null}
+            {hotkeyError ? <p role="status" className="text-sm text-live">{hotkeyError}</p> : null}
           </section>
           <GameStreams />
           <section className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">

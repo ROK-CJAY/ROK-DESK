@@ -1,3 +1,4 @@
+import type { FgcHotkey } from "@/lib/fgc-settings";
 import type { AppUpdateStatus } from "@/lib/app-update";
 
 export type BrowserBounds = {
@@ -54,6 +55,9 @@ export type ClearDataOpts = {
 
 export type RokDeskBridge = {
   desktop: true;
+  configureFgcHotkeys?: (config: { token: string; enabled: boolean; keys: Record<FgcHotkey, string> }) => Promise<{ registered?: FgcHotkey[]; errors: string[] }>;
+  releaseFgcHotkeys?: (token: string) => Promise<void>;
+  onFgcHotkey?: (cb: (payload: { token: string; action: FgcHotkey }) => void) => () => void;
   becomeHost?: () => Promise<boolean>;
   connectHost?: (address: string) => Promise<{ ok: boolean; error?: string }>;
   connectionInfo?: () => Promise<{ mode: "host" | "client"; origin: string } | null>;

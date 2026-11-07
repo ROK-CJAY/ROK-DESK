@@ -19,15 +19,16 @@ const HOTKEYS: { id: FgcHotkey; label: string }[] = [
   { id: "refresh", label: "Refresh bracket" },
 ];
 
-export function FgcSettingsButton() {
+export function FgcSettingsButton({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false);
+  const changeOpen = (next: boolean) => { setOpen(next); onOpenChange?.(next); };
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button variant="outline" onClick={() => changeOpen(true)}>
         <Settings className="size-4" />
         Settings
       </Button>
-      {open ? <FgcSettingsDialog onClose={() => setOpen(false)} /> : null}
+      {open ? <FgcSettingsDialog onClose={() => changeOpen(false)} /> : null}
     </>
   );
 }
