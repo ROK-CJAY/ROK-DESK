@@ -4,6 +4,13 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v12 — 2026-11-07
+
+### Fixed
+
+- FGC hotkeys work while a field is focused. Ctrl+F1 raises team 1, Ctrl+F2 lowers it, and Ctrl+F3 / Ctrl+F4 do the same for team 2.
+- Right-click opens Cut, Copy, Paste, and Select All on the installed desk.
+
 ## v1.5.2-preview-v11 — 2026-11-06
 
 ### Fixed
