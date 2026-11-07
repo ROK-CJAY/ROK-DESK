@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v14 — 2026-11-07
+
+### Fixed
+
+- Windows uses a keyboard hook when the system refuses the FGC score hotkeys, so Ctrl+F1 still changes the score.
+
 ## v1.5.2-preview-v13 — 2026-11-07
 
 ### Fixed
