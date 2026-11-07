@@ -4,6 +4,12 @@ All notable changes to **ROK Desk** are listed here.
 
 The project follows [Semantic Versioning](https://semver.org/). Desktop installers attach to the matching GitHub [release](https://github.com/ROK-CJAY/ROK-DESK/releases).
 
+## v1.5.2-preview-v13 — 2026-11-07
+
+### Fixed
+
+- FGC score hotkeys are registered by the desktop app, so Ctrl+F1 and the other score keys work even when the desk is in the background.
+
 ## v1.5.2-preview-v12 — 2026-11-07
 
 ### Fixed
