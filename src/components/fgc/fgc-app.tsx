@@ -390,7 +390,9 @@ function FgcDesk() {
       const settings = state.fgc.settings;
       if (!settings?.hotkeys || document.querySelector("[data-fgc-settings]")) return;
       const target = event.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) return;
+      const typing = !!target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
+      const modified = event.ctrlKey || event.metaKey || event.altKey;
+      if (typing && !modified) return;
       const set = setForBoard(state.fgc);
       const hit = (id: keyof typeof settings.keys) => hotkeyEvent(settings.keys[id], event);
       if (hit("loadSet")) {
@@ -419,8 +421,8 @@ function FgcDesk() {
         void loadStandings();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [loadStandings, patchSet, resetScore, swapTeams]);
 
   return (

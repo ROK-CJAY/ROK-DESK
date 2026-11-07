@@ -1,4 +1,4 @@
-import { app, BrowserView, BrowserWindow, WebContentsView, ipcMain, shell } from "electron";
+import { app, BrowserView, BrowserWindow, Menu, WebContentsView, ipcMain, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs";
@@ -191,6 +191,23 @@ function normalizeHost(raw) {
   }
 }
 
+function attachEditMenu(contents) {
+  contents.on("context-menu", (_event, params) => {
+    const flags = params.editFlags || {};
+    const menu = Menu.buildFromTemplate([
+      { role: "undo", enabled: !!flags.canUndo },
+      { role: "redo", enabled: !!flags.canRedo },
+      { type: "separator" },
+      { role: "cut", enabled: !!flags.canCut },
+      { role: "copy", enabled: !!flags.canCopy },
+      { role: "paste", enabled: !!flags.canPaste },
+      { type: "separator" },
+      { role: "selectAll", enabled: !!flags.canSelectAll },
+    ]);
+    menu.popup({ window: BrowserWindow.fromWebContents(contents) || undefined });
+  });
+}
+
 function isDeskUrl(url) {
   try {
     return new URL(url).origin === new URL(deskOrigin).origin;
@@ -226,6 +243,7 @@ function showChooser(prefill = "", message = "") {
     },
   });
   chooserWindow.once("ready-to-show", () => chooserWindow?.show());
+  attachEditMenu(chooserWindow.webContents);
   chooserWindow.on("closed", () => {
     chooserWindow = null;
   });
@@ -312,6 +330,7 @@ function makeGuestView(win) {
     /* ignore */
   }
   guests.set(win.webContents, view);
+  attachEditMenu(view.webContents);
   return view;
 }
 
@@ -432,6 +451,7 @@ async function createWindow(route = "/", { offset = false } = {}) {
     win.show();
     if (offset) win.focus();
   });
+  attachEditMenu(win.webContents);
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (isDeskUrl(url)) {
@@ -506,6 +526,7 @@ if (!gotLock) {
   });
 
   app.whenReady().then(async () => {
+    Menu.setApplicationMenu(null);
     ensureSourcesRoot();
     attachDownloadHandler();
     ipcMain.handle("rok:browser-history", () => loadHistory());

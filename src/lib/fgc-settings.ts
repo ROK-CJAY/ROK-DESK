@@ -79,14 +79,16 @@ export function cleanSpeech(text: string, enabled: boolean): string {
 }
 
 export function hotkeyEvent(combo: string, event: KeyboardEvent): boolean {
-  const parts = combo.split("+").filter(Boolean);
+  const parts = combo.split("+").map((part) => part.trim()).filter(Boolean);
   if (!parts.length) return false;
   const key = parts[parts.length - 1];
-  const ctrl = parts.includes("Ctrl");
-  const alt = parts.includes("Alt");
-  const shift = parts.includes("Shift");
+  const ctrl = parts.some((part) => part.toLowerCase() === "ctrl");
+  const alt = parts.some((part) => part.toLowerCase() === "alt");
+  const shift = parts.some((part) => part.toLowerCase() === "shift");
   const pressed = event.key.length === 1 ? event.key.toUpperCase() : event.key;
-  return pressed.toLowerCase() === key.toLowerCase()
+  const want = key.toLowerCase();
+  const keyMatch = pressed.toLowerCase() === want || event.code.toLowerCase() === want;
+  return keyMatch
     && (event.ctrlKey || event.metaKey) === ctrl
     && event.altKey === alt
     && event.shiftKey === shift;
