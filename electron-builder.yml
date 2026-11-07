@@ -2,6 +2,12 @@ appId: es.rok.desk
 productName: ROK Desk
 copyright: ROK Esports
 asar: true
+# npmRebuild: false is intentional. uiohook-napi is the only production native dependency and ships
+# N-API prebuilds (ABI-stable across Electron versions), so electron-builder must not compile it from
+# source. Any future native dependency must revisit this setting (it may need an Electron rebuild).
+npmRebuild: false
+asarUnpack:
+  - "**/node_modules/uiohook-napi/prebuilds/**"
 directories:
   output: release
   buildResources: electron/resources

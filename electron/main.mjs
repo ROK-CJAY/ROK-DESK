@@ -30,6 +30,7 @@ import {
 import { applyStableUserData, deskDataRoot } from "./desk-data.mjs";
 import { ensureSourcesRoot, openSources, writeSourceFiles } from "./sources.mjs";
 import { initUpdater } from "./updater.mjs";
+import { createRequire } from "node:module";
 import { createFgcHotkeys, trustedFgcSender } from "./fgc-hotkeys.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -431,6 +432,8 @@ const fgcHotkeys = createFgcHotkeys({
   globalShortcut,
   trusted: (contents) => !contents.isDestroyed() && trustedFgcSender({ sender: contents, senderFrame: contents.mainFrame }, fgcWindows, deskOrigin),
   deliver: (contents, payload) => contents.send("rok:fgc-hotkey", payload),
+  // Windows-only, loaded lazily on the first refused shortcut. Optional dependency: absence is reported, not fatal.
+  loadHook: process.platform === "win32" ? () => createRequire(import.meta.url)("uiohook-napi") : null,
 });
 app.on("will-quit", () => fgcHotkeys.clear());
 

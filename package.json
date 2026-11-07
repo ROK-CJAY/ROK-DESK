@@ -100,5 +100,8 @@
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.56.1",
     "vite": "^8.2.0"
+  },
+  "optionalDependencies": {
+    "uiohook-napi": "1.5.5"
   }
 }

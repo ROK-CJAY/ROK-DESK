@@ -55,7 +55,7 @@ export type ClearDataOpts = {
 
 export type RokDeskBridge = {
   desktop: true;
-  configureFgcHotkeys?: (config: { token: string; enabled: boolean; keys: Record<FgcHotkey, string> }) => Promise<{ registered?: FgcHotkey[]; errors: string[] }>;
+  configureFgcHotkeys?: (config: { token: string; enabled: boolean; keys: Record<FgcHotkey, string> }) => Promise<{ registered?: FgcHotkey[]; fallback?: FgcHotkey[]; errors: string[]; notices?: string[] }>;
   releaseFgcHotkeys?: (token: string) => Promise<void>;
   onFgcHotkey?: (cb: (payload: { token: string; action: FgcHotkey }) => void) => () => void;
   becomeHost?: () => Promise<boolean>;

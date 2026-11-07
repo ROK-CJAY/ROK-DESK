@@ -33,7 +33,7 @@ test("Ctrl+F1 and supported saved keys normalize to Electron accelerators", () =
 
 test("registered background callback delivers one allowlisted action", () => {
   const f = fixture();
-  assert.deepEqual(f.configure(), { registered: ["p1Up"], errors: [] });
+  assert.deepEqual(f.configure(), { registered: ["p1Up"], fallback: [], errors: [], notices: [] });
   f.bindings.get("CommandOrControl+F1")();
   assert.deepEqual(f.delivered, [[f.owner, { action: "p1Up", token: "session-1" }]]);
 });
@@ -144,7 +144,7 @@ function renderer({ native = true, settingsOpen = false, enabled = true, legacy 
   const context = {
     crypto: secureContext ? { randomUUID: () => "test-token" } : {}, fgc: state.fgc, settingsOpen,
     rokDesktop: () => bridge, useFgcStore: { getState: () => state },
-    setPicker: (value) => { picker = value; }, setHotkeyError: (value) => { issue = value; },
+    setPicker: (value) => { picker = value; }, setHotkeyError: (value) => { issue = value; }, setHotkeyNotice: () => {},
     useEffect(callback) { cleanup = callback(); },
     document: { querySelector: () => settingsOpen ? {} : null },
     window: { addEventListener(_name, callback) { onKey = callback; }, removeEventListener() { onKey = null; } },
@@ -195,4 +195,138 @@ test("no loaded set is safe; decrement floors at zero", () => {
   assert.equal(native.state.fgc.sets[0].score1, 1);
   const web = renderer({ native: false, secureContext: false }); web.key();
   assert.equal(web.state.fgc.sets[0].score1, 1);
+});
+
+// ---- Windows keyboard-hook fallback (mocked uiohook) ----
+import { EventEmitter } from "node:events";
+import { fgcHookChord, FGC_HOTKEY_LABELS } from "../electron/fgc-hotkeys.mjs";
+
+const KEYS = { Ctrl: 29, CtrlRight: 3613, F1: 59, F2: 60, F3: 61, F4: 62, F5: 63, A: 30 };
+function hookFixture({ taken = ["CommandOrControl+F1", "CommandOrControl+F3"], loadHook, startThrows = false } = {}) {
+  const bindings = new Map(taken.map((key) => [key, () => {}]));
+  const delivered = [];
+  const hook = new EventEmitter();
+  hook.starts = 0; hook.stops = 0;
+  hook.start = () => { if (startThrows) throw new Error("hook failed"); hook.starts++; };
+  hook.stop = () => { hook.stops++; };
+  let loads = 0;
+  const owner = { valid: true };
+  const controller = createFgcHotkeys({
+    globalShortcut: {
+      register(key, cb) { if (bindings.has(key)) return false; bindings.set(key, cb); return true; },
+      unregister(key) { bindings.delete(key); },
+    },
+    trusted: (c) => c.valid,
+    deliver: (c, payload) => delivered.push(payload),
+    loadHook: loadHook === undefined ? () => { loads++; return { uIOhook: hook, UiohookKey: KEYS }; } : loadHook,
+  });
+  const configure = (o = {}, c = owner) => controller.configure(c, { token: "s1", enabled: true, keys: { p1Up: "Ctrl+F1", p1Down: "Ctrl+F2", p2Up: "Ctrl+F3", p2Down: "Ctrl+F4" }, ...o });
+  const press = (keycode, mods = { ctrlKey: true }) => { hook.emit("keydown", { keycode, ...mods }); };
+  const release = (keycode) => hook.emit("keyup", { keycode });
+  return { controller, hook, bindings, delivered, owner, configure, press, release, loads: () => loads };
+}
+
+test("hook chords map default Ctrl+F1/F3 and reject unknown keys", () => {
+  assert.deepEqual(fgcHookChord("CommandOrControl+F1", KEYS), { keycode: 59, ctrl: true, alt: false, shift: false, meta: false });
+  assert.deepEqual(fgcHookChord("Alt+Shift+A", KEYS), { keycode: 30, ctrl: false, alt: true, shift: true, meta: false });
+  assert.equal(fgcHookChord("CommandOrControl+Home", KEYS), null);
+  assert.equal(fgcHookChord("CommandOrControl+F1", null), null);
+});
+
+test("refused Ctrl+F1/F3 fall back to the hook; others stay native", () => {
+  const f = hookFixture();
+  const status = f.configure();
+  assert.deepEqual(status.registered, ["p1Down", "p2Down"]);
+  assert.deepEqual(status.fallback, ["p1Up", "p2Up"]);
+  assert.deepEqual(status.errors, []);
+  assert.match(status.notices[0], /^Team 1 score up, Team 2 score up: the operating system refused to register these keys, so Desk is listening with a keyboard fallback\. The key press also reaches the focused app\.$/);
+  assert.doesNotMatch(status.notices[0], /another program/);
+  assert.equal(f.hook.starts, 1);
+  f.press(KEYS.F1); f.release(KEYS.F1); f.press(KEYS.F3);
+  assert.deepEqual(f.delivered.map((d) => d.action), ["p1Up", "p2Up"]);
+});
+
+test("hook requires exact modifiers and ignores natively-owned keys (no double fire)", () => {
+  const f = hookFixture();
+  f.configure();
+  f.press(KEYS.F1, {}); f.release(KEYS.F1);
+  f.press(KEYS.F1, { ctrlKey: true, shiftKey: true }); f.release(KEYS.F1);
+  f.press(KEYS.F2); f.release(KEYS.F2); // native owns Ctrl+F2: hook must not deliver
+  assert.equal(f.delivered.length, 0);
+  f.bindings.get("CommandOrControl+F2")();
+  assert.deepEqual(f.delivered.map((d) => d.action), ["p1Down"]);
+});
+
+test("auto-repeat while held delivers once until keyup", () => {
+  const f = hookFixture(); f.configure();
+  f.press(KEYS.F1); f.press(KEYS.F1); f.press(KEYS.F1);
+  assert.equal(f.delivered.length, 1);
+  f.release(KEYS.F1); f.press(KEYS.F1);
+  assert.equal(f.delivered.length, 2);
+});
+
+test("hook is not loaded when every key registers natively", () => {
+  const f = hookFixture({ taken: [] });
+  const status = f.configure();
+  assert.deepEqual(status.fallback, []); assert.equal(f.loads(), 0); assert.equal(f.hook.starts, 0);
+});
+
+test("settings suspension, release and reconfigure stop the hook and drop stale sessions", () => {
+  const f = hookFixture(); f.configure();
+  f.configure({ token: "settings", enabled: false });
+  assert.equal(f.hook.stops, 1); assert.equal(f.hook.listenerCount("keydown"), 0);
+  f.press(KEYS.F1); assert.equal(f.delivered.length, 0);
+  f.configure({ token: "s2" });
+  assert.equal(f.hook.listenerCount("keydown"), 1);
+  f.press(KEYS.F1); assert.deepEqual(f.delivered, [{ action: "p1Up", token: "s2" }]);
+  f.controller.release(f.owner, "stale-token"); assert.equal(f.hook.listenerCount("keydown"), 1);
+  f.controller.release(f.owner, "s2");
+  assert.equal(f.hook.listenerCount("keydown"), 0); assert.equal(f.hook.listenerCount("keyup"), 0);
+  assert.deepEqual([...f.bindings.keys()].sort(), ["CommandOrControl+F1", "CommandOrControl+F3"]); // external untouched
+});
+
+test("rapid resyncs keep exactly one listener and the latest token", () => {
+  const f = hookFixture();
+  for (let i = 0; i < 5; i++) f.configure({ token: `t${i}` });
+  assert.equal(f.hook.listenerCount("keydown"), 1);
+  f.press(KEYS.F3); assert.deepEqual(f.delivered, [{ action: "p2Up", token: "t4" }]);
+});
+
+test("untrusted/navigated owner gets nothing from the hook", () => {
+  const f = hookFixture(); f.configure();
+  f.owner.valid = false; f.press(KEYS.F1);
+  assert.equal(f.delivered.length, 0);
+});
+
+test("missing optional module reports truthfully and does not throw", () => {
+  const f = hookFixture({ loadHook: () => { throw new Error("Cannot find module"); } });
+  const status = f.configure();
+  assert.deepEqual(status.fallback, []); assert.deepEqual(status.registered, ["p1Down", "p2Down"]);
+  assert.equal(status.errors.length, 2); assert.match(status.errors[0], /^Team 1 score up: .*fallback is not installed/);
+});
+
+test("hook start failure reports truthfully and leaves no listeners", () => {
+  const f = hookFixture({ startThrows: true });
+  const status = f.configure();
+  assert.deepEqual(status.fallback, []); assert.equal(status.errors.length, 2);
+  assert.match(status.errors[0], /could not start/); assert.equal(f.hook.listenerCount("keydown"), 0);
+});
+
+test("non-Windows (no loadHook) keeps the plain refusal and never hooks", () => {
+  const f = hookFixture({ loadHook: null });
+  const status = f.configure();
+  assert.equal(status.errors.length, 2); assert.match(status.errors[0], /operating system refused Ctrl\+F1/);
+  assert.doesNotMatch(status.errors[0], /Windows/); assert.deepEqual(status.fallback, []);
+  assert.equal(FGC_HOTKEY_LABELS.p2Up, "Team 2 score up");
+});
+
+test("missed key-up is recovered on modifier release without repeat or double firing", () => {
+  const f = hookFixture(); f.configure();
+  f.press(KEYS.F1); // fires
+  // F1 key-up missed (e.g. lock screen/UAC); Ctrl released
+  f.release(KEYS.Ctrl);
+  f.press(KEYS.F1); f.press(KEYS.F1); // fresh chord fires once; held repeat suppressed
+  assert.deepEqual(f.delivered.map((d) => d.action), ["p1Up", "p1Up"]);
+  f.release(KEYS.F1); f.press(KEYS.F1);
+  assert.equal(f.delivered.length, 3);
 });

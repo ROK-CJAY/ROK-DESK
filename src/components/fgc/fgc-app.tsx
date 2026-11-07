@@ -336,6 +336,7 @@ function FgcDesk() {
   const [assets, setAssets] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hotkeyError, setHotkeyError] = useState("");
+  const [hotkeyNotice, setHotkeyNotice] = useState("");
   const [tab, setTab] = useState<"scoreboard" | "roster" | "commentary" | "info" | "bracket" | "ruleset" | "overlays">("scoreboard");
   const [overlayPane, setOverlayPane] = useState<"preview" | "editor" | "sources">("preview");
   const [copied, setCopied] = useState<string | null>(null);
@@ -423,8 +424,8 @@ function FgcDesk() {
         if (active && payload.token === token) dispatch(payload.action);
       });
       void desktop!.configureFgcHotkeys!({ token, enabled: fgc.settings.hotkeys && !settingsOpen, keys: fgc.settings.keys })
-        .then((status) => { if (active) setHotkeyError(status.errors.join(" ")); })
-        .catch(() => { if (active) setHotkeyError("Desktop hotkeys could not be enabled. Restart Desk and try again."); });
+        .then((status) => { if (active) { setHotkeyError(status.errors.join(" ")); setHotkeyNotice((status.notices ?? []).join(" ")); } })
+        .catch(() => { if (active) setHotkeyNotice(""); if (active) setHotkeyError("Desktop hotkeys could not be enabled. Restart Desk and try again."); });
     } else if (desktop) {
       setHotkeyError("This desktop build only supports focused-window hotkeys. Install and restart the updated desktop app for background hotkeys.");
     }
@@ -473,6 +474,7 @@ function FgcDesk() {
             </div>
             {error ? <p className="text-sm text-live">{error}</p> : null}
             {hotkeyError ? <p role="status" className="text-sm text-live">{hotkeyError}</p> : null}
+            {hotkeyNotice ? <p role="status" className="text-sm text-muted">{hotkeyNotice}</p> : null}
           </section>
           <GameStreams />
           <section className="flex flex-wrap items-end gap-3 rounded-xl border border-border bg-surface p-4">
