@@ -258,6 +258,8 @@ export type FgcBoard = {
   setId: string | null;
   streamId?: string;
   streamName?: string;
+  /** Last set start.gg had on this board's stream (stream poll), so manual picks are not overridden. */
+  lastStreamPick?: string;
 };
 
 /** A built-in rotating partner card: small label (\n for a line break), logo at logoH stage px tall, then a name. */

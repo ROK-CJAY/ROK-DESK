@@ -55,7 +55,11 @@ type FgcStore = {
   patchSet: (id: string, partial: Partial<FgcSet>) => void;
   patchPlayer: (setId: string, side: "p1" | "p2" | "p1b" | "p2b", partial: Partial<FgcPlayer>) => void;
   newSet: () => void;
-  loadStreamSet: () => Promise<void>;
+  /** Pull the set start.gg has on the active board's stream. auto = background poll (quiet, respects autoSet). */
+  loadStreamSet: (opts?: { auto?: boolean }) => Promise<{ ok: boolean; rateLimited?: boolean }>;
+  /** When the background stream poll last heard from start.gg (ms), 0 = never. */
+  streamPolledAt: number;
+  streamPollError: string;
   patchCaster: (id: string, partial: Partial<FgcCaster>) => void;
   saveRuleset: (ruleset: FgcRuleset) => void;
   deleteRuleset: (id: string) => void;
@@ -277,6 +281,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   ready: false,
   importing: false,
   error: "",
+  streamPolledAt: 0,
+  streamPollError: "",
   hydrate: () => {
     if (get().ready) return;
     const loaded = read();
@@ -470,26 +476,85 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     write(fgc);
     set({ fgc });
   },
-  loadStreamSet: async () => {
-    const { url, sets } = get().fgc;
-    set({ error: "" });
+  loadStreamSet: async (opts) => {
+    const auto = !!opts?.auto;
+    const start = get().fgc;
+    const url = start.url.trim();
+    if (!url) return { ok: false };
+    if (!auto) set({ error: "" });
+    const activeId = start.activeBoardId || "main";
+    const board = start.boards.find((item) => item.id === activeId) ?? null;
+    const knownStreams = new Set(start.sets.map((item) => item.streamName.trim().toLowerCase()).filter(Boolean));
+    const streamName = board?.streamName?.trim() || (board && knownStreams.has(board.name.trim().toLowerCase()) ? board.name.trim() : "");
+    const fail = (message: string, rateLimited = false) => {
+      if (auto) set({ streamPollError: message });
+      else set({ error: message });
+      return { ok: false, rateLimited };
+    };
     try {
       const res = await fetch("/api/startgg", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url, action: "stream", ...startggAuthBody() }),
+        body: JSON.stringify({ url, action: "stream", streamName, ...startggAuthBody() }),
       });
-      const body = (await res.json()) as { setId?: string | null; error?: string };
-      if (!res.ok) throw new Error(body.error || "Could not read the stream set");
-      if (!body.setId) throw new Error("No set is marked on stream");
-      const match = sets.find((set) => set.id === body.setId);
-      if (!match) throw new Error("Stream set is not in the imported list. Import again.");
-      const boards = (get().fgc.boards?.length ? get().fgc.boards : [defaultBoard(match.id)]).map((board) => board.id === (get().fgc.activeBoardId || "main") ? { ...board, setId: match.id } : board);
-      const fgc = { ...get().fgc, streamSetId: match.id, boards };
-      write(fgc);
-      set({ fgc });
+      let body: { setId?: string | null; set?: FgcSet | null; error?: string };
+      try {
+        body = (await res.json()) as typeof body;
+      } catch {
+        return fail("start.gg did not answer the stream check", res.status === 429);
+      }
+      if (!res.ok) return fail(body.error || "Could not read the stream set", res.status === 429);
+      // The event or board may have changed while the request was out.
+      if (get().fgc.url.trim() !== url) return { ok: true };
+      set({ streamPolledAt: Date.now(), streamPollError: "" });
+      if (!body.setId) {
+        if (!auto) set({ error: streamName ? `start.gg has no set on ${streamName}` : "No set is marked on stream" });
+        return { ok: true };
+      }
+      const fgc = get().fgc;
+      const settings = fgc.settings;
+      const previous = fgc.sets.find((item) => item.id === body.setId) ?? null;
+      let sets = fgc.sets;
+      if (body.set) {
+        const library = fgc.libraries.find((item) => item.game === fgc.event?.game) ?? fgc.libraries[0];
+        const align = (player: FgcPlayer | null) => {
+          if (!player?.character || !library) return player;
+          const found = library.characters.find((item) => item.name.toLowerCase() === player.character.toLowerCase());
+          return found ? { ...player, character: found.name } : player;
+        };
+        const players = get().players;
+        const incoming = {
+          ...body.set,
+          p1: applySaved(align(body.set.p1), players, settings.keepCharacters),
+          p2: applySaved(align(body.set.p2), players, settings.keepCharacters),
+          p1b: applySaved(align(body.set.p1b), players, settings.keepCharacters),
+          p2b: applySaved(align(body.set.p2b), players, settings.keepCharacters),
+        };
+        const merged = mergeImportedSet(previous ? { ...incoming, queued: previous.queued || incoming.queued, queueOrder: previous.queueOrder } : incoming, previous, { keepScores: !settings.autoScore });
+        // Keep characters picked on the desk when start.gg has none yet.
+        const keepPick = (next: FgcPlayer | null, old: FgcPlayer | null | undefined) =>
+          next && old && next.id === old.id && !next.character && old.character ? { ...next, character: old.character, skin: old.skin, character2: old.character2, skin2: old.skin2 } : next;
+        const final = previous ? { ...merged, p1: keepPick(merged.p1, previous.p1), p2: keepPick(merged.p2, previous.p2) } : merged;
+        sets = previous ? fgc.sets.map((item) => (item.id === final.id ? final : item)) : [final, ...fgc.sets];
+      } else if (!previous) {
+        return fail("Stream set is not in the imported list. Import again.");
+      }
+      const id = body.setId;
+      const boards = (fgc.boards?.length ? fgc.boards : [defaultBoard(null)]).map((item) => {
+        if (item.id !== activeId) return item;
+        // Background polls only move the board when start.gg's stream pick changes, so a set the
+        // operator picked by hand stays until start.gg puts a different set on the stream.
+        const follow = !auto || (settings.autoSet && item.lastStreamPick !== id);
+        return { ...item, lastStreamPick: id, setId: follow ? id : item.setId };
+      });
+      const activeSet = boards.find((item) => item.id === activeId)?.setId ?? fgc.streamSetId;
+      const next = { ...fgc, sets, boards, streamSetId: activeSet };
+      if (JSON.stringify(next.sets) === JSON.stringify(fgc.sets) && JSON.stringify(next.boards) === JSON.stringify(fgc.boards) && next.streamSetId === fgc.streamSetId) return { ok: true };
+      write(next);
+      set({ fgc: next });
+      return { ok: true };
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : "Could not load the stream set" });
+      return fail(err instanceof Error ? err.message : "Could not load the stream set");
     }
   },
   patchCaster: (id, partial) => {

@@ -94,6 +94,9 @@ function General({ settings, save, toggle }: { settings: FgcSettings; save: (nex
       <Row label="Disable automatic set updating for the scoreboard" onDefault={() => save({ ...settings, autoSet: DEFAULT_FGC_SETTINGS.autoSet })}>
         <Check checked={!settings.autoSet} onChange={() => toggle("autoSet")} />
       </Row>
+      <Row label="Follow the start.gg stream set automatically (checks about every 15 s)" onDefault={() => save({ ...settings, streamPoll: DEFAULT_FGC_SETTINGS.streamPoll })}>
+        <Check checked={settings.streamPoll} onChange={() => toggle("streamPoll")} />
+      </Row>
       <Row label="Do not update character data when a set is loaded" onDefault={() => save({ ...settings, keepCharacters: DEFAULT_FGC_SETTINGS.keepCharacters })}>
         <Check checked={settings.keepCharacters} onChange={() => toggle("keepCharacters")} />
       </Row>

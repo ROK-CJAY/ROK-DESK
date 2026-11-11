@@ -12,6 +12,8 @@ export type FgcSettings = {
   profanity: boolean;
   strikeScores: boolean;
   autoSet: boolean;
+  /** Poll start.gg for the set on the active board's stream (about every 15 s). */
+  streamPoll: boolean;
   keepCharacters: boolean;
   autoScore: boolean;
   keepPlayerDb: boolean;
@@ -35,6 +37,7 @@ export const DEFAULT_FGC_SETTINGS: FgcSettings = {
   profanity: true,
   strikeScores: true,
   autoSet: true,
+  streamPoll: true,
   keepCharacters: false,
   autoScore: true,
   keepPlayerDb: false,

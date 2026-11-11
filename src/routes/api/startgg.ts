@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
+import { currentStreamSet, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callBeforeAssign, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
+import { isRateLimit } from "@/lib/startgg-stream";
 import { bindLive, clearLive, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
 
 export const Route = createFileRoute("/api/startgg")({
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/api/startgg")({
           setId?: string;
           stationId?: string;
           streamId?: string;
+          streamName?: string;
           winnerId?: string;
           eventId?: string;
           count?: number;
@@ -144,8 +146,7 @@ export const Route = createFileRoute("/api/startgg")({
           const url = body.url?.trim() ?? "";
           if (!url) return Response.json({ error: "Paste a start.gg tournament or event link" }, { status: 400 });
           if (body.action === "stream") {
-            const setId = await currentStreamSetId(url, token);
-            return Response.json({ setId });
+            return Response.json(await currentStreamSet(url, body.streamName?.trim() || "", token));
           }
           if (body.action === "queue") {
             const queue = await eventStreamQueue(url, token);
@@ -158,10 +159,8 @@ export const Route = createFileRoute("/api/startgg")({
           const imported = await importStartggLink(url, token);
           return Response.json(imported);
         } catch (err) {
-          return Response.json(
-            { error: err instanceof Error ? err.message : "start.gg request failed" },
-            { status: 502 },
-          );
+          const message = err instanceof Error ? err.message : "start.gg request failed";
+          return Response.json({ error: message }, { status: isRateLimit(message) ? 429 : 502 });
         }
       },
     },

@@ -1,3 +1,4 @@
+import { pickStreamSet, type LiveSetIn, type QueueIn } from "@/lib/startgg-stream";
 import { blankPlayer, flagOf, type FgcEvent, type FgcPlayer, type FgcSet, type FgcSetState } from "@/lib/fgc-types";
 
 const ENDPOINT = "https://www.start.gg/api/-/gql";
@@ -57,6 +58,7 @@ export async function startggQuery<T>(query: string, variables: Record<string, u
     },
     body: JSON.stringify({ operationName, query, variables }),
   });
+  if (res.status === 429) throw new Error("start.gg rate limit (429). Slowing down.");
   const text = await res.text();
   if (!text.trim().startsWith("{") && !text.trim().startsWith("[")) {
     throw new Error("start.gg blocked the import. Try the event link again in a moment.");
@@ -96,14 +98,7 @@ const EVENT_QUERY = `
   }
 `;
 
-const SETS_QUERY = `
-  query FgcSets($id: ID!, $page: Int!) {
-    phaseGroup(id: $id) {
-      id
-      displayIdentifier
-      sets(page: $page, perPage: 16, sortType: ROUND) {
-        pageInfo { totalPages }
-        nodes {
+const SET_FIELDS = `
           id
           fullRoundText
           round
@@ -140,7 +135,16 @@ const SETS_QUERY = `
               }
             }
           }
-        }
+        `;
+
+const SETS_QUERY = `
+  query FgcSets($id: ID!, $page: Int!) {
+    phaseGroup(id: $id) {
+      id
+      displayIdentifier
+      sets(page: $page, perPage: 16, sortType: ROUND) {
+        pageInfo { totalPages }
+        nodes { ${SET_FIELDS} }
       }
     }
   }
@@ -561,12 +565,22 @@ export async function eventStreamQueue(url: string, token?: string): Promise<Str
 const STREAM_QUERY = `
   query FgcStream($slug: String!) {
     event(slug: $slug) {
+      id
       tournament {
-        streamQueue { sets { id } }
+        streamQueue { stream { id streamName } sets { id state event { id } } }
       }
-      sets(page: 1, perPage: 8, filters: { state: 2 }) {
-        nodes { id }
+      sets(page: 1, perPage: 20, filters: { state: [2] }) {
+        nodes { id state stream { streamName } }
       }
+    }
+  }
+`;
+
+const ONE_SET_QUERY = `
+  query FgcOneSet($id: ID!) {
+    set(id: $id) {
+      ${SET_FIELDS}
+      phaseGroup { displayIdentifier phase { name } }
     }
   }
 `;
@@ -657,16 +671,44 @@ export async function eventStandings(eventId: string, count: number, token?: str
   });
 }
 
-export async function currentStreamSetId(url: string, token?: string): Promise<string | null> {
+/**
+ * The set start.gg has on a stream (by stream name, "" = the only stream), plus that set's
+ * current data so the scoreboard can load it even if it was not imported yet.
+ * Two start.gg requests: the stream queue, then the picked set.
+ */
+export async function currentStreamSet(url: string, streamName = "", token?: string): Promise<{ setId: string | null; streamName: string; set: FgcSet | null }> {
   const slug = startggSlug(url);
   if (!slug) throw new Error("Import the event first");
   const data = await startggQuery<{
     event?: {
-      tournament?: { streamQueue?: { sets?: { id: string }[] | null } | null } | null;
-      sets?: { nodes?: { id: string }[] | null } | null;
+      id?: string | number | null;
+      tournament?: { streamQueue?: QueueIn[] | QueueIn | null } | null;
+      sets?: { nodes?: LiveSetIn[] | null } | null;
     } | null;
   }>(STREAM_QUERY, { slug }, "FgcStream", token);
-  return data.event?.tournament?.streamQueue?.sets?.[0]?.id ?? data.event?.sets?.nodes?.[0]?.id ?? null;
+  const pick = pickStreamSet({
+    queues: data.event?.tournament?.streamQueue,
+    live: data.event?.sets?.nodes,
+    eventId: data.event?.id == null ? "" : String(data.event.id),
+    streamName,
+  });
+  if (!pick) return { setId: null, streamName, set: null };
+  let set: FgcSet | null = null;
+  try {
+    const one = await startggQuery<{ set?: (RawSet & { phaseGroup?: { displayIdentifier?: string | null; phase?: { name?: string | null } | null } | null }) | null }>(ONE_SET_QUERY, { id: pick.setId }, "FgcOneSet", token);
+    if (one.set) {
+      const phase = one.set.phaseGroup?.phase?.name?.trim() || "";
+      set = { ...normalizeSet(one.set, phase, one.set.phaseGroup?.displayIdentifier?.trim() || phase), streamName: pick.streamName || one.set.stream?.streamName?.trim() || "", queued: pick.source === "queue" };
+    }
+  } catch {
+    set = null;
+  }
+  return { setId: pick.setId, streamName: pick.streamName, set };
+}
+
+/** @deprecated kept for callers that only need the id. */
+export async function currentStreamSetId(url: string, token?: string, streamName = ""): Promise<string | null> {
+  return (await currentStreamSet(url, streamName, token)).setId;
 }
 
 export type StartggRuleset = {

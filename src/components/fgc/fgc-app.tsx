@@ -28,12 +28,15 @@ import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { rokDesktop } from "@/lib/rok-desktop";
 import { FgcSettingsButton } from "@/components/fgc/fgc-settings";
 import { cn } from "@/lib/cn";
+import { nextPollDelay } from "@/lib/startgg-stream";
 
 function stateLabel(state: FgcSet["state"]) {
   if (state === "live") return "Live";
   if (state === "done") return "Done";
   return "Queued";
 }
+
+const STREAM_POLL_MS = 15_000;
 
 function SetPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
   const fgc = useFgcStore((s) => s.fgc);
@@ -376,6 +379,42 @@ function FgcDesk() {
     return () => window.clearInterval(timer);
   }, [hydrate]);
 
+  const streamPoll = fgc.settings.streamPoll !== false;
+  const pollUrl = fgc.url.trim();
+  const hasEvent = !!fgc.event;
+  const activeBoardId = fgc.activeBoardId || "main";
+  const streamPolledAt = useFgcStore((s) => s.streamPolledAt);
+  const streamPollError = useFgcStore((s) => s.streamPollError);
+  // Follow the set start.gg has on this board's stream: ~15 s, paused while the tab is hidden,
+  // backing off on errors and to 60 s on a start.gg rate limit. Stops when the desk closes.
+  useEffect(() => {
+    if (!streamPoll || !pollUrl || !hasEvent) return;
+    let stopped = false;
+    let running = false;
+    let timer = 0;
+    let delay = STREAM_POLL_MS;
+    const tick = async () => {
+      window.clearTimeout(timer);
+      if (stopped || running) return;
+      if (document.hidden) return;
+      running = true;
+      const result = await useFgcStore.getState().loadStreamSet({ auto: true });
+      running = false;
+      delay = nextPollDelay(delay, result.ok ? "ok" : result.rateLimited ? "rate-limit" : "error", STREAM_POLL_MS);
+      if (!stopped) timer = window.setTimeout(() => void tick(), delay);
+    };
+    const onVisible = () => {
+      if (!document.hidden) void tick();
+    };
+    void tick();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [streamPoll, pollUrl, hasEvent, activeBoardId]);
+
   const live = setForBoard(fgc);
 
   useEffect(() => {
@@ -473,6 +512,15 @@ function FgcDesk() {
               ) : null}
             </div>
             {error ? <p className="text-sm text-live">{error}</p> : null}
+            {streamPoll && pollUrl && hasEvent ? (
+              <p role="status" className="text-xs text-muted">
+                {streamPollError
+                  ? `Stream follow: ${streamPollError} (retrying)`
+                  : streamPolledAt
+                    ? `Following the start.gg stream set · checked ${new Date(streamPolledAt).toLocaleTimeString()}`
+                    : "Following the start.gg stream set"}
+              </p>
+            ) : null}
             {hotkeyError ? <p role="status" className="text-sm text-live">{hotkeyError}</p> : null}
             {hotkeyNotice ? <p role="status" className="text-sm text-muted">{hotkeyNotice}</p> : null}
           </section>
