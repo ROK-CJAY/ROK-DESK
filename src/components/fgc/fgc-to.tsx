@@ -13,6 +13,7 @@ import { BracketBoard } from "@/components/fgc/fgc-bracket";
 import { blankPlayer, blankSet } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 import { cn } from "@/lib/cn";
+import { onSpot } from "@/lib/fgc-spot";
 
 type SetDraft = { score1: number; score2: number; character1: string; character2: string; stageId: string };
 
@@ -556,7 +557,7 @@ function StationFloor({
         {board.stations.some((item) => !item.streamId) ? (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             {board.stations.filter((item) => !item.streamId).map((item) => {
-              const here = liveSet(board.sets.filter((row) => row.stationId === item.id && row.state !== 3));
+              const here = liveSet(board.sets.filter((row) => row.state !== 3 && onSpot(row, { stationId: item.id })));
               const clock = here ? clocks[here.id] : null;
               const tone = stationTone(here?.state);
               return (
@@ -587,7 +588,7 @@ function StationFloor({
                   .filter((stream) => !board.stations.some((item) => item.streamId === stream.id || item.id === stream.stationId))
                   .map((stream) => ({ key: stream.id, openId: stream.stationId || stream.id, name: stream.name, stationId: stream.stationId, streamId: stream.id })),
               ].map((item) => {
-                const here = liveSet(board.sets.filter((row) => row.state !== 3 && (row.stationId === item.stationId || row.streamId === item.streamId)));
+                const here = liveSet(board.sets.filter((row) => row.state !== 3 && onSpot(row, item)));
                 const clock = here ? clocks[here.id] : null;
                 const tone = stationTone(here?.state);
                 return (

@@ -4,6 +4,7 @@ import { blankRuleset, libraryFor, type FgcRuleset, type FgcState } from "@/lib/
 import { getSql } from "@/lib/db";
 import { beginToSet, callToSet, loadToBoard, matchStageId, reportToSet, stagesForSet, type ToBoard, type ToSet } from "@/lib/startgg-to";
 import { refreshStartggLogin } from "@/lib/startgg-oauth";
+import { onSpot } from "@/lib/fgc-spot";
 
 const LIVE = "to-live";
 const BOARD = "to-board";
@@ -124,7 +125,7 @@ async function boardOf(live: ToLive): Promise<ToBoard> {
 }
 
 function setOnStation(sets: ToSet[], stationId: string, streamId = "") {
-  const rows = sets.filter((set) => set.state !== 3 && !set.winnerId && (set.stationId === stationId || (streamId && set.streamId === streamId)));
+  const rows = sets.filter((set) => set.state !== 3 && !set.winnerId && onSpot(set, { stationId, streamId }));
   return rows.find((set) => set.state === 2) ?? rows.find((set) => set.state === 6) ?? rows[0] ?? null;
 }
 
@@ -219,8 +220,8 @@ export async function reportStation(
   const board = await boardOf(live);
   const set = board.sets.find((item) => item.id === input.setId);
   const stream = board.streams.find((item) => item.id === input.stationId || item.stationId === input.stationId);
-  const onSpot = !!set && (set.stationId === input.stationId || (!!stream && (set.streamId === stream.id || set.stationId === stream.stationId)));
-  if (!set || !onSpot) throw new Error("That set is no longer on this station.");
+  const here = !!set && (onSpot(set, { stationId: input.stationId }) || (!!stream && onSpot(set, { stationId: stream.stationId, streamId: stream.id })));
+  if (!set || !here) throw new Error("That set is no longer on this station.");
   if (!input.winnerId) throw new Error("This set has no start.gg player to report.");
   const played = input.games?.length ? input.games : [{ winnerId: input.winnerId, stage: input.stage }];
   let stages: { id: string; name: string }[] = board.stages;
