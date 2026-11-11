@@ -1,8 +1,11 @@
 import { useEffect, useSyncExternalStore } from "react";
 import type { FgcCharacter, FgcLibrary } from "@/lib/fgc-types";
 import { startggAuthBody } from "@/lib/startgg-link";
+import { isStagePack, LEGACY_SKIN_SHAPE, LEGACY_STAGE_SHAPE, packShapeFrom, skinIndexes, skinPath, stagePath, TSH_RAW, type PackConfig, type PackShape } from "@/lib/fgc-asset-paths";
 
 export type AssetPack = {
+  /** Folder in StreamHelperAssets (website, full, stage_icon, ...). */
+  id?: string;
   name: string;
   description?: string;
   version?: string;
@@ -17,7 +20,7 @@ export type CatalogGame = {
 };
 
 const TSH_CATALOG = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/assets.json";
-const TSH_SITE = "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main";
+const TSH_SITE = TSH_RAW;
 
 export function catalogUrl(base: string): string {
   const root = base.trim().replace(/\/$/, "");
@@ -34,6 +37,7 @@ export async function loadCatalog(base: string): Promise<CatalogGame[]> {
       code,
       name: game.name || code,
       packs: Object.entries(game.assets ?? {}).map(([id, pack]) => ({
+        id,
         name: pack.name || id,
         description: pack.description,
         version: pack.version,
@@ -50,12 +54,28 @@ function tshHost(base: string): string {
   return root;
 }
 
-export function previewUrl(base: string, game: string, code: string, skin: number): string {
-  return `${tshHost(base)}/games/${game}/website/${code}_${skin}.png`;
+/** Shape info a URL needs from a library (older saved libraries have none: legacy website/ layout). */
+export type AssetShapes = { skinPack?: PackShape; stagePack?: PackShape } | null | undefined;
+
+function usesTsh(base: string) {
+  const root = base.trim().replace(/\/$/, "");
+  return !root || /assets\.rokdesk\.app/i.test(root) || root === TSH_SITE;
 }
 
-export function stageIconUrl(base: string, game: string, code: string): string {
-  return `${tshHost(base)}/games/${game}/stage_icon/stage_2_${code}.png`;
+/** TSH files go through ROK Desk (downloaded copy, else a redirect to StreamHelperAssets) so OBS can load them. */
+function fileUrl(base: string, rel: string): string {
+  if (!usesTsh(base)) return `${tshHost(base)}/${rel}`;
+  // Absolute in the browser so OBS text/image sources written from the desk can load it too.
+  const origin = typeof window !== "undefined" && /^https?:/.test(window.location.origin) ? window.location.origin : "";
+  return `${origin}/api/fgc/assets?file=${encodeURIComponent(rel)}`;
+}
+
+export function previewUrl(base: string, game: string, code: string, skin: number, library?: AssetShapes): string {
+  return fileUrl(base, skinPath(game, library?.skinPack ?? LEGACY_SKIN_SHAPE, code, skin));
+}
+
+export function stageIconUrl(base: string, game: string, code: string, library?: AssetShapes): string {
+  return fileUrl(base, stagePath(game, library?.stagePack ?? LEGACY_STAGE_SHAPE, code));
 }
 
 const titleImages = new Map<string, string>();
@@ -227,12 +247,12 @@ export function localStage(game: string, code: string): string | null {
   return localStages.get(stageKey(game, code)) ?? null;
 }
 
-export function resolvePreview(base: string, game: string, code: string, skin: number): string {
-  return localSkin(game, code, skin) ?? previewUrl(base, game, code, skin);
+export function resolvePreview(base: string, game: string, code: string, skin: number, library?: AssetShapes): string {
+  return localSkin(game, code, skin) ?? previewUrl(base, game, code, skin, library);
 }
 
-export function resolveStage(base: string, game: string, code: string): string {
-  return localStage(game, code) ?? stageIconUrl(base, game, code);
+export function resolveStage(base: string, game: string, code: string, library?: AssetShapes): string {
+  return localStage(game, code) ?? stageIconUrl(base, game, code, library);
 }
 
 export async function hydrateLocalAssets() {
@@ -381,11 +401,35 @@ export function withIcons(characters: FgcCharacter[], icons: Record<string, stri
   }));
 }
 
-export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack): Promise<FgcLibrary> {
+export type AssetProgress = { done: number; total: number; saved: number; cached: number; missing: number; failed: number; problems: string[] };
+
+async function packConfig(root: string, game: string, folder: string): Promise<PackConfig | null> {
+  try {
+    const res = await fetch(`${root}/games/${game}/${folder}/config.json`);
+    if (!res.ok) return null;
+    return (await res.json()) as PackConfig;
+  } catch {
+    return null;
+  }
+}
+
+/** Has the pack config got this stage / character code at all? null = config does not say. */
+function listed(config: PackConfig | null, code: string): boolean | null {
+  const table = config?.image_sizes && Object.keys(config.image_sizes).length ? config.image_sizes : config?.eyesights;
+  if (!table || !Object.keys(table).length) return null;
+  return !!table[code];
+}
+
+/**
+ * Install a Tournament Stream Helper pack: read the game's character list plus the chosen pack's
+ * config (folder, filename prefix/postfix, exact skin indexes), then download every listed file
+ * to this desk (validated, retried, atomic) so overlays and OBS load them from ROK Desk.
+ */
+export async function installLibrary(base: string, game: CatalogGame, pack: AssetPack, onProgress?: (progress: AssetProgress) => void, current?: FgcLibrary | null): Promise<FgcLibrary> {
   const root = base.trim().replace(/\/$/, "");
-  const configUrl = !root || /assets\.rokdesk\.app/i.test(root)
-    ? `https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main/games/${game.code}/base_files/config.json`
-    : `${root}/games/${game.code}/library.json`;
+  const tsh = usesTsh(base);
+  const host = tsh ? TSH_SITE : root;
+  const configUrl = tsh ? `${TSH_SITE}/games/${game.code}/base_files/config.json` : `${root}/games/${game.code}/library.json`;
   const res = await fetch(configUrl);
   if (!res.ok) throw new Error("That pack has no character library yet");
   const body = (await res.json()) as {
@@ -395,13 +439,30 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
     character_to_codename?: Record<string, { codename?: string } | string>;
     stage_to_codename?: Record<string, { codename?: string } | string>;
   };
-  const characters = body.characters?.length
+  const folder = pack.id || game.packs.find((item) => item.name === pack.name)?.id || "";
+  const chosen = folder ? await packConfig(host, game.code, folder) : null;
+  const stageFolder = game.packs.some((item) => item.id === "stage_icon") ? "stage_icon" : "";
+  const stagePick = folder && isStagePack(folder, chosen) ? { folder, config: chosen } : stageFolder ? { folder: stageFolder, config: await packConfig(host, game.code, stageFolder) } : null;
+  const skinPick = folder && !isStagePack(folder, chosen) && folder !== "base_files" ? { folder, config: chosen } : null;
+  const skinPack = skinPick ? packShapeFrom(skinPick.folder, skinPick.config, "skin") : current?.skinPack;
+  const stagePack = stagePick ? packShapeFrom(stagePick.folder, stagePick.config, "stage") : current?.stagePack;
+  const skinConfig = skinPick?.config ?? null;
+  const baseCharacters: FgcCharacter[] = body.characters?.length
     ? body.characters
     : Object.entries(body.character_to_codename ?? {}).map(([name, value]) => ({
         name,
         code: typeof value === "string" ? value : value.codename || name,
         skins: 8,
       }));
+  const previousSkins = new Map((current?.characters ?? []).map((item) => [item.code, item]));
+  const characters = baseCharacters.map((character) => {
+    if (!skinPick) {
+      const old = previousSkins.get(character.code);
+      return old?.skinList ? { ...character, skins: old.skinList.length, skinList: old.skinList } : character;
+    }
+    const list = skinIndexes(skinConfig, character.code);
+    return list ? { ...character, skins: list.length ? Math.max(...list) + 1 : 0, skinList: list } : character;
+  });
   const stages = body.stages?.length
     ? body.stages
     : Object.entries(body.stage_to_codename ?? {}).map(([name, value]) => ({
@@ -409,7 +470,7 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
         code: typeof value === "string" ? value : value.codename || name,
       }));
   const icons = await stockIconsFor(game.name, body.smashgg_game_id ? String(body.smashgg_game_id) : undefined);
-  return {
+  const library: FgcLibrary = {
     game: game.name,
     code: game.code,
     pack: pack.name,
@@ -417,7 +478,61 @@ export async function installLibrary(base: string, game: CatalogGame, pack: Asse
     startggGameId: body.smashgg_game_id ? String(body.smashgg_game_id) : undefined,
     characters: withIcons(characters, icons),
     stages,
+    ...(skinPack ? { skinPack } : {}),
+    ...(stagePack ? { stagePack } : {}),
+    ...(current?.downloaded ? { downloaded: current.downloaded } : {}),
   };
+  if (!tsh) return library;
+  // Exactly the files the pack lists, nothing guessed.
+  const files: string[] = [];
+  if (skinPick && skinPack) {
+    for (const character of characters) {
+      for (const skin of character.skinList ?? []) files.push(skinPath(game.code, skinPack, character.code, skin));
+    }
+  }
+  const skinCount = files.length;
+  if (stagePick && stagePack) {
+    for (const stage of stages) {
+      if (listed(stagePick.config, stage.code) !== false) files.push(stagePath(game.code, stagePack, stage.code));
+    }
+  }
+  const skinFiles = new Set(files.slice(0, skinCount));
+  let skinHits = 0;
+  const progress: AssetProgress = { done: 0, total: files.length, saved: 0, cached: 0, missing: 0, failed: 0, problems: [] };
+  onProgress?.({ ...progress });
+  for (let index = 0; index < files.length; index += 24) {
+    const batch = files.slice(index, index + 24);
+    let results: { path: string; status: "saved" | "cached" | "missing" | "failed"; reason?: string }[] = [];
+    try {
+      const answer = await fetch("/api/fgc/assets", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ files: batch }) });
+      if (!answer.ok) throw new Error(`desk answered ${answer.status}`);
+      results = ((await answer.json()) as { results?: typeof results }).results ?? [];
+    } catch (err) {
+      results = batch.map((item) => ({ path: item, status: "failed" as const, reason: err instanceof Error ? err.message : "download failed" }));
+    }
+    for (const result of results) {
+      progress[result.status] += 1;
+      if (skinFiles.has(result.path) && (result.status === "saved" || result.status === "cached")) skinHits += 1;
+      if (result.status === "missing" || result.status === "failed") {
+        progress.problems.push(`${decodeURIComponent(result.path.split("/").pop() || result.path)}${result.reason ? ` (${result.reason})` : ""}`);
+      }
+    }
+    progress.done = Math.min(files.length, index + batch.length);
+    onProgress?.({ ...progress, problems: [...progress.problems] });
+  }
+  if (skinCount && !skinHits) {
+    // Some packs are only published as a .7z archive, not file by file: keep the previous skins.
+    library.skinPack = current?.skinPack;
+    library.pack = current?.pack || pack.name;
+    library.characters = library.characters.map((character) => {
+      const old = previousSkins.get(character.code);
+      return old ? { ...character, skins: old.skins, skinList: old.skinList } : { ...character, skinList: undefined, skins: 8 };
+    });
+    progress.problems.unshift(`${pack.name} is only published as an archive by Tournament Stream Helper, so it cannot be downloaded file by file. Kept the previous skins; try another pack (Website / Full)`);
+    onProgress?.({ ...progress, problems: [...progress.problems] });
+  }
+  if (files.length) library.downloaded = { at: new Date().toISOString(), saved: progress.saved + progress.cached, missing: progress.missing, failed: progress.failed };
+  return library;
 }
 
 export function useTitleImages() {

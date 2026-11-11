@@ -405,6 +405,8 @@ export type FgcCharacter = {
   name: string;
   code: string;
   skins: number;
+  /** Exact skin indexes the installed pack ships (from its config image_sizes). [] = no art. */
+  skinList?: number[];
   icon?: string;
 };
 
@@ -421,6 +423,11 @@ export type FgcLibrary = {
   startggGameId?: string;
   characters: FgcCharacter[];
   stages: FgcStage[];
+  /** Pack folder + filename shape for skins / stage icons (from the pack's config.json). */
+  skinPack?: { folder: string; prefix: string; postfix: string };
+  stagePack?: { folder: string; prefix: string; postfix: string };
+  /** Files were downloaded to this desk (served at /api/fgc/assets). */
+  downloaded?: { at: string; saved: number; missing: number; failed: number };
 };
 
 export type FgcRuleset = {

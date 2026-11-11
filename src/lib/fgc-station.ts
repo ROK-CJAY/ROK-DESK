@@ -176,7 +176,7 @@ function stageArt(fgc: FgcState, names: string[]) {
   if (!library) return art;
   for (const name of names) {
     const stage = library.stages.find((item) => item.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0);
-    if (stage) art[name] = stageIconUrl(fgc.assetBase, library.code, stage.code);
+    if (stage) art[name] = stageIconUrl(fgc.assetBase, library.code, stage.code, library);
   }
   return art;
 }

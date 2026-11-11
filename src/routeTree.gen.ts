@@ -71,6 +71,7 @@ import { Route as PrintTeamListRouteImport } from './routes/print/team-list'
 import { Route as GameSlotTabletRouteImport } from './routes/$game/$slot/tablet'
 import { Route as GameOverlaySourceRouteImport } from './routes/$game/overlay/$source'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiFgcAssetsRouteImport } from './routes/api/fgc/assets'
 import { Route as ApiFgcProgramStateRouteImport } from './routes/api/fgc/program-state'
 import { Route as ApiFgcTshLayoutRouteImport } from './routes/api/fgc/tsh-layout'
 import { Route as ApiLorcanaPlayhubRouteImport } from './routes/api/lorcana/playhub'
@@ -393,6 +394,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFgcAssetsRoute = ApiFgcAssetsRouteImport.update({
+  id: '/api/fgc/assets',
+  path: '/api/fgc/assets',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiFgcProgramStateRoute = ApiFgcProgramStateRouteImport.update({
   id: '/api/fgc/program-state',
   path: '/api/fgc/program-state',
@@ -514,6 +520,7 @@ export interface FileRoutesByFullPath {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/fgc/assets': typeof ApiFgcAssetsRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -587,6 +594,7 @@ export interface FileRoutesByTo {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/fgc/assets': typeof ApiFgcAssetsRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -663,6 +671,7 @@ export interface FileRoutesById {
   '/$game/$slot/tablet': typeof GameSlotTabletRoute
   '/$game/overlay/$source': typeof GameOverlaySourceRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/fgc/assets': typeof ApiFgcAssetsRoute
   '/api/fgc/program-state': typeof ApiFgcProgramStateRoute
   '/api/fgc/tsh-layout': typeof ApiFgcTshLayoutRoute
   '/api/lorcana/playhub': typeof ApiLorcanaPlayhubRoute
@@ -740,6 +749,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/fgc/assets'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -813,6 +823,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/fgc/assets'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -888,6 +899,7 @@ export interface FileRouteTypes {
     | '/$game/$slot/tablet'
     | '/$game/overlay/$source'
     | '/api/auth/$'
+    | '/api/fgc/assets'
     | '/api/fgc/program-state'
     | '/api/fgc/tsh-layout'
     | '/api/lorcana/playhub'
@@ -940,6 +952,7 @@ export interface RootRouteChildren {
   GameSlotTabletRoute: typeof GameSlotTabletRoute
   GameOverlaySourceRoute: typeof GameOverlaySourceRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiFgcAssetsRoute: typeof ApiFgcAssetsRoute
   ApiFgcProgramStateRoute: typeof ApiFgcProgramStateRoute
   ApiFgcTshLayoutRoute: typeof ApiFgcTshLayoutRoute
   ApiLorcanaPlayhubRoute: typeof ApiLorcanaPlayhubRoute
@@ -1383,6 +1396,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/fgc/assets': {
+      id: '/api/fgc/assets'
+      path: '/api/fgc/assets'
+      fullPath: '/api/fgc/assets'
+      preLoaderRoute: typeof ApiFgcAssetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/fgc/program-state': {
       id: '/api/fgc/program-state'
       path: '/api/fgc/program-state'
@@ -1600,6 +1620,7 @@ const rootRouteChildren: RootRouteChildren = {
   GameSlotTabletRoute: GameSlotTabletRoute,
   GameOverlaySourceRoute: GameOverlaySourceRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiFgcAssetsRoute: ApiFgcAssetsRoute,
   ApiFgcProgramStateRoute: ApiFgcProgramStateRoute,
   ApiFgcTshLayoutRoute: ApiFgcTshLayoutRoute,
   ApiLorcanaPlayhubRoute: ApiLorcanaPlayhubRoute,

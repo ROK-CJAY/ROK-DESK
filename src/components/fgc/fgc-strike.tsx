@@ -163,7 +163,7 @@ export function FgcStrike() {
   const art = (name: string) => {
     if (stationId) return station?.art[name] || "";
     const stage = library?.stages.find((item) => item.name.localeCompare(name, undefined, { sensitivity: "base" }) === 0);
-    return stage && library ? resolveStage(fgc.assetBase, library.code, stage.code) : "";
+    return stage && library ? resolveStage(fgc.assetBase, library.code, stage.code, library) : "";
   };
   const bannedBy = (name: string) => (snap.by[0].includes(name) ? names[0] : snap.by[1].includes(name) ? names[1] : "");
 

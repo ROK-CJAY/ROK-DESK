@@ -287,7 +287,7 @@ function StageStrike() {
   const library = libraryFor(fgc);
   const icon = (name: string) => {
     const stage = library?.stages.find((item) => item.name === name);
-    return stage ? stageIconUrl("", library?.code || "", stage.code) : "";
+    return stage ? stageIconUrl(fgc.assetBase, library?.code || "", stage.code, library) : "";
   };
   const pile = (title: string, names: string[]) => (
     <div>

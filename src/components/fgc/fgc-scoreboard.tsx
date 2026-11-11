@@ -138,7 +138,7 @@ function StageField({ value, onChange }: { value: string; onChange: (stage: stri
       options={stages.map((stage) => ({
         value: stage.name,
         label: stage.name,
-        url: resolveStage(assetBase, library?.code ?? "", stage.code),
+        url: resolveStage(assetBase, library?.code ?? "", stage.code, library),
       }))}
     />
   );
@@ -148,15 +148,17 @@ export function SkinField({ character, value, onChange }: { character: string; v
   const library = useFgcStore((s) => libraryFor(s.fgc));
   const assetBase = useFgcStore((s) => s.fgc.assetBase);
   const found = library?.characters.find((item) => item.name === character);
-  if (!found?.skins) return <Input className="min-w-0 flex-1" type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
+  // Only the skins the installed pack really has (older libraries: 0..skins-1).
+  const skins = found?.skinList ?? Array.from({ length: found?.skins ?? 0 }, (_, skin) => skin);
+  if (!found || !skins.length) return <Input className="min-w-0 flex-1" type="number" min={0} value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} />;
   return (
     <Picker
       value={String(value)}
       onChange={(next) => onChange(Number(next))}
-      options={Array.from({ length: found.skins }, (_, skin) => ({
+      options={skins.map((skin) => ({
         value: String(skin),
         label: String(skin),
-        url: resolvePreview(assetBase, library?.code ?? "", found.code, skin),
+        url: resolvePreview(assetBase, library?.code ?? "", found.code, skin, library),
       }))}
     />
   );

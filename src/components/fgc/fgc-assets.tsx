@@ -3,7 +3,7 @@ import { Download, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FgcGuideButton } from "@/components/fgc/fgc-guide";
 import { Input } from "@/components/ui/input";
-import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type CatalogGame } from "@/lib/fgc-assets";
+import { hydrateLocalAssets, installLibrary, loadCatalog, saveUploadedPack, type AssetProgress, type CatalogGame } from "@/lib/fgc-assets";
 import { type FgcLibrary } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
 
@@ -18,6 +18,7 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
   const [busy, setBusy] = useState("");
   const [kind, setKind] = useState<"skin" | "stage">("skin");
   const [report, setReport] = useState("");
+  const [progress, setProgress] = useState<AssetProgress | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -60,6 +61,18 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
           {error ? <p className="text-sm text-live">{error}</p> : null}
+          {progress ? (
+            <div className="mb-3 rounded-md border border-border p-3 text-xs">
+              <p className="font-medium">
+                {progress.done < progress.total ? `Downloading ${progress.done} / ${progress.total}` : `Done: ${progress.saved + progress.cached} of ${progress.total} files on this desk`}
+                {progress.missing ? ` · ${progress.missing} not in the pack` : ""}
+                {progress.failed ? ` · ${progress.failed} failed (press Update to retry)` : ""}
+              </p>
+              {progress.problems.length ? (
+                <p className="mt-1 max-h-24 overflow-y-auto text-muted">{progress.problems.slice(0, 40).join(", ")}{progress.problems.length > 40 ? ` … +${progress.problems.length - 40}` : ""}</p>
+              ) : null}
+            </div>
+          ) : null}
           {libraries.length ? (
             <p className="mb-3 text-xs text-muted">
               Saved on this desk: {libraries.map((item) => item.game).join(", ")}
@@ -118,7 +131,7 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                 <li key={pack.name} className="flex items-center gap-3 py-3">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{pack.name}</p>
-                    <p className="truncate text-xs text-muted">{pack.description || "Asset library"} · {pack.version}</p>
+                    <p className="truncate text-xs text-muted">{pack.description || "Asset library"} · {pack.version}{pack.size ? ` · about ${Math.max(1, Math.round(pack.size / 1e6))} MB` : ""}</p>
                   </div>
                   <Button
                     size="sm"
@@ -126,7 +139,9 @@ export function FgcAssetsDialog({ open, onClose }: { open: boolean; onClose: () 
                     onClick={() => {
                       setBusy(pack.name);
                       setError("");
-                      void installLibrary(assetBase, selected, pack)
+                      setProgress(null);
+                      const current = libraries.find((item) => item.code === selected.code) ?? null;
+                      void installLibrary(assetBase, selected, pack, setProgress, current)
                         .then((next) => {
                           setLibrary(next);
                           setBusy("");

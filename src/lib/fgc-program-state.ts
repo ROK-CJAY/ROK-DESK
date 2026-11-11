@@ -1,14 +1,9 @@
 import { EMPTY_FGC, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
-import { stageIconUrl } from "@/lib/fgc-assets";
+import { previewUrl, stageIconUrl } from "@/lib/fgc-assets";
 import { resolveLane, setForBoard } from "@/lib/fgc-lanes";
 import { cleanSpeech } from "@/lib/fgc-settings";
 import { getSql } from "@/lib/db";
 
-function assetUrl(base: string, game: string, code: string, skin: number) {
-  const root = base.trim().replace(/\/$/, "");
-  const host = !root || /assets\.rokdesk\.app/i.test(root) ? "https://raw.githubusercontent.com/joaorb64/StreamHelperAssets/main" : root;
-  return `${host}/games/${game}/website/${code}_${skin}.png`;
-}
 
 function liveSet(fgc: FgcState, boardId?: string | null) {
   return setForBoard(fgc, boardId);
@@ -49,7 +44,7 @@ function characterOf(fgc: FgcState, player: FgcPlayer | null) {
   names.forEach((name, index) => {
     const known = library?.characters.find((item) => item.name.toLowerCase() === name.toLowerCase());
     const code = known?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    const asset = library ? assetUrl(fgc.assetBase, library.code, code, skins[index] || 0) : "";
+    const asset = library && (!known?.skinList || known.skinList.includes(skins[index] || 0)) ? previewUrl(fgc.assetBase, library.code, code, skins[index] || 0, library) : "";
     character[String(index + 1)] = {
       name,
       codename: code,
@@ -115,7 +110,7 @@ function stageCard(fgc: FgcState, name: string) {
   const library = libraryFor(fgc);
   const stage = library?.stages.find((item) => item.name.toLowerCase() === name.toLowerCase());
   const code = stage?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-  return { name, codename: code, path: library ? stageIconUrl(fgc.assetBase, library.code, code) : "" };
+  return { name, codename: code, path: library ? stageIconUrl(fgc.assetBase, library.code, code, library) : "" };
 }
 
 function recentSets(fgc: FgcState, player: FgcPlayer | null) {

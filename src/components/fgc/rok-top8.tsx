@@ -32,7 +32,7 @@ function renderOf(fgc: FgcState, player: FgcPlayer | null) {
   const library = libraryFor(fgc);
   const found = library?.characters.find((item) => item.name.toLowerCase() === player.character.toLowerCase());
   return {
-    art: found ? resolvePreview(fgc.assetBase, library?.code || "", found.code, player.skin || 0) : "",
+    art: found ? resolvePreview(fgc.assetBase, library?.code || "", found.code, player.skin || 0, library) : "",
     icon: found?.icon || "",
   };
 }

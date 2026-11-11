@@ -303,7 +303,9 @@ export function titleImage(fgc: FgcState, set: FgcSet | null, element: FgcTitleE
     const found = library.characters.find((item) => item.name.toLowerCase() === name.toLowerCase());
     // Same per-skin art the TSH scoreboards get (website/<code>_<skin>.png, or a local pack override).
     const code = found?.code || name.toLowerCase().replace(/[^a-z0-9]+/g, "");
-    return resolvePreview(fgc.assetBase, library.code, code, skin || 0);
+    // The pack has no art for this skin: show the layer's fallback instead of a broken image.
+    if (found?.skinList && !found.skinList.includes(skin || 0)) return element.src || "";
+    return resolvePreview(fgc.assetBase, library.code, code, skin || 0, library);
   }
   const name = element.bind === "p1.icon" ? set?.p1?.character : element.bind === "p2.icon" ? set?.p2?.character : "";
   if (name && library) return library.characters.find((item) => item.name === name)?.icon || element.src || "";

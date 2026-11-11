@@ -237,9 +237,10 @@ export function FgcRulesetEditor() {
 }
 
 function StageRow({ stage, game, base, selected, onClick }: { stage: FgcStage; game: string; base: string; selected: boolean; onClick: () => void }) {
+  const library = useFgcStore((s) => libraryFor(s.fgc));
   return (
     <button type="button" onClick={onClick} className={`flex w-full items-center gap-2 px-2 py-1 text-left text-sm hover:bg-surface-2 ${selected ? "bg-surface-2" : ""}`}>
-      <img src={resolveStage(base, game, stage.code)} alt="" className="h-6 w-10 rounded bg-black object-cover" />
+      <img src={resolveStage(base, game, stage.code, library?.code === game ? library : null)} alt="" className="h-6 w-10 rounded bg-black object-cover" />
       <span className="truncate">{stage.name}</span>
     </button>
   );
