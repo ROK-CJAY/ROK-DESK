@@ -11,8 +11,11 @@ import { checkImage, pngComplete, retryDelay, safeAssetPath, sniffImage, TSH_RAW
 export type AssetResult = { path: string; status: "saved" | "cached" | "missing" | "failed"; reason?: string };
 
 export function assetRoot(): string {
-  const data = (typeof process !== "undefined" ? process.env.ROK_DATA_DIR?.trim() : "") || path.join(process.cwd(), "data");
-  return path.join(data, "fgc-assets");
+  // Desktop sets ROK_DATA_DIR to the PGLite folder (userData/pgdata); keep assets beside it, not
+  // inside the database directory.
+  const db = typeof process !== "undefined" ? process.env.ROK_DATA_DIR?.trim() : "";
+  if (db) return path.join(path.dirname(db), "fgc-assets");
+  return path.join(process.cwd(), "data", "fgc-assets");
 }
 
 function localPath(rel: string): string | null {

@@ -47,7 +47,8 @@ test("asset paths cannot escape the cache", () => {
 
 test("server download retries transient failures and writes atomically", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "rok-assets-"));
-  process.env.ROK_DATA_DIR = dir;
+  // Desktop points ROK_DATA_DIR at the PGLite folder; assets live beside it.
+  process.env.ROK_DATA_DIR = path.join(dir, "pgdata");
   const { downloadAssets, readAsset } = await import("../src/lib/fgc-asset-store.ts");
   let calls = 0;
   const fetcher = async (url) => {
