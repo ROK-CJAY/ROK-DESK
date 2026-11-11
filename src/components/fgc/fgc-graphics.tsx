@@ -2,13 +2,15 @@ import { useEffect, type ReactNode } from "react";
 import { stageIconUrl } from "@/lib/fgc-assets";
 import { libraryFor, playerLabel, type FgcPlayer, type FgcSet, type FgcState } from "@/lib/fgc-types";
 import { cleanSpeech } from "@/lib/fgc-settings";
+import { withLosers } from "@/lib/fgc-set-merge";
 import { useFgcStore } from "@/lib/fgc-store";
 import { FgcHud } from "@/components/overlays/fgc-hud";
 import { liveSet, type FgcOverlayId } from "@/lib/fgc-titles";
 import { RokTop8 } from "@/components/fgc/rok-top8";
 
-function tag(fgc: FgcState, player: FgcPlayer | null) {
-  return cleanSpeech(playerLabel(player), fgc.settings.profanity);
+function tag(fgc: FgcState, player: FgcPlayer | null, set?: FgcSet | null, side?: "p1" | "p2") {
+  const name = cleanSpeech(playerLabel(player), fgc.settings.profanity);
+  return set && side ? withLosers(name, set, side) : name;
 }
 
 function useLiveFgc() {
@@ -75,14 +77,14 @@ function versusMode(id: string, game: string) {
   return "smash";
 }
 
-function PlayerSide({ fgc, player, align }: { fgc: FgcState; player: FgcPlayer | null; align: "left" | "right" }) {
+function PlayerSide({ fgc, player, align, set }: { fgc: FgcState; player: FgcPlayer | null; align: "left" | "right"; set?: FgcSet | null }) {
   const icon = characterIcon(fgc, player?.character || "");
   const right = align === "right";
   return (
     <div className={right ? "text-right" : "text-left"}>
       {icon ? <img src={icon} alt="" className={`mb-4 h-40 w-40 object-contain ${right ? "ml-auto" : ""}`} /> : null}
       <p className="font-mono text-lg tracking-wide text-white/70 uppercase">{cleanSpeech([player?.flag, player?.prefix].filter(Boolean).join(" "), fgc.settings.profanity)}</p>
-      <p className="font-display text-6xl leading-none font-semibold uppercase">{tag(fgc, player)}</p>
+      <p className="font-display text-6xl leading-none font-semibold uppercase">{tag(fgc, player, set, align === "left" ? "p1" : "p2")}</p>
       <p className="mt-3 font-mono text-xl tracking-wide text-white/80 uppercase">{cleanSpeech(player?.character || "Player", fgc.settings.profanity)}</p>
     </div>
   );
@@ -96,8 +98,8 @@ function Versus({ id }: { id: string }) {
   if (mode === "tekken") {
     return (
       <div className="relative grid h-full grid-cols-2">
-        <div className="flex items-end bg-black/55 p-12"><PlayerSide fgc={fgc} player={set?.p1 ?? null} align="left" /></div>
-        <div className="flex items-end justify-end bg-red-950/40 p-12"><PlayerSide fgc={fgc} player={set?.p2 ?? null} align="right" /></div>
+        <div className="flex items-end bg-black/55 p-12"><PlayerSide fgc={fgc} set={set} player={set?.p1 ?? null} align="left" /></div>
+        <div className="flex items-end justify-end bg-red-950/40 p-12"><PlayerSide fgc={fgc} set={set} player={set?.p2 ?? null} align="right" /></div>
         <p className="absolute top-10 left-1/2 -translate-x-1/2 font-mono text-sm tracking-[0.28em] text-white/80 uppercase">{meta || "Tekken"}</p>
       </div>
     );
@@ -105,20 +107,20 @@ function Versus({ id }: { id: string }) {
   if (mode === "pokken") {
     return (
       <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center px-16">
-        <PlayerSide fgc={fgc} player={set?.p1 ?? null} align="left" />
+        <PlayerSide fgc={fgc} set={set} player={set?.p1 ?? null} align="left" />
         <p className="font-display px-8 text-7xl font-semibold">VS</p>
-        <PlayerSide fgc={fgc} player={set?.p2 ?? null} align="right" />
+        <PlayerSide fgc={fgc} set={set} player={set?.p2 ?? null} align="right" />
       </div>
     );
   }
   return (
     <div className="grid h-full grid-cols-[1fr_auto_1fr] items-center gap-8 px-16">
-      <PlayerSide fgc={fgc} player={set?.p1 ?? null} align="left" />
+      <PlayerSide fgc={fgc} set={set} player={set?.p1 ?? null} align="left" />
       <div className="text-center">
         <p className="font-mono text-sm tracking-[0.28em] text-white/70 uppercase">{meta || "Versus"}</p>
         <p className="font-display mt-3 text-8xl font-semibold">VS</p>
       </div>
-      <PlayerSide fgc={fgc} player={set?.p2 ?? null} align="right" />
+      <PlayerSide fgc={fgc} set={set} player={set?.p2 ?? null} align="right" />
     </div>
   );
 }
@@ -126,17 +128,17 @@ function Versus({ id }: { id: string }) {
 function Scoreboard({ style }: { style: "simple" | "topleft" | "4by3" }) {
   const fgc = useLiveFgc();
   const set = liveSet(fgc);
-  const row = (player: FgcPlayer | null, score: number) => (
+  const row = (player: FgcPlayer | null, score: number, side: "p1" | "p2") => (
     <div className="flex items-center justify-between gap-6">
-      <span className="truncate font-display text-3xl font-semibold uppercase">{tag(fgc, player)}</span>
+      <span className="truncate font-display text-3xl font-semibold uppercase">{tag(fgc, player, set, side)}</span>
       <span className="font-display text-4xl font-semibold tabular-nums">{score}</span>
     </div>
   );
   const body = (
     <Plate className="grid gap-2 px-5 py-3">
       <p className="font-mono text-[0.65rem] tracking-[0.2em] text-white/60 uppercase">{[set?.phase, set?.round, set?.stage].filter(Boolean).join(" · ") || fgc.event?.game || "Scoreboard"}</p>
-      {row(set?.p1 ?? null, set?.score1 ?? 0)}
-      {row(set?.p2 ?? null, set?.score2 ?? 0)}
+      {row(set?.p1 ?? null, set?.score1 ?? 0, "p1")}
+      {row(set?.p2 ?? null, set?.score2 ?? 0, "p2")}
     </Plate>
   );
   if (style === "topleft") return <div className="p-8">{body}</div>;
@@ -177,8 +179,8 @@ function Bracket({ ultimate }: { ultimate: boolean }) {
                 <div className="grid gap-2">
                   {rows.slice(0, 8).map((set) => (
                     <Plate key={set.id} className="px-2 py-1.5 text-sm">
-                      <p className="truncate uppercase">{tag(fgc, set.p1)} <span className="text-white/40">{set.score1}</span></p>
-                      <p className="truncate uppercase">{tag(fgc, set.p2)} <span className="text-white/40">{set.score2}</span></p>
+                      <p className="truncate uppercase">{tag(fgc, set.p1, set, "p1")} <span className="text-white/40">{set.score1}</span></p>
+                      <p className="truncate uppercase">{tag(fgc, set.p2, set, "p2")} <span className="text-white/40">{set.score2}</span></p>
                     </Plate>
                   ))}
                 </div>
@@ -222,7 +224,7 @@ function SetList({ count, title }: { count: number; title: string }) {
       {rows.map((set) => (
         <Plate key={set.id} className="flex items-center justify-between px-4 py-2">
           <span className="font-mono text-xs tracking-wide text-white/50 uppercase">{[set.phase, set.round].filter(Boolean).join(" · ")}</span>
-          <span className="font-display text-2xl font-semibold uppercase">{tag(fgc, set.p1)} {set.score1} – {set.score2} {tag(fgc, set.p2)}</span>
+          <span className="font-display text-2xl font-semibold uppercase">{tag(fgc, set.p1, set, "p1")} {set.score1} – {set.score2} {tag(fgc, set.p2, set, "p2")}</span>
         </Plate>
       ))}
     </div>
@@ -321,7 +323,7 @@ function Queue() {
       {shown.map((set, index) => (
         <Plate key={set.id} className="flex items-center gap-4 px-4 py-2">
           <span className="font-display text-2xl text-white/40">{index + 1}</span>
-          <span className="font-display text-2xl font-semibold uppercase">{tag(fgc, set.p1)} vs {tag(fgc, set.p2)}</span>
+          <span className="font-display text-2xl font-semibold uppercase">{tag(fgc, set.p1, set, "p1")} vs {tag(fgc, set.p2, set, "p2")}</span>
           <span className="ml-auto font-mono text-xs text-white/50 uppercase">{[set.phase, set.round].filter(Boolean).join(" · ")}</span>
         </Plate>
       ))}
@@ -401,8 +403,8 @@ function UltimateBoard() {
       </div>
       <div className="absolute bottom-5 left-5 h-40 w-72 border-[3px] bg-transparent" style={{ borderColor: fgc.settings.team1 }} />
       <div className="absolute right-5 bottom-5 h-40 w-72 border-[3px] bg-transparent" style={{ borderColor: fgc.settings.team2 }} />
-      <UltimateFeet fgc={fgc} player={set?.p1 ?? null} side="left" />
-      <UltimateFeet fgc={fgc} player={set?.p2 ?? null} side="right" />
+      <UltimateFeet fgc={fgc} set={set} player={set?.p1 ?? null} side="left" />
+      <UltimateFeet fgc={fgc} set={set} player={set?.p2 ?? null} side="right" />
       <img src={fgc.event?.icon || "/overlays/rok-wordmark.png"} alt="" className="absolute bottom-6 left-1/2 h-24 max-w-xs -translate-x-1/2 object-contain" />
     </div>
   );
@@ -434,12 +436,12 @@ function UltimateSide({ fgc, player, score, losers, side }: { fgc: FgcState; pla
   );
 }
 
-function UltimateFeet({ fgc, player, side }: { fgc: FgcState; player: FgcPlayer | null; side: "left" | "right" }) {
+function UltimateFeet({ fgc, player, side, set }: { fgc: FgcState; player: FgcPlayer | null; side: "left" | "right"; set?: FgcSet | null }) {
   const icon = characterIcon(fgc, player?.character || "");
   return (
     <div className={`absolute bottom-6 flex items-end gap-2 ${side === "left" ? "left-[19.5rem]" : "right-[19.5rem] flex-row-reverse"}`}>
       {icon ? <img src={icon} alt="" className="h-20 w-20 object-contain" /> : null}
-      <div className="bg-black px-3 py-1 font-display text-lg font-semibold uppercase">{tag(fgc, player)}</div>
+      <div className="bg-black px-3 py-1 font-display text-lg font-semibold uppercase">{tag(fgc, player, set, side === "left" ? "p1" : "p2")}</div>
     </div>
   );
 }

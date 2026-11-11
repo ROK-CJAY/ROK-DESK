@@ -1,6 +1,7 @@
 import { resolvePreview, titleImageObjectUrl } from "@/lib/fgc-assets";
 import { overlayPin, resolveLane, setForBoard, streamIdOf, streamTabs, withPin } from "@/lib/fgc-lanes";
 import { cleanSpeech } from "@/lib/fgc-settings";
+import { losersSuffix, withLosers } from "@/lib/fgc-set-merge";
 import { libraryFor, playerLabel, streamSetOf, type FgcOverlayId, type FgcSet, type FgcState, type FgcTitle, type FgcTitleElement, type FgcTitleLayer } from "@/lib/fgc-types";
 
 export function tshLayoutHref(file: string) {
@@ -69,6 +70,8 @@ export const TITLE_BINDS = [
   { id: "p2.region", label: "P2 state" },
   { id: "p1.twitter", label: "P1 Twitter" },
   { id: "p2.twitter", label: "P2 Twitter" },
+  { id: "p1.losers", label: "P1 losers (L)" },
+  { id: "p2.losers", label: "P2 losers (L)" },
   { id: "p1.seed", label: "P1 seed" },
   { id: "p2.seed", label: "P2 seed" },
   { id: "round", label: "Round" },
@@ -236,8 +239,10 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
   const p2 = set?.p2;
   const show = fgc.settings.show;
   const value: Record<string, string> = {
-    "p1.name": playerLabel(p1 ?? null),
-    "p2.name": playerLabel(p2 ?? null),
+    "p1.name": withLosers(playerLabel(p1 ?? null), set, "p1"),
+    "p2.name": withLosers(playerLabel(p2 ?? null), set, "p2"),
+    "p1.losers": losersSuffix(set, "p1").trim(),
+    "p2.losers": losersSuffix(set, "p2").trim(),
     "p1.score": String(set?.score1 ?? 0),
     "p2.score": String(set?.score2 ?? 0),
     score: set ? `${set.score1} – ${set.score2}` : "VS",
@@ -245,8 +250,8 @@ export function titleText(fgc: FgcState, set: FgcSet | null, bind: string, fallb
     "p2.character": show.characters ? p2?.character || "" : "",
     "p1.sponsor": p1?.prefix || "",
     "p2.sponsor": p2?.prefix || "",
-    "p1.sponsorName": [p1?.prefix, p1?.tag].map((part) => part?.trim()).filter(Boolean).join(" | "),
-    "p2.sponsorName": [p2?.prefix, p2?.tag].map((part) => part?.trim()).filter(Boolean).join(" | "),
+    "p1.sponsorName": withLosers([p1?.prefix, p1?.tag].map((part) => part?.trim()).filter(Boolean).join(" | "), set, "p1"),
+    "p2.sponsorName": withLosers([p2?.prefix, p2?.tag].map((part) => part?.trim()).filter(Boolean).join(" | "), set, "p2"),
     "p1.realName": show.realName ? p1?.realName || "" : "",
     "p2.realName": show.realName ? p2?.realName || "" : "",
     "p1.flag": show.location ? p1?.flag || "" : "",

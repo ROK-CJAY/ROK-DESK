@@ -5,6 +5,7 @@ import { applyLane, applyStartggStreamNames, boardForStreamName, boardsForStream
 import { type StreamQueueRow } from "@/lib/startgg";
 import { startggAuthBody } from "@/lib/startgg-link";
 import { sourceFolders } from "@/lib/fgc-titles";
+import { mergeImportedSet } from "@/lib/fgc-set-merge";
 import { rokDesktop } from "@/lib/rok-desktop";
 
 const KEY = "rok-fgc";
@@ -332,7 +333,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
             p1b: applySaved(align(set.p1b, event.game), get().players, settings.keepCharacters),
             p2b: applySaved(align(set.p2b, event.game), get().players, settings.keepCharacters),
           };
-          return settings.autoScore || !previousSet ? next : { ...next, score1: previousSet.score1, score2: previousSet.score2 };
+          return mergeImportedSet(next, previousSet, { keepScores: !settings.autoScore });
         });
         playersIn.push(...sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
         const live = sets.find((set) => set.state === "live");

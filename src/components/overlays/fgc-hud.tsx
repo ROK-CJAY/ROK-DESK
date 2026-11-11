@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { playerLabel, streamSetOf } from "@/lib/fgc-types";
 import { useFgcStore } from "@/lib/fgc-store";
+import { withLosers } from "@/lib/fgc-set-merge";
 
 function Side({
   name,
@@ -41,7 +42,7 @@ export function FgcHud() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-transparent text-white">
       <div className="absolute right-10 bottom-8 left-10 flex items-end justify-between gap-8">
-        <Side name={playerLabel(p1)} meta={meta(p1)} align="left" />
+        <Side name={withLosers(playerLabel(p1), set, "p1")} meta={meta(p1)} align="left" />
         <div className="mb-1 shrink-0 text-center">
           <p className="font-mono text-xs tracking-[0.28em] text-white/70 uppercase">
             {[event?.game, set?.phase, set?.round, set?.stage, set?.bestOf ? `Bo${set.bestOf}` : ""].filter(Boolean).join(" · ") || "No set"}
@@ -50,7 +51,7 @@ export function FgcHud() {
             {set ? `${set.score1} – ${set.score2}` : "VS"}
           </p>
         </div>
-        <Side name={playerLabel(p2)} meta={meta(p2)} align="right" />
+        <Side name={withLosers(playerLabel(p2), set, "p2")} meta={meta(p2)} align="right" />
       </div>
     </div>
   );
