@@ -279,7 +279,8 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
   const grand = lower.includes("grand final");
   const reset = lower.includes("reset");
   return {
-    id: raw.id,
+    // start.gg sends numeric ids; everything else (boards, stream queue, TO) compares strings.
+    id: String(raw.id),
     phase,
     group,
     round,

@@ -45,3 +45,9 @@ test("poll backoff: 15 s, doubles on errors to 60 s, 60 s on rate limit", () => 
   assert.ok(isRateLimit("", 429));
   assert.ok(!isRateLimit("start.gg returned 500"));
 });
+
+test("imported start.gg set ids are strings so the stream pick matches them", async () => {
+  const fs = await import("node:fs");
+  const source = fs.readFileSync(new URL("../src/lib/startgg.ts", import.meta.url), "utf8");
+  assert.match(source, /id: String\(raw\.id\),/);
+});

@@ -347,7 +347,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         const priorActive = previous?.activeBoardId ?? (fgc.laneId === id ? fgc.activeBoardId : "main");
         const inheritedBestOf = currentBestOf(priorSets, priorBoards.find((board) => board.id === priorActive)?.setId ?? previous?.streamSetId ?? null);
         const sets = pack.sets!.map((set) => {
-          const previousSet = priorSets.find((item) => item.id === set.id);
+          const previousSet = priorSets.find((item) => String(item.id) === set.id);
           const next = {
             ...set,
             p1: applySaved(align(set.p1, event.game), get().players, settings.keepCharacters),
@@ -360,7 +360,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         playersIn.push(...sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
         const live = sets.find((set) => set.state === "live");
         const named = applyStartggStreamNames(previous?.boards ?? [], pack.streams ?? []);
-        const boards = boardsForStreams(named, [...new Set(sets.map((set) => set.streamName).filter(Boolean))], previous?.streamSetId ?? null);
+        const boards = boardsForStreams(named, [...new Set(sets.map((set) => set.streamName).filter(Boolean))], previous?.streamSetId == null ? null : String(previous.streamSetId)).map((board) => (board.setId == null ? board : { ...board, setId: String(board.setId) }));
         const activeBoardId = boards.some((board) => board.id === previous?.activeBoardId) ? previous?.activeBoardId || "main" : boards[0].id;
         let streamSetId = boards.find((board) => board.id === activeBoardId)?.setId ?? null;
         if (settings.autoSet && live && (activeBoardId === "main" || !streamSetId)) {
@@ -414,9 +414,9 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
     }
     if (!res.ok || !body.queue) throw new Error(body.error || "Could not read the stream queue");
     const byId = new Map(body.queue.map((row) => [row.id, row]));
-    const known = new Set(get().fgc.sets.map((set) => set.id));
+    const known = new Set(get().fgc.sets.map((set) => String(set.id)));
     const sets = get().fgc.sets.map((set) => {
-      const hit = byId.get(set.id);
+      const hit = byId.get(String(set.id));
       if (!hit) return { ...set, queued: false, queueOrder: 0 };
       return { ...set, queued: true, queueOrder: hit.order, streamName: hit.streamName || set.streamName };
     });
@@ -537,7 +537,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       const toBestOf = body.set ? await fetchToBestOf() : {};
       const fgc = get().fgc;
       const settings = fgc.settings;
-      const previous = fgc.sets.find((item) => item.id === body.setId) ?? null;
+      const previous = fgc.sets.find((item) => String(item.id) === body.setId) ?? null;
       let sets = fgc.sets;
       if (body.set) {
         const library = fgc.libraries.find((item) => item.game === fgc.event?.game) ?? fgc.libraries[0];
@@ -559,7 +559,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         const keepPick = (next: FgcPlayer | null, old: FgcPlayer | null | undefined) =>
           next && old && next.id === old.id && !next.character && old.character ? { ...next, character: old.character, skin: old.skin, character2: old.character2, skin2: old.skin2 } : next;
         const final = previous ? { ...merged, p1: keepPick(merged.p1, previous.p1), p2: keepPick(merged.p2, previous.p2) } : merged;
-        sets = previous ? fgc.sets.map((item) => (item.id === final.id ? final : item)) : [final, ...fgc.sets];
+        sets = previous ? fgc.sets.map((item) => (item === previous ? final : item)) : [final, ...fgc.sets];
       } else if (!previous) {
         return fail("Stream set is not in the imported list. Import again.");
       }
