@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { currentStreamSet, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callBeforeAssign, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
 import { isRateLimit } from "@/lib/startgg-stream";
-import { bindLive, clearLive, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
+import { bindLive, clearLive, readBestOf, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
 
 export const Route = createFileRoute("/api/startgg")({
   server: {
@@ -69,6 +69,9 @@ export const Route = createFileRoute("/api/startgg")({
             });
             return Response.json({ ok: true });
           }
+          if (body.action === "best-of") {
+            return Response.json({ bestOf: await readBestOf() });
+          }
           if (body.action === "rulesets") {
             const rulesets = await startggRulesets();
             return Response.json({ rulesets });
@@ -91,6 +94,7 @@ export const Route = createFileRoute("/api/startgg")({
               await callBeforeAssign(token, body.setId);
               await streamToSet(token, body.setId, body.streamId);
               if (body.stationId) await stationToSet(token, body.setId, body.stationId);
+              if (body.bestOf) await saveStationBestOf(body.setId, Number(body.bestOf));
             }
             if (body.action === "call-station" && body.stationId) {
               await callBeforeAssign(token, body.setId);

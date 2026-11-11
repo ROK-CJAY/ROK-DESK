@@ -133,7 +133,8 @@ function asBestOf(value: number): 1 | 3 | 5 | 7 {
   return value === 1 || value === 5 || value === 7 ? value : 3;
 }
 
-async function readBestOf(): Promise<Record<string, number>> {
+/** Best-of the TO desk saved per start.gg set id (Send to station / stream). */
+export async function readBestOf(): Promise<Record<string, number>> {
   const sql = await table();
   const rows = await sql<{ payload: string }>`select payload from fgc_state where id = ${BEST}`;
   if (!rows[0]) return {};

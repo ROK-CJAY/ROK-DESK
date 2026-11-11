@@ -1,3 +1,4 @@
+import { validBestOf } from "@/lib/fgc-set-merge";
 import { pickStreamSet, type LiveSetIn, type QueueIn } from "@/lib/startgg-stream";
 import { blankPlayer, flagOf, type FgcEvent, type FgcPlayer, type FgcSet, type FgcSetState } from "@/lib/fgc-types";
 
@@ -100,6 +101,7 @@ const EVENT_QUERY = `
 
 const SET_FIELDS = `
           id
+          bestOf
           fullRoundText
           round
           identifier
@@ -181,6 +183,7 @@ type RawSets = {
 
 type RawSet = {
   id: string;
+  bestOf?: number | null;
   fullRoundText?: string | null;
   round?: number | null;
   identifier?: string | null;
@@ -285,7 +288,8 @@ function normalizeSet(raw: RawSet, phase: string, group: string): FgcSet {
     station: raw.station?.number == null ? "" : String(raw.station.number),
     queued: false,
     queueOrder: 0,
-    bestOf: 3,
+    // start.gg's own best-of when the TO set one; ROK Desk's merge decides what actually shows.
+    bestOf: validBestOf(raw.bestOf) || 3,
     stage: "",
     losers1: grand && reset,
     losers2: grand,

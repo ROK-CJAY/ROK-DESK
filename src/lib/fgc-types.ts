@@ -170,6 +170,8 @@ export type FgcSet = {
   queued: boolean;
   queueOrder?: number;
   bestOf: number;
+  /** Who chose bestOf: "to" = saved by the TO desk, "manual" = typed on the scoreboard. Unset = carried / default. */
+  bestOfSet?: "to" | "manual";
   stage: string;
   playersPerTeam: number;
   charactersPerPlayer: number;

@@ -5,7 +5,7 @@ import { applyLane, applyStartggStreamNames, boardForStreamName, boardsForStream
 import { type StreamQueueRow } from "@/lib/startgg";
 import { startggAuthBody } from "@/lib/startgg-link";
 import { sourceFolders } from "@/lib/fgc-titles";
-import { mergeImportedSet } from "@/lib/fgc-set-merge";
+import { carryBestOf, currentBestOf, mergeImportedSet } from "@/lib/fgc-set-merge";
 import { rokDesktop } from "@/lib/rok-desktop";
 
 const KEY = "rok-fgc";
@@ -90,6 +90,18 @@ type FgcStore = {
   pullLanes: () => Promise<void>;
   pullProgram: () => Promise<void>;
 };
+
+/** Best-of the TO desk saved per set (local server, no start.gg call). Empty when unavailable. */
+async function fetchToBestOf(): Promise<Record<string, number>> {
+  try {
+    const res = await fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "best-of" }) });
+    if (!res.ok) return {};
+    const body = (await res.json()) as { bestOf?: Record<string, number> };
+    return body.bestOf && typeof body.bestOf === "object" ? body.bestOf : {};
+  } catch {
+    return {};
+  }
+}
 
 function rememberPlayers(existing: SavedPlayer[], incoming: (FgcPlayer | null)[], keep: boolean): SavedPlayer[] {
   const next = [...existing];
@@ -323,6 +335,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         const found = library.characters.find((item) => item.name.toLowerCase() === player.character.toLowerCase());
         return found ? { ...player, character: found.name } : player;
       };
+      const toBestOf = await fetchToBestOf();
       let fgc = stampLanes(get().fgc);
       const playersIn: (FgcPlayer | null)[] = [];
       for (const pack of packs) {
@@ -330,6 +343,9 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         const id = laneIdOf(event);
         const previous = fgc.lanes[id];
         const priorSets = previous?.sets ?? (fgc.laneId === id ? fgc.sets : []);
+        const priorBoards = previous?.boards ?? (fgc.laneId === id ? fgc.boards : []);
+        const priorActive = previous?.activeBoardId ?? (fgc.laneId === id ? fgc.activeBoardId : "main");
+        const inheritedBestOf = currentBestOf(priorSets, priorBoards.find((board) => board.id === priorActive)?.setId ?? previous?.streamSetId ?? null);
         const sets = pack.sets!.map((set) => {
           const previousSet = priorSets.find((item) => item.id === set.id);
           const next = {
@@ -339,7 +355,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
             p1b: applySaved(align(set.p1b, event.game), get().players, settings.keepCharacters),
             p2b: applySaved(align(set.p2b, event.game), get().players, settings.keepCharacters),
           };
-          return mergeImportedSet(next, previousSet, { keepScores: !settings.autoScore });
+          return mergeImportedSet(next, previousSet, { keepScores: !settings.autoScore, toBestOf, inheritedBestOf });
         });
         playersIn.push(...sets.flatMap((set) => [set.p1, set.p2, set.p1b, set.p2b]));
         const live = sets.find((set) => set.state === "live");
@@ -350,7 +366,12 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         if (settings.autoSet && live && (activeBoardId === "main" || !streamSetId)) {
           streamSetId = live.id;
           const index = boards.findIndex((board) => board.id === activeBoardId);
-          if (index >= 0) boards[index] = { ...boards[index], setId: live.id };
+          if (index >= 0) {
+            const before = sets.find((item) => item.id === boards[index].setId);
+            boards[index] = { ...boards[index], setId: live.id };
+            const at = sets.findIndex((item) => item.id === live.id);
+            if (at >= 0 && before && before.id !== live.id) sets[at] = carryBestOf(sets[at], before);
+          }
         }
         const lane = {
           ...(previous ?? emptyLane(id, event, fgc.casters)),
@@ -423,6 +444,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   selectSet: (id) => {
     const players = get().players;
     const keepCharacters = get().fgc.settings.keepCharacters;
+    const activeBoard = (get().fgc.boards || []).find((board) => board.id === (get().fgc.activeBoardId || "main"));
+    const before = get().fgc.sets.find((item) => item.id === (activeBoard?.setId ?? get().fgc.streamSetId)) ?? null;
     const boards = (get().fgc.boards?.length ? get().fgc.boards : [defaultBoard(id)]).map((board) => board.id === (get().fgc.activeBoardId || "main") ? { ...board, setId: id } : board);
     const fgc = {
       ...get().fgc,
@@ -431,7 +454,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       sets: get().fgc.sets.map((set) => {
         if (set.id !== id) return set;
         return {
-          ...set,
+          ...(before && before.id !== id ? carryBestOf(set, before) : set),
           p1: applySaved(set.p1, players, keepCharacters),
           p2: applySaved(set.p2, players, keepCharacters),
           p1b: applySaved(set.p1b, players, keepCharacters),
@@ -445,7 +468,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
   patchSet: (id, partial) => {
     const fgc = {
       ...get().fgc,
-      sets: get().fgc.sets.map((set) => (set.id === id ? { ...set, ...partial } : set)),
+      sets: get().fgc.sets.map((set) => (set.id === id ? { ...set, ...partial, ...("bestOf" in partial && !("bestOfSet" in partial) ? { bestOfSet: "manual" as const } : {}) } : set)),
     };
     write(fgc);
     set({ fgc });
@@ -511,6 +534,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         if (!auto) set({ error: streamName ? `start.gg has no set on ${streamName}` : "No set is marked on stream" });
         return { ok: true };
       }
+      const toBestOf = body.set ? await fetchToBestOf() : {};
       const fgc = get().fgc;
       const settings = fgc.settings;
       const previous = fgc.sets.find((item) => item.id === body.setId) ?? null;
@@ -530,7 +554,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
           p1b: applySaved(align(body.set.p1b), players, settings.keepCharacters),
           p2b: applySaved(align(body.set.p2b), players, settings.keepCharacters),
         };
-        const merged = mergeImportedSet(previous ? { ...incoming, queued: previous.queued || incoming.queued, queueOrder: previous.queueOrder } : incoming, previous, { keepScores: !settings.autoScore });
+        const merged = mergeImportedSet(previous ? { ...incoming, queued: previous.queued || incoming.queued, queueOrder: previous.queueOrder } : incoming, previous, { keepScores: !settings.autoScore, toBestOf, inheritedBestOf: currentBestOf(fgc.sets, board?.setId ?? fgc.streamSetId) });
         // Keep characters picked on the desk when start.gg has none yet.
         const keepPick = (next: FgcPlayer | null, old: FgcPlayer | null | undefined) =>
           next && old && next.id === old.id && !next.character && old.character ? { ...next, character: old.character, skin: old.skin, character2: old.character2, skin2: old.skin2 } : next;
@@ -548,6 +572,8 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
         return { ...item, lastStreamPick: id, setId: follow ? id : item.setId };
       });
       const activeSet = boards.find((item) => item.id === activeId)?.setId ?? fgc.streamSetId;
+      const before = board?.setId ? sets.find((item) => item.id === board.setId) : null;
+      if (activeSet && before && before.id !== activeSet) sets = sets.map((item) => (item.id === activeSet ? carryBestOf(item, before) : item));
       const next = { ...fgc, sets, boards, streamSetId: activeSet };
       if (JSON.stringify(next.sets) === JSON.stringify(fgc.sets) && JSON.stringify(next.boards) === JSON.stringify(fgc.boards) && next.streamSetId === fgc.streamSetId) return { ok: true };
       write(next);
@@ -865,7 +891,7 @@ export const useFgcStore = create<FgcStore>((set, get) => ({
       endAt: "",
     }, current.casters);
     const sets = existing.sets.some((item) => item.id === match.id)
-      ? existing.sets.map((item) => item.id === match.id ? { ...item, ...match, p1: match.p1 ?? item.p1, p2: match.p2 ?? item.p2 } : item)
+      ? existing.sets.map((item) => item.id === match.id ? { ...item, ...match, p1: match.p1 ?? item.p1, p2: match.p2 ?? item.p2, losers1: item.losers1 || match.losers1, losers2: item.losers2 || match.losers2 } : item)
       : [...existing.sets, match];
     const boards = boardsForStreams(existing.boards, [streamName], existing.streamSetId);
     const board = boardForStreamName(boards, streamName) ?? boards[0];

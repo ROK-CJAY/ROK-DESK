@@ -653,7 +653,7 @@ function StationFloor({
                   </select>
                   <Button size="sm" variant="secondary" disabled={!sendStream || busy.startsWith(set.id)} onClick={() => {
                     const stream = board.streams.find((item) => item.id === sendStream);
-                    if (stream) void onAct(set, "call-stream", { streamId: stream.id, stationId: stream.stationId });
+                    if (stream) void onAct(set, "call-stream", { streamId: stream.id, stationId: stream.stationId, bestOf: cardBest });
                   }}>Send</Button>
                 </span>
               </label>
@@ -734,7 +734,7 @@ function StationFloor({
                   const next = board.sets.find((item) => item.id === queuedSet);
                   if (!next) return;
                   setStationId("");
-                  if (spot.streamId) void onAct(next, "call-stream", { streamId: spot.streamId, stationId: spot.stationId });
+                  if (spot.streamId) void onAct(next, "call-stream", { streamId: spot.streamId, stationId: spot.stationId, bestOf: stationBest });
                   else void onAct(next, "call-station", { stationId: spot.stationId, bestOf: stationBest });
                 }}
               >
@@ -761,7 +761,8 @@ function StationFloor({
                       round: next.round,
                       group: next.group,
                       identifier: next.identifier,
-                      bestOf: next.bestOf || 3,
+                      bestOf: stationBest,
+                      bestOfSet: "to",
                       score1: next.score1,
                       score2: next.score2,
                       stage: next.stage,
@@ -771,7 +772,7 @@ function StationFloor({
                     },
                   });
                   setStationId("");
-                  void onAct(next, "call-stream", { streamId: stream.id, stationId: stream.stationId });
+                  void onAct(next, "call-stream", { streamId: stream.id, stationId: stream.stationId, bestOf: stationBest });
                 }}
               >
                 Send to stream
