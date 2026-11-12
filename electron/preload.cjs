@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld("rokDesk", {
   connectHost: (address) => ipcRenderer.invoke("rok:connect-host", address),
   connectionInfo: () => ipcRenderer.invoke("rok:connection-info"),
   chooseConnection: () => ipcRenderer.invoke("rok:choose-connection"),
+  startggLogin: () => ipcRenderer.invoke("rok:startgg-login"),
+  startggRefresh: (refreshToken) => ipcRenderer.invoke("rok:startgg-refresh", refreshToken),
+  onStartggLogin: (cb) => {
+    const listener = (_event, payload) => cb(payload);
+    ipcRenderer.on("rok:startgg-login", listener);
+    return () => ipcRenderer.removeListener("rok:startgg-login", listener);
+  },
   browserAttach: (bounds) => ipcRenderer.send("rok:browser-attach", bounds),
   browserDetach: () => ipcRenderer.send("rok:browser-detach"),
   browserLoad: (url, opts) => ipcRenderer.send("rok:browser-load", url, opts || {}),

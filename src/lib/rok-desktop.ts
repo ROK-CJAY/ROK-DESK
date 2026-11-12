@@ -62,6 +62,10 @@ export type RokDeskBridge = {
   connectHost?: (address: string) => Promise<{ ok: boolean; error?: string }>;
   connectionInfo?: () => Promise<{ mode: "host" | "client"; origin: string } | null>;
   chooseConnection?: () => Promise<boolean>;
+  /** Client-safe start.gg login through a one-time 127.0.0.1 listener on this PC. */
+  startggLogin?: () => Promise<{ ok: boolean; error?: string }>;
+  startggRefresh?: (refreshToken: string) => Promise<{ ok: true; login: { accessToken: string; refreshToken: string; expiresAt: number } } | { ok: false; error?: string }>;
+  onStartggLogin?: (cb: (payload: { ok: true; accessToken: string; refreshToken: string; expiresAt: number } | { ok: false; reason?: string }) => void) => () => void;
   browserAttach: (bounds: BrowserBounds) => void;
   browserDetach: () => void;
   browserLoad: (url: string, opts?: { restore?: boolean }) => void;

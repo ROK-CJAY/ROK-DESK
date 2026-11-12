@@ -32,6 +32,7 @@ import { ensureSourcesRoot, openSources, writeSourceFiles } from "./sources.mjs"
 import { initUpdater } from "./updater.mjs";
 import { createRequire } from "node:module";
 import { createFgcHotkeys, trustedFgcSender } from "./fgc-hotkeys.mjs";
+import { refreshViaWebsite, startLoopbackLogin } from "./startgg-loopback.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 8080;
@@ -606,6 +607,33 @@ if (!gotLock) {
     ipcMain.handle("rok:sources-root", () => ensureSourcesRoot());
     ipcMain.handle("rok:sources-write", (_event, groups) => writeSourceFiles(groups));
     ipcMain.handle("rok:sources-open", (_event, dir) => openSources(dir));
+    // start.gg login on this PC (clients load pages from the host, so the website cannot send the
+    // login back to the page). One loopback listener at a time; tokens go only to the asking window.
+    let pendingLogin = null;
+    const deskSender = (event) => isDeskUrl(event.senderFrame?.url || event.sender.getURL());
+    ipcMain.handle("rok:startgg-login", async (event) => {
+      if (!deskSender(event)) return { ok: false, error: "Untrusted sender." };
+      pendingLogin?.close();
+      let login;
+      try {
+        login = await startLoopbackLogin();
+      } catch {
+        return { ok: false, error: "Could not open a local login port." };
+      }
+      pendingLogin = login;
+      const sender = event.sender;
+      void login.done.then((result) => {
+        if (pendingLogin === login) pendingLogin = null;
+        if (sender.isDestroyed()) return;
+        sender.send("rok:startgg-login", result.ok ? { ok: true, ...result.login } : { ok: false, reason: result.reason });
+      });
+      void shell.openExternal(login.loginUrl);
+      return { ok: true };
+    });
+    ipcMain.handle("rok:startgg-refresh", async (event, refreshToken) => {
+      if (!deskSender(event)) return { ok: false, error: "Untrusted sender." };
+      return refreshViaWebsite(typeof refreshToken === "string" ? refreshToken : "");
+    });
     ipcMain.handle("rok:connection-info", () => {
       const saved = readConnection();
       if (!saved) return null;
