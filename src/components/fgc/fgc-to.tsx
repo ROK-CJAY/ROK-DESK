@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { readToRefresh, readToToken, readToEvent, writeToEvent, writeToSession, clearToSession } from "@/lib/startgg-link";
 import { rokDesktop } from "@/lib/rok-desktop";
 import { PUBLIC_SIGNUP_ORIGIN } from "@/lib/remote-signup-code";
+import { autoBindsTablets } from "@/lib/startgg-guard";
 import type { ToBoard, ToSet, ToTournament, ToUser } from "@/lib/startgg-to";
 import { BracketBoard } from "@/components/fgc/fgc-bracket";
 import { blankPlayer, blankSet } from "@/lib/fgc-types";
@@ -68,6 +69,15 @@ export function FgcTournamentDesk() {
   const [copied, setCopied] = useState(false);
   const [picked, setPicked] = useState("");
   const [now, setNow] = useState(() => Date.now());
+  // host = this PC runs the desk, client = pages come from a host on the LAN, web = a plain browser.
+  const [mode, setMode] = useState<"host" | "client" | "web" | null>(null);
+  const [tablets, setTablets] = useState<{ bound: boolean; account: string; slug: string } | null>(null);
+  const [pasted, setPasted] = useState("");
+  const [waiting, setWaiting] = useState(false);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const userRef = useRef<ToUser | null>(null);
+  userRef.current = user;
 
   const loadAccount = async (next: string) => {
     setBusy("account");
@@ -99,12 +109,19 @@ export function FgcTournamentDesk() {
     try {
       const next = (await toApi({ action: "board", token: auth, slug })) as ToBoard;
       setBoard(next);
-      const session = readToRefresh();
-      void fetch("/api/startgg", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action: "bind-live", slug, token: auth, refreshToken: session.refreshToken, expiresAt: session.expiresAt }),
-      }).catch(() => undefined);
+      // Only the host's own window binds the strike-tablet login automatically. A client keeps its
+      // login to itself unless it presses "Use my login for strike tablets".
+      if (autoBindsTablets(window.location, modeRef.current ?? "web", PUBLIC_SIGNUP_ORIGIN)) {
+        const session = readToRefresh();
+        const account = userRef.current?.tag || userRef.current?.name || "";
+        void fetch("/api/startgg", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "bind-live", slug, token: auth, refreshToken: session.refreshToken, expiresAt: session.expiresAt, account }),
+        }).then(() => loadTablets()).catch(() => undefined);
+      } else if (!quiet) {
+        void loadTablets();
+      }
       if (!quiet) setPicked((current) => next.sets.some((set) => set.id === current) ? current : "");
       setScores((current) => {
         const incoming = Object.fromEntries(next.sets.map((set) => [set.id, {
@@ -151,6 +168,19 @@ export function FgcTournamentDesk() {
   }, []);
 
   useEffect(() => {
+    const desktop = rokDesktop();
+    if (!desktop) {
+      setMode("web");
+      return;
+    }
+    if (!desktop.connectionInfo) {
+      setMode("host");
+      return;
+    }
+    void desktop.connectionInfo().then((info) => setMode(info?.mode === "client" ? "client" : "host")).catch(() => setMode("host"));
+  }, []);
+
+  useEffect(() => {
     const hash = new URLSearchParams(window.location.hash.slice(1));
     const fromHash = hash.get("access_token") || "";
     if (fromHash) {
@@ -160,9 +190,20 @@ export function FgcTournamentDesk() {
     }
     const saved = readToToken();
     if (saved) void loadAccount(saved);
-    const host = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" ? PUBLIC_SIGNUP_ORIGIN : window.location.origin;
+    // Any desktop app (host or client) asks the ROK Desk website, which holds the start.gg app.
+    const loopbackPage = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+    const host = rokDesktop() || loopbackPage ? PUBLIC_SIGNUP_ORIGIN : window.location.origin;
     void fetch(`${host}/api/startgg-oauth?op=ready`).then((res) => res.json()).then((body: { ready?: boolean }) => setReady(Boolean(body.ready))).catch(() => setReady(false));
+    // login is restored once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The host's own desk picks up the login its system browser handed to the local server. Clients
+  // never ask: that login belongs to the host (and the host refuses non-loopback requests anyway).
+  useEffect(() => {
     if (!rokDesktop()) return;
+    const loopbackPage = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+    if (mode !== "host" && !loopbackPage) return;
     const timer = window.setInterval(() => {
       void fetch("/api/startgg-oauth?op=session").then((res) => res.json()).then((body: { accessToken?: string; refreshToken?: string; expiresAt?: number }) => {
         if (!body.accessToken || body.accessToken === readToToken()) return;
@@ -171,9 +212,109 @@ export function FgcTournamentDesk() {
       }).catch(() => undefined);
     }, 1500);
     return () => window.clearInterval(timer);
-    // login is restored once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  // Client PCs: the login arrives from this PC's own loopback listener (main process), never the host.
+  useEffect(() => {
+    const desktop = rokDesktop();
+    if (!desktop?.onStartggLogin) return;
+    return desktop.onStartggLogin((payload) => {
+      setWaiting(false);
+      if (!payload.ok) {
+        setError(payload.reason === "timeout" ? "The start.gg login timed out. Press Log in again." : "The start.gg login was not finished.");
+        return;
+      }
+      writeToSession(payload.accessToken, payload.refreshToken, payload.expiresAt);
+      void loadAccount(payload.accessToken);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keep the login fresh through the website (it holds the app secret). If that fails, sign out.
+  const expireLogin = (message: string) => {
+    clearToSession();
+    setToken("");
+    setUser(null);
+    setTournaments([]);
+    setBoard(null);
+    setEventSlug("");
+    setError(message);
+  };
+  const refreshing = useRef(false);
+  const refreshLogin = async () => {
+    const current = readToToken();
+    const { refreshToken, expiresAt } = readToRefresh();
+    if (!current || !expiresAt || refreshing.current) return;
+    if (expiresAt - Date.now() > 5 * 60_000) return;
+    const desktop = rokDesktop();
+    refreshing.current = true;
+    try {
+      let next: { accessToken: string; refreshToken: string; expiresAt: number } | null = null;
+      if (refreshToken && desktop?.startggRefresh) {
+        const result = await desktop.startggRefresh(refreshToken);
+        if (result.ok) next = result.login;
+      } else if (refreshToken && window.location.origin === PUBLIC_SIGNUP_ORIGIN) {
+        const res = await fetch("/api/startgg-oauth?op=refresh", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ refreshToken }) });
+        const body = (await res.json().catch(() => ({}))) as { accessToken?: string; refreshToken?: string; expiresAt?: number };
+        if (res.ok && body.accessToken) next = { accessToken: body.accessToken, refreshToken: body.refreshToken || refreshToken, expiresAt: body.expiresAt || Date.now() + 3600_000 };
+      }
+      if (next) {
+        writeToSession(next.accessToken, next.refreshToken, next.expiresAt);
+        setToken(next.accessToken);
+        return;
+      }
+      if (expiresAt <= Date.now()) expireLogin("Your start.gg login expired. Log in again.");
+    } catch {
+      if (expiresAt <= Date.now()) expireLogin("Your start.gg login expired. Log in again.");
+    } finally {
+      refreshing.current = false;
+    }
+  };
+  const refreshLoginRef = useRef(refreshLogin);
+  refreshLoginRef.current = refreshLogin;
+  useEffect(() => {
+    void refreshLoginRef.current();
+    const timer = window.setInterval(() => void refreshLoginRef.current(), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const loadTablets = async () => {
+    try {
+      const res = await fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "live-who" }) });
+      if (res.ok) setTablets((await res.json()) as { bound: boolean; account: string; slug: string });
+    } catch {
+      // The board still works without the tablet line.
+    }
+  };
+
+  const lendTabletLogin = async () => {
+    if (!eventSlug || !token) return;
+    const account = user?.tag || user?.name || "this account";
+    const ok = window.confirm(`Strike tablets on this desk will report results to start.gg as ${account} (your login). The host and other clients keep their own logins. Continue?`);
+    if (!ok) return;
+    const session = readToRefresh();
+    try {
+      const res = await fetch("/api/startgg", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action: "bind-live", explicit: true, slug: eventSlug, token, refreshToken: session.refreshToken, expiresAt: session.expiresAt, account }),
+      });
+      if (!res.ok) throw new Error("no");
+      await loadTablets();
+    } catch {
+      setError("Could not hand the strike tablets your login.");
+    }
+  };
+
+  const applyPasted = () => {
+    const next = pasted.trim();
+    if (!next) return;
+    // A personal API token from start.gg developer settings: no refresh, kept on this PC only.
+    writeToSession(next, "", 0);
+    setPasted("");
+    void loadAccount(next);
+  };
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -181,7 +322,20 @@ export function FgcTournamentDesk() {
   }, []);
 
   const login = () => {
-    const desktop = Boolean(rokDesktop());
+    const bridge = rokDesktop();
+    if (bridge && mode === "client" && bridge.startggLogin) {
+      // Client PC: this PC's own loopback listener receives the login; the host never sees it.
+      setError("");
+      setWaiting(true);
+      void bridge.startggLogin().then((result) => {
+        if (!result.ok) {
+          setWaiting(false);
+          setError(result.error || "Could not start the start.gg login.");
+        }
+      });
+      return;
+    }
+    const desktop = Boolean(bridge);
     const back = desktop ? `${window.location.origin}/api/startgg-oauth?op=land` : `${window.location.origin}/fgc/tournament`;
     const host = desktop || window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" ? PUBLIC_SIGNUP_ORIGIN : window.location.origin;
     window.location.assign(`${host}/api/startgg-oauth?op=start&return=${encodeURIComponent(back)}`);
@@ -236,8 +390,15 @@ export function FgcTournamentDesk() {
 
   const logout = () => {
     clearToSession();
-    void fetch("/api/startgg-oauth?op=logout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-    void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "unbind-live" }) }).catch(() => undefined);
+    const mine = user?.tag || user?.name || "";
+    if (autoBindsTablets(window.location, mode ?? "web", PUBLIC_SIGNUP_ORIGIN)) {
+      void fetch("/api/startgg-oauth?op=logout", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "unbind-live" }) }).catch(() => undefined);
+    } else if (tablets?.bound && mine && tablets.account === mine) {
+      // A client that lent its login to the tablets takes it back when it logs out.
+      void fetch("/api/startgg", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "unbind-live", explicit: true }) }).catch(() => undefined);
+    }
+    setTablets(null);
     setToken("");
     setUser(null);
     setTournaments([]);
@@ -263,8 +424,18 @@ export function FgcTournamentDesk() {
             <p className="text-sm text-muted">
               Use the start.gg account that runs the event. You only see upcoming tournaments that account is allowed to manage. Finished ones stay off the list.
             </p>
-            <Button disabled={ready !== true || busy === "account"} onClick={login}>{busy === "account" ? "Connecting" : "Log in with start.gg"}</Button>
-            {ready === false ? <p className="text-sm text-muted">Log in is not turned on yet. The ROK Desk host still needs the start.gg app id and secret.</p> : null}
+            <Button disabled={ready !== true || busy === "account" || waiting} onClick={login}>{busy === "account" ? "Connecting" : waiting ? "Finish in your browser" : "Log in with start.gg"}</Button>
+            {waiting ? <p className="text-sm text-muted">Your browser opened start.gg. Sign in there; this PC receives the login directly, not the host.</p> : null}
+            {mode === "client" ? <p className="text-xs text-muted">This PC is a client. Your start.gg login stays on this PC and only your actions use it.</p> : null}
+            {ready === false ? <p className="text-sm text-muted">Log in is not turned on yet. The ROK Desk website still needs the start.gg app id and secret.</p> : null}
+            <details className="text-sm">
+              <summary className="cursor-pointer text-muted">Use a start.gg API token instead</summary>
+              <p className="mt-2 text-xs text-muted">Create a personal token in start.gg → Developer settings. It stays on this PC. It does not refresh; paste a new one when it stops working.</p>
+              <div className="mt-2 flex gap-2">
+                <Input type="password" autoComplete="off" value={pasted} onChange={(e) => setPasted(e.target.value)} placeholder="start.gg API token" aria-label="start.gg API token" />
+                <Button variant="secondary" disabled={!pasted.trim() || busy === "account"} onClick={applyPasted}>Use token</Button>
+              </div>
+            </details>
             {error ? <p className="text-sm text-live">{error}</p> : null}
           </section>
         ) : (
@@ -323,6 +494,14 @@ export function FgcTournamentDesk() {
               ) : null}
               <Button variant="outline" disabled={!eventSlug || busy === "board"} onClick={() => void loadBoard(eventSlug)}>Refresh</Button>
               <Button variant="ghost" onClick={logout}>Log out</Button>
+              {eventSlug ? (
+                <div className="flex w-full flex-wrap items-center gap-3 text-xs text-muted">
+                  <span>Tablets use: {tablets?.bound ? tablets.account || "an unnamed login" : "nobody yet"}{tablets?.bound && tablets.slug && tablets.slug !== eventSlug ? " (another event)" : ""}</span>
+                  {mode === "client" && !(tablets?.bound && tablets.account === (user.tag || user.name) && tablets.slug === eventSlug) ? (
+                    <Button size="sm" variant="outline" onClick={() => void lendTabletLogin()}>Use my login for strike tablets</Button>
+                  ) : null}
+                </div>
+              ) : null}
               {error ? <p className="w-full text-sm text-live">{error}</p> : null}
             </section>
             {!board ? (
