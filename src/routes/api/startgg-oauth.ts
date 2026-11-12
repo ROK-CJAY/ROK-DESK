@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PUBLIC_SIGNUP_ORIGIN } from "@/lib/remote-signup-code";
+import { getRequestIP } from "@tanstack/react-start/server";
+import { fromThisPc } from "@/lib/startgg-guard";
 import {
   OAUTH_LAND_HTML,
   clearDeskLogin,
@@ -14,9 +16,17 @@ import {
 
 const noStore = { "cache-control": "no-store" };
 
+function peerIp(): string | undefined {
+  try {
+    return getRequestIP();
+  } catch {
+    return undefined;
+  }
+}
+
+/** The host's own window on this PC (URL and socket peer), never a client on the LAN. */
 function loopback(request: Request): boolean {
-  const host = new URL(request.url).hostname;
-  return host === "127.0.0.1" || host === "localhost";
+  return fromThisPc(request.url, peerIp());
 }
 
 export const Route = createFileRoute("/api/startgg-oauth")({
@@ -30,6 +40,8 @@ export const Route = createFileRoute("/api/startgg-oauth")({
         }
         if (op === "land") return new Response(OAUTH_LAND_HTML, { headers: { "content-type": "text/html; charset=utf-8", ...noStore } });
         if (op === "session") {
+          // The host's own login: never hand it to another PC on the network.
+          if (!loopback(request)) return Response.json({ accessToken: "" }, { status: 403, headers: noStore });
           const login = readDeskLogin();
           return Response.json(login ?? { accessToken: "" }, { headers: noStore });
         }
@@ -76,6 +88,7 @@ export const Route = createFileRoute("/api/startgg-oauth")({
           }
         }
         if (op === "logout") {
+          if (!loopback(request)) return Response.json({ error: "Not allowed." }, { status: 403, headers: noStore });
           clearDeskLogin();
           return Response.json({ ok: true }, { headers: noStore });
         }

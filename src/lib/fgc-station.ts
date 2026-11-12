@@ -10,7 +10,7 @@ const BOARD = "to-board";
 const BEST = "to-bestof";
 const BOARD_MS = 8000;
 
-type ToLive = { slug: string; token: string; refreshToken: string; expiresAt: number };
+type ToLive = { slug: string; token: string; refreshToken: string; expiresAt: number; account?: string };
 
 export type StationView = {
   station: { id: string; name: string } | null;
@@ -68,11 +68,17 @@ async function writeLive(live: ToLive | null) {
   `;
 }
 
-export async function bindLive(slug: string, token: string, refreshToken: string, expiresAt: number) {
+export async function bindLive(slug: string, token: string, refreshToken: string, expiresAt: number, account = "") {
   const next = slug.trim();
   const access = token.trim();
   if (!next || !access) throw new Error("Open an event on the tournament desk first.");
-  await writeLive({ slug: next, token: access, refreshToken: refreshToken.trim(), expiresAt: expiresAt || Date.now() + 3600_000 });
+  await writeLive({ slug: next, token: access, refreshToken: refreshToken.trim(), expiresAt: expiresAt || Date.now() + 3600_000, account: account.trim().slice(0, 80) });
+}
+
+/** Which start.gg account the strike tablets report with (never the token). */
+export async function liveAccount(): Promise<{ bound: boolean; account: string; slug: string }> {
+  const live = await readLive();
+  return live ? { bound: true, account: live.account || "", slug: live.slug } : { bound: false, account: "", slug: "" };
 }
 
 export async function clearLive() {

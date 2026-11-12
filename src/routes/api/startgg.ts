@@ -1,7 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { currentStreamSetId, eventStandings, eventStreamQueue, importStartggLink, searchStartggPlayers, startggRulesets, stockIcons, tournamentIcon } from "@/lib/startgg";
 import { beginToSet, callBeforeAssign, callToSet, loadToAccount, loadToBoard, matchStageId, reportCatalog, reportToSet, stationToSet, streamToSet } from "@/lib/startgg-to";
-import { bindLive, clearLive, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
+import { bindLive, clearLive, liveAccount, reportStation, saveStationBestOf, stationView } from "@/lib/fgc-station";
+import { getRequestIP } from "@tanstack/react-start/server";
+import { mayBindTablets } from "@/lib/startgg-guard";
+
+function peerIp(): string | undefined {
+  try {
+    return getRequestIP();
+  } catch {
+    return undefined;
+  }
+}
 
 export const Route = createFileRoute("/api/startgg")({
   server: {
@@ -26,6 +36,8 @@ export const Route = createFileRoute("/api/startgg")({
           stage?: string;
           refreshToken?: string;
           expiresAt?: number;
+          account?: string;
+          explicit?: boolean;
           stageId?: string;
           entrant1?: string;
           entrant2?: string;
@@ -42,13 +54,20 @@ export const Route = createFileRoute("/api/startgg")({
         }
         const token = body.token?.trim() || undefined;
         try {
+          // Strike tablets report with ONE login kept on the host. The host's own window binds it
+          // automatically; a client only by pressing "Use my login for strike tablets".
           if (body.action === "bind-live") {
-            await bindLive(body.slug?.trim() || "", token || "", body.refreshToken || "", Number(body.expiresAt) || 0);
+            if (!mayBindTablets(request.url, peerIp(), body.explicit)) return Response.json({ error: "Only the host binds the strike tablets automatically." }, { status: 403 });
+            await bindLive(body.slug?.trim() || "", token || "", body.refreshToken || "", Number(body.expiresAt) || 0, body.account || "");
             return Response.json({ ok: true });
           }
           if (body.action === "unbind-live") {
+            if (!mayBindTablets(request.url, peerIp(), body.explicit)) return Response.json({ error: "Only the host clears the strike tablet login." }, { status: 403 });
             await clearLive();
             return Response.json({ ok: true });
+          }
+          if (body.action === "live-who") {
+            return Response.json(await liveAccount());
           }
           if (body.action === "station") {
             if (!body.stationId) return Response.json({ error: "Missing station." }, { status: 400 });
